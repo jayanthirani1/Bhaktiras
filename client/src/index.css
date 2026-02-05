@@ -1,0 +1,85 @@
+/* Woolwich Temple theme – matches sksswoolwich.org (vue-sksswoolwich) */
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Woolwich Temple palette from vue-sksswoolwich */
+  --golden: 47 97% 55%;           /* #FCC71D – Primary Gold */
+  --temple-red: 4 97% 31%;       /* #9b0d02 – Accent Red */
+  --golden-50: 47 100% 97%;      /* #fffbeb – cream background */
+  --golden-100: 48 97% 89%;
+  --golden-500: 47 97% 55%;
+  --golden-900: 32 95% 25%;
+
+  /* Theme variables (used by components) */
+  --background: 47 100% 97%;    /* Cream, matches golden-50 */
+  --foreground: 24 10% 15%;      /* Dark brown/black text */
+
+  --card: 0 0% 100%;
+  --card-foreground: 24 10% 15%;
+
+  --popover: 0 0% 100%;
+  --popover-foreground: 24 10% 15%;
+
+  --primary: 47 97% 55%;        /* Woolwich gold #FCC71D */
+  --primary-foreground: 24 10% 10%;
+
+  --secondary: 48 97% 89%;      /* Light golden */
+  --secondary-foreground: 32 95% 25%;
+
+  --muted: 47 30% 92%;
+  --muted-foreground: 24 10% 40%;
+
+  --accent: 4 97% 31%;          /* Temple red */
+  --accent-foreground: 0 0% 98%;
+
+  --destructive: 4 97% 31%;
+  --destructive-foreground: 0 0% 98%;
+
+  --border: 47 25% 88%;
+  --input: 47 25% 88%;
+  --ring: 47 97% 55%;
+
+  --radius: 0.75rem;
+
+  --font-sans: 'Inter', sans-serif;
+  --font-display: 'Playfair Display', serif;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    @apply font-semibold tracking-tight text-foreground;
+  }
+}
+
+@layer utilities {
+  .text-golden {
+    color: hsl(var(--golden));
+  }
+  .bg-golden {
+    background-color: hsl(var(--golden));
+  }
+  .text-temple-red {
+    color: hsl(var(--temple-red));
+  }
+  .bg-temple-red {
+    background-color: hsl(var(--temple-red));
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+  .hover-lift {
+    @apply transition-transform duration-300 ease-out hover:-translate-y-1 hover:shadow-lg;
+  }
+}
