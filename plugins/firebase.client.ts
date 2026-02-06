@@ -3,13 +3,13 @@ import { getFirestore } from 'firebase/firestore'
 import { getAuth, onAuthStateChanged } from 'firebase/auth'
 import type { User } from 'firebase/auth'
 
-export default defineNuxtPlugin(() => {
+export default defineNuxtPlugin((nuxtApp) => {
   const config = useRuntimeConfig().public
   const projectId = config.firebaseProjectId || (import.meta.env?.NUXT_PUBLIC_FIREBASE_PROJECT_ID as string) || ''
   const apiKey = config.firebaseApiKey || (import.meta.env?.NUXT_PUBLIC_FIREBASE_API_KEY as string) || ''
 
-  const user = useState<User | null>('auth-user', () => null)
-  const loading = useState<boolean>('auth-loading', () => true)
+  const user = ref<User | null>(null)
+  const loading = ref(true)
 
   if (!projectId || !apiKey) {
     if (import.meta.dev) {
@@ -19,6 +19,8 @@ export default defineNuxtPlugin(() => {
     }
     user.value = null
     loading.value = false
+    nuxtApp.provide('authUser', user)
+    nuxtApp.provide('authLoading', loading)
     return { provide: { firebaseDb: null, firebaseAuth: null } }
   }
 
@@ -50,6 +52,9 @@ export default defineNuxtPlugin(() => {
       }
     })
   }
+
+  nuxtApp.provide('authUser', user)
+  nuxtApp.provide('authLoading', loading)
 
   return {
     provide: { firebaseDb: db, firebaseAuth: auth },

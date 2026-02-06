@@ -1,3 +1,4 @@
+import type { Ref } from 'vue'
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -8,12 +9,13 @@ import {
 } from 'firebase/auth'
 
 export function useAuth() {
-  const user = useState<User | null>('auth-user', () => null)
-  const loading = useState<boolean>('auth-loading', () => true)
+  const nuxtApp = useNuxtApp()
+  const user = (nuxtApp.$authUser as Ref<User | null>) ?? ref<User | null>(null)
+  const loading = (nuxtApp.$authLoading as Ref<boolean>) ?? ref(true)
 
   function getAuth() {
     if (import.meta.server) return null
-    return useNuxtApp().$firebaseAuth as ReturnType<typeof import('firebase/auth')['getAuth']> | null
+    return nuxtApp.$firebaseAuth as ReturnType<typeof import('firebase/auth')['getAuth']> | null
   }
 
   async function signIn(email: string, password: string) {
