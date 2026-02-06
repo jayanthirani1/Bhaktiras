@@ -1,11 +1,15 @@
 import { initializeApp } from 'firebase/app'
 import { getFirestore } from 'firebase/firestore'
-import { getAuth } from 'firebase/auth'
+import { getAuth, onAuthStateChanged } from 'firebase/auth'
+import type { User } from 'firebase/auth'
 
 export default defineNuxtPlugin(() => {
   const config = useRuntimeConfig().public
   const projectId = config.firebaseProjectId || (import.meta.env?.NUXT_PUBLIC_FIREBASE_PROJECT_ID as string) || ''
   const apiKey = config.firebaseApiKey || (import.meta.env?.NUXT_PUBLIC_FIREBASE_API_KEY as string) || ''
+
+  const user = useState<User | null>('auth-user', () => null)
+  const loading = useState<boolean>('auth-loading', () => true)
 
   if (!projectId || !apiKey) {
     if (import.meta.dev) {
@@ -13,6 +17,8 @@ export default defineNuxtPlugin(() => {
         '[Firebase] Config missing. Check .env has NUXT_PUBLIC_FIREBASE_PROJECT_ID and NUXT_PUBLIC_FIREBASE_API_KEY (no quotes). Restart dev server after editing .env.'
       )
     }
+    user.value = null
+    loading.value = false
     return { provide: { firebaseDb: null, firebaseAuth: null } }
   }
 
@@ -30,10 +36,26 @@ export default defineNuxtPlugin(() => {
   if (import.meta.dev) {
     console.log('[Firebase] Connected to project:', projectId)
   }
+
+  const unsubscribe = onAuthStateChanged(auth, (u) => {
+    user.value = u
+    loading.value = false
+  })
+  const fallback = setTimeout(() => { loading.value = false }, 2000)
+
+  if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        user.value = auth.currentUser
+      }
+    })
+  }
+
   return {
-    provide: {
-      firebaseDb: db,
-      firebaseAuth: auth
+    provide: { firebaseDb: db, firebaseAuth: auth },
+    close: () => {
+      clearTimeout(fallback)
+      unsubscribe()
     }
   }
 })

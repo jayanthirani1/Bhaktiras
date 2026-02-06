@@ -218,7 +218,7 @@ const submittingScore = ref(false)
 const wordleStats = useWordleStats()
 const auth = useAuth()
 const leaderboard = useWordleLeaderboard()
-const isLoggedIn = computed(() => auth.isLoggedIn.value)
+const isLoggedIn = computed(() => !!auth.user)
 
 const isWin = computed(() => guesses.value.length > 0 && guesses.value[guesses.value.length - 1] === solution.value)
 const isLose = computed(() => !isWin.value && guesses.value.length >= ROWS)

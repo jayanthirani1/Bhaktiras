@@ -4,36 +4,17 @@ import {
   signInWithPopup,
   GoogleAuthProvider,
   signOut as firebaseSignOut,
-  onAuthStateChanged,
   type User
 } from 'firebase/auth'
 
 export function useAuth() {
-  const user = ref<User | null>(null)
-  const loading = ref(true)
+  const user = useState<User | null>('auth-user', () => null)
+  const loading = useState<boolean>('auth-loading', () => true)
 
   function getAuth() {
     if (import.meta.server) return null
     return useNuxtApp().$firebaseAuth as ReturnType<typeof import('firebase/auth')['getAuth']> | null
   }
-
-  onMounted(() => {
-    const auth = getAuth()
-    if (!auth) {
-      loading.value = false
-      return
-    }
-    const unsubscribe = onAuthStateChanged(auth, (u) => {
-      user.value = u
-      loading.value = false
-    })
-    // Fallback: if Firebase doesn't fire within 2s, stop loading so nav still shows Sign in
-    const fallback = setTimeout(() => { loading.value = false }, 2000)
-    onUnmounted(() => {
-      clearTimeout(fallback)
-      unsubscribe()
-    })
-  })
 
   async function signIn(email: string, password: string) {
     const auth = getAuth()
@@ -55,6 +36,7 @@ export function useAuth() {
   }
 
   async function signOut() {
+    user.value = null
     const auth = getAuth()
     if (!auth) return
     await firebaseSignOut(auth)

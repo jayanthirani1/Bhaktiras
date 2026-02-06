@@ -32,7 +32,7 @@
           v-else
           type="button"
           class="flex flex-col items-center justify-center space-y-0.5 p-2 rounded-xl transition-colors min-w-0 flex-1 text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]"
-          @click="auth.signOut(); navigateTo('/')"
+          @click="handleSignOut"
         >
           <IconLogout class="w-5 h-5 shrink-0" />
           <span class="text-[10px] font-medium">Sign out</span>
@@ -79,7 +79,7 @@
             <button
               type="button"
               class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-[hsl(var(--muted-foreground))] hover:bg-stone-100"
-              @click="auth.signOut(); navigateTo('/')"
+              @click="handleSignOut"
             >
               <IconLogout class="w-4 h-4" />
               Sign out
@@ -120,5 +120,10 @@ const navItems = [
 function isActive(href: string) {
   if (href === '/') return route.path === '/'
   return route.path.startsWith(href)
+}
+
+async function handleSignOut() {
+  await auth.signOut()
+  await navigateTo('/login')
 }
 </script>

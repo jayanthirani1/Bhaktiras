@@ -30,6 +30,17 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Verify Firebase secrets
+        env:
+          NUXT_PUBLIC_FIREBASE_API_KEY: ${{ secrets.NUXT_PUBLIC_FIREBASE_API_KEY }}
+          NUXT_PUBLIC_FIREBASE_PROJECT_ID: ${{ secrets.NUXT_PUBLIC_FIREBASE_PROJECT_ID }}
+        run: |
+          if [ -z "$NUXT_PUBLIC_FIREBASE_API_KEY" ] || [ -z "$NUXT_PUBLIC_FIREBASE_PROJECT_ID" ]; then
+            echo "::error::Firebase secrets are missing or empty. Add NUXT_PUBLIC_FIREBASE_* secrets in repo Settings."
+            exit 1
+          fi
+          echo "Firebase config verified (secrets present)"
+
       - name: Build (Nuxt generate)
         env:
           NUXT_PUBLIC_FIREBASE_API_KEY: ${{ secrets.NUXT_PUBLIC_FIREBASE_API_KEY }}
