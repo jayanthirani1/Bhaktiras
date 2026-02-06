@@ -1,0 +1,21 @@
+{
+  "name": "bhaktiras-nuxt",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview"
+  },
+  "dependencies": {
+    "@tabler/icons-vue": "^3.21.0",
+    "firebase": "^11.0.2",
+    "nuxt": "^3.14.0",
+    "vue": "^3.5.12"
+  },
+  "devDependencies": {
+    "@nuxtjs/tailwindcss": "^6.12.2",
+    "typescript": "^5.6.3"
+  }
+}
