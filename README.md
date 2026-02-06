@@ -95,6 +95,22 @@ The app is configured to deploy as a **static site** to [Firebase Hosting](https
 
 No server or Blaze plan is required; Auth and Firestore run from the client.
 
+### Deploy via GitHub (Actions)
+
+A workflow in `.github/workflows/firebase-hosting.yml` builds and deploys on push to `main`. Add these **repository secrets** (Settings → Secrets and variables → Actions):
+
+| Secret | Value |
+|--------|--------|
+| `FIREBASE_TOKEN` | From `firebase login:ci` (run locally, paste the token) |
+| `NUXT_PUBLIC_FIREBASE_API_KEY` | Same as in your `.env` |
+| `NUXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | Same as in your `.env` |
+| `NUXT_PUBLIC_FIREBASE_PROJECT_ID` | Same as in your `.env` |
+| `NUXT_PUBLIC_FIREBASE_STORAGE_BUCKET` | Same as in your `.env` |
+| `NUXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | Same as in your `.env` |
+| `NUXT_PUBLIC_FIREBASE_APP_ID` | Same as in your `.env` |
+
+The workflow runs `nuxt generate` with those env vars (so they’re baked into the build), then deploys to Firebase Hosting. No `.env` file is used in GitHub; everything comes from secrets.
+
 ## Project structure
 
 - `app.vue` – Root layout with navigation
