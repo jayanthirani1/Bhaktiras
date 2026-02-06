@@ -76,19 +76,24 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-## Deploy (e.g. Netlify)
+## Deploy on Firebase Hosting
 
-1. Build: `npm run build`
-2. Deploy the output (e.g. `.output/public` for static, or use the Nitro server).
-3. In Netlify (or your host), set the same `NUXT_PUBLIC_FIREBASE_*` environment variables so the client can connect to Firestore.
+The app is configured to deploy as a **static site** to [Firebase Hosting](https://firebase.google.com/docs/hosting) (same project as your Firestore/Auth).
 
-For **static export** (no Node server):
+1. **Install Firebase CLI** (one-time):
+   ```bash
+   npm install -g firebase-tools
+   firebase login
+   ```
+2. **Build and deploy**:
+   ```bash
+   npm run deploy
+   ```
+   This runs `nuxt generate` (static export to `.output/public`) then `firebase deploy --only hosting`. Your site will be at `https://skssw-bhaktiras.web.app` (or your project’s URL).
 
-```bash
-npm run generate
-```
+**Config:** `firebase.json` and `.firebaserc` point at project `skssw-bhaktiras`. To use another project, run `firebase use <project-id>` or edit `.firebaserc`.
 
-Then deploy the `dist/` (or configured output) folder. All data is read/written from the browser to Firebase, so no API server is needed.
+No server or Blaze plan is required; Auth and Firestore run from the client.
 
 ## Project structure
 
