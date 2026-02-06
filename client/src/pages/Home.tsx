@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 
 const menuItems = [
-  { id: "journey", title: "Journey", desc: "10 Years of Grace", icon: MapPin, color: "bg-orange-100 text-orange-600", href: "/journey" },
+  { id: "journey", title: "Journey", desc: "36 Years of Grace", icon: MapPin, color: "bg-orange-100 text-orange-600", href: "/journey" },
   { id: "events", title: "Events", desc: "Celebration Schedule", icon: Calendar, color: "bg-blue-100 text-blue-600", href: "/events" },
   { id: "community", title: "Community", desc: "Wall of Gratitude", icon: Users, color: "bg-rose-100 text-rose-600", href: "/community" },
   { id: "darshan", title: "Darshan", desc: "Live Streaming", icon: Video, color: "bg-purple-100 text-purple-600", href: "/darshan" },

@@ -83,13 +83,13 @@ export class MemStorage implements IStorage {
   async seedData() {
     if (this.timeline.length > 0) return;
 
-    // Timeline
+    // Timeline – Shree KS Swaminarayan Temple Woolwich (sksswoolwich.org)
     const timelineData = [
-      { year: "2016", title: "Foundation Stone", description: "The first stone was laid, marking the beginning of our spiritual home." },
-      { year: "2018", title: "Grand Opening", description: "Pran Pratishtha ceremony attended by thousands of devotees." },
-      { year: "2020", title: "Digital Satsang", description: "Transitioned to online community gatherings during global challenges." },
-      { year: "2023", title: "Youth Wing Expansion", description: "Launched new programs for the next generation of leaders." },
-      { year: "2026", title: "10th Anniversary", description: "Celebrating a decade of devotion, service, and community." }
+      { year: "1988", title: "Foundation", description: "Shree KS Swaminarayan Temple Woolwich was established, laying the foundation for decades of devotion and community in Woolwich." },
+      { year: "1990s", title: "Growing Community", description: "The temple became a spiritual home for devotees across London and the South East, with regular sabhas, festivals, and youth activities." },
+      { year: "2017", title: "Bal Swaroop Ghanshyam Maharaj", description: "The sacred murti of Bal Swaroop Ghanshyam Maharaj was consecrated, bringing the divine child form of Bhagwan Swaminarayan to the mandir." },
+      { year: "2020", title: "Digital Darshan", description: "During global challenges, the temple embraced online sabhas and live darshan so devotees could stay connected from home." },
+      { year: "2024", title: "36 Years of Grace", description: "Patotsav 2024 celebrated 36 years of Woolwich Temple and the 7th annual Patotsav of Bal Swaroop Ghanshyam Maharaj—Rakshabandhan, abhishek, and festivities with the community." }
     ];
     timelineData.forEach(item => {
         this.timeline.push({ ...item, id: this.idCounter.timeline++, imageUrl: null });

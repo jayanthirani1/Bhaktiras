@@ -1,6 +1,7 @@
 import { PageHeader } from "@/components/PageHeader";
 import { useTimeline } from "@/hooks/use-mandir";
 import { motion } from "framer-motion";
+import { ExternalLink } from "lucide-react";
 
 export default function Journey() {
   const { data: timeline, isLoading, error } = useTimeline();
@@ -11,10 +12,22 @@ export default function Journey() {
   return (
     <div className="min-h-screen bg-stone-50 pb-24 pt-8 md:pt-12 px-4">
       <div className="max-w-4xl mx-auto">
-        <PageHeader 
-          title="Our Journey" 
-          subtitle="Tracing the footsteps of devotion that led us to this momentous milestone." 
+        <PageHeader
+          title="Our Journey"
+          subtitle="Milestones of Shree KS Swaminarayan Temple Woolwich—from foundation to 36 years of devotion and community."
         />
+
+        <p className="text-center text-muted-foreground text-sm mb-10">
+          <a
+            href="https://www.sksswoolwich.org/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-primary hover:underline font-medium"
+          >
+            sksswoolwich.org
+            <ExternalLink className="w-3.5 h-3.5" />
+          </a>
+        </p>
 
         <div className="relative mt-12">
           {/* Vertical Line */}
