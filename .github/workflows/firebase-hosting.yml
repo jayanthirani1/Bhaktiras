@@ -14,6 +14,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Ensure build artifacts not committed
+        run: |
+          if git ls-files .nuxt .output 2>/dev/null | grep -q .; then
+            echo "::error::.nuxt or .output must not be committed—they can expose API keys. Add them to .gitignore."
+            exit 1
+          fi
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
