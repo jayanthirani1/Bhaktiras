@@ -1,7 +1,7 @@
 import { Link } from "wouter";
 import { PageHeader } from "@/components/PageHeader";
 import { motion } from "framer-motion";
-import { Grid3X3, Brain, Type } from "lucide-react";
+import { Grid3X3, Brain, Type, Hexagon } from "lucide-react";
 import { ArrowRight } from "lucide-react";
 
 const games = [
@@ -32,6 +32,15 @@ const games = [
     color: "from-emerald-500/20 to-teal-600/20 border-emerald-200/60 hover:border-emerald-400",
     iconBg: "bg-emerald-100 text-emerald-700",
   },
+  {
+    slug: "spelling-bee",
+    title: "Spelling Bee",
+    description: "Make words from the hive. Every word must use the center letter.",
+    icon: Hexagon,
+    href: "/play/spelling-bee",
+    color: "from-amber-500/20 to-orange-600/20 border-amber-200/60 hover:border-amber-400",
+    iconBg: "bg-amber-100 text-amber-700",
+  },
 ];
 
 const container = {
@@ -53,7 +62,7 @@ export default function PlayIndex() {
       <div className="max-w-3xl mx-auto">
         <PageHeader
           title="Play"
-          subtitle="Choose a game to enjoy—crossword, quiz, or wordle."
+          subtitle="Choose a game to enjoy—crossword, quiz, wordle, or spelling bee."
         />
 
         <motion.div

@@ -17,6 +17,7 @@ import PlayIndex from "@/pages/PlayIndex";
 import PlayQuiz from "@/pages/PlayQuiz";
 import PlayCrossword from "@/pages/PlayCrossword";
 import PlayWordle from "@/pages/PlayWordle";
+import PlaySpellingBee from "@/pages/PlaySpellingBee";
 import Legacy from "@/pages/Legacy";
 import NotFound from "@/pages/not-found";
 
@@ -38,6 +39,7 @@ function Router() {
           <Route path="/play/quiz" component={PlayQuiz} />
           <Route path="/play/crossword" component={PlayCrossword} />
           <Route path="/play/wordle" component={PlayWordle} />
+          <Route path="/play/spelling-bee" component={PlaySpellingBee} />
           <Route path="/legacy" component={Legacy} />
           <Route component={NotFound} />
         </Switch>

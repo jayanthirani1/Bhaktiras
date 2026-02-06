@@ -16,7 +16,7 @@ const menuItems = [
   { id: "community", title: "Community", desc: "Wall of Gratitude", icon: Users, color: "bg-rose-100 text-rose-600", href: "/community" },
   { id: "darshan", title: "Darshan", desc: "Live Streaming", icon: Video, color: "bg-purple-100 text-purple-600", href: "/darshan" },
   { id: "seva", title: "Seva", desc: "Volunteer Roles", icon: Hand, color: "bg-green-100 text-green-600", href: "/seva" },
-  { id: "play", title: "Play", desc: "Devotional Quiz", icon: Gamepad2, color: "bg-yellow-100 text-yellow-600", href: "/play" },
+  { id: "play", title: "Play", desc: "Quiz, Wordle, Spelling Bee & more", icon: Gamepad2, color: "bg-yellow-100 text-yellow-600", href: "/play" },
   { id: "legacy", title: "Legacy", desc: "Time Capsule", icon: Clock, color: "bg-indigo-100 text-indigo-600", href: "/legacy" },
 ];
 

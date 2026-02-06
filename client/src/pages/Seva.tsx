@@ -1,85 +1,48 @@
 import { PageHeader } from "@/components/PageHeader";
-import { useVolunteerRoles, useVolunteerSignUp } from "@/hooks/use-mandir";
-import { motion } from "framer-motion";
-import { Hand, Clock, CheckCircle2, Loader2 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { Hand } from "lucide-react";
 
 export default function Seva() {
-  const { data: roles, isLoading } = useVolunteerRoles();
-  const signUp = useVolunteerSignUp();
-  const { toast } = useToast();
-
-  const handleSignUp = (id: number) => {
-    signUp.mutate(id, {
-      onSuccess: () => {
-        toast({
-          title: "Seva Confirmed",
-          description: "Thank you for volunteering your time.",
-        });
-      },
-    });
-  };
-
   return (
     <div className="min-h-screen bg-stone-50 pb-24 pt-8 md:pt-12 px-4">
-      <div className="max-w-5xl mx-auto">
-        <PageHeader 
-          title="Seva Opportunities" 
-          subtitle="Service to humanity is service to God. Join our volunteer team." 
+      <div className="max-w-3xl mx-auto">
+        <PageHeader
+          title="Seva Opportunities"
+          subtitle="Service to humanity is service to God. Complete the form below to volunteer."
         />
 
-        {isLoading ? (
-          <div className="space-y-4">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-24 bg-gray-100 rounded-xl animate-pulse" />
-            ))}
+        {/* Native-feeling intro and form container */}
+        <div className="rounded-2xl border border-golden-200/80 bg-white shadow-md shadow-golden-900/5 overflow-hidden">
+          <div className="bg-gradient-to-b from-golden-50/80 to-white px-6 py-5 md:px-8 md:py-6 border-b border-golden-100">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
+                <Hand className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="font-display font-semibold text-foreground text-lg">
+                  Volunteer sign-up
+                </h2>
+                <p className="text-sm text-muted-foreground mt-0.5">
+                  Share your details and availability. We’ll be in touch.
+                </p>
+              </div>
+            </div>
           </div>
-        ) : (
-          <div className="space-y-4">
-            {roles?.map((role, index) => (
-              <motion.div
-                key={role.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.05 }}
-                className={`bg-white p-6 rounded-2xl shadow-sm border ${
-                  role.isFilled ? "border-green-100 bg-green-50/30" : "border-golden-200"
-                } flex flex-col md:flex-row md:items-center justify-between gap-4`}
-              >
-                <div className="flex items-start space-x-4">
-                  <div className={`p-3 rounded-xl ${role.isFilled ? "bg-green-100 text-green-700" : "bg-primary/10 text-primary"}`}>
-                    {role.isFilled ? <CheckCircle2 size={24} /> : <Hand size={24} />}
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-bold text-foreground">{role.role}</h3>
-                    <div className="flex items-center text-muted-foreground text-sm mt-1">
-                      <Clock size={14} className="mr-1" />
-                      <span>{role.timeSlot}</span>
-                    </div>
-                  </div>
-                </div>
 
-                <button
-                  onClick={() => handleSignUp(role.id)}
-                  disabled={role.isFilled || signUp.isPending}
-                  className={`px-6 py-2.5 rounded-xl font-semibold transition-all duration-300 min-w-[140px] flex justify-center items-center ${
-                    role.isFilled 
-                      ? "bg-green-100 text-green-700 cursor-default"
-                      : "bg-foreground text-white shadow-lg shadow-foreground/20 hover:bg-foreground/90 hover:-translate-y-0.5 active:translate-y-0"
-                  }`}
-                >
-                  {role.isFilled ? (
-                    "Position Filled"
-                  ) : signUp.isPending ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : (
-                    "Sign Up"
-                  )}
-                </button>
-              </motion.div>
-            ))}
+          <div className="relative bg-stone-50/50">
+            <iframe
+              src="https://docs.google.com/forms/d/e/1FAIpQLScKumypmR1EX942jPH_hVb23GRLZvRnHgNIQst8uqOnItC6Zg/viewform?embedded=true"
+              width="100%"
+              height="621"
+              frameBorder="0"
+              marginHeight={0}
+              marginWidth={0}
+              title="Seva volunteer sign-up form"
+              className="min-h-[621px] w-full block"
+            >
+              Loading…
+            </iframe>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
