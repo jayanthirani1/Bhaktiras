@@ -12,9 +12,17 @@ export function useWordleLeaderboard() {
 
   async function fetchLeaderboard() {
     loading.value = true
+    const stopLoading = () => { loading.value = false }
+    const safetyTimer = setTimeout(stopLoading, 5000)
+
     try {
       const db = getDb()
-      if (!db) { entries.value = []; return }
+      if (!db) {
+        entries.value = []
+        clearTimeout(safetyTimer)
+        loading.value = false
+        return
+      }
       const q = query(collection(db, 'wordleScores'), limit(100))
       const snap = await getDocs(q)
       entries.value = snap.docs.map((d) => {
@@ -38,6 +46,7 @@ export function useWordleLeaderboard() {
     } catch (_) {
       entries.value = []
     } finally {
+      clearTimeout(safetyTimer)
       loading.value = false
     }
   }
@@ -56,6 +65,8 @@ export function useWordleLeaderboard() {
     await fetchLeaderboard()
   }
 
-  onMounted(fetchLeaderboard)
+  onMounted(() => {
+    if (import.meta.client) nextTick(() => fetchLeaderboard())
+  })
   return { entries, loading, refetch: fetchLeaderboard, submitScore }
 }

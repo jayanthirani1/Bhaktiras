@@ -1,3 +1,10 @@
+/** Plain snapshot of Firebase user (avoids storing Firebase User object which can trigger cross-origin errors in Vue reactivity). */
+export interface AuthUserSnapshot {
+  uid: string
+  email: string | null
+  displayName: string | null
+}
+
 export interface TimelineItem {
   id: string
   year: string

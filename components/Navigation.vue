@@ -20,23 +20,25 @@
           <component :is="item.icon" class="w-5 h-5 shrink-0" />
           <span class="text-[10px] font-medium truncate">{{ item.label }}</span>
         </NuxtLink>
-        <NuxtLink
-          v-if="!auth.isLoggedIn"
-          to="/login"
-          class="flex flex-col items-center justify-center space-y-0.5 p-2 rounded-xl transition-colors min-w-0 flex-1 text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]"
-        >
-          <IconLogin class="w-5 h-5 shrink-0" />
-          <span class="text-[10px] font-medium">Sign in</span>
-        </NuxtLink>
-        <button
-          v-else
-          type="button"
-          class="flex flex-col items-center justify-center space-y-0.5 p-2 rounded-xl transition-colors min-w-0 flex-1 text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]"
-          @click="handleSignOut"
-        >
-          <IconLogout class="w-5 h-5 shrink-0" />
-          <span class="text-[10px] font-medium">Sign out</span>
-        </button>
+        <span :key="auth.user ? 'in' : 'out'" class="flex min-w-0 flex-1 flex-col items-center justify-center">
+          <NuxtLink
+            v-if="!auth.user"
+            to="/login"
+            class="flex flex-col items-center justify-center space-y-0.5 p-2 rounded-xl transition-colors text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]"
+          >
+            <IconLogin class="w-5 h-5 shrink-0" />
+            <span class="text-[10px] font-medium">Sign in</span>
+          </NuxtLink>
+          <button
+            v-else
+            type="button"
+            class="flex flex-col items-center justify-center space-y-0.5 p-2 rounded-xl transition-colors text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]"
+            @click="handleSignOut"
+          >
+            <IconLogout class="w-5 h-5 shrink-0" />
+            <span class="text-[10px] font-medium">Sign out</span>
+          </button>
+        </span>
       </div>
     </div>
 
@@ -47,12 +49,6 @@
           <NuxtLink to="/" class="font-display text-2xl font-bold text-[hsl(var(--foreground))]">
             Bhaktiras
           </NuxtLink>
-          <span
-            v-if="auth.isLoggedIn && auth.userName"
-            class="text-sm font-medium text-[hsl(var(--primary))] hidden lg:inline"
-          >
-            {{ auth.userName }}
-          </span>
         </div>
         <div class="flex items-center space-x-1">
           <NuxtLink
@@ -66,25 +62,27 @@
           >
             {{ item.label }}
           </NuxtLink>
-          <NuxtLink
-            v-if="!auth.isLoggedIn"
-            to="/login"
-            class="ml-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-[hsl(var(--primary))]/10 text-[hsl(var(--primary))] hover:bg-[hsl(var(--primary))]/20"
-          >
-            <IconLogin class="w-4 h-4" />
-            Sign in
-          </NuxtLink>
-          <div v-else class="ml-2 inline-flex items-center gap-2">
-            <span class="text-xs font-medium text-[hsl(var(--muted-foreground))] hidden sm:inline">{{ auth.userName }}</span>
-            <button
-              type="button"
-              class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-[hsl(var(--muted-foreground))] hover:bg-stone-100"
-              @click="handleSignOut"
+          <span :key="auth.user ? 'in' : 'out'" class="inline-flex items-center gap-2">
+            <NuxtLink
+              v-if="!auth.user"
+              to="/login"
+              class="ml-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-[hsl(var(--primary))]/10 text-[hsl(var(--primary))] hover:bg-[hsl(var(--primary))]/20"
             >
-              <IconLogout class="w-4 h-4" />
-              Sign out
-            </button>
-          </div>
+              <IconLogin class="w-4 h-4" />
+              Sign in
+            </NuxtLink>
+            <div v-else class="ml-2 inline-flex items-center gap-2">
+              <span class="text-xs font-medium text-[hsl(var(--muted-foreground))] hidden sm:inline">{{ auth.userName }}</span>
+              <button
+                type="button"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-[hsl(var(--muted-foreground))] hover:bg-stone-100"
+                @click="handleSignOut"
+              >
+                <IconLogout class="w-4 h-4" />
+                Sign out
+              </button>
+            </div>
+          </span>
         </div>
       </div>
     </div>
