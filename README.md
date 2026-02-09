@@ -101,7 +101,7 @@ A workflow in `.github/workflows/firebase-hosting.yml` builds and deploys on pus
 
 | Secret | Value |
 |--------|--------|
-| `FIREBASE_TOKEN` | From `firebase login:ci` (run locally, paste the token) |
+| `FIREBASE_SERVICE_ACCOUNT` | JSON key for a service account with Firebase Hosting Admin (see [Firebase docs](https://firebase.google.com/docs/hosting/github-integration)) |
 | `NUXT_PUBLIC_FIREBASE_API_KEY` | Same as in your `.env` |
 | `NUXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | Same as in your `.env` |
 | `NUXT_PUBLIC_FIREBASE_PROJECT_ID` | Same as in your `.env` |
