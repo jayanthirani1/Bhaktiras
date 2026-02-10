@@ -1,15 +1,24 @@
 import { initializeApp } from 'firebase/app'
 import { getFirestore } from 'firebase/firestore'
 import { getAuth, onAuthStateChanged } from 'firebase/auth'
-import type { User } from 'firebase/auth'
+import type { AuthUserSnapshot } from '~/types'
+
+function toSnapshot(u: import('firebase/auth').User | null): AuthUserSnapshot | null {
+  if (!u) return null
+  return {
+    uid: u.uid,
+    email: u.email ?? null,
+    displayName: u.displayName ?? null
+  }
+}
 
 export default defineNuxtPlugin((nuxtApp) => {
   const config = useRuntimeConfig().public
   const projectId = config.firebaseProjectId || (import.meta.env?.NUXT_PUBLIC_FIREBASE_PROJECT_ID as string) || ''
   const apiKey = config.firebaseApiKey || (import.meta.env?.NUXT_PUBLIC_FIREBASE_API_KEY as string) || ''
 
-  const user = ref<User | null>(null)
-  const loading = ref(true)
+  const user = useState<AuthUserSnapshot | null>('auth-user', () => null)
+  const loading = useState<boolean>('auth-loading', () => true)
 
   if (!projectId || !apiKey) {
     if (import.meta.dev) {
@@ -19,8 +28,6 @@ export default defineNuxtPlugin((nuxtApp) => {
     }
     user.value = null
     loading.value = false
-    nuxtApp.provide('authUser', user)
-    nuxtApp.provide('authLoading', loading)
     return { provide: { firebaseDb: null, firebaseAuth: null } }
   }
 
@@ -40,7 +47,7 @@ export default defineNuxtPlugin((nuxtApp) => {
   }
 
   const unsubscribe = onAuthStateChanged(auth, (u) => {
-    user.value = u
+    user.value = toSnapshot(u)
     loading.value = false
   })
   const fallback = setTimeout(() => { loading.value = false }, 2000)
@@ -48,13 +55,10 @@ export default defineNuxtPlugin((nuxtApp) => {
   if (typeof document !== 'undefined') {
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') {
-        user.value = auth.currentUser
+        user.value = toSnapshot(auth.currentUser)
       }
     })
   }
-
-  nuxtApp.provide('authUser', user)
-  nuxtApp.provide('authLoading', loading)
 
   return {
     provide: { firebaseDb: db, firebaseAuth: auth },

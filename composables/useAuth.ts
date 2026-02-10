@@ -1,17 +1,16 @@
-import type { Ref } from 'vue'
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signInWithPopup,
   GoogleAuthProvider,
-  signOut as firebaseSignOut,
-  type User
+  signOut as firebaseSignOut
 } from 'firebase/auth'
+import type { AuthUserSnapshot } from '~/types'
 
 export function useAuth() {
   const nuxtApp = useNuxtApp()
-  const user = (nuxtApp.$authUser as Ref<User | null>) ?? ref<User | null>(null)
-  const loading = (nuxtApp.$authLoading as Ref<boolean>) ?? ref(true)
+  const user = useState<AuthUserSnapshot | null>('auth-user', () => null)
+  const loading = useState<boolean>('auth-loading', () => true)
 
   function getAuth() {
     if (import.meta.server) return null
@@ -46,7 +45,7 @@ export function useAuth() {
 
   const isLoggedIn = computed(() => !!user.value)
   const userEmail = computed(() => user.value?.email ?? null)
-  /** Display name: Google displayName, or first part of email (before @), capitalized */
+  /** Display name: displayName or first part of email (before @), capitalized */
   const userName = computed(() => {
     const u = user.value
     if (!u) return null
