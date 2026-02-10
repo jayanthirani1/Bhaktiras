@@ -170,20 +170,15 @@
             </div>
 
             <div class="flex flex-col gap-2">
-              <button
-                type="button"
-                class="w-full py-2.5 rounded-xl bg-[hsl(var(--primary))] text-white font-semibold hover:opacity-90 inline-flex items-center justify-center gap-2"
-                @click="reset"
-              >
-                <IconRefresh class="w-4 h-4" />
-                Play again
-              </button>
+              <p class="text-sm text-[hsl(var(--muted-foreground))]">
+                One puzzle per day — see you tomorrow!
+              </p>
               <NuxtLink
                 to="/play"
                 class="inline-flex items-center justify-center gap-2 py-2.5 rounded-xl bg-stone-200 text-[hsl(var(--foreground))] font-semibold hover:bg-stone-300"
               >
                 <IconArrowLeft class="w-4 h-4" />
-                Games
+                Back to games
               </NuxtLink>
             </div>
           </div>
@@ -194,8 +189,8 @@
 </template>
 
 <script setup lang="ts">
-import { IconArrowLeft, IconRefresh } from '@tabler/icons-vue'
-import { getRandomWord, isValidWord, WORD_LEN } from '~/utils/wordleWords'
+import { IconArrowLeft } from '@tabler/icons-vue'
+import { getWordForDate, isValidWord, WORD_LEN } from '~/utils/wordleWords'
 import { getFeedback } from '~/utils/wordle'
 import type { LetterStatus } from '~/types/wordle'
 
@@ -204,7 +199,43 @@ const KEYBOARD_TOP = ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P']
 const KEYBOARD_MID = ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L']
 const KEYBOARD_BOT = ['Z', 'X', 'C', 'V', 'B', 'N', 'M']
 
-const solution = ref(getRandomWord())
+const DAILY_STORAGE_KEY = 'wordle-daily'
+
+function getTodayUTC(): string {
+  const d = new Date()
+  return d.toISOString().slice(0, 10)
+}
+
+function loadDailyState(): { solution: string; guesses: string[]; isComplete: boolean } {
+  if (import.meta.server) {
+    const today = getTodayUTC()
+    return { solution: getWordForDate(new Date()), guesses: [], isComplete: false }
+  }
+  try {
+    const raw = localStorage.getItem(DAILY_STORAGE_KEY)
+    if (!raw) return { solution: getWordForDate(new Date()), guesses: [], isComplete: false }
+    const { date, solution, guesses, isComplete } = JSON.parse(raw)
+    const today = getTodayUTC()
+    if (date !== today) return { solution: getWordForDate(new Date()), guesses: [], isComplete: false }
+    return { solution, guesses: guesses ?? [], isComplete: isComplete ?? false }
+  } catch {
+    return { solution: getWordForDate(new Date()), guesses: [], isComplete: false }
+  }
+}
+
+function saveDailyState(solution: string, guesses: string[], isComplete: boolean) {
+  if (import.meta.server) return
+  try {
+    localStorage.setItem(DAILY_STORAGE_KEY, JSON.stringify({
+      date: getTodayUTC(),
+      solution,
+      guesses,
+      isComplete,
+    }))
+  } catch (_) {}
+}
+
+const solution = ref(getWordForDate(new Date()))
 const guesses = ref<string[]>([])
 const currentGuess = ref('')
 const isComplete = ref(false)
@@ -308,10 +339,12 @@ function removeLetter() {
 }
 
 function reset() {
-  solution.value = getRandomWord()
-  guesses.value = []
+  // Only allow reset for a new day (handled by loadDailyState). Same-day replay is not allowed.
+  const state = loadDailyState()
+  solution.value = state.solution
+  guesses.value = [...state.guesses]
   currentGuess.value = ''
-  isComplete.value = false
+  isComplete.value = state.isComplete
   shakeRow.value = null
   flipRow.value = null
   shouldDance.value = false
@@ -325,6 +358,10 @@ watch([isComplete, isWin, isLose, guesses], () => {
     else if (isLose.value) wordleStats.recordLoss()
     hasRecordedResult.value = true
   }
+}, { deep: true })
+
+watch([solution, guesses, isComplete], () => {
+  saveDailyState(solution.value, guesses.value, isComplete.value)
 }, { deep: true })
 
 async function submitToLeaderboard() {
@@ -347,6 +384,11 @@ async function submitToLeaderboard() {
 }
 
 onMounted(() => {
+  const state = loadDailyState()
+  solution.value = state.solution
+  guesses.value = state.guesses
+  isComplete.value = state.isComplete
+
   const onKeyDown = (e: KeyboardEvent) => {
     if (isComplete.value) return
     if (e.key === 'Enter') {
