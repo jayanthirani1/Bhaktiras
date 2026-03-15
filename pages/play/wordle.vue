@@ -167,6 +167,9 @@
               >
                 {{ submittingScore ? 'Submitting...' : 'Submit to Leaderboard' }}
               </button>
+              <p v-if="submitError" class="mt-2 text-sm text-red-600">
+                {{ submitError }}
+              </p>
             </div>
 
             <div class="flex flex-col gap-2">
@@ -245,11 +248,12 @@ const shouldDance = ref(false)
 const hasRecordedResult = ref(false)
 const scoreSubmitted = ref(false)
 const submittingScore = ref(false)
+const submitError = ref('')
 
 const wordleStats = useWordleStats()
 const auth = useAuth()
 const leaderboard = useWordleLeaderboard()
-const isLoggedIn = computed(() => !!auth.user)
+const isLoggedIn = computed(() => !!auth.user.value)
 
 const isWin = computed(() => guesses.value.length > 0 && guesses.value[guesses.value.length - 1] === solution.value)
 const isLose = computed(() => !isWin.value && guesses.value.length >= ROWS)
@@ -366,6 +370,7 @@ watch([solution, guesses, isComplete], () => {
 
 async function submitToLeaderboard() {
   if (!auth.user.value || !isWin.value) return
+  submitError.value = ''
   submittingScore.value = true
   try {
     await leaderboard.submitScore(
@@ -376,8 +381,8 @@ async function submitToLeaderboard() {
       auth.userEmail.value || undefined
     )
     scoreSubmitted.value = true
-  } catch (_) {
-    // show error
+  } catch {
+    submitError.value = 'Could not submit score. Please try again after signing in.'
   } finally {
     submittingScore.value = false
   }
