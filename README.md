@@ -1,5 +1,7 @@
 # Bhaktiras (Nuxt + Firebase)
 
+**Repository:** [https://github.com/jayanthirani1/Bhaktiras](https://github.com/jayanthirani1/Bhaktiras)
+
 This is the Bhaktiras app recreated with **Nuxt 3** and **Firebase (Firestore)** as the database. It can be deployed as a static site (e.g. Netlify, Vercel) with no backend server.
 
 ## Setup
