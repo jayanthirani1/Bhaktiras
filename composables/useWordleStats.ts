@@ -19,15 +19,15 @@ function loadStats(): WordleStats {
   return defaultStats
 }
 
+function persistStats(s: WordleStats) {
+  if (import.meta.server) return
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(s))
+  } catch (_) {}
+}
+
 export function useWordleStats() {
   const stats = ref<WordleStats>(loadStats())
-
-  watch(stats, (s) => {
-    if (import.meta.server) return
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(s))
-    } catch (_) {}
-  }, { deep: true })
 
   function recordWin(guessCount: number) {
     const today = new Date().toDateString()
@@ -51,6 +51,7 @@ export function useWordleStats() {
       },
       lastPlayedDate: today
     }
+    persistStats(stats.value)
   }
 
   function recordLoss() {
@@ -60,6 +61,7 @@ export function useWordleStats() {
       currentStreak: 0,
       lastPlayedDate: new Date().toDateString()
     }
+    persistStats(stats.value)
   }
 
   const winRate = computed(() =>

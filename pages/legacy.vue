@@ -37,13 +37,18 @@
             <span>Future Legacy</span>
           </div>
           <form class="relative z-10" @submit.prevent="handleSubmit">
+            <div v-if="submitError" class="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
+              {{ submitError }}
+            </div>
             <div class="mb-6">
               <label class="block text-[hsl(var(--foreground))] font-medium mb-2">Your Message for 2036</label>
               <textarea
                 v-model="message"
                 placeholder="What are your hopes for the next 10 years?"
+                :maxlength="TIME_CAPSULE_MESSAGE_MAX_LENGTH"
                 class="min-h-[200px] w-full resize-none bg-[hsl(var(--golden-50))]/30 border border-[hsl(var(--golden-200))] focus:border-[hsl(var(--primary))] focus:ring-2 focus:ring-[hsl(var(--primary))]/20 rounded-xl text-lg leading-relaxed p-4"
               />
+              <p class="mt-1 text-xs text-[hsl(var(--muted-foreground))]">{{ message.length }}/{{ TIME_CAPSULE_MESSAGE_MAX_LENGTH }}</p>
             </div>
             <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
               <p class="text-xs text-[hsl(var(--muted-foreground))]/80 flex items-center">
@@ -69,17 +74,22 @@
 
 <script setup lang="ts">
 import { IconLock, IconSend, IconLoader2, IconSparkles } from '@tabler/icons-vue'
+import { TIME_CAPSULE_MESSAGE_MAX_LENGTH } from '~/composables/useMandir'
+
 const message = ref('')
 const submitted = ref(false)
+const submitError = ref('')
 const createMessage = useCreateTimeCapsuleMessage()
 
 async function handleSubmit() {
   if (!message.value.trim()) return
+  submitError.value = ''
   try {
-    await createMessage.create({ message: message.value })
+    await createMessage.create({ message: message.value.trim() })
     submitted.value = true
-  } catch (_e) {
-    // show error
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : 'Failed to save. Check Firebase config and try again.'
+    submitError.value = msg
   }
 }
 </script>

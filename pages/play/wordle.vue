@@ -14,17 +14,30 @@
         subtitle="Guess the devotional word in six tries."
       />
 
+      <!-- Invalid word message -->
+      <div
+        v-if="invalidWordMessage"
+        role="alert"
+        aria-live="polite"
+        class="mb-3 py-2 px-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-sm text-center"
+      >
+        {{ invalidWordMessage }}
+      </div>
+
       <!-- Grid -->
-      <div class="flex flex-col gap-2 mb-8">
+      <div class="flex flex-col gap-2 mb-8" role="grid" aria-label="Wordle guesses">
         <div
           v-for="(row, rowIndex) in rows"
           :key="rowIndex"
           class="grid grid-cols-5 gap-1.5 sm:gap-2 justify-center"
           :class="{ shake: shakeRow === rowIndex }"
+          role="row"
         >
           <div
             v-for="(cell, cellIndex) in row"
             :key="cellIndex"
+            role="gridcell"
+            :aria-label="cell.letter ? `${cell.letter}, ${statusLabel(cell.status)}` : 'empty'"
             class="flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 border-2 rounded-lg font-bold text-lg sm:text-xl uppercase transition-colors"
             :class="cellBg(cell.status)"
             :style="{ animation: (flipRow === rowIndex || (shouldDance && rowIndex === guesses.length - 1 && solution === guesses[guesses.length - 1])) ? 'flip 0.5s ease-in-out' : '' }"
@@ -119,15 +132,28 @@
       <Teleport to="body">
         <div
           v-if="isComplete"
+          ref="modalBackdropRef"
           class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40"
-          @click.self="() => {}"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="wordle-result-title"
+          aria-describedby="wordle-result-desc"
+          @click.self="closeModal"
         >
-          <div class="bg-white rounded-2xl p-8 shadow-xl border border-[hsl(var(--golden-200))] max-w-md w-full text-center">
-            <div v-if="isWin" class="text-4xl mb-4">🎉</div>
-            <div v-else class="text-4xl mb-4">🙏</div>
-            <h2 class="text-2xl font-bold text-[hsl(var(--foreground))] mb-2">
+          <div
+            ref="modalContentRef"
+            tabindex="-1"
+            class="bg-white rounded-2xl p-8 shadow-xl border border-[hsl(var(--golden-200))] max-w-md w-full text-center outline-none"
+            @keydown.esc="closeModal"
+          >
+            <div v-if="isWin" class="text-4xl mb-4" aria-hidden="true">🎉</div>
+            <div v-else class="text-4xl mb-4" aria-hidden="true">🙏</div>
+            <h2 id="wordle-result-title" class="text-2xl font-bold text-[hsl(var(--foreground))] mb-2">
               {{ isWin ? 'Well done!' : 'Next time' }}
             </h2>
+            <p id="wordle-result-desc" class="sr-only" aria-live="polite">
+              {{ isWin ? `You got it in ${guesses.length} ${guesses.length === 1 ? 'try' : 'tries'}.` : `The word was ${solution}.` }}
+            </p>
             <p v-if="isWin" class="text-[hsl(var(--muted-foreground))] mb-6">
               You got it in {{ guesses.length }} {{ guesses.length === 1 ? 'try' : 'tries' }}.
             </p>
@@ -156,6 +182,26 @@
                   <div class="text-xs text-[hsl(var(--muted-foreground))]">Max</div>
                 </div>
               </div>
+              <!-- Guess distribution -->
+              <div class="mt-3">
+                <p class="text-xs font-medium text-[hsl(var(--muted-foreground))] mb-2">Guess distribution</p>
+                <div class="space-y-1">
+                  <div
+                    v-for="n in 6"
+                    :key="n"
+                    class="flex items-center gap-2 text-xs"
+                  >
+                    <span class="w-4 font-medium text-[hsl(var(--foreground))]">{{ n }}</span>
+                    <div class="flex-1 h-5 bg-stone-200 rounded overflow-hidden">
+                      <div
+                        class="h-full bg-[hsl(var(--primary))] rounded transition-all duration-300"
+                        :style="{ width: guessDistributionWidth(n) + '%' }"
+                      />
+                    </div>
+                    <span class="w-6 text-right text-[hsl(var(--muted-foreground))]">{{ wordleStats.stats.guessDistribution[n] ?? 0 }}</span>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div v-if="isWin && isLoggedIn && !scoreSubmitted" class="mb-4">
@@ -173,12 +219,21 @@
             </div>
 
             <div class="flex flex-col gap-2">
+              <button
+                v-if="isComplete"
+                type="button"
+                class="w-full py-2.5 rounded-xl bg-stone-200 text-[hsl(var(--foreground))] font-semibold hover:bg-stone-300"
+                @click="shareResult"
+              >
+                {{ shareCopied ? 'Copied!' : 'Share' }}
+              </button>
               <p class="text-sm text-[hsl(var(--muted-foreground))]">
-                One puzzle per day — see you tomorrow!
+                {{ nextPuzzleIn }}
               </p>
               <NuxtLink
                 to="/play"
                 class="inline-flex items-center justify-center gap-2 py-2.5 rounded-xl bg-stone-200 text-[hsl(var(--foreground))] font-semibold hover:bg-stone-300"
+                @click="closeModal"
               >
                 <IconArrowLeft class="w-4 h-4" />
                 Back to games
@@ -193,7 +248,7 @@
 
 <script setup lang="ts">
 import { IconArrowLeft } from '@tabler/icons-vue'
-import { getWordForDate, isValidWord, WORD_LEN } from '~/utils/wordleWords'
+import { getWordForDate, WORD_LEN } from '~/utils/wordleDaily'
 import { getFeedback } from '~/utils/wordle'
 import type { LetterStatus } from '~/types/wordle'
 
@@ -204,6 +259,8 @@ const KEYBOARD_BOT = ['Z', 'X', 'C', 'V', 'B', 'N', 'M']
 
 const DAILY_STORAGE_KEY = 'wordle-daily'
 
+const wordleWordsModule = ref<typeof import('~/utils/wordleWords') | null>(null)
+
 function getTodayUTC(): string {
   const d = new Date()
   return d.toISOString().slice(0, 10)
@@ -211,7 +268,6 @@ function getTodayUTC(): string {
 
 function loadDailyState(): { solution: string; guesses: string[]; isComplete: boolean } {
   if (import.meta.server) {
-    const today = getTodayUTC()
     return { solution: getWordForDate(new Date()), guesses: [], isComplete: false }
   }
   try {
@@ -249,6 +305,10 @@ const hasRecordedResult = ref(false)
 const scoreSubmitted = ref(false)
 const submittingScore = ref(false)
 const submitError = ref('')
+const invalidWordMessage = ref('')
+const shareCopied = ref(false)
+const modalBackdropRef = ref<HTMLElement | null>(null)
+const modalContentRef = ref<HTMLElement | null>(null)
 
 const wordleStats = useWordleStats()
 const auth = useAuth()
@@ -305,17 +365,30 @@ function keyBg(letter: string) {
   return 'bg-stone-200 text-[hsl(var(--foreground))] hover:bg-stone-300'
 }
 
+function statusLabel(status: LetterStatus): string {
+  if (status === 'correct') return 'correct'
+  if (status === 'present') return 'present'
+  if (status === 'absent') return 'absent'
+  return 'empty'
+}
+
 function submitGuess() {
+  invalidWordMessage.value = ''
   const trimmed = currentGuess.value.toUpperCase().trim()
   const currentRow = guesses.value.length
   if (trimmed.length !== WORD_LEN) {
     shakeRow.value = currentRow
     setTimeout(() => { shakeRow.value = null }, 500)
+    invalidWordMessage.value = 'Enter 5 letters.'
+    setTimeout(() => { invalidWordMessage.value = '' }, 2500)
     return
   }
-  if (!isValidWord(trimmed)) {
+  const isValid = wordleWordsModule.value?.isValidWord(trimmed) ?? false
+  if (!isValid) {
     shakeRow.value = currentRow
     setTimeout(() => { shakeRow.value = null }, 500)
+    invalidWordMessage.value = 'Not in word list.'
+    setTimeout(() => { invalidWordMessage.value = '' }, 2500)
     return
   }
   guesses.value = [...guesses.value, trimmed]
@@ -381,20 +454,68 @@ async function submitToLeaderboard() {
       auth.userEmail.value || undefined
     )
     scoreSubmitted.value = true
-  } catch {
-    submitError.value = 'Could not submit score. Please try again after signing in.'
+  } catch (e: unknown) {
+    submitError.value = e instanceof Error ? e.message : 'Could not submit score. Please try again after signing in.'
   } finally {
     submittingScore.value = false
   }
 }
 
+const nextPuzzleIn = computed(() => {
+  const now = new Date()
+  const tomorrow = new Date(now)
+  tomorrow.setUTCDate(tomorrow.getUTCDate() + 1)
+  tomorrow.setUTCHours(0, 0, 0, 0)
+  const ms = tomorrow.getTime() - now.getTime()
+  const hours = Math.floor(ms / 3600000)
+  const mins = Math.floor((ms % 3600000) / 60000)
+  if (hours > 0) return `Next puzzle in ${hours}h ${mins}m (midnight UTC).`
+  return `Next puzzle in ${mins}m (midnight UTC).`
+})
+
+function guessDistributionWidth(n: number): number {
+  const dist = wordleStats.stats.guessDistribution
+  const max = Math.max(1, ...Object.values(dist))
+  const val = dist[n] ?? 0
+  return max > 0 ? (val / max) * 100 : 0
+}
+
+function shareResult() {
+  const statusEmoji: Record<LetterStatus, string> = {
+    correct: '🟩',
+    present: '🟨',
+    absent: '⬜',
+    empty: '⬜'
+  }
+  const lines = rows.value
+    .filter((_, i) => i < guesses.value.length)
+    .map((row) => row.map((c) => statusEmoji[c.status]).join(''))
+  const text = [
+    `Bhaktiras Wordle ${guesses.value.length}/${ROWS}`,
+    '',
+    ...lines
+  ].join('\n')
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(text).then(() => {
+      shareCopied.value = true
+      setTimeout(() => { shareCopied.value = false }, 2000)
+    })
+  }
+}
+
+function closeModal() {
+  navigateTo('/play')
+}
+
 onMounted(() => {
+  import('~/utils/wordleWords').then((m) => { wordleWordsModule.value = m })
   const state = loadDailyState()
   solution.value = state.solution
   guesses.value = state.guesses
   isComplete.value = state.isComplete
 
   const onKeyDown = (e: KeyboardEvent) => {
+    if (e.repeat) return
     if (isComplete.value) return
     if (e.key === 'Enter') {
       e.preventDefault()
@@ -409,5 +530,13 @@ onMounted(() => {
   }
   window.addEventListener('keydown', onKeyDown)
   onUnmounted(() => window.removeEventListener('keydown', onKeyDown))
+})
+
+watch(isComplete, (complete) => {
+  if (complete) {
+    nextTick(() => {
+      nextTick(() => modalContentRef.value?.focus())
+    })
+  }
 })
 </script>

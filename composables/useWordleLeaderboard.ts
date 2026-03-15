@@ -1,9 +1,30 @@
-import { collection, getDocs, addDoc, query, limit, serverTimestamp } from 'firebase/firestore'
+import { collection, getDocs, addDoc, query, limit, orderBy, serverTimestamp } from 'firebase/firestore'
 import type { WordleScoreEntry } from '~/types/wordle'
+import { WORD_LEN } from '~/utils/wordleDaily'
+
+const USERNAME_MAX_LENGTH = 32
+const VALID_USERNAME_REGEX = /^[\p{L}\p{N}\s\-_.]+$/u
 
 function getDb() {
   if (import.meta.server) return null
   return useNuxtApp().$firebaseDb as import('firebase/firestore').Firestore | null
+}
+
+function validateScore(guesses: number, word: string, userName: string): void {
+  if (!Number.isInteger(guesses) || guesses < 1 || guesses > 6) {
+    throw new Error('Invalid guesses (must be 1–6).')
+  }
+  const w = (word || '').toUpperCase().trim()
+  if (w.length !== WORD_LEN || !/^[A-Z]+$/.test(w)) {
+    throw new Error('Invalid word.')
+  }
+  const name = (userName || '').trim()
+  if (!name || name.length > USERNAME_MAX_LENGTH) {
+    throw new Error('Display name must be 1–32 characters.')
+  }
+  if (!VALID_USERNAME_REGEX.test(name)) {
+    throw new Error('Display name contains invalid characters.')
+  }
 }
 
 export function useWordleLeaderboard() {
@@ -23,8 +44,19 @@ export function useWordleLeaderboard() {
         loading.value = false
         return
       }
-      const q = query(collection(db, 'wordleScores'), limit(100))
-      const snap = await getDocs(q)
+      let snap
+      try {
+        const q = query(
+          collection(db, 'wordleScores'),
+          orderBy('guesses', 'asc'),
+          orderBy('completedAt', 'desc'),
+          limit(100)
+        )
+        snap = await getDocs(q)
+      } catch {
+        const q = query(collection(db, 'wordleScores'), limit(100))
+        snap = await getDocs(q)
+      }
       entries.value = snap.docs.map((d) => {
         const data = d.data()
         return {
@@ -52,14 +84,16 @@ export function useWordleLeaderboard() {
   }
 
   async function submitScore(guesses: number, word: string, userName: string, userId: string, userEmail?: string) {
+    validateScore(guesses, word, userName)
     const db = getDb()
     if (!db) throw new Error('Firebase not configured')
+    const safeName = (userName || '').trim().slice(0, USERNAME_MAX_LENGTH)
     await addDoc(collection(db, 'wordleScores'), {
       userId,
-      userName,
+      userName: safeName,
       userEmail: userEmail || null,
       guesses,
-      word,
+      word: (word || '').toUpperCase().trim(),
       completedAt: serverTimestamp()
     })
     await fetchLeaderboard()

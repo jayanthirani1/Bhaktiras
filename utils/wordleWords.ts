@@ -1,15 +1,12 @@
 /**
- * Wordle: 5 letters, uppercase.
- * Winning words only for the daily solution (getWordForDate).
- * Valid guesses = winning words + common dictionary words (e.g. APPLE).
+ * Wordle: full word list for validation. Re-exports daily puzzle helpers.
+ * Valid guesses = winning words + common dictionary words.
  */
-export const WORDLE_WORDS: string[] = [
-  'AARTI', 'AMRUT', 'ATMAA', 'BHAKT', 'BHUMI', 'BRAHM', 'DHOTI', 'DHVAJ', 'DHYAN', 'DIVYA',
-  'GOPIS', 'KARMA', 'KATHA', 'KUTCH', 'LEELA', 'MOKSH', 'MUKTA', 'MUKTI', 'MUNIS', 'MURTI',
-  'NITYA', 'PADMA', 'POOJA', 'RAJAS', 'SABHA', 'SADHU', 'SANTS', 'SATYA', 'SHIVA', 'SHLOK',
-  'SURYA', 'SWAMI', 'TAMAS', 'THAAL', 'TILAK', 'TIRTH', 'TYAGI', 'VARNA', 'VIDYA', 'VIVEK',
-  'YOGIS',
-]
+import { WORD_LEN as WL, WORDLE_WORDS as DAILY_WORDS, getWordForDate as getWordForDateDaily } from '~/utils/wordleDaily'
+
+export const WORDLE_WORDS = DAILY_WORDS
+export const WORD_LEN = WL
+export const getWordForDate = getWordForDateDaily
 
 /** Common 5-letter dictionary words – valid as guesses but never the answer. */
 const COMMON_FIVE_LETTER_WORDS: string[] = [
@@ -70,36 +67,12 @@ const COMMON_FIVE_LETTER_WORDS: string[] = [
   'WORTH', 'WOULD', 'WOUND', 'WRITE', 'WRONG', 'WROTE', 'YIELD', 'YOUNG', 'YOURS', 'ZONES',
 ]
 
-const WORD_LENGTH = 5
-const VALID_WORDS = WORDLE_WORDS.filter((w) => w.length === WORD_LENGTH).map((w) =>
-  w.toUpperCase().slice(0, WORD_LENGTH)
-)
+const VALID_WORDS = DAILY_WORDS.filter((w) => w.length === WL).map((w) => w.toUpperCase().slice(0, WL))
 const WORD_SET = new Set(VALID_WORDS)
 export const WORDS = Array.from(WORD_SET)
-export const WORD_LEN = WORD_LENGTH
 
-const commonUpper = COMMON_FIVE_LETTER_WORDS.filter((w) => w.length === WORD_LENGTH).map((w) => w.toUpperCase())
+const commonUpper = COMMON_FIVE_LETTER_WORDS.filter((w) => w.length === WL).map((w) => w.toUpperCase())
 const ALLOWED_GUESS_SET = new Set([...Array.from(WORD_SET), ...commonUpper])
-
-/** Simple numeric hash of a string so the same date always gives the same index. */
-function hashString(s: string): number {
-  let h = 0
-  for (let i = 0; i < s.length; i++) {
-    h = ((h << 5) - h) + s.charCodeAt(i)
-    h |= 0
-  }
-  return Math.abs(h)
-}
-
-/**
- * Returns the same word for everyone for the given calendar day (UTC).
- * Use this for the daily puzzle so all users get the same target word.
- */
-export function getWordForDate(date: Date): string {
-  const dateString = date.toISOString().slice(0, 10) // YYYY-MM-DD UTC
-  const index = hashString(dateString) % WORDS.length
-  return WORDS[index] ?? WORDS[0] ?? 'BHAKT'
-}
 
 export function getRandomWord(): string {
   if (WORDS.length === 0) return 'BHAKT'
@@ -107,5 +80,5 @@ export function getRandomWord(): string {
 }
 
 export function isValidWord(word: string): boolean {
-  return word.length === WORD_LEN && ALLOWED_GUESS_SET.has(word.toUpperCase())
+  return word.length === WL && ALLOWED_GUESS_SET.has(word.toUpperCase())
 }

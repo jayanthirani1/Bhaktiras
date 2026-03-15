@@ -1,0 +1,18 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Wordle leaderboard: anyone can read; only authenticated users can create their own score
+    match /wordleScores/{scoreId} {
+      allow read: if true;
+      allow create: if request.auth != null
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.guesses is int
+        && request.resource.data.guesses >= 1
+        && request.resource.data.guesses <= 6
+        && request.resource.data.word is string
+        && request.resource.data.userName is string
+        && request.resource.data.userName.size() <= 32;
+      allow update, delete: if false;
+    }
+  }
+}

@@ -10,6 +10,9 @@ import {
 } from 'firebase/firestore'
 import type { TimelineItem, Event, GratitudeMessage, VolunteerRole, TimeCapsuleMessage } from '~/types'
 
+/** Max length for time capsule message (chars). */
+export const TIME_CAPSULE_MESSAGE_MAX_LENGTH = 1000
+
 function getDb(): Firestore | null {
   // Only access Firebase on client (plugin runs in firebase.client.ts)
   if (import.meta.server) return null
@@ -185,15 +188,19 @@ export function useCreateTimeCapsuleMessage() {
   const pending = ref(false)
 
   async function create(data: { message: string }) {
+    const trimmed = data.message.trim()
+    if (trimmed.length > TIME_CAPSULE_MESSAGE_MAX_LENGTH) {
+      throw new Error(`Message must be ${TIME_CAPSULE_MESSAGE_MAX_LENGTH} characters or fewer.`)
+    }
     pending.value = true
     try {
       const db = getDb()
       if (!db) throw new Error('Firebase not configured')
       const ref = await addDoc(collection(db, 'timeCapsule'), {
-        ...data,
+        message: trimmed,
         submittedAt: serverTimestamp()
       })
-      return { id: ref.id, ...data, submittedAt: new Date() }
+      return { id: ref.id, message: trimmed, submittedAt: new Date() }
     } finally {
       pending.value = false
     }

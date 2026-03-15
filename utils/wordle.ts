@@ -1,5 +1,5 @@
 import type { LetterStatus } from '~/types/wordle'
-import { WORD_LEN } from '~/utils/wordleWords'
+import { WORD_LEN } from '~/utils/wordleDaily'
 
 /**
  * Wordle feedback: green = correct, yellow = present, gray = absent.

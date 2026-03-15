@@ -1,0 +1,13 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "wordleScores",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "guesses", "order": "ASCENDING" },
+        { "fieldPath": "completedAt", "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
