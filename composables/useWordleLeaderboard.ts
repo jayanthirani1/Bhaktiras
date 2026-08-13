@@ -16,19 +16,28 @@ function validateScore(guesses: number, word: string): void {
 export function useWordleLeaderboard() {
   const board = useGameLeaderboard('wordle', { sort: 'asc' })
 
-  const entries = computed<WordleScoreEntry[]>(() =>
+  const entries = computed(() =>
     board.entries.value.map(e => ({
       id: e.id,
       userId: e.userId,
       userName: e.userName,
       userEmail: e.userEmail,
       guesses: e.score,
+      score: e.score,
+      timeMs: e.timeMs,
       word: e.detail || '',
       completedAt: e.completedAt as WordleScoreEntry['completedAt']
     }))
   )
 
-  async function submitScore(guesses: number, word: string, userName: string, userId: string, userEmail?: string) {
+  async function submitScore(
+    guesses: number,
+    word: string,
+    userName: string,
+    userId: string,
+    userEmail?: string,
+    timeMs?: number
+  ) {
     if (!userId) throw new Error('Sign in to submit your score.')
     validateScore(guesses, word)
     await board.submitScore({
@@ -36,7 +45,8 @@ export function useWordleLeaderboard() {
       userName,
       userId,
       userEmail,
-      detail: (word || '').toUpperCase().trim()
+      detail: (word || '').toUpperCase().trim(),
+      timeMs
     })
   }
 
