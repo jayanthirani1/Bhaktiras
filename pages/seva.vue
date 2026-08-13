@@ -3,7 +3,7 @@
     <div class="mx-auto max-w-4xl">
       <PageHeader
         title="Seva"
-        subtitle="Join the WhatsApp community and find a volunteer team for Patotsav."
+        subtitle="Join the WhatsApp community, find a team, and quietly log hours — no names, no leaderboard."
       />
 
       <a
@@ -14,6 +14,32 @@
       >
         {{ SITE.whatsappLabel }}
       </a>
+
+      <section class="card-surface mb-10 p-6 sm:p-8 text-center">
+        <p class="text-[11px] font-semibold uppercase tracking-[0.22em] text-[hsl(var(--accent))]">Anonymous seva counter</p>
+        <p class="mt-3 font-display text-5xl font-semibold tabular-nums text-[hsl(var(--primary))]">
+          {{ hoursLoading ? '—' : Math.round(totalHours) }}
+        </p>
+        <p class="mt-1 text-sm text-[hsl(var(--muted-foreground))]">hours offered towards Patotsav</p>
+        <form class="mx-auto mt-6 flex max-w-xs flex-col gap-3 sm:flex-row" @submit.prevent="onLogHours">
+          <input
+            v-model.number="hoursInput"
+            type="number"
+            min="0.5"
+            max="24"
+            step="0.5"
+            placeholder="Hours"
+            class="w-full rounded-full border border-[hsl(var(--border))] bg-[hsl(var(--muted))]/50 px-4 py-2.5 text-center"
+          >
+          <button type="submit" :disabled="hoursPending" class="btn-primary shrink-0 px-5 py-2.5 text-sm">
+            {{ hoursPending ? 'Saving…' : 'Log hours' }}
+          </button>
+        </form>
+        <p v-if="hoursError" class="mt-2 text-sm text-red-600">{{ hoursError }}</p>
+        <p class="mt-3 text-[11px] text-[hsl(var(--muted-foreground))]">
+          No name is stored. Please log honestly — this is for the mandir, not a competition.
+        </p>
+      </section>
 
       <h2 class="mb-4 font-display text-xl font-semibold">Bhaktiras Volunteer Teams</h2>
       <p class="mb-6 text-sm text-[hsl(var(--muted-foreground))]">
@@ -35,4 +61,22 @@ import { SITE } from '~/data/site'
 import { SEVA_TEAMS } from '~/data/sevaTeams'
 
 const teams = SEVA_TEAMS
+const {
+  totalHours,
+  isLoading: hoursLoading,
+  isPending: hoursPending,
+  logHours
+} = useSevaHours()
+const hoursInput = ref<number | null>(2)
+const hoursError = ref('')
+
+async function onLogHours() {
+  hoursError.value = ''
+  try {
+    await logHours(Number(hoursInput.value))
+    hoursInput.value = 2
+  } catch (e) {
+    hoursError.value = (e as Error).message
+  }
+}
 </script>

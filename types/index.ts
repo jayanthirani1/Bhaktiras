@@ -99,3 +99,17 @@ export interface TimeCapsuleMessage {
   message: string
   submittedAt?: { seconds: number; nanoseconds: number } | Date
 }
+
+export type GameLeaderboardId = 'wordle' | 'quiz' | 'crossword' | 'spelling-bee'
+
+export interface GameScoreEntry {
+  id: string
+  game: GameLeaderboardId
+  dateId: string
+  userId: string
+  userName: string
+  userEmail?: string
+  score: number
+  detail?: string
+  completedAt?: { seconds?: number; nanoseconds?: number } | Date
+}

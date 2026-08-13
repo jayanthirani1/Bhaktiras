@@ -63,7 +63,7 @@
       </form>
       <p class="mt-4 text-center text-sm text-[hsl(var(--muted-foreground))]">
         New user?
-        <NuxtLink to="/signup" class="text-[hsl(var(--accent))] font-medium underline">Create an account</NuxtLink>
+        <NuxtLink :to="signupLink" class="text-[hsl(var(--accent))] font-medium underline">Create an account</NuxtLink>
       </p>
       <p class="mt-2 text-center">
         <NuxtLink to="/" class="text-sm text-[hsl(var(--muted-foreground))] hover:underline">Back to home</NuxtLink>
@@ -79,13 +79,25 @@ const error = ref('')
 const loading = ref(false)
 const googleLoading = ref(false)
 const auth = useAuth()
+const route = useRoute()
+
+function safeRedirect() {
+  const path = typeof route.query.redirect === 'string' ? route.query.redirect : ''
+  if (!path.startsWith('/') || path.startsWith('//') || path.includes('\\')) return '/play'
+  return path
+}
+
+const signupLink = computed(() => {
+  const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : ''
+  return redirect ? { path: '/signup', query: { redirect } } : '/signup'
+})
 
 async function handleSubmit() {
   error.value = ''
   loading.value = true
   try {
     await auth.signIn(email.value, password.value)
-    await navigateTo('/play')
+    await navigateTo(safeRedirect())
   } catch (e: unknown) {
     error.value = (e as { message?: string })?.message ?? 'Sign in failed'
   } finally {
@@ -98,7 +110,7 @@ async function handleGoogleSignIn() {
   googleLoading.value = true
   try {
     await auth.signInWithGoogle()
-    await navigateTo('/play')
+    await navigateTo(safeRedirect())
   } catch (e: unknown) {
     error.value = (e as { message?: string })?.message ?? 'Sign in with Google failed'
   } finally {

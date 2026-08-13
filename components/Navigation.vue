@@ -1,10 +1,10 @@
 <template>
   <div>
     <!-- Mobile top brand bar -->
-    <div class="fixed top-0 left-0 right-0 z-50 md:hidden bg-[hsl(var(--background))]/90 backdrop-blur-md border-b border-[hsl(var(--border))]">
-      <div class="h-14 px-3 flex items-center justify-center">
-        <NuxtLink to="/" class="flex min-w-0 shrink-0 items-center">
-          <BhaktirasLogo size="sm" />
+    <div class="fixed top-0 left-0 right-0 z-50 md:hidden overflow-visible bg-[hsl(var(--background))]/90 backdrop-blur-md border-b border-[hsl(var(--border))]">
+      <div class="h-14 px-3 flex items-center justify-center overflow-visible">
+        <NuxtLink to="/" class="flex min-w-0 shrink-0 items-center overflow-visible">
+          <BhaktirasLogo size="sm" animate />
         </NuxtLink>
       </div>
     </div>
@@ -45,10 +45,10 @@
     </div>
 
     <!-- Desktop top nav -->
-    <div class="hidden md:block fixed top-0 left-0 right-0 z-50 bg-[hsl(var(--background))]/90 backdrop-blur-md border-b border-[hsl(var(--border))]">
-      <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-        <NuxtLink to="/" class="flex min-w-0 shrink-0 items-center">
-          <BhaktirasLogo size="sm" />
+    <div class="hidden md:block fixed top-0 left-0 right-0 z-50 overflow-visible bg-[hsl(var(--background))]/90 backdrop-blur-md border-b border-[hsl(var(--border))]">
+      <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between overflow-visible">
+        <NuxtLink to="/" class="flex min-w-0 shrink-0 items-center overflow-visible">
+          <BhaktirasLogo size="sm" animate />
         </NuxtLink>
         <div class="flex items-center space-x-1">
           <NuxtLink

@@ -79,6 +79,42 @@
           <span v-if="foundWords.length === 0" class="text-sm text-[hsl(var(--muted-foreground))]">No words yet.</span>
         </div>
       </div>
+
+      <div v-if="totalScore > 0" class="mt-6 space-y-2">
+        <button
+          v-if="isLoggedIn && !scoreSubmitted"
+          type="button"
+          class="w-full rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-600 disabled:opacity-50"
+          :disabled="submittingScore"
+          @click="submitToLeaderboard"
+        >
+          {{ submittingScore ? 'Submitting...' : 'Submit score to leaderboard' }}
+        </button>
+        <NuxtLink
+          v-else-if="!isLoggedIn && !scoreSubmitted"
+          to="/login?redirect=/play/spelling-bee"
+          class="block w-full rounded-xl bg-emerald-500 px-4 py-2.5 text-center text-sm font-semibold text-white hover:bg-emerald-600"
+        >
+          Sign in to submit score
+        </NuxtLink>
+        <p v-else-if="scoreSubmitted" class="text-sm text-emerald-700">Score submitted to today’s leaderboard.</p>
+        <p v-if="submitError" class="text-sm text-red-600">{{ submitError }}</p>
+      </div>
+
+      <GameLeaderboard
+        :entries="leaderboardEntries"
+        :loading="leaderboardLoading"
+        :date-id="leaderboardDateId"
+        :format-score="(e) => `${e.score} pts`"
+      >
+        <template v-if="!isLoggedIn">
+          <NuxtLink to="/login?redirect=/play/spelling-bee" class="text-[hsl(var(--primary))] underline">Sign in</NuxtLink>
+          to submit yours.
+        </template>
+        <template v-else-if="scoreSubmitted">
+          Your score is on the board.
+        </template>
+      </GameLeaderboard>
     </div>
   </div>
 </template>
@@ -88,6 +124,17 @@ import { IconArrowLeft } from '@tabler/icons-vue'
 import { getHiveLetters, getMiddleLetter, isValidSpellingBeeWord, spellingBeePoints, SPELLING_BEE_PUZZLES } from '~/data/spellingBeePuzzles'
 
 const { puzzles } = useSpellingBeePuzzles()
+const auth = useAuth()
+const isLoggedIn = computed(() => !!auth.user.value)
+const {
+  entries: leaderboardEntries,
+  loading: leaderboardLoading,
+  dateId: leaderboardDateId,
+  submitScore
+} = useGameLeaderboard('spelling-bee', { sort: 'desc' })
+const { submitted: scoreSubmitted, markSubmitted } = useDailySubmitFlag('spelling-bee')
+const submittingScore = ref(false)
+const submitError = ref('')
 const puzzle = ref(SPELLING_BEE_PUZZLES[0])
 
 watch(puzzles, (list) => {
@@ -133,5 +180,25 @@ function submitWord() {
     messageOk.value = false
   }
   setTimeout(() => { message.value = '' }, 2000)
+}
+
+async function submitToLeaderboard() {
+  if (!auth.user.value || totalScore.value <= 0) return
+  submitError.value = ''
+  submittingScore.value = true
+  try {
+    await submitScore({
+      score: totalScore.value,
+      userName: auth.userName.value || auth.userEmail.value || 'Player',
+      userId: auth.user.value.uid,
+      userEmail: auth.userEmail.value || undefined,
+      detail: `${foundWords.value.length} words`
+    })
+    markSubmitted()
+  } catch (e: unknown) {
+    submitError.value = e instanceof Error ? e.message : 'Could not submit score.'
+  } finally {
+    submittingScore.value = false
+  }
 }
 </script>

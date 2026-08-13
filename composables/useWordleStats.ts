@@ -11,12 +11,24 @@ const defaultStats: WordleStats = {
 }
 
 function loadStats(): WordleStats {
-  if (import.meta.server) return defaultStats
+  if (import.meta.server) return { ...defaultStats, guessDistribution: { ...defaultStats.guessDistribution } }
   try {
     const stored = localStorage.getItem(STORAGE_KEY)
-    if (stored) return { ...defaultStats, ...JSON.parse(stored) }
+    if (stored) {
+      const parsed = JSON.parse(stored) as Partial<WordleStats>
+      return {
+        ...defaultStats,
+        ...parsed,
+        guessDistribution: {
+          ...defaultStats.guessDistribution,
+          ...(parsed.guessDistribution && typeof parsed.guessDistribution === 'object'
+            ? parsed.guessDistribution
+            : {})
+        }
+      }
+    }
   } catch (_) {}
-  return defaultStats
+  return { ...defaultStats, guessDistribution: { ...defaultStats.guessDistribution } }
 }
 
 function persistStats(s: WordleStats) {
@@ -46,8 +58,9 @@ export function useWordleStats() {
       currentStreak: newStreak,
       maxStreak: Math.max(stats.value.maxStreak, newStreak),
       guessDistribution: {
-        ...stats.value.guessDistribution,
-        [guessCount]: (stats.value.guessDistribution[guessCount] ?? 0) + 1
+        ...defaultStats.guessDistribution,
+        ...(stats.value.guessDistribution || {}),
+        [guessCount]: ((stats.value.guessDistribution || {})[guessCount] ?? 0) + 1
       },
       lastPlayedDate: today
     }

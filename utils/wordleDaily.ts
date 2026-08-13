@@ -1,6 +1,8 @@
+import { ukDateId } from '~/utils/gameDay'
+
 /**
  * Lightweight Wordle daily puzzle: solution words + date-based word.
- * Import this for initial load; use wordleWords for full validation (lazy-loaded).
+ * Import this for the daily solution. Guess validation lives in data/wordleGuessList.ts.
  */
 export const WORD_LEN = 5
 
@@ -27,12 +29,7 @@ function hashString(s: string): number {
 
 /** UK calendar day (Europe/London) as YYYY-MM-DD. */
 export function wordleDateId(date: Date = new Date()): string {
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Europe/London',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit'
-  }).format(date)
+  return ukDateId(date)
 }
 
 export function addWordleDays(id: string, n: number): string {

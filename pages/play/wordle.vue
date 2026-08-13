@@ -14,6 +14,52 @@
         subtitle="Guess the devotional word in six tries."
       />
 
+      <ClientOnly>
+        <template #fallback>
+          <p class="mt-8 text-center text-sm text-[hsl(var(--muted-foreground))]">Loading Wordle…</p>
+        </template>
+
+      <div
+        v-if="isComplete"
+        class="mb-6 rounded-2xl border border-[hsl(var(--golden-200))] bg-[hsl(var(--card))] p-5 text-center"
+      >
+        <p class="font-display text-xl font-semibold text-[hsl(var(--primary))]">Today’s Wordle complete</p>
+        <p v-if="isWin" class="mt-2 text-sm text-[hsl(var(--muted-foreground))]">
+          You got it in {{ guesses.length }}/6.
+        </p>
+        <p v-else class="mt-2 text-sm text-[hsl(var(--muted-foreground))]">
+          The word was <span class="font-semibold uppercase text-[hsl(var(--primary))]">{{ solution }}</span>.
+        </p>
+        <p class="mt-2 text-xs text-[hsl(var(--muted-foreground))]">{{ nextPuzzleIn }}</p>
+        <div class="mt-4 flex flex-col items-center gap-2">
+          <button
+            v-if="isWin && isLoggedIn && !scoreSubmitted"
+            type="button"
+            class="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600 disabled:opacity-50"
+            :disabled="submittingScore"
+            @click="submitToLeaderboard"
+          >
+            {{ submittingScore ? 'Submitting...' : 'Submit to leaderboard' }}
+          </button>
+          <NuxtLink
+            v-else-if="isWin && !isLoggedIn && !scoreSubmitted"
+            to="/login?redirect=/play/wordle"
+            class="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600"
+          >
+            Sign in to submit score
+          </NuxtLink>
+          <p v-else-if="scoreSubmitted" class="text-sm text-emerald-700">Score submitted to the leaderboard.</p>
+          <p v-if="submitError" class="text-sm text-red-600">{{ submitError }}</p>
+          <button
+            type="button"
+            class="rounded-xl bg-[hsl(var(--muted))] px-4 py-2 text-sm font-semibold text-[hsl(var(--foreground))] hover:bg-[hsl(var(--border))]"
+            @click="shareResult"
+          >
+            {{ shareCopied ? 'Copied!' : 'Share result' }}
+          </button>
+        </div>
+      </div>
+
       <!-- Invalid word message -->
       <div
         v-if="invalidWordMessage"
@@ -39,7 +85,10 @@
             role="gridcell"
             :aria-label="cell.letter ? `${cell.letter}, ${statusLabel(cell.status)}` : 'empty'"
             class="flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 border-2 rounded-lg font-bold text-lg sm:text-xl uppercase transition-colors"
-            :class="cellBg(cell.status)"
+            :class="[
+              cellBg(cell.status),
+              { 'tile-pop': popTile === cellIndex && rowIndex === guesses.length && !!cell.letter }
+            ]"
             :style="{ animation: (flipRow === rowIndex || (shouldDance && rowIndex === guesses.length - 1 && solution === guesses[guesses.length - 1])) ? 'flip 0.5s ease-in-out' : '' }"
           >
             {{ cell.letter }}
@@ -48,15 +97,16 @@
       </div>
 
       <!-- Keyboard -->
-      <div class="flex flex-col gap-1.5">
+      <div v-if="!isComplete" class="flex flex-col gap-1.5">
         <div class="flex justify-center gap-1">
           <button
             v-for="k in KEYBOARD_TOP"
             :key="k"
             type="button"
-            class="h-11 sm:h-12 rounded-md font-semibold text-sm uppercase min-w-[1.75rem] px-2 sm:min-w-[2rem] transition-colors disabled:opacity-50"
-            :class="keyBg(k)"
+            class="h-11 sm:h-12 rounded-md font-semibold text-sm uppercase min-w-[1.75rem] px-2 sm:min-w-[2rem] transition-transform duration-75 active:scale-90 disabled:opacity-50"
+            :class="[keyBg(k), { 'key-press': pressedKey === k }]"
             :disabled="isComplete"
+            @pointerdown="primeKey(k)"
             @click="addLetter(k)"
           >
             {{ k }}
@@ -67,9 +117,10 @@
             v-for="k in KEYBOARD_MID"
             :key="k"
             type="button"
-            class="h-11 sm:h-12 rounded-md font-semibold text-sm uppercase min-w-[1.75rem] px-2 sm:min-w-[2rem] transition-colors disabled:opacity-50"
-            :class="keyBg(k)"
+            class="h-11 sm:h-12 rounded-md font-semibold text-sm uppercase min-w-[1.75rem] px-2 sm:min-w-[2rem] transition-transform duration-75 active:scale-90 disabled:opacity-50"
+            :class="[keyBg(k), { 'key-press': pressedKey === k }]"
             :disabled="isComplete"
+            @pointerdown="primeKey(k)"
             @click="addLetter(k)"
           >
             {{ k }}
@@ -78,8 +129,10 @@
         <div class="flex justify-center gap-1">
           <button
             type="button"
-            class="h-11 sm:h-14 px-5 sm:px-7 rounded-md font-bold text-sm sm:text-base bg-[hsl(var(--primary))] text-[hsl(var(--accent))] hover:opacity-90 disabled:opacity-50 transition-all"
+            class="h-11 sm:h-14 px-5 sm:px-7 rounded-md font-bold text-sm sm:text-base bg-[hsl(var(--primary))] text-[hsl(var(--accent))] hover:opacity-90 disabled:opacity-50 transition-transform duration-75 active:scale-90"
+            :class="{ 'key-press': pressedKey === 'ENTER' }"
             :disabled="isComplete"
+            @pointerdown="primeKey('ENTER', [12, 20, 12])"
             @click="submitGuess"
           >
             ENTER
@@ -88,17 +141,20 @@
             v-for="k in KEYBOARD_BOT"
             :key="k"
             type="button"
-            class="h-11 sm:h-12 rounded-md font-semibold text-sm uppercase min-w-[1.75rem] px-2 sm:min-w-[2rem] transition-colors disabled:opacity-50"
-            :class="keyBg(k)"
+            class="h-11 sm:h-12 rounded-md font-semibold text-sm uppercase min-w-[1.75rem] px-2 sm:min-w-[2rem] transition-transform duration-75 active:scale-90 disabled:opacity-50"
+            :class="[keyBg(k), { 'key-press': pressedKey === k }]"
             :disabled="isComplete"
+            @pointerdown="primeKey(k)"
             @click="addLetter(k)"
           >
             {{ k }}
           </button>
           <button
             type="button"
-            class="h-11 sm:h-14 px-5 sm:px-7 rounded-md font-bold text-base bg-[hsl(var(--muted))] text-[hsl(var(--foreground))] hover:bg-[hsl(var(--border))] disabled:opacity-50 transition-all"
+            class="h-11 sm:h-14 px-5 sm:px-7 rounded-md font-bold text-base bg-[hsl(var(--muted))] text-[hsl(var(--foreground))] hover:bg-[hsl(var(--border))] disabled:opacity-50 transition-transform duration-75 active:scale-90"
+            :class="{ 'key-press': pressedKey === 'BACK' }"
             :disabled="isComplete"
+            @pointerdown="primeKey('BACK', 14)"
             @click="removeLetter"
           >
             ⌫
@@ -106,32 +162,28 @@
         </div>
       </div>
 
-      <!-- Leaderboard -->
-      <div class="mt-12">
-        <h3 class="text-lg font-bold text-[hsl(var(--foreground))] mb-3">Leaderboard</h3>
-        <p v-if="!isLoggedIn" class="text-sm text-[hsl(var(--muted-foreground))] mb-2">
-          <NuxtLink to="/login" class="text-[hsl(var(--primary))] underline">Sign in</NuxtLink> to submit your score.
-        </p>
-        <div v-if="leaderboard.loading" class="text-sm text-[hsl(var(--muted-foreground))]">Loading...</div>
-        <ul v-else class="bg-[hsl(var(--card))] rounded-xl border border-[hsl(var(--golden-200))] overflow-hidden divide-y divide-[hsl(var(--border))]">
-          <li
-            v-for="(entry, idx) in leaderboard.entries.slice(0, 10)"
-            :key="entry.id"
-            class="flex items-center justify-between px-4 py-2 text-sm"
-          >
-            <span class="font-medium text-[hsl(var(--foreground))]">{{ idx + 1 }}. {{ entry.userName }}</span>
-            <span class="text-[hsl(var(--muted-foreground))]">{{ entry.guesses }}/6</span>
-          </li>
-          <li v-if="leaderboard.entries.length === 0" class="px-4 py-6 text-center text-[hsl(var(--muted-foreground))] text-sm">
-            No scores yet. Play and sign in to appear here!
-          </li>
-        </ul>
-      </div>
+      <GameLeaderboard
+        :entries="leaderboardEntries"
+        :loading="leaderboardLoading"
+        :date-id="leaderboardDateId"
+        :format-score="(e) => `${e.guesses ?? e.score}/6`"
+      >
+        <template v-if="!isLoggedIn">
+          <NuxtLink to="/login?redirect=/play/wordle" class="text-[hsl(var(--primary))] underline">Sign in</NuxtLink>
+          to submit yours.
+        </template>
+        <template v-else-if="isWin && !scoreSubmitted">
+          You’re signed in — submit your score above.
+        </template>
+        <template v-else-if="scoreSubmitted">
+          Your score is on the board.
+        </template>
+      </GameLeaderboard>
 
       <!-- Result modal -->
       <Teleport to="body">
         <div
-          v-if="isComplete"
+          v-if="showResultModal"
           ref="modalBackdropRef"
           class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40"
           role="dialog"
@@ -198,14 +250,15 @@
                         :style="{ width: guessDistributionWidth(n) + '%' }"
                       />
                     </div>
-                    <span class="w-6 text-right text-[hsl(var(--muted-foreground))]">{{ wordleStats.stats.guessDistribution[n] ?? 0 }}</span>
+                    <span class="w-6 text-right text-[hsl(var(--muted-foreground))]">{{ wordleStats.stats.guessDistribution?.[n] ?? 0 }}</span>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div v-if="isWin && isLoggedIn && !scoreSubmitted" class="mb-4">
+            <div v-if="isWin && !scoreSubmitted" class="mb-4">
               <button
+                v-if="isLoggedIn"
                 type="button"
                 class="w-full py-2.5 rounded-xl bg-emerald-500 text-white font-semibold hover:bg-emerald-600"
                 :disabled="submittingScore"
@@ -213,6 +266,13 @@
               >
                 {{ submittingScore ? 'Submitting...' : 'Submit to Leaderboard' }}
               </button>
+              <NuxtLink
+                v-else
+                to="/login?redirect=/play/wordle"
+                class="block w-full py-2.5 rounded-xl bg-emerald-500 text-white font-semibold hover:bg-emerald-600 text-center"
+              >
+                Sign in to submit score
+              </NuxtLink>
               <p v-if="submitError" class="mt-2 text-sm text-red-600">
                 {{ submitError }}
               </p>
@@ -220,7 +280,13 @@
 
             <div class="flex flex-col gap-2">
               <button
-                v-if="isComplete"
+                type="button"
+                class="w-full py-2.5 rounded-xl bg-[hsl(var(--primary))] text-white font-semibold hover:opacity-90"
+                @click="closeModal"
+              >
+                Continue
+              </button>
+              <button
                 type="button"
                 class="w-full py-2.5 rounded-xl bg-[hsl(var(--muted))] text-[hsl(var(--foreground))] font-semibold hover:bg-[hsl(var(--border))]"
                 @click="shareResult"
@@ -230,28 +296,23 @@
               <p class="text-sm text-[hsl(var(--muted-foreground))]">
                 {{ nextPuzzleIn }}
               </p>
-              <NuxtLink
-                to="/play"
-                class="inline-flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[hsl(var(--muted))] text-[hsl(var(--foreground))] font-semibold hover:bg-[hsl(var(--border))]"
-                @click="closeModal"
-              >
-                <IconArrowLeft class="w-4 h-4" />
-                Back to games
-              </NuxtLink>
             </div>
           </div>
         </div>
       </Teleport>
+      </ClientOnly>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { IconArrowLeft } from '@tabler/icons-vue'
-import { getWordForDate, wordleDateId, WORD_LEN } from '~/utils/wordleDaily'
+import { getWordForDate, wordleDateId } from '~/utils/wordleDaily'
 import { getFeedback } from '~/utils/wordle'
+import { isValidWord } from '~/data/wordleGuessList'
 import type { LetterStatus } from '~/types/wordle'
 
+const WORD_LEN = 5
 const ROWS = 6
 const KEYBOARD_TOP = ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P']
 const KEYBOARD_MID = ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L']
@@ -259,29 +320,34 @@ const KEYBOARD_BOT = ['Z', 'X', 'C', 'V', 'B', 'N', 'M']
 
 const DAILY_STORAGE_KEY = 'wordle-daily'
 
-const wordleWordsModule = ref<typeof import('~/utils/wordleWords') | null>(null)
+const remoteExtraWords = ref<string[]>([])
 
 function getTodayId(): string {
   return wordleDateId()
 }
 
-function loadDailyState(): { solution: string; guesses: string[]; isComplete: boolean } {
+function loadDailyState(): { solution: string; guesses: string[]; isComplete: boolean; scoreSubmitted: boolean } {
   if (import.meta.server) {
-    return { solution: getWordForDate(new Date()), guesses: [], isComplete: false }
+    return { solution: getWordForDate(new Date()), guesses: [], isComplete: false, scoreSubmitted: false }
   }
   try {
     const raw = localStorage.getItem(DAILY_STORAGE_KEY)
-    if (!raw) return { solution: getWordForDate(new Date()), guesses: [], isComplete: false }
-    const { date, solution, guesses, isComplete } = JSON.parse(raw)
+    if (!raw) return { solution: getWordForDate(new Date()), guesses: [], isComplete: false, scoreSubmitted: false }
+    const { date, solution, guesses, isComplete, scoreSubmitted } = JSON.parse(raw)
     const today = getTodayId()
-    if (date !== today) return { solution: getWordForDate(new Date()), guesses: [], isComplete: false }
-    return { solution, guesses: guesses ?? [], isComplete: isComplete ?? false }
+    if (date !== today) return { solution: getWordForDate(new Date()), guesses: [], isComplete: false, scoreSubmitted: false }
+    return {
+      solution,
+      guesses: guesses ?? [],
+      isComplete: isComplete ?? false,
+      scoreSubmitted: scoreSubmitted ?? false
+    }
   } catch {
-    return { solution: getWordForDate(new Date()), guesses: [], isComplete: false }
+    return { solution: getWordForDate(new Date()), guesses: [], isComplete: false, scoreSubmitted: false }
   }
 }
 
-function saveDailyState(solution: string, guesses: string[], isComplete: boolean) {
+function saveDailyState(solution: string, guesses: string[], isComplete: boolean, scoreSubmitted = false) {
   if (import.meta.server) return
   try {
     localStorage.setItem(DAILY_STORAGE_KEY, JSON.stringify({
@@ -289,17 +355,24 @@ function saveDailyState(solution: string, guesses: string[], isComplete: boolean
       solution,
       guesses,
       isComplete,
+      scoreSubmitted
     }))
   } catch (_) {}
 }
 
-const solution = ref(getWordForDate(new Date()))
+const solution = ref('BHAKT')
 const guesses = ref<string[]>([])
 const currentGuess = ref('')
 const isComplete = ref(false)
+const showResultModal = ref(false)
 const shakeRow = ref<number | null>(null)
 const flipRow = ref<number | null>(null)
 const shouldDance = ref(false)
+const pressedKey = ref<string | null>(null)
+const popTile = ref<number | null>(null)
+let pressTimer: ReturnType<typeof setTimeout> | null = null
+let popTimer: ReturnType<typeof setTimeout> | null = null
+let keyPrimed = false
 const hasRecordedResult = ref(false)
 const scoreSubmitted = ref(false)
 const submittingScore = ref(false)
@@ -311,7 +384,13 @@ const modalContentRef = ref<HTMLElement | null>(null)
 
 const wordleStats = useWordleStats()
 const auth = useAuth()
-const leaderboard = useWordleLeaderboard()
+const {
+  entries: leaderboardEntries,
+  loading: leaderboardLoading,
+  dateId: leaderboardDateId,
+  submitScore,
+  refetch: refetchLeaderboard
+} = useWordleLeaderboard()
 const isLoggedIn = computed(() => !!auth.user.value)
 
 const isWin = computed(() => guesses.value.length > 0 && guesses.value[guesses.value.length - 1] === solution.value)
@@ -371,19 +450,53 @@ function statusLabel(status: LetterStatus): string {
   return 'empty'
 }
 
+function isAllowedGuess(word: string) {
+  const w = word.toUpperCase().trim()
+  if (w.length !== WORD_LEN || !/^[A-Z]+$/.test(w)) return false
+  if (w === solution.value) return true
+  return isValidWord(w, [...remoteExtraWords.value, solution.value])
+}
+
+function haptic(pattern: number | number[] = 10) {
+  try {
+    if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+      navigator.vibrate(pattern)
+    }
+  } catch {}
+}
+
+function pressKeyVisual(key: string) {
+  pressedKey.value = key.toUpperCase()
+  if (pressTimer) clearTimeout(pressTimer)
+  pressTimer = setTimeout(() => { pressedKey.value = null }, 140)
+}
+
+function primeKey(key: string, pattern: number | number[] = 10) {
+  keyPrimed = true
+  pressKeyVisual(key)
+  haptic(pattern)
+  setTimeout(() => { keyPrimed = false }, 400)
+}
+
 function submitGuess() {
+  if (!keyPrimed) {
+    pressKeyVisual('ENTER')
+    haptic([12, 20, 12])
+  }
+  keyPrimed = false
   invalidWordMessage.value = ''
   const trimmed = currentGuess.value.toUpperCase().trim()
   const currentRow = guesses.value.length
   if (trimmed.length !== WORD_LEN) {
+    haptic([30, 50, 30])
     shakeRow.value = currentRow
     setTimeout(() => { shakeRow.value = null }, 500)
     invalidWordMessage.value = 'Enter 5 letters.'
     setTimeout(() => { invalidWordMessage.value = '' }, 2500)
     return
   }
-  const isValid = wordleWordsModule.value?.isValidWord(trimmed) ?? false
-  if (!isValid) {
+  if (!isAllowedGuess(trimmed)) {
+    haptic([30, 50, 30])
     shakeRow.value = currentRow
     setTimeout(() => { shakeRow.value = null }, 500)
     invalidWordMessage.value = 'Not in word list.'
@@ -392,26 +505,45 @@ function submitGuess() {
   }
   guesses.value = [...guesses.value, trimmed]
   currentGuess.value = ''
+  popTile.value = null
   flipRow.value = currentRow
   setTimeout(() => { flipRow.value = null }, 600)
   if (trimmed === solution.value) {
     isComplete.value = true
+    showResultModal.value = true
     setTimeout(() => { shouldDance.value = true }, 600)
   } else if (guesses.value.length >= ROWS) {
     isComplete.value = true
+    showResultModal.value = true
   }
 }
 
 function addLetter(letter: string) {
   if (isComplete.value) return
-  if (currentGuess.value.length < WORD_LEN) {
-    currentGuess.value += letter.toUpperCase()
+  if (!keyPrimed) {
+    pressKeyVisual(letter)
+    haptic(10)
   }
+  keyPrimed = false
+  if (currentGuess.value.length >= WORD_LEN) {
+    haptic(20)
+    return
+  }
+  currentGuess.value += letter.toUpperCase()
+  popTile.value = currentGuess.value.length - 1
+  if (popTimer) clearTimeout(popTimer)
+  popTimer = setTimeout(() => { popTile.value = null }, 140)
 }
 
 function removeLetter() {
   if (isComplete.value) return
+  if (!keyPrimed) {
+    pressKeyVisual('BACK')
+    haptic(14)
+  }
+  keyPrimed = false
   currentGuess.value = currentGuess.value.slice(0, -1)
+  popTile.value = null
 }
 
 function reset() {
@@ -421,11 +553,12 @@ function reset() {
   guesses.value = [...state.guesses]
   currentGuess.value = ''
   isComplete.value = state.isComplete
+  showResultModal.value = false
   shakeRow.value = null
   flipRow.value = null
   shouldDance.value = false
-  hasRecordedResult.value = false
-  scoreSubmitted.value = false
+  hasRecordedResult.value = state.isComplete
+  scoreSubmitted.value = state.scoreSubmitted
 }
 
 watch([isComplete, isWin, isLose, guesses], () => {
@@ -436,24 +569,37 @@ watch([isComplete, isWin, isLose, guesses], () => {
   }
 }, { deep: true })
 
-watch([solution, guesses, isComplete], () => {
-  saveDailyState(solution.value, guesses.value, isComplete.value)
+watch([solution, guesses, isComplete, scoreSubmitted], () => {
+  saveDailyState(solution.value, guesses.value, isComplete.value, scoreSubmitted.value)
 }, { deep: true })
 
+watch(
+  [leaderboardEntries, () => auth.user.value?.uid],
+  ([list, uid]) => {
+    if (uid && list.some(e => e.userId === uid)) scoreSubmitted.value = true
+  },
+  { immediate: true }
+)
+
 async function submitToLeaderboard() {
-  if (!auth.user.value || !isWin.value) return
+  if (!auth.user.value || !isWin.value || scoreSubmitted.value || submittingScore.value) return
   submitError.value = ''
   submittingScore.value = true
+  scoreSubmitted.value = true
+  saveDailyState(solution.value, guesses.value, isComplete.value, true)
   try {
-    await leaderboard.submitScore(
+    await submitScore(
       guesses.value.length,
       solution.value,
       auth.userName.value || auth.userEmail.value || 'Anonymous',
       auth.user.value.uid,
       auth.userEmail.value || undefined
     )
-    scoreSubmitted.value = true
+    showResultModal.value = false
+    await refetchLeaderboard()
   } catch (e: unknown) {
+    scoreSubmitted.value = false
+    saveDailyState(solution.value, guesses.value, isComplete.value, false)
     submitError.value = e instanceof Error ? e.message : 'Could not submit score. Please try again after signing in.'
   } finally {
     submittingScore.value = false
@@ -473,8 +619,9 @@ const nextPuzzleIn = computed(() => {
 })
 
 function guessDistributionWidth(n: number): number {
-  const dist = wordleStats.stats.guessDistribution
-  const max = Math.max(1, ...Object.values(dist))
+  const dist = wordleStats.stats.value?.guessDistribution || { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 }
+  const values = Object.values(dist)
+  const max = Math.max(1, ...values)
   const val = dist[n] ?? 0
   return max > 0 ? (val / max) * 100 : 0
 }
@@ -503,22 +650,28 @@ function shareResult() {
 }
 
 function closeModal() {
-  navigateTo('/play')
+  showResultModal.value = false
 }
 
 onMounted(async () => {
-  import('~/utils/wordleWords').then((m) => { wordleWordsModule.value = m })
   const state = loadDailyState()
+  hasRecordedResult.value = state.isComplete
+  scoreSubmitted.value = state.scoreSubmitted
+  showResultModal.value = false
   solution.value = state.solution
   guesses.value = state.guesses
   isComplete.value = state.isComplete
-  if (!state.guesses.length && !state.isComplete) {
-    try {
-      const remote = await fetchWordleRemote(new Date())
+  try {
+    const remote = await fetchWordleRemote(new Date())
+    remoteExtraWords.value = [
+      ...remote.extraWords.map(w => w.toUpperCase()),
+      ...(remote.dailyWord ? [remote.dailyWord.toUpperCase()] : [])
+    ]
+    if (!state.guesses.length && !state.isComplete) {
       const next = remote.dailyWord || getWordForDate(new Date(), remote.extraWords)
       if (next) solution.value = next
-    } catch (_) {}
-  }
+    }
+  } catch (_) {}
 
   const onKeyDown = (e: KeyboardEvent) => {
     if (e.repeat) return
@@ -538,8 +691,8 @@ onMounted(async () => {
   onUnmounted(() => window.removeEventListener('keydown', onKeyDown))
 })
 
-watch(isComplete, (complete) => {
-  if (complete) {
+watch(showResultModal, (open) => {
+  if (open) {
     nextTick(() => {
       nextTick(() => modalContentRef.value?.focus())
     })

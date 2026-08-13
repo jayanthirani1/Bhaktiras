@@ -1,6 +1,23 @@
 {
   "indexes": [
     {
+      "collectionGroup": "gameScores",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "game", "order": "ASCENDING" },
+        { "fieldPath": "dateId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "gameScores",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "game", "order": "ASCENDING" },
+        { "fieldPath": "dateId", "order": "ASCENDING" },
+        { "fieldPath": "userId", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "wordleScores",
       "queryScope": "COLLECTION",
       "fields": [

@@ -46,8 +46,43 @@
           <p v-if="checked" class="mt-3 text-sm text-[hsl(var(--muted-foreground))]">
             {{ correctCount }} / {{ active.clues.length }} correct
           </p>
+          <div v-if="checked" class="mt-4 space-y-2">
+            <button
+              v-if="isLoggedIn && !scoreSubmitted"
+              type="button"
+              class="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600 disabled:opacity-50"
+              :disabled="submittingScore"
+              @click="submitToLeaderboard"
+            >
+              {{ submittingScore ? 'Submitting...' : 'Submit to leaderboard' }}
+            </button>
+            <NuxtLink
+              v-else-if="!isLoggedIn && !scoreSubmitted"
+              to="/login?redirect=/play/crossword"
+              class="inline-block rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600"
+            >
+              Sign in to submit score
+            </NuxtLink>
+            <p v-else-if="scoreSubmitted" class="text-sm text-emerald-700">Score submitted to today’s leaderboard.</p>
+            <p v-if="submitError" class="text-sm text-red-600">{{ submitError }}</p>
+          </div>
         </div>
       </div>
+
+      <GameLeaderboard
+        :entries="leaderboardEntries"
+        :loading="leaderboardLoading"
+        :date-id="leaderboardDateId"
+        :format-score="(e) => e.detail || `${e.score}`"
+      >
+        <template v-if="!isLoggedIn">
+          <NuxtLink to="/login?redirect=/play/crossword" class="text-[hsl(var(--primary))] underline">Sign in</NuxtLink>
+          to submit yours.
+        </template>
+        <template v-else-if="scoreSubmitted">
+          Your score is on the board.
+        </template>
+      </GameLeaderboard>
     </div>
   </div>
 </template>
@@ -56,6 +91,17 @@
 import type { CrosswordClue } from '~/types'
 
 const { puzzles, loading } = useCrosswordPuzzles()
+const auth = useAuth()
+const isLoggedIn = computed(() => !!auth.user.value)
+const {
+  entries: leaderboardEntries,
+  loading: leaderboardLoading,
+  dateId: leaderboardDateId,
+  submitScore
+} = useGameLeaderboard('crossword', { sort: 'desc' })
+const { submitted: scoreSubmitted, markSubmitted } = useDailySubmitFlag('crossword')
+const submittingScore = ref(false)
+const submitError = ref('')
 const activeId = ref('')
 const answers = reactive<Record<string, string>>({})
 const checked = ref(false)
@@ -81,4 +127,24 @@ function select(id: string) {
 watch(puzzles, (list) => {
   if (list.length && !activeId.value) activeId.value = list[0].id
 }, { immediate: true })
+
+async function submitToLeaderboard() {
+  if (!auth.user.value || !checked.value || !active.value) return
+  submitError.value = ''
+  submittingScore.value = true
+  try {
+    await submitScore({
+      score: correctCount.value,
+      userName: auth.userName.value || auth.userEmail.value || 'Player',
+      userId: auth.user.value.uid,
+      userEmail: auth.userEmail.value || undefined,
+      detail: `${correctCount.value}/${active.value.clues.length}`
+    })
+    markSubmitted()
+  } catch (e: unknown) {
+    submitError.value = e instanceof Error ? e.message : 'Could not submit score.'
+  } finally {
+    submittingScore.value = false
+  }
+}
 </script>

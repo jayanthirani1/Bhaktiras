@@ -11,23 +11,50 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.active != false;
     }
 
+    function twoDigits(n) {
+      return n < 10 ? '0' + string(n) : string(n);
+    }
+
+    /** UTC YYYY-MM-DD. Used only to allow deleting previous days' scores. */
+    function utcDateId() {
+      return string(request.time.year())
+        + '-' + twoDigits(request.time.month())
+        + '-' + twoDigits(request.time.day());
+    }
+
     // Doc ID = Auth UID. Fields: name, role (admin|guest), active.
     match /admins/{uid} {
       allow read: if isSignedIn() && (request.auth.uid == uid || isAdmin());
       allow create, update, delete: if isAdmin();
     }
 
+    // Daily leaderboards (all games). Read public; submit requires login; old days can be deleted.
+    match /gameScores/{scoreId} {
+      allow read: if true;
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.game is string
+        && request.resource.data.dateId is string
+        && request.resource.data.dateId.size() == 10
+        && request.resource.data.userName is string
+        && request.resource.data.userName.size() <= 32
+        && request.resource.data.score is int
+        && request.resource.data.score >= 0
+        && request.resource.data.score <= 100000
+        && (
+          request.resource.data.game != 'wordle'
+          || (request.resource.data.score >= 1 && request.resource.data.score <= 6)
+        );
+      allow update: if false;
+      allow delete: if (resource.data.dateId is string && resource.data.dateId < utcDateId())
+        || (isSignedIn() && resource.data.userId == request.auth.uid);
+    }
+
+    // Legacy Wordle scores — read + delete only so the daily cleanse can empty them.
     match /wordleScores/{scoreId} {
       allow read: if true;
-      allow create: if request.auth != null
-        && request.resource.data.userId == request.auth.uid
-        && request.resource.data.guesses is int
-        && request.resource.data.guesses >= 1
-        && request.resource.data.guesses <= 6
-        && request.resource.data.word is string
-        && request.resource.data.userName is string
-        && request.resource.data.userName.size() <= 32;
-      allow update, delete: if false;
+      allow create, update: if false;
+      allow delete: if true;
     }
 
     match /gratitude/{id} {

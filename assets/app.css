@@ -114,7 +114,8 @@
   transform-box: fill-box;
   transform-origin: center bottom;
 }
-.logo-lockup #logo-splash .logo-splash-drop {
+.logo-lockup #logo-splash .logo-splash-drop,
+.logo-lockup #logo-text-splash .logo-splash-drop {
   transform-box: fill-box;
   transform-origin: center center;
   fill-opacity: 0;
@@ -183,7 +184,44 @@
   animation: logo-rise 0.55s var(--ease-out-expo) 0.55s backwards;
 }
 .logo-lockup.logo-animate #logo-tilak {
-  animation: logo-pop 0.5s var(--ease-out-expo) 0.7s backwards;
+  fill-opacity: 0;
+  animation: logo-droplet-nav 1.05s linear 0.55s both;
+}
+.logo-lockup.logo-animate #logo-text-splash .logo-splash-drop {
+  animation: logo-splash-nav 0.62s cubic-bezier(0.2, 0.65, 0.3, 1) 1.04s both;
+}
+.logo-lockup.logo-animate #logo-text-splash .logo-splash-drop:nth-child(1) {
+  --sx: -8px; --sy: -10px; --ex: -12px; --ey: 4px; --rot: -36deg;
+}
+.logo-lockup.logo-animate #logo-text-splash .logo-splash-drop:nth-child(2) {
+  --sx: 9px; --sy: -9px; --ex: 13px; --ey: 3px; --rot: 32deg;
+  animation-duration: 0.58s;
+  animation-delay: 1.06s;
+}
+.logo-lockup.logo-animate #logo-text-splash .logo-splash-drop:nth-child(3) {
+  --sx: -11px; --sy: -5px; --ex: -15px; --ey: 3px; --rot: -18deg;
+  animation-duration: 0.52s;
+  animation-delay: 1.05s;
+}
+.logo-lockup.logo-animate #logo-text-splash .logo-splash-drop:nth-child(4) {
+  --sx: 10px; --sy: -4px; --ex: 14px; --ey: 3px; --rot: 20deg;
+  animation-duration: 0.54s;
+  animation-delay: 1.07s;
+}
+.logo-lockup.logo-animate #logo-text-splash .logo-splash-drop:nth-child(5) {
+  --sx: -4px; --sy: -12px; --ex: -6px; --ey: 2px; --rot: -8deg;
+  animation-duration: 0.66s;
+  animation-delay: 1.03s;
+}
+.logo-lockup.logo-animate #logo-text-splash .logo-splash-drop:nth-child(6) {
+  --sx: 5px; --sy: -11px; --ex: 7px; --ey: 3px; --rot: 12deg;
+  animation-duration: 0.64s;
+  animation-delay: 1.04s;
+}
+.logo-lockup.logo-animate #logo-text-splash .logo-splash-drop:nth-child(7) {
+  --sx: -1px; --sy: -6px; --ex: -2px; --ey: 5px; --rot: 6deg;
+  animation-duration: 0.48s;
+  animation-delay: 1.08s;
 }
 .logo-lockup.logo-animate #logo-wordmark path {
   animation: logo-letter 0.5s var(--ease-out-expo) backwards;
@@ -218,6 +256,40 @@
   0% { fill-opacity: 0; transform: scale(0.4); }
   70% { fill-opacity: 1; transform: scale(1.15); }
   100% { fill-opacity: 1; transform: scale(1); }
+}
+@keyframes logo-droplet-nav {
+  0% {
+    fill-opacity: 0;
+    transform: translateY(-18px) scaleX(0.7) scaleY(1.5);
+    animation-timing-function: cubic-bezier(0.55, 0.06, 0.9, 0.35);
+  }
+  8% {
+    fill-opacity: 1;
+  }
+  48% {
+    fill-opacity: 1;
+    transform: translateY(0) scaleX(0.78) scaleY(1.32);
+    animation-timing-function: cubic-bezier(0.15, 0.85, 0.3, 1);
+  }
+  58% {
+    transform: translateY(1px) scaleX(1.45) scaleY(0.52);
+    animation-timing-function: cubic-bezier(0.22, 0.9, 0.32, 1);
+  }
+  72% {
+    transform: translateY(-5px) scaleX(0.82) scaleY(1.22);
+    animation-timing-function: cubic-bezier(0.4, 0, 0.7, 0.4);
+  }
+  84% {
+    transform: translateY(0.5px) scaleX(1.16) scaleY(0.8);
+    animation-timing-function: cubic-bezier(0.22, 0.9, 0.32, 1);
+  }
+  92% {
+    transform: translateY(-1.4px) scaleX(0.94) scaleY(1.08);
+  }
+  100% {
+    fill-opacity: 1;
+    transform: translateY(0) scaleX(1) scaleY(1);
+  }
 }
 @keyframes logo-droplet {
   0% {
@@ -270,6 +342,23 @@
     transform: translate(var(--ex, 0), var(--ey, 4px)) scale(0.25) rotate(var(--rot, 0deg));
   }
 }
+@keyframes logo-splash-nav {
+  0% {
+    fill-opacity: 0;
+    transform: translate(0, 0) scale(0.25) rotate(var(--rot, 0deg));
+  }
+  14% {
+    fill-opacity: 0.9;
+  }
+  40% {
+    fill-opacity: 0.85;
+    transform: translate(var(--sx, 0), var(--sy, -10px)) scale(1.15) rotate(var(--rot, 0deg));
+  }
+  100% {
+    fill-opacity: 0;
+    transform: translate(var(--ex, 0), var(--ey, 4px)) scale(0.3) rotate(var(--rot, 0deg));
+  }
+}
 @keyframes logo-shimmer {
   0%, 100% { fill-opacity: 1; }
   50% { fill-opacity: 0.72; }
@@ -311,6 +400,7 @@
   .logo-lockup.logo-animate #logo-tilak,
   .logo-lockup.logo-animate #logo-main-tilak,
   .logo-lockup.logo-animate #logo-splash .logo-splash-drop,
+  .logo-lockup.logo-animate #logo-text-splash .logo-splash-drop,
   .logo-lockup.logo-animate #logo-wordmark path {
     animation: none !important;
   }
@@ -342,3 +432,15 @@
   50% { transform: scale(1.1); }
 }
 .dance { animation: dance 0.3s ease-in-out; }
+@keyframes key-press {
+  0% { transform: scale(1); }
+  40% { transform: scale(0.86); }
+  100% { transform: scale(1); }
+}
+.key-press { animation: key-press 0.14s ease-out; }
+@keyframes tile-pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.14); }
+  100% { transform: scale(1); }
+}
+.tile-pop { animation: tile-pop 0.12s ease-out; }

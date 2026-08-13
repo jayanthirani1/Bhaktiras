@@ -1,12 +1,10 @@
 /**
- * Wordle: full word list for validation. Re-exports daily puzzle helpers.
- * Valid guesses = winning words + common dictionary words.
+ * Wordle guess dictionary. Keep this out of utils/ so Nuxt does not auto-import
+ * WORD_LEN / WORDLE_WORDS / getWordForDate (those live only in wordleDaily).
  */
-import { WORD_LEN as WL, WORDLE_WORDS as DAILY_WORDS, getWordForDate as getWordForDateDaily } from '~/utils/wordleDaily'
+import { WORDLE_WORDS } from '~/utils/wordleDaily'
 
-export const WORDLE_WORDS = DAILY_WORDS
-export const WORD_LEN = WL
-export const getWordForDate = getWordForDateDaily
+const LEN = 5
 
 /** Common 5-letter dictionary words – valid as guesses but never the answer. */
 const COMMON_FIVE_LETTER_WORDS: string[] = [
@@ -67,11 +65,11 @@ const COMMON_FIVE_LETTER_WORDS: string[] = [
   'WORTH', 'WOULD', 'WOUND', 'WRITE', 'WRONG', 'WROTE', 'YIELD', 'YOUNG', 'YOURS', 'ZONES',
 ]
 
-const VALID_WORDS = DAILY_WORDS.filter((w) => w.length === WL).map((w) => w.toUpperCase().slice(0, WL))
+const VALID_WORDS = WORDLE_WORDS.filter((w) => w.length === LEN).map((w) => w.toUpperCase().slice(0, LEN))
 const WORD_SET = new Set(VALID_WORDS)
 export const WORDS = Array.from(WORD_SET)
 
-const commonUpper = COMMON_FIVE_LETTER_WORDS.filter((w) => w.length === WL).map((w) => w.toUpperCase())
+const commonUpper = COMMON_FIVE_LETTER_WORDS.filter((w) => w.length === LEN).map((w) => w.toUpperCase())
 const ALLOWED_GUESS_SET = new Set([...Array.from(WORD_SET), ...commonUpper])
 
 export function getRandomWord(): string {
@@ -79,6 +77,9 @@ export function getRandomWord(): string {
   return WORDS[Math.floor(Math.random() * WORDS.length)]
 }
 
-export function isValidWord(word: string): boolean {
-  return word.length === WL && ALLOWED_GUESS_SET.has(word.toUpperCase())
+export function isValidWord(word: string, extraWords: string[] = []): boolean {
+  const w = word.toUpperCase().trim()
+  if (w.length !== LEN) return false
+  if (ALLOWED_GUESS_SET.has(w)) return true
+  return extraWords.some(e => String(e || '').toUpperCase().trim() === w)
 }

@@ -112,7 +112,7 @@ const menuItems = [
   { id: 'journey', title: 'Our Journey', desc: '10 years to Patotsav', icon: IconMapPin, href: '/journey' },
   { id: 'events', title: 'Our Events', desc: 'Sabhas & mahotsav dates', icon: IconCalendarEvent, href: '/events' },
   { id: 'community', title: 'Our Community', desc: 'What mandir means to you', icon: IconUsers, href: '/community' },
-  { id: 'seva', title: 'Seva', desc: 'Teams & WhatsApp', icon: IconHandGrab, href: '/seva' },
+  { id: 'seva', title: 'Seva', desc: 'Teams, hours & WhatsApp', icon: IconHandGrab, href: '/seva' },
   { id: 'niyams', title: 'Our Niyams', desc: 'Utsav niyams & tracker', icon: IconFlame, href: '/niyams' },
   { id: 'play', title: 'Games', desc: 'Coming along later', icon: IconDeviceGamepad2, href: '/play' }
 ]
