@@ -70,6 +70,30 @@
   .card-surface:hover {
     @apply -translate-y-1 border-[hsl(var(--golden-200))] shadow-[0_20px_50px_-24px_rgba(56,32,97,0.28)];
   }
+  .admin-input {
+    @apply w-full rounded-lg border border-[hsl(var(--border))] bg-white px-3 py-2 text-sm focus:border-[hsl(var(--primary))] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--primary))]/15;
+  }
+  .admin-label {
+    @apply mb-1 block text-xs font-semibold uppercase tracking-wide text-[hsl(var(--muted-foreground))];
+  }
+  .admin-btn {
+    @apply inline-flex items-center justify-center rounded-lg bg-[hsl(var(--primary))] px-3.5 py-2 text-sm font-semibold text-white transition-colors hover:bg-[hsl(var(--primary))]/90 disabled:opacity-50;
+  }
+  .admin-btn-secondary {
+    @apply inline-flex items-center justify-center rounded-lg border border-[hsl(var(--border))] bg-white px-3.5 py-2 text-sm font-semibold text-[hsl(var(--primary))] hover:bg-[hsl(var(--muted))] disabled:opacity-50;
+  }
+  .admin-btn-danger {
+    @apply inline-flex items-center justify-center rounded-lg px-3 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-40;
+  }
+  .admin-row {
+    @apply w-full rounded-xl border border-[hsl(var(--border))] bg-white p-3 text-left transition-colors hover:border-[hsl(var(--primary))]/25;
+  }
+  .admin-row-active {
+    @apply border-[hsl(var(--primary))] bg-[hsl(var(--golden-50))] ring-2 ring-[hsl(var(--primary))]/10;
+  }
+  .admin-panel {
+    @apply rounded-xl border border-[hsl(var(--border))] bg-white p-4 sm:p-5;
+  }
 }
 
 @layer utilities {

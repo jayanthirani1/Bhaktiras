@@ -2,8 +2,8 @@ import type { TimelineItem } from '~/types'
 import { SITE } from '~/data/site'
 
 /**
- * Local journey milestones (39 years). Firestore `timeline` docs overlay/add to this.
- * Add imageUrl or media[] when photos/videos are ready.
+ * Local journey milestones. Firestore `timeline` docs overlay/add to this.
+ * Year picker is the last 10 years including 2027 (Patotsav).
  */
 export const JOURNEY_MILESTONES: TimelineItem[] = [
   { id: '1987', year: '1987', date: '1987', title: 'The first steps', description: 'The Woolwich satsang mandal begins gathering — small sabhas, big hearts. This is year one of a 39-year journey.' },
@@ -17,12 +17,14 @@ export const JOURNEY_MILESTONES: TimelineItem[] = [
   { id: '2020', year: '2020', date: '2020', title: 'Bhakti through the screen', description: 'When the doors closed, the satsang did not. Online sabha, phone seva, and care for elders.' },
   { id: '2023', year: '2023', date: '2023', title: 'Together again', description: 'Halls fill. Children run. The mandir sounds like home once more.' },
   { id: '2025', year: '2025', date: '2025', title: 'Towards Patotsav', description: 'Teams form, niyams begin, and the countdown to mahotsav starts in every sabha.' },
-  { id: '2026', year: '2026', date: '2026', title: 'Bhaktiras Patotsav', description: 'Celebrating 39 years of satsang and 10 years of this mandir chapter — with Ghanshyam Maharaj.' }
+  { id: '2026', year: '2026', date: '2026', title: 'Towards mahotsav', description: 'Teams form, niyams deepen, and the countdown to Patotsav fills every sabha.' },
+  { id: '2027', year: '2027', date: '2027', title: 'Bhaktiras Patotsav', description: 'Celebrating 10 years of this mandir chapter — with Ghanshyam Maharaj. Saturday 14th August – Sunday 22nd August.' }
 ]
 
 export function journeyYears(): number[] {
-  const end = new Date().getFullYear()
+  const end = SITE.journeyEndYear
+  const start = SITE.journeyStartYear
   const years: number[] = []
-  for (let y = SITE.journeyStartYear; y <= end; y++) years.push(y)
+  for (let y = start; y <= end; y++) years.push(y)
   return years
 }

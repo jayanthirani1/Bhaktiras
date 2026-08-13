@@ -1,7 +1,22 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Wordle leaderboard: anyone can read; only authenticated users can create their own score
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+        && get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.active != false;
+    }
+
+    // Doc ID = Auth UID. Fields: name, role (admin|guest), active.
+    match /admins/{uid} {
+      allow read: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+      allow create, update, delete: if isAdmin();
+    }
+
     match /wordleScores/{scoreId} {
       allow read: if true;
       allow create: if request.auth != null
@@ -13,6 +28,55 @@ service cloud.firestore {
         && request.resource.data.userName is string
         && request.resource.data.userName.size() <= 32;
       allow update, delete: if false;
+    }
+
+    match /gratitude/{id} {
+      allow read: if true;
+      allow create: if request.resource.data.message is string
+        && request.resource.data.message.size() >= 5
+        && request.resource.data.message.size() <= 500;
+      allow update, delete: if isAdmin();
+    }
+
+    match /timeline/{id} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /events/{id} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /wordleWords/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /wordleDaily/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /quizQuestions/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /crosswordPuzzles/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /spellingBeePuzzles/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /sevaHours/{id} {
+      allow read: if true;
+      allow create: if true;
+      allow update, delete: if isAdmin();
     }
   }
 }

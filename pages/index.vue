@@ -13,7 +13,7 @@
         </div>
 
         <p class="reveal reveal-delay-2 mt-6 text-sm font-medium tracking-wide text-[hsl(var(--primary))]">
-          {{ dateRange }}
+          {{ SITE.patotsavDateLabel }}
         </p>
 
         <ClientOnly>
@@ -91,7 +91,8 @@ import {
   IconUsers,
   IconHandGrab,
   IconFlame,
-  IconDeviceGamepad2
+  IconDeviceGamepad2,
+  IconCalendarEvent
 } from '@tabler/icons-vue'
 import { SITE } from '~/data/site'
 import { getQuoteOfTheWeek } from '~/utils/quotes'
@@ -99,14 +100,6 @@ import { getQuoteOfTheWeek } from '~/utils/quotes'
 const { greeting } = useAuth()
 const countdown = useCountdown()
 const weeklyQuote = getQuoteOfTheWeek()
-
-const dateRange = computed(() => {
-  const start = new Date(SITE.patotsavStart)
-  const end = new Date(SITE.patotsavEnd)
-  const fmt = (d: Date) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-  if (fmt(start) === fmt(end)) return fmt(start)
-  return `${fmt(start)} – ${fmt(end)}`
-})
 
 const countdownUnits = computed(() => [
   { label: 'Days', value: countdown.parts.value.days },
@@ -116,9 +109,10 @@ const countdownUnits = computed(() => [
 ])
 
 const menuItems = [
-  { id: 'journey', title: 'Our Journey', desc: '39 years of satsang', icon: IconMapPin, href: '/journey' },
+  { id: 'journey', title: 'Our Journey', desc: '10 years to Patotsav', icon: IconMapPin, href: '/journey' },
+  { id: 'events', title: 'Our Events', desc: 'Sabhas & mahotsav dates', icon: IconCalendarEvent, href: '/events' },
   { id: 'community', title: 'Our Community', desc: 'What mandir means to you', icon: IconUsers, href: '/community' },
-  { id: 'seva', title: 'Seva', desc: 'Teams, WhatsApp & hours', icon: IconHandGrab, href: '/seva' },
+  { id: 'seva', title: 'Seva', desc: 'Teams & WhatsApp', icon: IconHandGrab, href: '/seva' },
   { id: 'niyams', title: 'Our Niyams', desc: 'Utsav niyams & tracker', icon: IconFlame, href: '/niyams' },
   { id: 'play', title: 'Games', desc: 'Coming along later', icon: IconDeviceGamepad2, href: '/play' }
 ]

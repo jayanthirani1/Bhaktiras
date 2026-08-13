@@ -5,6 +5,14 @@ export interface AuthUserSnapshot {
   displayName: string | null
 }
 
+export interface AdminRecord {
+  /** Document ID = Firebase Auth UID (userRef) */
+  id: string
+  name: string
+  role: 'admin' | 'guest'
+  active: boolean
+}
+
 export interface TimelineMedia {
   type: 'image' | 'video'
   url: string
@@ -24,10 +32,44 @@ export interface TimelineItem {
 
 export interface Event {
   id: string
-  time: string
   title: string
+  date: string
   description: string
-  isLive: boolean
+  posterUrl?: string | null
+  time?: string
+  isLive?: boolean
+}
+
+export interface QuizQuestion {
+  id: string
+  question: string
+  options: string[]
+  correctAnswer: string
+  order?: number
+}
+
+export interface CrosswordClue {
+  number: number
+  direction: 'across' | 'down'
+  clue: string
+  answer: string
+}
+
+export interface CrosswordPuzzle {
+  id: string
+  title: string
+  clues: CrosswordClue[]
+  published?: boolean
+}
+
+export interface WordleWordDoc {
+  id: string
+  word: string
+}
+
+export interface WordleDailyDoc {
+  id: string
+  word: string
 }
 
 export interface GratitudeMessage {

@@ -22,7 +22,9 @@ function getDb(): Firestore | null {
 }
 
 function mapDoc<T>(id: string, data: DocumentData): T {
-  return { id, ...data } as T
+  const rest = { ...data } as Record<string, unknown>
+  delete rest.id
+  return { ...rest, id } as T
 }
 
 function mapTimestamp(d: unknown): Date | undefined {
@@ -63,10 +65,14 @@ export function useTimeline() {
           media
         })
       })
-      const byYear = new Map<string, TimelineItem>()
-      for (const m of JOURNEY_MILESTONES) byYear.set(m.year, { ...m, media: m.media ?? [] })
-      for (const r of remote) byYear.set(r.year, r)
-      items.value = Array.from(byYear.values()).sort((a, b) => a.year.localeCompare(b.year))
+      const byId = new Map<string, TimelineItem>()
+      for (const m of JOURNEY_MILESTONES) byId.set(m.id, { ...m, media: m.media ?? [] })
+      for (const r of remote) byId.set(r.id, r)
+      items.value = Array.from(byId.values()).sort((a, b) => {
+        const y = a.year.localeCompare(b.year)
+        if (y !== 0) return y
+        return (a.date || '').localeCompare(b.date || '')
+      })
     } catch (e) {
       error.value = e as Error
       items.value = [...JOURNEY_MILESTONES].sort((a, b) => a.year.localeCompare(b.year))
@@ -89,9 +95,19 @@ export function useEvents() {
       const db = getDb()
       if (!db) { items.value = []; return }
       const snap = await getDocs(collection(db, 'events'))
-      items.value = snap.docs.map((d) =>
-        mapDoc<Event>(d.id, { ...d.data(), isLive: d.data().isLive ?? false })
-      )
+      items.value = snap.docs
+        .map((d) => {
+          const data = d.data()
+          return mapDoc<Event>(d.id, {
+            title: data.title || '',
+            date: data.date || data.time || '',
+            description: data.description || '',
+            posterUrl: data.posterUrl ?? null,
+            time: data.time ?? null,
+            isLive: data.isLive ?? false
+          })
+        })
+        .sort((a, b) => String(b.date).localeCompare(String(a.date)))
     } catch (e) {
       items.value = []
     } finally {
@@ -146,9 +162,10 @@ export function useCreateGratitudeMessage() {
     pending.value = true
     try {
       const db = getDb()
-      if (!db) throw new Error('Firebase not configured')
-      const anonymous = data.anonymous !== false || !data.name?.trim()
-      const name = anonymous ? 'Anonymous' : data.name!.trim()
+      if (!db) throw new Error('Firebase is not configured, so the wall cannot save yet. Check .env and restart the dev server.')
+      const nameTrim = data.name?.trim() || ''
+      const anonymous = data.anonymous === true || !nameTrim
+      const name = anonymous ? 'Anonymous' : nameTrim
       const payload = {
         name,
         message: data.message.trim(),

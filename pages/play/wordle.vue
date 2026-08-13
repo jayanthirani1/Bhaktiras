@@ -248,7 +248,7 @@
 
 <script setup lang="ts">
 import { IconArrowLeft } from '@tabler/icons-vue'
-import { getWordForDate, WORD_LEN } from '~/utils/wordleDaily'
+import { getWordForDate, wordleDateId, WORD_LEN } from '~/utils/wordleDaily'
 import { getFeedback } from '~/utils/wordle'
 import type { LetterStatus } from '~/types/wordle'
 
@@ -261,9 +261,8 @@ const DAILY_STORAGE_KEY = 'wordle-daily'
 
 const wordleWordsModule = ref<typeof import('~/utils/wordleWords') | null>(null)
 
-function getTodayUTC(): string {
-  const d = new Date()
-  return d.toISOString().slice(0, 10)
+function getTodayId(): string {
+  return wordleDateId()
 }
 
 function loadDailyState(): { solution: string; guesses: string[]; isComplete: boolean } {
@@ -274,7 +273,7 @@ function loadDailyState(): { solution: string; guesses: string[]; isComplete: bo
     const raw = localStorage.getItem(DAILY_STORAGE_KEY)
     if (!raw) return { solution: getWordForDate(new Date()), guesses: [], isComplete: false }
     const { date, solution, guesses, isComplete } = JSON.parse(raw)
-    const today = getTodayUTC()
+    const today = getTodayId()
     if (date !== today) return { solution: getWordForDate(new Date()), guesses: [], isComplete: false }
     return { solution, guesses: guesses ?? [], isComplete: isComplete ?? false }
   } catch {
@@ -286,7 +285,7 @@ function saveDailyState(solution: string, guesses: string[], isComplete: boolean
   if (import.meta.server) return
   try {
     localStorage.setItem(DAILY_STORAGE_KEY, JSON.stringify({
-      date: getTodayUTC(),
+      date: getTodayId(),
       solution,
       guesses,
       isComplete,
@@ -507,12 +506,19 @@ function closeModal() {
   navigateTo('/play')
 }
 
-onMounted(() => {
+onMounted(async () => {
   import('~/utils/wordleWords').then((m) => { wordleWordsModule.value = m })
   const state = loadDailyState()
   solution.value = state.solution
   guesses.value = state.guesses
   isComplete.value = state.isComplete
+  if (!state.guesses.length && !state.isComplete) {
+    try {
+      const remote = await fetchWordleRemote(new Date())
+      const next = remote.dailyWord || getWordForDate(new Date(), remote.extraWords)
+      if (next) solution.value = next
+    } catch (_) {}
+  }
 
   const onKeyDown = (e: KeyboardEvent) => {
     if (e.repeat) return

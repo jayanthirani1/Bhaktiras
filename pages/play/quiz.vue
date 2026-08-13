@@ -47,11 +47,11 @@
             <span class="text-sm font-medium text-[hsl(var(--golden-600))]">Score: {{ score }}</span>
           </div>
           <h3 class="text-xl font-bold text-[hsl(var(--foreground))] mb-6">
-            {{ questions[currentQuestion].question }}
+            {{ questions[currentQuestion]?.question }}
           </h3>
           <div class="space-y-3">
             <button
-              v-for="option in questions[currentQuestion].options"
+              v-for="option in questions[currentQuestion]?.options || []"
               :key="option"
               type="button"
               class="w-full text-left px-4 py-3 rounded-xl border-2 transition-all"
@@ -75,11 +75,8 @@
 <script setup lang="ts">
 import { IconArrowLeft, IconRefresh, IconCheck, IconX } from '@tabler/icons-vue'
 
-const questions = [
-  { id: 1, question: 'Which year was the temple inaugurated?', options: ['2013', '2014', '2015', '2016'], correctAnswer: '2014' },
-  { id: 2, question: "What is the primary material used in the main shrine?", options: ['White Marble', 'Sandstone', 'Granite', 'Limestone'], correctAnswer: 'White Marble' },
-  { id: 3, question: 'How many major festivals are celebrated annually?', options: ['5', '8', '12', '15'], correctAnswer: '12' }
-]
+const { questions: remoteQuestions } = useQuizQuestions()
+const questions = computed(() => remoteQuestions.value)
 
 const currentQuestion = ref(0)
 const selectedOption = ref<string | null>(null)
@@ -92,18 +89,18 @@ function getOptionClass(option: string) {
   if (option === selectedOption.value) {
     return isCorrect.value ? 'border-emerald-500 bg-emerald-50' : 'border-red-400 bg-red-50'
   }
-  if (option === questions[currentQuestion.value].correctAnswer) return 'border-emerald-500 bg-emerald-50'
+  if (option === questions.value[currentQuestion.value]?.correctAnswer) return 'border-emerald-500 bg-emerald-50'
   return 'border-[hsl(var(--border))] opacity-60'
 }
 
 function handleOptionSelect(option: string) {
   if (selectedOption.value) return
   selectedOption.value = option
-  const correct = option === questions[currentQuestion.value].correctAnswer
+  const correct = option === questions.value[currentQuestion.value]?.correctAnswer
   isCorrect.value = correct
   if (correct) score.value += 1
   setTimeout(() => {
-    if (currentQuestion.value < questions.length - 1) {
+    if (currentQuestion.value < questions.value.length - 1) {
       currentQuestion.value++
       selectedOption.value = null
       isCorrect.value = null

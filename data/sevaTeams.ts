@@ -1,57 +1,66 @@
 export interface SevaTeam {
   id: string
   name: string
-  summary: string
-  responsibilities: string[]
+  /** Optional scope line under the team name */
+  summary?: string
+  description: string
 }
 
 export const SEVA_TEAMS: SevaTeam[] = [
   {
+    id: 'ceremonies',
+    name: 'Ceremonies Team',
+    description: 'This team is responsible for forming the spiritual backbone of the Patotsav, ensuring that all rituals, sacred setups, and main assembly timelines run with absolute reverence and precision.'
+  },
+  {
+    id: 'cultural',
+    name: 'Cultural Events Team',
+    summary: 'Leadup, Spiritual, Community Service and Cultural Events',
+    description: 'This team is responsible for bringing the 10th anniversary to life by curating an engaging, inclusive, and deeply spiritual 9-day program.'
+  },
+  {
+    id: 'marketing',
+    name: 'Marketing Team',
+    description: 'This team is responsible for being the promotional engine of the Patotsav, tasked with driving massive outreach, community engagement, and digital presence.'
+  },
+  {
+    id: 'souvenirs',
+    name: 'Souvenirs Team',
+    description: 'This team is responsible for designing, sourcing, and managing memorabilia that marks this historic 10-year milestone.'
+  },
+  {
+    id: 'decoration',
+    name: 'Decoration Team',
+    description: 'This team is responsible for aesthetically transforming the entire Mandir grounds to match the grand scale of a 10th Patotsav.'
+  },
+  {
     id: 'kitchen',
-    name: 'Kitchen & Prasad',
-    summary: 'Thal, prasad, and the love that tastes like home.',
-    responsibilities: ['Prep and serve prasad', 'Allergen-aware plating', 'Clean-down after sabha', 'Utsav kitchen shifts']
+    name: 'Kitchen Team',
+    description: 'This will involve helping to sudhaar (cut) food, washing dishes, cleaning kitchen area, having prasad ready for all haribhaktas and much more.'
   },
   {
-    id: 'welcome',
-    name: 'Welcome & Ushering',
-    summary: 'The first smile at the door.',
-    responsibilities: ['Greet devotees', 'Seat sabha calmly', 'Help elders and families', 'Lost-and-found / wayfinding']
+    id: 'serving',
+    name: 'Serving Team',
+    description: 'This team will arrange jamvanu seating, serving food to all haribhaktas, food disposal and creating a smooth jamvanu process for everyone.'
   },
   {
-    id: 'kids',
-    name: 'Bal / Kishore',
-    summary: 'Sanskar for the next generation.',
-    responsibilities: ['Bal sabha activities', 'Kishore-kishori engagement', 'Festival kids zone', 'Safeguarding with leads']
+    id: 'transport',
+    name: 'Transport and Parking Team',
+    description: 'This team is responsible for ensuring the management of the logistical flow of vehicles and attendees arriving at the venue.'
   },
   {
-    id: 'stage',
-    name: 'Stage, AV & Kirtan',
-    summary: 'Sound, light, and kirtan that lift the sabha.',
-    responsibilities: ['Mic and AV setup', 'Kirtan / tabla support', 'Livestream when needed', 'Stage management for utsav']
+    id: 'kidszone',
+    name: 'KidsZone Team',
+    description: 'This team is responsible for creating a fun, educational, and secure environment tailored to young children during the Patotsav.'
   },
   {
-    id: 'decor',
-    name: 'Decor & Mandir Care',
-    summary: 'Make Maharaj’s home beautiful.',
-    responsibilities: ['Daily mandir tidy', 'Utsav decor', 'Flowers and lights', 'Storage and packing']
+    id: 'facilities',
+    name: 'DIY/Facilities Team',
+    description: 'This team is responsible for the execution and infrastructure backbone of the festival, responsible for building, installing, and supporting the physical needs of every other team.'
   },
   {
-    id: 'security',
-    name: 'Security & Parking',
-    summary: 'Keep everyone safe and the flow smooth.',
-    responsibilities: ['Door and car-park rota', 'Crowd flow at peak times', 'First-aid liaison', 'Close-down checks']
-  },
-  {
-    id: 'comms',
-    name: 'Comms & Digital',
-    summary: 'WhatsApp, photos, and this website.',
-    responsibilities: ['WhatsApp updates', 'Photo/video capture (with consent)', 'Website content', 'Poster and invite design']
-  },
-  {
-    id: 'seva-desk',
-    name: 'Seva Desk',
-    summary: 'Match people to roles without fuss.',
-    responsibilities: ['Rota coordination', 'New volunteer induction', 'WhatsApp community moderation', 'Utsav seva grid']
+    id: 'general',
+    name: 'General Seva Team',
+    description: 'This team is responsible for providing their help with seva as and when needed across the mahotsav.'
   }
 ]

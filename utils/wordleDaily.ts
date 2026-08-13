@@ -25,11 +25,42 @@ function hashString(s: string): number {
   return Math.abs(h)
 }
 
+/** UK calendar day (Europe/London) as YYYY-MM-DD. */
+export function wordleDateId(date: Date = new Date()): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/London',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).format(date)
+}
+
+export function addWordleDays(id: string, n: number): string {
+  const [y, m, d] = id.split('-').map(Number)
+  const dt = new Date(Date.UTC(y, m - 1, d))
+  dt.setUTCDate(dt.getUTCDate() + n)
+  return dt.toISOString().slice(0, 10)
+}
+
+export function mondayOfWordleWeek(id: string): string {
+  const [y, m, d] = id.split('-').map(Number)
+  const dt = new Date(Date.UTC(y, m - 1, d))
+  const dow = dt.getUTCDay()
+  dt.setUTCDate(dt.getUTCDate() + (dow === 0 ? -6 : 1 - dow))
+  return dt.toISOString().slice(0, 10)
+}
+
 /**
- * Same word for everyone for the given calendar day (UTC).
+ * Same word for everyone for the given UK calendar day, unless admin set a daily override.
  */
-export function getWordForDate(date: Date): string {
-  const dateString = date.toISOString().slice(0, 10)
-  const index = hashString(dateString) % WORDS_LIST.length
-  return WORDS_LIST[index] ?? WORDS_LIST[0] ?? 'BHAKT'
+export function getWordForDate(date: Date, extraWords: string[] = []): string {
+  const extra = extraWords.map(w => w.toUpperCase().slice(0, WORD_LEN)).filter(w => w.length === WORD_LEN)
+  const all = Array.from(new Set([...WORDS_LIST, ...extra]))
+  const dateString = wordleDateId(date)
+  const index = hashString(dateString) % Math.max(all.length, 1)
+  return all[index] ?? WORDS_LIST[0] ?? 'BHAKT'
+}
+
+export function getWordForDateId(id: string, extraWords: string[] = []): string {
+  return getWordForDate(new Date(`${id}T12:00:00Z`), extraWords)
 }

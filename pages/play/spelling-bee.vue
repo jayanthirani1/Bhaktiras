@@ -85,9 +85,14 @@
 
 <script setup lang="ts">
 import { IconArrowLeft } from '@tabler/icons-vue'
-import { getRandomPuzzle, getHiveLetters, getMiddleLetter, isValidSpellingBeeWord, spellingBeePoints } from '~/data/spellingBeePuzzles'
+import { getHiveLetters, getMiddleLetter, isValidSpellingBeeWord, spellingBeePoints, SPELLING_BEE_PUZZLES } from '~/data/spellingBeePuzzles'
 
-const puzzle = ref(getRandomPuzzle())
+const { puzzles } = useSpellingBeePuzzles()
+const puzzle = ref(SPELLING_BEE_PUZZLES[0])
+
+watch(puzzles, (list) => {
+  if (list?.length) puzzle.value = list[Math.floor(Math.random() * list.length)]
+}, { immediate: true })
 const currentWord = ref('')
 const foundWords = ref<string[]>([])
 const totalScore = ref(0)

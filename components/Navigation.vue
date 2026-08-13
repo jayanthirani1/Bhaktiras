@@ -13,7 +13,7 @@
     <div class="fixed bottom-0 left-0 right-0 z-50 bg-[hsl(var(--card))]/95 backdrop-blur-md border-t border-[hsl(var(--border))] md:hidden">
       <div class="flex justify-around items-center h-16 px-1 safe-bottom">
         <NuxtLink
-          v-for="item in navItems.slice(0, 6)"
+          v-for="item in navItems"
           :key="item.href"
           :to="item.href"
           class="flex flex-col items-center justify-center space-y-0.5 p-2 rounded-xl transition-colors min-w-0 flex-1"
@@ -96,6 +96,7 @@ import {
   IconFlame,
   IconPlayerPlay,
   IconMapPin,
+  IconCalendarEvent,
   IconLogin,
   IconLogout
 } from '@tabler/icons-vue'
@@ -105,6 +106,7 @@ const { isLoggedIn, signOut } = useAuth()
 const navItems = [
   { href: '/', icon: IconHome, label: 'Home' },
   { href: '/journey', icon: IconMapPin, label: 'Journey' },
+  { href: '/events', icon: IconCalendarEvent, label: 'Events' },
   { href: '/community', icon: IconUsers, label: 'Community' },
   { href: '/seva', icon: IconHandGrab, label: 'Seva' },
   { href: '/niyams', icon: IconFlame, label: 'Niyams' },

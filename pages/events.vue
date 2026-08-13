@@ -1,17 +1,56 @@
 <template>
   <div class="min-h-screen bg-[hsl(var(--background))] pb-24 pt-8 md:pt-12 px-4">
-    <div class="mx-auto max-w-2xl text-center">
+    <div class="mx-auto max-w-4xl">
       <PageHeader
         title="Our Events"
-        subtitle="Lead-up sabhas and mahotsav timings will appear here when they’re ready."
+        subtitle="Lead-up sabhas, cultural programmes, and mahotsav dates."
       />
-      <div class="card-surface p-8 sm:p-12">
-        <p class="font-display text-xl text-[hsl(var(--primary))]">Coming soon</p>
-        <p class="mt-3 text-sm text-[hsl(var(--muted-foreground))]">
-          Until then, keep the niyams, join WhatsApp seva, and watch the countdown on the home page.
-        </p>
-        <NuxtLink to="/" class="btn-primary mt-6 inline-flex text-sm">Back home</NuxtLink>
-      </div>
+
+      <ClientOnly>
+        <div v-if="isLoading" class="grid gap-4 sm:grid-cols-2">
+          <div v-for="i in 4" :key="i" class="h-64 animate-pulse rounded-2xl bg-[hsl(var(--muted))]" />
+        </div>
+        <div v-else-if="events.length" class="grid gap-5 sm:grid-cols-2">
+          <article v-for="event in events" :key="event.id" class="card-surface overflow-hidden">
+            <img
+              v-if="event.posterUrl"
+              :src="event.posterUrl"
+              :alt="event.title"
+              class="h-auto w-full object-contain bg-[hsl(var(--muted))]"
+            >
+            <div class="p-5 sm:p-6">
+              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-[hsl(var(--accent))]">
+                {{ formatDate(event.date) }}
+              </p>
+              <h3 class="mt-2 font-display text-xl font-semibold text-[hsl(var(--primary))]">{{ event.title }}</h3>
+              <p class="mt-3 whitespace-pre-line text-sm leading-relaxed text-[hsl(var(--muted-foreground))]">
+                {{ event.description }}
+              </p>
+            </div>
+          </article>
+        </div>
+        <div v-else class="card-surface p-8 text-center sm:p-12">
+          <p class="font-display text-xl text-[hsl(var(--primary))]">Coming soon</p>
+          <p class="mt-3 text-sm text-[hsl(var(--muted-foreground))]">
+            Until then, keep the niyams, join WhatsApp seva, and watch the countdown on the home page.
+          </p>
+          <NuxtLink to="/" class="btn-primary mt-6 inline-flex text-sm">Back home</NuxtLink>
+        </div>
+        <template #fallback>
+          <div class="h-48 animate-pulse rounded-2xl bg-[hsl(var(--muted))]" />
+        </template>
+      </ClientOnly>
     </div>
   </div>
 </template>
+
+<script setup lang="ts">
+const { events, isLoading } = useEvents()
+
+function formatDate(d: string) {
+  if (!d) return ''
+  const date = new Date(`${d}T00:00:00`)
+  if (Number.isNaN(date.getTime())) return d
+  return date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+}
+</script>

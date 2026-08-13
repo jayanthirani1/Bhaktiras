@@ -3,7 +3,7 @@
     <div class="max-w-5xl mx-auto">
       <PageHeader
         title="Our Journey"
-        subtitle="39 years of satsang — pick a year, then scroll the moments, photos and videos."
+        subtitle="The last 10 years — pick a year, then scroll the moments, photos and videos."
       />
 
       <ClientOnly>
@@ -47,23 +47,23 @@
                 <h3 class="mt-2 text-2xl font-display font-semibold">{{ item.title }}</h3>
                 <p class="mt-3 text-[hsl(var(--muted-foreground))] leading-relaxed">{{ item.description }}</p>
               </div>
-              <div v-if="itemMedia(item).length" class="flex snap-x snap-mandatory gap-3 overflow-x-auto px-6 pb-6">
+              <div v-if="itemMedia(item).length" class="space-y-4 px-6 pb-6">
                 <div
                   v-for="(m, i) in itemMedia(item)"
                   :key="i"
-                  class="w-[85%] sm:w-[70%] shrink-0 snap-center overflow-hidden rounded-xl bg-[hsl(var(--muted))]"
+                  class="overflow-hidden rounded-xl bg-[hsl(var(--muted))]"
                 >
                   <video
                     v-if="m.type === 'video'"
                     :src="m.url"
                     controls
-                    class="aspect-video w-full object-cover"
+                    class="h-auto w-full"
                   />
                   <img
                     v-else
                     :src="m.url"
                     :alt="m.caption || item.title"
-                    class="aspect-video w-full object-cover"
+                    class="h-auto w-full object-contain"
                   >
                   <p v-if="m.caption" class="px-3 py-2 text-xs text-[hsl(var(--muted-foreground))]">{{ m.caption }}</p>
                 </div>
@@ -85,7 +85,8 @@ import { journeyYears } from '~/data/timeline'
 
 const { timeline, isLoading } = useTimeline()
 const years = journeyYears()
-const selectedYear = ref(String(new Date().getFullYear()))
+const nowYear = new Date().getFullYear()
+const selectedYear = ref(String(years.includes(nowYear) ? nowYear : years[years.length - 1]))
 
 const yearMoments = computed(() =>
   timeline.value.filter(t => t.year === selectedYear.value)

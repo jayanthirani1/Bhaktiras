@@ -3,7 +3,7 @@
     <div class="max-w-6xl mx-auto">
       <PageHeader
         title="Our Community"
-        subtitle="Like a guest book or the Lee Valley message wall — leave an anonymous note. What does this mandir mean to you?"
+        subtitle="Like a guest book or the Lee Valley message wall — leave a note. Post anonymously, or sign your name."
       />
 
       <div class="mb-6 flex flex-wrap justify-center gap-2">
@@ -30,8 +30,20 @@
       <div v-show="isFormOpen" class="mb-12">
         <div class="card-surface mx-auto max-w-lg p-6 sm:p-8">
           <h3 class="text-center font-display text-xl font-semibold">{{ form.prompt || 'Your message' }}</h3>
-          <p class="mt-1 text-center text-xs text-[hsl(var(--muted-foreground))]">Anonymous by default — no names on the wall.</p>
+          <p class="mt-1 text-center text-xs text-[hsl(var(--muted-foreground))]">
+            Leave the name blank to post anonymously.
+          </p>
           <form class="mt-6 space-y-4" @submit.prevent="onSubmit">
+            <div>
+              <label class="mb-1 block text-sm font-medium">Your name</label>
+              <input
+                v-model="form.name"
+                type="text"
+                maxlength="50"
+                placeholder="Optional — leave blank for Anonymous"
+                class="w-full rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--muted))]/40 px-4 py-2"
+              >
+            </div>
             <div>
               <label class="mb-1 block text-sm font-medium">Message</label>
               <textarea
@@ -44,20 +56,8 @@
               <p class="mt-1 text-right text-[10px] text-[hsl(var(--muted-foreground))]">{{ form.message.length }}/280</p>
               <p v-if="errors.message" class="text-sm text-red-600">{{ errors.message }}</p>
             </div>
-            <label class="flex items-center gap-2 text-sm text-[hsl(var(--muted-foreground))]">
-              <input v-model="form.signName" type="checkbox" class="rounded border-[hsl(var(--border))]">
-              I’d like to sign my name (optional)
-            </label>
-            <input
-              v-if="form.signName"
-              v-model="form.name"
-              type="text"
-              maxlength="50"
-              placeholder="Your name"
-              class="w-full rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--muted))]/40 px-4 py-2"
-            >
-            <button type="submit" :disabled="createMessage.isPending.value" class="btn-primary w-full">
-              {{ createMessage.isPending.value ? 'Posting…' : 'Post anonymously' }}
+            <button type="submit" :disabled="pending" class="btn-primary w-full">
+              {{ pending ? 'Posting…' : (form.name.trim() ? 'Post message' : 'Post anonymously') }}
             </button>
           </form>
         </div>
@@ -93,10 +93,20 @@ import { COMMUNITY_PROMPTS } from '~/data/communityPrompts'
 
 const { messages, isLoading, refetch } = useGratitudeMessages()
 const createMessage = useCreateGratitudeMessage()
+const { userName, isLoggedIn } = useAuth()
 const prompts = COMMUNITY_PROMPTS
 const isFormOpen = ref(false)
-const form = reactive({ prompt: COMMUNITY_PROMPTS[0] || '', message: '', name: '', signName: false })
+const form = reactive({ prompt: COMMUNITY_PROMPTS[0] || '', message: '', name: '' })
 const errors = reactive<{ message?: string }>({})
+const pending = computed(() => createMessage.isPending.value)
+
+watch(
+  [isLoggedIn, userName],
+  () => {
+    if (isLoggedIn.value && userName.value && !form.name) form.name = userName.value
+  },
+  { immediate: true }
+)
 
 async function onSubmit() {
   errors.message = undefined
@@ -104,21 +114,17 @@ async function onSubmit() {
     errors.message = 'A few more words, please (5+ characters).'
     return
   }
-  if (form.signName && form.name.trim().length < 2) {
-    errors.message = 'Add a name, or leave it anonymous.'
-    return
-  }
   try {
+    const named = form.name.trim().length >= 2
     await createMessage.create({
       message: form.message,
       prompt: form.prompt,
-      anonymous: !form.signName,
-      name: form.signName ? form.name : undefined
+      anonymous: !named,
+      name: named ? form.name : undefined
     })
     await refetch()
     form.message = ''
-    form.name = ''
-    form.signName = false
+    form.name = isLoggedIn.value && userName.value ? userName.value : ''
     isFormOpen.value = false
   } catch (e) {
     errors.message = (e as Error).message
