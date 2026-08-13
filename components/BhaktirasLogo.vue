@@ -35,13 +35,13 @@ function prepareSvg(raw: string, prefix: string) {
       /(<path id="logo-main-tilak"[^/]*\/>)/,
       `$1
           <g id="logo-splash" fill="#d9ae30" aria-hidden="true">
-            <ellipse class="logo-splash-drop" cx="230.4" cy="330.4" rx="0.95" ry="1.5"/>
-            <ellipse class="logo-splash-drop" cx="230.4" cy="330.4" rx="0.75" ry="1.2"/>
-            <ellipse class="logo-splash-drop" cx="230.4" cy="330.4" rx="0.55" ry="0.95"/>
-            <ellipse class="logo-splash-drop" cx="230.4" cy="330.4" rx="0.85" ry="1.3"/>
-            <ellipse class="logo-splash-drop" cx="230.4" cy="330.4" rx="0.5" ry="0.85"/>
-            <ellipse class="logo-splash-drop" cx="230.4" cy="330.4" rx="0.7" ry="1.1"/>
-            <circle class="logo-splash-drop" cx="230.4" cy="330.4" r="0.55"/>
+            <ellipse class="logo-splash-drop" cx="230.4" cy="330.4" rx="2.1" ry="3.3"/>
+            <ellipse class="logo-splash-drop" cx="230.4" cy="330.4" rx="1.7" ry="2.7"/>
+            <ellipse class="logo-splash-drop" cx="230.4" cy="330.4" rx="1.3" ry="2.1"/>
+            <ellipse class="logo-splash-drop" cx="230.4" cy="330.4" rx="1.9" ry="2.9"/>
+            <ellipse class="logo-splash-drop" cx="230.4" cy="330.4" rx="1.15" ry="1.85"/>
+            <ellipse class="logo-splash-drop" cx="230.4" cy="330.4" rx="1.5" ry="2.4"/>
+            <circle class="logo-splash-drop" cx="230.4" cy="330.4" r="1.25"/>
           </g>`
     )
   }
