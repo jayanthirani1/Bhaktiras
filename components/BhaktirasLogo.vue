@@ -31,9 +31,14 @@ function prepareSvg(raw: string, prefix: string) {
     )
 
   if (prefix === 'main') {
-    out = out.replace(
-      /(<path id="logo-main-tilak"[^/]*\/>)/,
-      `$1
+    const tilakRe = /<path id="logo-main-tilak"[^/]*\/>/
+    const tilak = out.match(tilakRe)?.[0]
+    if (tilak) {
+      out = out.replace(tilakRe, '')
+      out = out.replace(
+        '</svg>',
+        `<g id="logo-droplet-layer">
+          ${tilak}
           <g id="logo-splash" fill="#d9ae30" aria-hidden="true">
             <ellipse class="logo-splash-drop" cx="230.4" cy="330.4" rx="2.1" ry="3.3"/>
             <ellipse class="logo-splash-drop" cx="230.4" cy="330.4" rx="1.7" ry="2.7"/>
@@ -42,8 +47,10 @@ function prepareSvg(raw: string, prefix: string) {
             <ellipse class="logo-splash-drop" cx="230.4" cy="330.4" rx="1.15" ry="1.85"/>
             <ellipse class="logo-splash-drop" cx="230.4" cy="330.4" rx="1.5" ry="2.4"/>
             <circle class="logo-splash-drop" cx="230.4" cy="330.4" r="1.25"/>
-          </g>`
-    )
+          </g>
+        </g></svg>`
+      )
+    }
   }
 
   return out

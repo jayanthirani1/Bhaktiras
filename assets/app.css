@@ -83,43 +83,28 @@
 .logo-lockup .logo-svg-inner {
   overflow: visible;
 }
-.logo-lockup #logo-one,
-.logo-lockup #logo-arch,
-.logo-lockup #logo-filigree,
-.logo-lockup #logo-figure,
-.logo-lockup #logo-type,
-.logo-lockup #Bhaktiras-text,
-.logo-lockup #logo-tagline,
-.logo-lockup #logo-text-tagline,
-.logo-lockup #logo-wordmark,
+/* fill-box only on shapes that scale around their own bounds.
+   Applying it to <g> wordmark/type creates the purple rectangle glitch. */
 .logo-lockup #logo-tilak,
-.logo-lockup #logo-main-tilak,
-.logo-lockup #logo-wordmark path {
-  transform-box: fill-box;
-  transform-origin: center bottom;
-}
-.logo-lockup #logo-figure {
-  transform-origin: 50% 0%;
-}
 .logo-lockup #logo-main-tilak {
+  transform-box: fill-box;
   transform-origin: center bottom;
 }
 .logo-lockup #logo-splash .logo-splash-drop {
   transform-box: fill-box;
   transform-origin: center center;
-  opacity: 0;
+  fill-opacity: 0;
 }
-.logo-lockup #logo-arch,
-.logo-lockup #logo-filigree {
-  transform-origin: 50% 50%;
+.logo-lockup.logo-animate #logo-main-tilak {
+  fill-opacity: 0;
 }
 
 /* One → figure → arch → floral → text → droplet */
 .logo-lockup.logo-animate #logo-one {
-  animation: logo-rise 0.8s var(--ease-out-expo) both;
+  animation: logo-rise 0.8s var(--ease-out-expo) backwards;
 }
 .logo-lockup.logo-animate #logo-figure {
-  animation: logo-drop 0.75s var(--ease-out-expo) 0.7s both;
+  animation: logo-drop 0.75s var(--ease-out-expo) 0.7s backwards;
 }
 .logo-lockup.logo-animate #logo-arch {
   animation: logo-arch-draw 1.6s cubic-bezier(0.33, 0, 0.2, 1) 1.35s both;
@@ -128,7 +113,7 @@
   animation: logo-arch-draw 1.8s cubic-bezier(0.33, 0, 0.2, 1) 2.85s both, logo-shimmer 5s ease-in-out 4.9s infinite;
 }
 .logo-lockup.logo-animate #logo-type {
-  animation: logo-rise 0.7s var(--ease-out-expo) 4.5s both;
+  animation: logo-rise 0.7s var(--ease-out-expo) 4.5s backwards;
 }
 .logo-lockup.logo-animate #logo-main-tilak {
   animation: logo-droplet 1.2s linear 5.15s both;
@@ -171,13 +156,13 @@
 }
 
 .logo-lockup.logo-animate #logo-text-tagline {
-  animation: logo-rise 0.55s var(--ease-out-expo) 0.55s both;
+  animation: logo-rise 0.55s var(--ease-out-expo) 0.55s backwards;
 }
 .logo-lockup.logo-animate #logo-tilak {
-  animation: logo-pop 0.5s var(--ease-out-expo) 0.7s both;
+  animation: logo-pop 0.5s var(--ease-out-expo) 0.7s backwards;
 }
 .logo-lockup.logo-animate #logo-wordmark path {
-  animation: logo-letter 0.5s var(--ease-out-expo) both;
+  animation: logo-letter 0.5s var(--ease-out-expo) backwards;
 }
 .logo-lockup.logo-animate #logo-wordmark path:nth-child(1) { animation-delay: 0.04s; }
 .logo-lockup.logo-animate #logo-wordmark path:nth-child(2) { animation-delay: 0.10s; }
@@ -190,37 +175,37 @@
 .logo-lockup.logo-animate #logo-wordmark path:nth-child(9) { animation-delay: 0.52s; }
 
 @keyframes logo-rise {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { fill-opacity: 0; transform: translateY(20px); }
+  to { fill-opacity: 1; transform: translateY(0); }
 }
 @keyframes logo-drop {
-  from { opacity: 0; transform: translateY(-28px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { fill-opacity: 0; transform: translateY(-28px); }
+  to { fill-opacity: 1; transform: translateY(0); }
 }
 @keyframes logo-fade-up {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
 @keyframes logo-letter {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { fill-opacity: 0; transform: translateY(8px); }
+  to { fill-opacity: 1; transform: translateY(0); }
 }
 @keyframes logo-pop {
-  0% { opacity: 0; transform: scale(0.4); }
-  70% { opacity: 1; transform: scale(1.15); }
-  100% { opacity: 1; transform: scale(1); }
+  0% { fill-opacity: 0; transform: scale(0.4); }
+  70% { fill-opacity: 1; transform: scale(1.15); }
+  100% { fill-opacity: 1; transform: scale(1); }
 }
 @keyframes logo-droplet {
   0% {
-    opacity: 0;
+    fill-opacity: 0;
     transform: translateY(-44px) scaleX(0.7) scaleY(1.5);
     animation-timing-function: cubic-bezier(0.55, 0.06, 0.9, 0.35);
   }
   8% {
-    opacity: 1;
+    fill-opacity: 1;
   }
   48% {
-    opacity: 1;
+    fill-opacity: 1;
     transform: translateY(0) scaleX(0.78) scaleY(1.32);
     animation-timing-function: cubic-bezier(0.15, 0.85, 0.3, 1);
   }
@@ -240,38 +225,38 @@
     transform: translateY(-2.8px) scaleX(0.94) scaleY(1.1);
   }
   100% {
-    opacity: 1;
+    fill-opacity: 1;
     transform: translateY(0) scaleX(1) scaleY(1);
   }
 }
 @keyframes logo-splash {
   0% {
-    opacity: 0;
+    fill-opacity: 0;
     transform: translate(0, 0) scale(0.2) rotate(var(--rot, 0deg));
   }
   12% {
-    opacity: 1;
+    fill-opacity: 1;
   }
   42% {
-    opacity: 1;
+    fill-opacity: 1;
     transform: translate(var(--sx, 0), var(--sy, -14px)) scale(1) rotate(var(--rot, 0deg));
   }
   100% {
-    opacity: 0;
+    fill-opacity: 0;
     transform: translate(var(--ex, 0), var(--ey, 4px)) scale(0.25) rotate(var(--rot, 0deg));
   }
 }
 @keyframes logo-shimmer {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.72; }
+  0%, 100% { fill-opacity: 1; }
+  50% { fill-opacity: 0.72; }
 }
 @keyframes logo-arch-draw {
   0% {
-    opacity: 0;
+    fill-opacity: 0;
     clip-path: polygon(0% 100%, 40% 100%, 40% 92%, 0% 92%);
   }
   6% {
-    opacity: 1;
+    fill-opacity: 1;
     clip-path: polygon(0% 100%, 40% 100%, 40% 88%, 0% 88%);
   }
   28% {
@@ -287,7 +272,7 @@
     clip-path: polygon(0% 100%, 82% 100%, 100% 28%, 0% 0%);
   }
   100% {
-    opacity: 1;
+    fill-opacity: 1;
     clip-path: polygon(0% 100%, 100% 100%, 100% 0%, 0% 0%);
   }
 }
