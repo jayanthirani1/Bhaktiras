@@ -1,28 +1,44 @@
 <template>
-  <div class="min-h-screen bg-[hsl(var(--background))] pb-24 pt-8 md:pt-12 px-4">
+  <div class="min-h-screen bg-[hsl(var(--background))] pb-[calc(13.5rem+env(safe-area-inset-bottom))] pt-3 md:pb-24 md:pt-12 px-3 sm:px-4">
     <div class="mx-auto max-w-3xl">
-      <NuxtLink
-        to="/play"
-        class="mb-6 inline-flex items-center gap-2 text-sm font-medium text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]"
-      >
-        ← Back to games
-      </NuxtLink>
-      <PageHeader
-        title="Mini Crossword"
-        subtitle="A quick grid — race the clock. Your timer keeps ticking if you leave."
-      />
-
-      <div class="mb-4 flex items-center justify-center gap-2 text-sm font-semibold text-[hsl(var(--primary))]">
-        <span class="rounded-full bg-[hsl(var(--muted))] px-3 py-1 tabular-nums">⏱ {{ timerDisplay }}</span>
-        <span v-if="solved" class="rounded-full bg-emerald-50 px-3 py-1 text-emerald-700">Solved</span>
+      <!-- Top bar -->
+      <div class="mb-3 flex items-center justify-between gap-2 md:mb-6">
+        <NuxtLink
+          to="/play"
+          class="inline-flex items-center gap-1.5 rounded-full bg-[hsl(var(--muted))] px-3 py-1.5 text-sm font-medium text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]"
+        >
+          ‹ Back
+        </NuxtLink>
+        <div class="flex items-center gap-2 text-sm font-semibold text-[hsl(var(--primary))]">
+          <span class="rounded-full bg-[hsl(var(--muted))] px-3 py-1 tabular-nums">⏱ {{ timerDisplay }}</span>
+          <span v-if="solved" class="rounded-full bg-emerald-50 px-3 py-1 text-emerald-700">Solved</span>
+        </div>
+        <button
+          type="button"
+          class="rounded-full bg-[hsl(var(--muted))] px-3 py-1.5 text-sm font-semibold text-[hsl(var(--foreground))] disabled:opacity-40"
+          :disabled="!layout || solved"
+          @click="checkAnswers"
+        >
+          Check
+        </button>
       </div>
+
+      <div class="mb-4 hidden md:block">
+        <PageHeader
+          title="Mini Crossword"
+          subtitle="A quick grid — race the clock. Your timer keeps ticking if you leave."
+        />
+      </div>
+      <h1 class="mb-3 text-center font-display text-xl font-semibold text-[hsl(var(--primary))] md:hidden">
+        {{ active?.title || 'Mini Crossword' }}
+      </h1>
 
       <div v-if="loading" class="card-surface p-8 text-center text-sm text-[hsl(var(--muted-foreground))]">Loading mini…</div>
       <div v-else-if="!active || !layout" class="card-surface p-8 text-center text-[hsl(var(--muted-foreground))]">
         Mini crossword will appear here once it is added.
       </div>
-      <div v-else class="space-y-6">
-        <div v-if="puzzles.length > 1" class="flex flex-wrap gap-2">
+      <div v-else class="space-y-4 md:space-y-6">
+        <div v-if="puzzles.length > 1" class="flex flex-wrap justify-center gap-2">
           <button
             v-for="p in puzzles"
             :key="p.id"
@@ -35,62 +51,47 @@
           </button>
         </div>
 
-        <div class="card-surface overflow-x-auto p-4 sm:p-6">
-          <h3 class="font-display text-xl font-semibold text-[hsl(var(--primary))]">{{ active.title }}</h3>
-          <p class="mt-1 text-sm text-[hsl(var(--muted-foreground))]">
-            Tap a square, then type. Same square again switches across/down.
-          </p>
-
-          <div class="mt-5 flex justify-center overflow-x-auto pb-2">
+        <!-- Grid -->
+        <div class="rounded-2xl border border-[hsl(var(--border))] bg-white p-3 sm:p-5">
+          <div class="flex justify-center overflow-x-auto">
             <div
               class="grid gap-px rounded-lg bg-[hsl(var(--primary))] p-px"
-              :style="{ gridTemplateColumns: `repeat(${layout.cols}, minmax(2rem, 2.4rem))` }"
+              :style="{ gridTemplateColumns: `repeat(${layout.cols}, minmax(2.15rem, 2.6rem))` }"
             >
               <button
                 v-for="cell in flatCells"
                 :key="cell.id"
                 type="button"
-                class="relative aspect-square select-none"
+                class="relative aspect-square select-none text-base font-bold uppercase sm:text-lg"
                 :class="cellClass(cell)"
                 :disabled="!cell.open || solved"
                 @click="onCellClick(cell.row, cell.col)"
               >
                 <span
                   v-if="cell.number"
-                  class="absolute left-0.5 top-0 text-[0.55rem] font-bold leading-none text-[hsl(var(--primary))]"
+                  class="absolute left-0.5 top-0.5 text-[0.55rem] font-bold leading-none text-[hsl(var(--primary))]"
                 >{{ cell.number }}</span>
-                <span class="font-bold uppercase tracking-wide">{{ guesses[cell.id] || '' }}</span>
+                <span>{{ guesses[cell.id] || '' }}</span>
               </button>
             </div>
           </div>
 
+          <!-- Clue navigator (mobile-first, also useful on desktop) -->
           <div v-if="!solved" class="mt-4">
-            <CrosswordKeyboardCapture
-              ref="captureRef"
-              placeholder="Type letters here"
-              @letter="typeLetter"
-              @backspace="backspace"
-              @arrow="onCaptureArrow"
+            <CrosswordClueBar
+              :number="activeWord?.number"
+              :direction="activeWord?.direction || activeDir"
+              :clue="activeWord?.clue"
+              @prev="stepClue(-1)"
+              @next="stepClue(1)"
+              @toggle-direction="toggleDirection"
             />
-            <p class="mt-1.5 text-center text-xs text-[hsl(var(--muted-foreground))]">
-              Tap a square, then type on your keyboard.
-            </p>
           </div>
 
-          <div class="mt-5 flex flex-wrap gap-2">
-            <button type="button" class="btn-primary text-sm" :disabled="solved" @click="checkAnswers">Check</button>
-            <button
-              type="button"
-              class="rounded-xl bg-[hsl(var(--muted))] px-4 py-2 text-sm font-semibold text-[hsl(var(--foreground))] hover:bg-[hsl(var(--border))]"
-              :disabled="solved"
-              @click="clearGuesses"
-            >
-              Clear
-            </button>
-          </div>
-          <p v-if="checked && !solved" class="mt-3 text-sm text-[hsl(var(--muted-foreground))]">
+          <div v-if="checked && !solved" class="mt-3 text-center text-sm text-[hsl(var(--muted-foreground))]">
             {{ correctCount }} / {{ layout.words.length }} words correct
-          </p>
+          </div>
+
           <div v-if="solved" class="mt-4 space-y-3 text-center">
             <p class="text-sm font-semibold text-emerald-700">Finished in {{ timerDisplay }}</p>
             <button
@@ -112,9 +113,22 @@
             <p v-else-if="scoreSubmitted" class="text-sm text-emerald-700">Time on the leaderboard.</p>
             <p v-if="submitError" class="text-sm text-red-600">{{ submitError }}</p>
           </div>
+
+          <div class="mt-4 hidden flex-wrap gap-2 md:flex">
+            <button type="button" class="btn-primary text-sm" :disabled="solved" @click="checkAnswers">Check</button>
+            <button
+              type="button"
+              class="rounded-xl bg-[hsl(var(--muted))] px-4 py-2 text-sm font-semibold text-[hsl(var(--foreground))] hover:bg-[hsl(var(--border))]"
+              :disabled="solved"
+              @click="clearGuesses"
+            >
+              Clear
+            </button>
+          </div>
         </div>
 
-        <div class="grid gap-6 md:grid-cols-2">
+        <!-- Desktop clue lists -->
+        <div class="hidden gap-6 md:grid md:grid-cols-2">
           <section class="card-surface p-5">
             <h4 class="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-[hsl(var(--accent))]">Across</h4>
             <ol class="space-y-2">
@@ -127,7 +141,6 @@
                 >
                   <span class="font-semibold">{{ word.number }}.</span>
                   {{ word.clue }}
-                  <span class="text-[hsl(var(--muted-foreground))]"> ({{ word.answer.length }})</span>
                 </button>
               </li>
             </ol>
@@ -144,7 +157,6 @@
                 >
                   <span class="font-semibold">{{ word.number }}.</span>
                   {{ word.clue }}
-                  <span class="text-[hsl(var(--muted-foreground))]"> ({{ word.answer.length }})</span>
                 </button>
               </li>
             </ol>
@@ -152,15 +164,29 @@
         </div>
       </div>
 
-      <GameLeaderboard
-        :entries="entries"
-        :loading="boardLoading"
-        :date-id="dateId"
-        :current-user-id="auth.user.value?.uid"
-        :format-score="(e) => formatElapsed(e.timeMs ?? (e.score || 0) * 1000)"
-      >
-        Fastest finish today.
-      </GameLeaderboard>
+      <div class="mt-10 hidden md:block">
+        <GameLeaderboard
+          :entries="entries"
+          :loading="boardLoading"
+          :date-id="dateId"
+          :current-user-id="auth.user.value?.uid"
+          :format-score="(e) => formatElapsed(e.timeMs ?? (e.score || 0) * 1000)"
+        >
+          Fastest finish today.
+        </GameLeaderboard>
+      </div>
+    </div>
+
+    <!-- Fixed custom keyboard (mobile / tablet play chrome) -->
+    <div
+      v-if="layout && !solved"
+      class="fixed inset-x-0 bottom-16 z-40 border-t border-[hsl(var(--border))] bg-[hsl(var(--background))]/95 px-2 pb-2 pt-2 backdrop-blur md:bottom-0 md:hidden"
+    >
+      <GameLetterKeyboard
+        class="mx-auto max-w-lg"
+        @letter="typeLetter"
+        @delete="backspace"
+      />
     </div>
   </div>
 </template>
@@ -185,13 +211,6 @@ const {
 
 const timer = useGameTimer(`mini-crossword-timer:${ukDateId()}`)
 const timerDisplay = computed(() => timer.display.value)
-const captureRef = ref<{ focus: () => void } | null>(null)
-
-function focusCapture() {
-  // Focus in the same user gesture when possible (required for iOS soft keyboard).
-  captureRef.value?.focus()
-  nextTick(() => captureRef.value?.focus())
-}
 
 const activeId = ref('')
 const guesses = reactive<Record<string, string>>({})
@@ -208,6 +227,10 @@ const active = computed(() => puzzles.value.find(p => p.id === activeId.value) |
 const layout = computed(() => active.value ? layoutCrossword(active.value.clues) : null)
 const acrossWords = computed(() => layout.value?.words.filter(w => w.direction === 'across') || [])
 const downWords = computed(() => layout.value?.words.filter(w => w.direction === 'down') || [])
+const orderedWords = computed(() => {
+  const list = layout.value?.words || []
+  return [...list].sort((a, b) => a.number - b.number || (a.direction === 'across' ? -1 : 1))
+})
 
 const flatCells = computed(() => {
   const l = layout.value
@@ -245,9 +268,8 @@ function cellClass(cell: { id: string; open: boolean; row: number; col: number }
   const ok = (checked.value || solved.value) && isCellCorrect(cell.row, cell.col)
   const bad = checked.value && !solved.value && !!guesses[cell.id] && !isCellCorrect(cell.row, cell.col)
   return [
-    'flex items-center justify-center bg-white text-sm sm:text-base text-[hsl(var(--foreground))]',
-    isActive ? 'ring-2 ring-inset ring-[hsl(var(--accent))] bg-[hsl(var(--golden-100))]' : '',
-    !isActive && inWord ? 'bg-[hsl(var(--golden-50))]' : '',
+    'flex items-center justify-center text-[hsl(var(--foreground))]',
+    isActive ? 'xw-cell-active' : inWord ? 'xw-cell-word' : 'bg-white',
     ok ? 'text-emerald-700' : '',
     bad ? 'text-red-600' : ''
   ].filter(Boolean).join(' ')
@@ -275,7 +297,10 @@ function persist() {
       puzzleId: activeId.value,
       guesses: { ...guesses },
       solved: solved.value,
-      scoreSubmitted: scoreSubmitted.value
+      scoreSubmitted: scoreSubmitted.value,
+      activeRow: activeRow.value,
+      activeCol: activeCol.value,
+      activeDir: activeDir.value
     }))
   } catch {}
 }
@@ -292,7 +317,18 @@ function restore() {
     }
     solved.value = !!data.solved
     scoreSubmitted.value = !!data.scoreSubmitted
+    if (typeof data.activeRow === 'number') activeRow.value = data.activeRow
+    if (typeof data.activeCol === 'number') activeCol.value = data.activeCol
+    if (data.activeDir === 'across' || data.activeDir === 'down') activeDir.value = data.activeDir
   } catch {}
+}
+
+function focusWordStart(word: LaidWord) {
+  const empty = word.cells.find(c => !guesses[cellKey(c.row, c.col)])
+  const target = empty || word.cells[0]
+  activeDir.value = word.direction
+  activeRow.value = target.row
+  activeCol.value = target.col
 }
 
 function onCellClick(row: number, col: number) {
@@ -306,30 +342,36 @@ function onCellClick(row: number, col: number) {
   activeRow.value = row
   activeCol.value = col
   checked.value = false
-  focusCapture()
+  persist()
 }
 
 function selectWord(key: string) {
   if (solved.value) return
   const word = layout.value?.words.find(w => w.key === key)
   if (!word) return
-  activeDir.value = word.direction
-  const empty = word.cells.find(c => !guesses[cellKey(c.row, c.col)])
-  const target = empty || word.cells[0]
-  activeRow.value = target.row
-  activeCol.value = target.col
+  focusWordStart(word)
   checked.value = false
-  focusCapture()
+  persist()
 }
 
-function onCaptureArrow(dir: 'left' | 'right' | 'up' | 'down') {
-  if (dir === 'left' || dir === 'right') {
-    activeDir.value = 'across'
-    moveInWord(dir === 'right' ? 1 : -1)
-  } else {
-    activeDir.value = 'down'
-    moveInWord(dir === 'down' ? 1 : -1)
-  }
+function toggleDirection() {
+  if (solved.value) return
+  const here = wordsAt(activeRow.value, activeCol.value)
+  if (here.length < 2) return
+  activeDir.value = activeDir.value === 'across' ? 'down' : 'across'
+  persist()
+}
+
+function stepClue(delta: number) {
+  const list = orderedWords.value
+  if (!list.length || solved.value) return
+  const currentKey = activeWord.value?.key
+  let idx = list.findIndex(w => w.key === currentKey)
+  if (idx < 0) idx = 0
+  else idx = (idx + delta + list.length) % list.length
+  focusWordStart(list[idx])
+  checked.value = false
+  persist()
 }
 
 function moveInWord(delta: number) {
@@ -357,7 +399,7 @@ function maybeComplete() {
 function typeLetter(letter: string) {
   if (solved.value || !layout.value?.letters[activeRow.value]?.[activeCol.value]) return
   timer.ensureStarted()
-  guesses[cellKey(activeRow.value, activeCol.value)] = letter
+  guesses[cellKey(activeRow.value, activeCol.value)] = letter.toUpperCase()
   checked.value = false
   persist()
   moveInWord(1)
@@ -400,11 +442,7 @@ function select(id: string) {
   activeDir.value = 'across'
   const l = layoutCrossword(puzzles.value.find(p => p.id === id)?.clues || [])
   const first = l?.words[0]
-  if (first) {
-    activeRow.value = first.row
-    activeCol.value = first.col
-    activeDir.value = first.direction
-  }
+  if (first) focusWordStart(first)
   persist()
 }
 
@@ -439,6 +477,7 @@ watch(puzzles, (list) => {
   if (!activeId.value || !list.some(p => p.id === activeId.value)) {
     activeId.value = list[0].id
   }
+  if (!activeWord.value && layout.value?.words[0]) focusWordStart(layout.value.words[0])
 }, { immediate: true })
 
 watch([entries, () => auth.user.value?.uid], ([list, uid]) => {
@@ -449,8 +488,57 @@ onMounted(() => {
   timer.read()
   if (solved.value && timer.startedAt.value && !timer.finishedAt.value) timer.stop()
   else if (Object.keys(guesses).length && !solved.value) timer.ensureStarted()
-  focusCapture()
+
+  const onKey = (e: KeyboardEvent) => {
+    if (e.metaKey || e.ctrlKey || e.altKey || e.repeat) return
+    const tag = (e.target as HTMLElement | null)?.tagName
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
+    if (!layout.value || solved.value) return
+    if (e.key === 'Backspace') {
+      e.preventDefault()
+      backspace()
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      e.preventDefault()
+      if (e.shiftKey) stepClue(e.key === 'ArrowRight' ? 1 : -1)
+      else {
+        activeDir.value = 'across'
+        moveInWord(e.key === 'ArrowRight' ? 1 : -1)
+      }
+    } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      e.preventDefault()
+      if (e.shiftKey) stepClue(e.key === 'ArrowDown' ? 1 : -1)
+      else {
+        activeDir.value = 'down'
+        moveInWord(e.key === 'ArrowDown' ? 1 : -1)
+      }
+    } else if (e.key === 'Tab') {
+      e.preventDefault()
+      stepClue(e.shiftKey ? -1 : 1)
+    } else if (/^[A-Za-z]$/.test(e.key)) {
+      e.preventDefault()
+      typeLetter(e.key)
+    }
+  }
+  window.addEventListener('keydown', onKey)
+  onUnmounted(() => window.removeEventListener('keydown', onKey))
 })
 
 useHead({ title: 'Mini Crossword · Bhaktiras' })
 </script>
+
+<style scoped>
+.xw-cell-word {
+  background: hsl(var(--golden-100));
+}
+.xw-cell-active {
+  background:
+    repeating-linear-gradient(
+      -45deg,
+      hsl(var(--golden-100)),
+      hsl(var(--golden-100)) 4px,
+      #fff 4px,
+      #fff 8px
+    );
+  box-shadow: inset 0 0 0 2px hsl(var(--accent));
+}
+</style>
