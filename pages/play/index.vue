@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-stone-50 pb-24 pt-8 md:pt-12 px-4">
+  <div class="min-h-screen bg-[hsl(var(--background))] pb-24 pt-8 md:pt-12 px-4">
     <div class="max-w-3xl mx-auto">
       <PageHeader
         title="Play"
@@ -46,9 +46,9 @@ import {
 } from '@tabler/icons-vue'
 
 const games = [
-  { slug: 'crossword', title: 'Crossword', description: 'Solve devotional-themed clues and fill the grid.', icon: IconGrid3x3, href: '/play/crossword', color: 'from-amber-500/20 to-amber-600/20 border-amber-200/60 hover:border-amber-400', iconBg: 'bg-amber-100 text-amber-700' },
-  { slug: 'quiz', title: 'Devotional Quiz', description: "Test your knowledge about our temple's history and traditions.", icon: IconBrain, href: '/play/quiz', color: 'from-[hsl(var(--primary))]/20 to-amber-600/20 border-[hsl(var(--primary))]/40 hover:border-[hsl(var(--primary))]', iconBg: 'bg-[hsl(var(--primary))]/15 text-[hsl(var(--primary))]' },
-  { slug: 'wordle', title: 'Wordle', description: 'Guess the devotional word in six tries.', icon: IconTypography, href: '/play/wordle', color: 'from-emerald-500/20 to-teal-600/20 border-emerald-200/60 hover:border-emerald-400', iconBg: 'bg-emerald-100 text-emerald-700' },
-  { slug: 'spelling-bee', title: 'Spelling Bee', description: 'Make words from the hive. Every word must use the center letter.', icon: IconHexagon, href: '/play/spelling-bee', color: 'from-amber-500/20 to-orange-600/20 border-amber-200/60 hover:border-amber-400', iconBg: 'bg-amber-100 text-amber-700' }
+  { slug: 'crossword', title: 'Crossword', description: 'Solve devotional-themed clues and fill the grid.', icon: IconGrid3x3, href: '/play/crossword', color: 'from-[hsl(var(--primary))]/40 to-[hsl(var(--accent))]/10 border-[hsl(var(--golden-200))] hover:border-[hsl(var(--accent))]', iconBg: 'bg-[hsl(var(--primary))] text-[hsl(var(--accent))]' },
+  { slug: 'quiz', title: 'Devotional Quiz', description: "Test your knowledge about our temple's history and traditions.", icon: IconBrain, href: '/play/quiz', color: 'from-[hsl(var(--primary))]/40 to-[hsl(var(--accent))]/10 border-[hsl(var(--golden-200))] hover:border-[hsl(var(--accent))]', iconBg: 'bg-[hsl(var(--primary))] text-[hsl(var(--accent))]' },
+  { slug: 'wordle', title: 'Wordle', description: 'Guess the devotional word in six tries.', icon: IconTypography, href: '/play/wordle', color: 'from-[hsl(var(--primary))]/40 to-[hsl(var(--accent))]/10 border-[hsl(var(--golden-200))] hover:border-[hsl(var(--accent))]', iconBg: 'bg-[hsl(var(--primary))] text-[hsl(var(--accent))]' },
+  { slug: 'spelling-bee', title: 'Spelling Bee', description: 'Make words from the hive. Every word must use the center letter.', icon: IconHexagon, href: '/play/spelling-bee', color: 'from-[hsl(var(--primary))]/40 to-[hsl(var(--accent))]/10 border-[hsl(var(--golden-200))] hover:border-[hsl(var(--accent))]', iconBg: 'bg-[hsl(var(--primary))] text-[hsl(var(--accent))]' }
 ]
 </script>

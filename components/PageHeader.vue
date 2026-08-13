@@ -9,7 +9,7 @@
     <p v-if="subtitle" class="text-[hsl(var(--muted-foreground))] max-w-lg mx-auto leading-relaxed">
       {{ subtitle }}
     </p>
-    <div class="mt-4 mx-auto w-16 h-1 bg-gradient-to-r from-transparent via-[hsl(var(--primary))] to-transparent rounded-full" />
+    <div class="mt-4 mx-auto h-px w-16 bg-gradient-to-r from-transparent via-[hsl(var(--golden-300))] to-transparent" />
   </div>
 </template>
 

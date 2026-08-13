@@ -1,42 +1,77 @@
 <template>
-  <div class="min-h-screen bg-stone-50 pb-24 pt-8 md:pt-12 px-4">
-    <div class="max-w-3xl mx-auto">
+  <div class="min-h-screen bg-[hsl(var(--background))] pb-24 pt-8 md:pt-12 px-4">
+    <div class="mx-auto max-w-4xl">
       <PageHeader
-        title="Seva Opportunities"
-        subtitle="Service to humanity is service to God. Complete the form below to volunteer."
+        title="Seva"
+        subtitle="Join the WhatsApp community, find a team, and quietly log hours — no names, no leaderboard."
       />
 
-      <div class="rounded-2xl border border-[hsl(var(--golden-200))]/80 bg-white shadow-md overflow-hidden">
-        <div class="bg-gradient-to-b from-[hsl(var(--golden-50))]/80 to-white px-6 py-5 md:px-8 md:py-6 border-b border-[hsl(var(--golden-100))]">
-          <div class="flex items-center gap-3">
-            <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[hsl(var(--primary))]/15 text-[hsl(var(--primary))]">
-              <IconHandGrab class="h-5 w-5" />
-            </div>
-            <div>
-              <h2 class="font-display font-semibold text-[hsl(var(--foreground))] text-lg">Volunteer sign-up</h2>
-              <p class="text-sm text-[hsl(var(--muted-foreground))] mt-0.5">Share your details and availability. We'll be in touch.</p>
-            </div>
-          </div>
-        </div>
-        <div class="relative bg-stone-50/50">
-          <iframe
-            src="https://docs.google.com/forms/d/e/1FAIpQLScKumypmR1EX942jPH_hVb23GRLZvRnHgNIQst8uqOnItC6Zg/viewform?embedded=true"
-            width="100%"
-            height="621"
-            frameborder="0"
-            marginheight="0"
-            marginwidth="0"
-            title="Seva volunteer sign-up form"
-            class="min-h-[621px] w-full block"
+      <a
+        :href="SITE.whatsappInviteUrl"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="btn-primary mb-10 inline-flex w-full justify-center sm:w-auto"
+      >
+        {{ SITE.whatsappLabel }}
+      </a>
+
+      <section class="card-surface mb-10 p-6 sm:p-8 text-center">
+        <p class="text-[11px] font-semibold uppercase tracking-[0.22em] text-[hsl(var(--accent))]">Anonymous seva counter</p>
+        <p class="mt-3 font-display text-5xl font-semibold tabular-nums text-[hsl(var(--primary))]">
+          {{ seva.isLoading.value ? '—' : Math.round(seva.totalHours.value) }}
+        </p>
+        <p class="mt-1 text-sm text-[hsl(var(--muted-foreground))]">hours offered towards Patotsav</p>
+        <form class="mx-auto mt-6 flex max-w-xs flex-col gap-3 sm:flex-row" @submit.prevent="onLogHours">
+          <input
+            v-model.number="hoursInput"
+            type="number"
+            min="0.5"
+            max="24"
+            step="0.5"
+            placeholder="Hours"
+            class="w-full rounded-full border border-[hsl(var(--border))] bg-[hsl(var(--muted))]/50 px-4 py-2.5 text-center"
           >
-            Loading…
-          </iframe>
-        </div>
+          <button type="submit" :disabled="seva.isPending.value" class="btn-primary shrink-0 px-5 py-2.5 text-sm">
+            {{ seva.isPending.value ? 'Saving…' : 'Log hours' }}
+          </button>
+        </form>
+        <p v-if="hoursError" class="mt-2 text-sm text-red-600">{{ hoursError }}</p>
+        <p class="mt-3 text-[11px] text-[hsl(var(--muted-foreground))]">No name is stored. Please log honestly — this is for the mandir, not a competition.</p>
+      </section>
+
+      <h2 class="mb-4 font-display text-xl font-semibold">Teams &amp; responsibilities</h2>
+      <p class="mb-6 text-sm text-[hsl(var(--muted-foreground))]">
+        Once you’re in WhatsApp, pick a team that fits. Ask the seva desk if you’re unsure.
+      </p>
+      <div class="grid gap-4 sm:grid-cols-2">
+        <article v-for="team in teams" :key="team.id" class="card-surface p-5 sm:p-6">
+          <h3 class="font-display text-lg font-semibold text-[hsl(var(--primary))]">{{ team.name }}</h3>
+          <p class="mt-1 text-sm text-[hsl(var(--muted-foreground))]">{{ team.summary }}</p>
+          <ul class="mt-3 list-disc space-y-1 pl-5 text-sm text-[hsl(var(--foreground))]/80">
+            <li v-for="r in team.responsibilities" :key="r">{{ r }}</li>
+          </ul>
+        </article>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { IconHandGrab } from '@tabler/icons-vue'
+import { SITE } from '~/data/site'
+import { SEVA_TEAMS } from '~/data/sevaTeams'
+
+const teams = SEVA_TEAMS
+const seva = useSevaHours()
+const hoursInput = ref<number | null>(2)
+const hoursError = ref('')
+
+async function onLogHours() {
+  hoursError.value = ''
+  try {
+    await seva.logHours(Number(hoursInput.value))
+    hoursInput.value = 2
+  } catch (e) {
+    hoursError.value = (e as Error).message
+  }
+}
 </script>

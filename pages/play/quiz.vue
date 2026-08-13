@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-stone-50 pb-24 pt-8 md:pt-12 px-4">
+  <div class="min-h-screen bg-[hsl(var(--background))] pb-24 pt-8 md:pt-12 px-4">
     <div class="max-w-2xl mx-auto">
       <NuxtLink
         to="/play"
@@ -18,7 +18,7 @@
         <!-- Result -->
         <div
           v-if="isFinished"
-          class="bg-white rounded-3xl p-12 shadow-xl border border-[hsl(var(--primary))]/20 text-center"
+          class="bg-[hsl(var(--card))] rounded-3xl p-12 shadow-xl border border-[hsl(var(--primary))]/20 text-center"
         >
           <div class="w-24 h-24 bg-[hsl(var(--primary))]/10 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl">
             🏆
@@ -27,7 +27,7 @@
           <p class="text-[hsl(var(--muted-foreground))] mb-8">You scored {{ score }} out of {{ questions.length }}</p>
           <button
             type="button"
-            class="inline-flex items-center px-6 py-3 rounded-xl bg-[hsl(var(--foreground))] text-white font-semibold hover:opacity-90"
+            class="inline-flex items-center px-6 py-3 rounded-xl bg-[hsl(var(--primary))] text-[hsl(var(--accent))] font-semibold hover:opacity-90"
             @click="restartQuiz"
           >
             <IconRefresh class="w-4 h-4 mr-2" />
@@ -38,7 +38,7 @@
         <!-- Question -->
         <div
           v-else
-          class="bg-white rounded-3xl p-8 shadow-xl border border-[hsl(var(--golden-200))]"
+          class="bg-[hsl(var(--card))] rounded-3xl p-8 shadow-xl border border-[hsl(var(--golden-200))]"
         >
           <div class="flex justify-between items-center mb-8">
             <span class="text-sm font-bold text-[hsl(var(--primary))] tracking-wider uppercase">
@@ -93,7 +93,7 @@ function getOptionClass(option: string) {
     return isCorrect.value ? 'border-emerald-500 bg-emerald-50' : 'border-red-400 bg-red-50'
   }
   if (option === questions[currentQuestion.value].correctAnswer) return 'border-emerald-500 bg-emerald-50'
-  return 'border-stone-200 opacity-60'
+  return 'border-[hsl(var(--border))] opacity-60'
 }
 
 function handleOptionSelect(option: string) {

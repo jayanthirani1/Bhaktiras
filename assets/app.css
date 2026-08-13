@@ -2,43 +2,51 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Bhaktiras 10-year theme — light Awwwards: purple #382061 + gold #D9AE30 on white */
 :root {
-  --golden: 47 97% 55%;
-  --temple-red: 4 97% 31%;
-  --golden-50: 47 100% 97%;
-  --golden-100: 48 97% 89%;
-  --golden-200: 47 35% 85%;
-  --golden-300: 47 45% 75%;
-  --golden-600: 45 95% 45%;
-  --golden-500: 47 97% 55%;
-  --golden-900: 32 95% 25%;
-  --background: 47 100% 97%;
-  --foreground: 24 10% 15%;
+  --purple: 262 50% 25%;
+  --gold: 45 69% 52%;
+  --golden: 45 69% 52%;
+  --temple-red: 262 50% 25%;
+  --golden-50: 45 60% 97%;
+  --golden-100: 45 55% 92%;
+  --golden-200: 45 40% 82%;
+  --golden-300: 45 50% 68%;
+  --golden-600: 45 69% 42%;
+  --golden-500: 45 69% 52%;
+  --golden-900: 45 70% 28%;
+  --background: 40 33% 99%;
+  --foreground: 262 40% 16%;
   --card: 0 0% 100%;
-  --card-foreground: 24 10% 15%;
-  --primary: 47 97% 55%;
-  --primary-foreground: 24 10% 10%;
-  --secondary: 48 97% 89%;
-  --secondary-foreground: 32 95% 25%;
-  --muted: 47 30% 92%;
-  --muted-foreground: 24 10% 40%;
-  --accent: 4 97% 31%;
-  --accent-foreground: 0 0% 98%;
-  --border: 47 25% 88%;
-  --input: 47 25% 88%;
-  --ring: 47 97% 55%;
-  --radius: 0.75rem;
-  --font-sans: 'Inter', sans-serif;
-  --font-display: 'Playfair Display', serif;
+  --card-foreground: 262 40% 16%;
+  --primary: 262 50% 25%;
+  --primary-foreground: 45 69% 52%;
+  --secondary: 45 50% 94%;
+  --secondary-foreground: 262 50% 25%;
+  --muted: 40 20% 96%;
+  --muted-foreground: 262 12% 42%;
+  --accent: 45 69% 42%;
+  --accent-foreground: 262 50% 16%;
+  --border: 40 18% 90%;
+  --input: 40 18% 90%;
+  --ring: 262 50% 25%;
+  --radius: 1rem;
+  --font-sans: 'DM Sans', 'Segoe UI', sans-serif;
+  --font-display: 'Cinzel', serif;
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @layer base {
   * {
     @apply border-[hsl(var(--border))];
   }
+  html {
+    scroll-behavior: smooth;
+  }
   body {
     @apply bg-[hsl(var(--background))] text-[hsl(var(--foreground))];
     font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
   }
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-display);
@@ -46,38 +54,193 @@
   }
 }
 
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center rounded-full bg-[hsl(var(--primary))] px-7 py-3 font-semibold text-white shadow-[0_12px_30px_-12px_hsl(var(--primary)/0.55)] transition-all duration-500;
+    transition-timing-function: var(--ease-out-expo);
+  }
+  .btn-primary:hover {
+    @apply -translate-y-0.5 shadow-[0_18px_40px_-14px_hsl(var(--primary)/0.45)];
+    color: hsl(var(--gold));
+  }
+  .card-surface {
+    @apply rounded-2xl border border-[hsl(var(--border))] bg-white shadow-[0_8px_30px_-18px_rgba(56,32,97,0.18)];
+    transition: transform 0.5s var(--ease-out-expo), box-shadow 0.5s var(--ease-out-expo), border-color 0.4s ease;
+  }
+  .card-surface:hover {
+    @apply -translate-y-1 border-[hsl(var(--golden-200))] shadow-[0_20px_50px_-24px_rgba(56,32,97,0.28)];
+  }
+}
+
 @layer utilities {
-  .text-golden { color: hsl(var(--golden)); }
-  .bg-golden { background-color: hsl(var(--golden)); }
-  .text-temple-red { color: hsl(var(--temple-red)); }
-  .bg-temple-red { background-color: hsl(var(--temple-red)); }
+  .text-golden { color: hsl(var(--gold)); }
+  .bg-golden { background-color: hsl(var(--gold)); }
+  .text-temple-red { color: hsl(var(--purple)); }
+  .bg-temple-red { background-color: hsl(var(--purple)); }
 }
 
-html {
-  scroll-behavior: smooth;
+/* ——— Logo lockup animations ——— */
+.logo-lockup .logo-svg-inner {
+  overflow: visible;
+}
+.logo-lockup #logo-one,
+.logo-lockup #logo-arch,
+.logo-lockup #logo-filigree,
+.logo-lockup #logo-figure,
+.logo-lockup #logo-type,
+.logo-lockup #Bhaktiras-text,
+.logo-lockup #logo-tagline,
+.logo-lockup #logo-text-tagline,
+.logo-lockup #logo-wordmark,
+.logo-lockup #logo-tilak,
+.logo-lockup #logo-main-tilak,
+.logo-lockup #logo-wordmark path {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+}
+.logo-lockup #logo-figure {
+  transform-origin: 50% 0%;
+}
+.logo-lockup #logo-main-tilak {
+  transform-origin: 50% 0%;
+}
+.logo-lockup #logo-arch,
+.logo-lockup #logo-filigree {
+  transform-origin: 50% 50%;
 }
 
-/* Wordle animations */
+/* One → figure → arch → floral → text → droplet */
+.logo-lockup.logo-animate #logo-one {
+  animation: logo-rise 0.8s var(--ease-out-expo) both;
+}
+.logo-lockup.logo-animate #logo-figure {
+  animation: logo-drop 0.75s var(--ease-out-expo) 0.7s both;
+}
+.logo-lockup.logo-animate #logo-arch {
+  animation: logo-arch-draw 1.6s cubic-bezier(0.33, 0, 0.2, 1) 1.35s both;
+}
+.logo-lockup.logo-animate #logo-filigree {
+  animation: logo-arch-draw 1.8s cubic-bezier(0.33, 0, 0.2, 1) 2.85s both, logo-shimmer 5s ease-in-out 4.9s infinite;
+}
+.logo-lockup.logo-animate #logo-type {
+  animation: logo-rise 0.7s var(--ease-out-expo) 4.5s both;
+}
+.logo-lockup.logo-animate #logo-main-tilak {
+  animation: logo-droplet 0.7s cubic-bezier(0.45, 0, 0.85, 0.35) 5.15s both;
+}
+
+.logo-lockup.logo-animate #logo-text-tagline {
+  animation: logo-rise 0.55s var(--ease-out-expo) 0.55s both;
+}
+.logo-lockup.logo-animate #logo-tilak {
+  animation: logo-pop 0.5s var(--ease-out-expo) 0.7s both;
+}
+.logo-lockup.logo-animate #logo-wordmark path {
+  animation: logo-letter 0.5s var(--ease-out-expo) both;
+}
+.logo-lockup.logo-animate #logo-wordmark path:nth-child(1) { animation-delay: 0.04s; }
+.logo-lockup.logo-animate #logo-wordmark path:nth-child(2) { animation-delay: 0.10s; }
+.logo-lockup.logo-animate #logo-wordmark path:nth-child(3) { animation-delay: 0.16s; }
+.logo-lockup.logo-animate #logo-wordmark path:nth-child(4) { animation-delay: 0.22s; }
+.logo-lockup.logo-animate #logo-wordmark path:nth-child(5) { animation-delay: 0.28s; }
+.logo-lockup.logo-animate #logo-wordmark path:nth-child(6) { animation-delay: 0.34s; }
+.logo-lockup.logo-animate #logo-wordmark path:nth-child(7) { animation-delay: 0.40s; }
+.logo-lockup.logo-animate #logo-wordmark path:nth-child(8) { animation-delay: 0.46s; }
+.logo-lockup.logo-animate #logo-wordmark path:nth-child(9) { animation-delay: 0.52s; }
+
+@keyframes logo-rise {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes logo-drop {
+  from { opacity: 0; transform: translateY(-28px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes logo-fade-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes logo-letter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes logo-pop {
+  0% { opacity: 0; transform: scale(0.4); }
+  70% { opacity: 1; transform: scale(1.15); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes logo-droplet {
+  from { opacity: 0; transform: translateY(-38px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes logo-shimmer {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.72; }
+}
+@keyframes logo-arch-draw {
+  0% {
+    opacity: 0;
+    clip-path: polygon(0% 100%, 40% 100%, 40% 92%, 0% 92%);
+  }
+  6% {
+    opacity: 1;
+    clip-path: polygon(0% 100%, 40% 100%, 40% 88%, 0% 88%);
+  }
+  28% {
+    clip-path: polygon(0% 100%, 42% 100%, 42% 38%, 0% 38%);
+  }
+  42% {
+    clip-path: polygon(0% 100%, 42% 100%, 42% 0%, 0% 0%);
+  }
+  62% {
+    clip-path: polygon(0% 100%, 52% 100%, 100% 0%, 0% 0%);
+  }
+  80% {
+    clip-path: polygon(0% 100%, 82% 100%, 100% 28%, 0% 0%);
+  }
+  100% {
+    opacity: 1;
+    clip-path: polygon(0% 100%, 100% 100%, 100% 0%, 0% 0%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .logo-lockup.logo-animate #logo-one,
+  .logo-lockup.logo-animate #logo-arch,
+  .logo-lockup.logo-animate #logo-filigree,
+  .logo-lockup.logo-animate #logo-figure,
+  .logo-lockup.logo-animate #logo-type,
+  .logo-lockup.logo-animate #logo-text-tagline,
+  .logo-lockup.logo-animate #logo-tilak,
+  .logo-lockup.logo-animate #logo-main-tilak,
+  .logo-lockup.logo-animate #logo-wordmark path {
+    animation: none !important;
+  }
+}
+
+/* Staggered page reveals */
+.reveal {
+  animation: logo-fade-up 0.8s var(--ease-out-expo) both;
+}
+.reveal-delay-1 { animation-delay: 0.12s; }
+.reveal-delay-2 { animation-delay: 0.22s; }
+.reveal-delay-3 { animation-delay: 0.32s; }
+
+/* Wordle */
 @keyframes shake {
   0%, 100% { transform: translateX(0); }
   25% { transform: translateX(-4px); }
   75% { transform: translateX(4px); }
 }
-.shake {
-  animation: shake 0.3s ease-in-out;
-}
+.shake { animation: shake 0.3s ease-in-out; }
 @keyframes flip {
   0% { transform: rotateX(0); }
   50% { transform: rotateX(-90deg); }
   100% { transform: rotateX(0); }
 }
-.flip {
-  animation: flip 0.5s ease-in-out;
-}
+.flip { animation: flip 0.5s ease-in-out; }
 @keyframes dance {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.1); }
 }
-.dance {
-  animation: dance 0.3s ease-in-out;
-}
+.dance { animation: dance 0.3s ease-in-out; }

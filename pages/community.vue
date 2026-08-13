@@ -1,114 +1,125 @@
 <template>
-  <div class="min-h-screen bg-stone-50 pb-24 pt-8 md:pt-12 px-4">
+  <div class="min-h-screen bg-[hsl(var(--background))] pb-24 pt-8 md:pt-12 px-4">
     <div class="max-w-6xl mx-auto">
       <PageHeader
-        title="Wall of Gratitude"
-        subtitle="Share your experiences, prayers, and heartfelt thanks."
+        title="Our Community"
+        subtitle="Like a guest book or the Lee Valley message wall — leave an anonymous note. What does this mandir mean to you?"
       />
 
-      <div class="text-center mb-12">
+      <div class="mb-6 flex flex-wrap justify-center gap-2">
         <button
+          v-for="p in prompts"
+          :key="p"
           type="button"
-          class="inline-flex items-center space-x-2 px-6 py-3 bg-[hsl(var(--primary))] text-white rounded-full shadow-lg shadow-[hsl(var(--primary))]/25 hover:shadow-xl hover:bg-[hsl(var(--primary))]/90 transition-all active:scale-95"
-          @click="isFormOpen = !isFormOpen"
+          class="max-w-full rounded-full px-3 py-1.5 text-left text-xs font-medium transition-colors sm:text-sm"
+          :class="form.prompt === p
+            ? 'bg-[hsl(var(--primary))] text-white'
+            : 'bg-[hsl(var(--muted))] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--primary))]'"
+          @click="form.prompt = p; isFormOpen = true"
         >
-          <IconHeart class="w-5 h-5 fill-current" />
-          <span class="font-semibold">Share Your Gratitude</span>
+          {{ p }}
         </button>
       </div>
 
-      <div v-show="isFormOpen" class="mb-12 overflow-hidden">
-        <div class="bg-white max-w-lg mx-auto p-8 rounded-2xl shadow-xl border border-[hsl(var(--primary))]/20">
-          <h3 class="text-xl font-bold text-[hsl(var(--foreground))] mb-6 text-center">Write a Message</h3>
-          <form class="space-y-6" @submit.prevent="onSubmit">
+      <div class="text-center mb-10">
+        <button type="button" class="btn-primary text-sm" @click="isFormOpen = !isFormOpen">
+          Leave a message
+        </button>
+      </div>
+
+      <div v-show="isFormOpen" class="mb-12">
+        <div class="card-surface mx-auto max-w-lg p-6 sm:p-8">
+          <h3 class="text-center font-display text-xl font-semibold">{{ form.prompt || 'Your message' }}</h3>
+          <p class="mt-1 text-center text-xs text-[hsl(var(--muted-foreground))]">Anonymous by default — no names on the wall.</p>
+          <form class="mt-6 space-y-4" @submit.prevent="onSubmit">
             <div>
-              <label class="block text-[hsl(var(--foreground))] font-medium mb-1">Your Name</label>
-              <input
-                v-model="form.name"
-                type="text"
-                placeholder="Enter your name"
-                class="w-full px-4 py-2 rounded-lg bg-[hsl(var(--golden-50))]/50 border border-[hsl(var(--golden-200))] focus:border-[hsl(var(--primary))] focus:ring-2 focus:ring-[hsl(var(--primary))]/20"
-              >
-              <p v-if="errors.name" class="text-red-500 text-sm mt-1">{{ errors.name }}</p>
-            </div>
-            <div>
-              <label class="block text-[hsl(var(--foreground))] font-medium mb-1">Your Message</label>
+              <label class="mb-1 block text-sm font-medium">Message</label>
               <textarea
                 v-model="form.message"
-                placeholder="Share your thoughts..."
                 rows="4"
-                class="w-full px-4 py-2 rounded-lg resize-none bg-[hsl(var(--golden-50))]/50 border border-[hsl(var(--golden-200))] focus:border-[hsl(var(--primary))] focus:ring-2 focus:ring-[hsl(var(--primary))]/20"
+                maxlength="280"
+                placeholder="Write from the heart…"
+                class="w-full resize-none rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--muted))]/40 px-4 py-3 focus:border-[hsl(var(--primary))] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--primary))]/15"
               />
-              <p v-if="errors.message" class="text-red-500 text-sm mt-1">{{ errors.message }}</p>
+              <p class="mt-1 text-right text-[10px] text-[hsl(var(--muted-foreground))]">{{ form.message.length }}/280</p>
+              <p v-if="errors.message" class="text-sm text-red-600">{{ errors.message }}</p>
             </div>
-            <button
-              type="submit"
-              :disabled="createMessage.isPending.value"
-              class="w-full h-12 rounded-xl bg-[hsl(var(--foreground))] text-white font-semibold flex items-center justify-center space-x-2 hover:bg-[hsl(var(--foreground))]/90 disabled:opacity-70 disabled:cursor-not-allowed transition-colors"
+            <label class="flex items-center gap-2 text-sm text-[hsl(var(--muted-foreground))]">
+              <input v-model="form.signName" type="checkbox" class="rounded border-[hsl(var(--border))]">
+              I’d like to sign my name (optional)
+            </label>
+            <input
+              v-if="form.signName"
+              v-model="form.name"
+              type="text"
+              maxlength="50"
+              placeholder="Your name"
+              class="w-full rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--muted))]/40 px-4 py-2"
             >
-              <IconLoader2 v-if="createMessage.isPending.value" class="w-5 h-5 animate-spin" />
-              <IconSend v-else class="w-5 h-5" />
-              <span>{{ createMessage.isPending.value ? 'Posting...' : 'Post Message' }}</span>
+            <button type="submit" :disabled="createMessage.isPending.value" class="btn-primary w-full">
+              {{ createMessage.isPending.value ? 'Posting…' : 'Post anonymously' }}
             </button>
           </form>
         </div>
       </div>
 
-      <div v-if="isLoading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div v-for="i in 6" :key="i" class="h-40 bg-gray-100 rounded-2xl animate-pulse" />
+      <div v-if="isLoading" class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div v-for="i in 6" :key="i" class="h-40 rounded-2xl bg-[hsl(var(--muted))] animate-pulse" />
       </div>
-      <div v-else class="columns-1 md:columns-2 lg:columns-3 gap-6 space-y-6">
-        <div
+      <div v-else class="columns-1 gap-5 space-y-5 md:columns-2 lg:columns-3">
+        <article
           v-for="msg in messages"
           :key="msg.id"
-          class="break-inside-avoid bg-white p-6 rounded-2xl shadow-sm border border-[hsl(var(--golden-100))] hover:shadow-md transition-shadow"
+          class="card-surface break-inside-avoid p-5 sm:p-6"
         >
-          <div class="mb-4 text-[hsl(var(--primary))]/20">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M14.017 21L14.017 18C14.017 16.8954 13.1216 16 12.017 16H9.01699V12.9996H12.017V7.9996H5.01699V14.9996H8.01699V17.9996H5.01699C3.91243 17.9996 3.01699 17.1042 3.01699 16V6.00041C3.01699 4.89584 3.91243 4.00041 5.01699 4.00041H14.017C15.1216 4.00041 16.017 4.89584 16.017 6.00041V11.0004H19.017V8.00041H21.017V16H19.017V21H14.017ZM20.017 14H18.017V12H20.017V14ZM9.01699 10.9996V7.9996H7.01699V10.9996H9.01699Z" />
-            </svg>
-          </div>
-          <p class="text-[hsl(var(--foreground))]/80 leading-relaxed font-serif italic text-lg mb-6">
-            "{{ msg.message }}"
+          <p v-if="msg.prompt" class="text-[10px] font-semibold uppercase tracking-[0.18em] text-[hsl(var(--accent))]">
+            {{ msg.prompt }}
           </p>
-          <div class="flex items-center justify-between border-t border-[hsl(var(--golden-100))] pt-4">
-            <span class="font-bold text-[hsl(var(--foreground))] text-sm">{{ msg.name }}</span>
-            <IconHeart class="w-4 h-4 text-red-400 fill-red-400" />
-          </div>
-        </div>
+          <p class="mt-3 font-serif text-lg italic leading-relaxed text-[hsl(var(--foreground))]/90">
+            “{{ msg.message }}”
+          </p>
+          <p class="mt-4 text-xs font-medium text-[hsl(var(--muted-foreground))]">{{ msg.name }}</p>
+        </article>
+        <p v-if="messages.length === 0" class="text-center text-sm text-[hsl(var(--muted-foreground))]">
+          Be the first to leave a note on the wall.
+        </p>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { IconHeart, IconSend, IconLoader2 } from '@tabler/icons-vue'
+import { COMMUNITY_PROMPTS } from '~/data/communityPrompts'
 
 const { messages, isLoading, refetch } = useGratitudeMessages()
 const createMessage = useCreateGratitudeMessage()
+const prompts = COMMUNITY_PROMPTS
 const isFormOpen = ref(false)
-const form = reactive({ name: '', message: '' })
-const errors = reactive<{ name?: string; message?: string }>({})
-
-function validate() {
-  errors.name = undefined
-  errors.message = undefined
-  if (form.name.length < 2) errors.name = 'Name must be at least 2 characters'
-  if (form.name.length > 50) errors.name = 'Name too long'
-  if (form.message.length < 5) errors.message = 'Message must be at least 5 characters'
-  if (form.message.length > 200) errors.message = 'Message too long'
-  return !errors.name && !errors.message
-}
+const form = reactive({ prompt: COMMUNITY_PROMPTS[0] || '', message: '', name: '', signName: false })
+const errors = reactive<{ message?: string }>({})
 
 async function onSubmit() {
-  if (!validate()) return
+  errors.message = undefined
+  if (form.message.trim().length < 5) {
+    errors.message = 'A few more words, please (5+ characters).'
+    return
+  }
+  if (form.signName && form.name.trim().length < 2) {
+    errors.message = 'Add a name, or leave it anonymous.'
+    return
+  }
   try {
-    await createMessage.create({ name: form.name, message: form.message })
+    await createMessage.create({
+      message: form.message,
+      prompt: form.prompt,
+      anonymous: !form.signName,
+      name: form.signName ? form.name : undefined
+    })
     await refetch()
-    form.name = ''
     form.message = ''
+    form.name = ''
+    form.signName = false
     isFormOpen.value = false
-    // Could add a toast here
   } catch (e) {
     errors.message = (e as Error).message
   }

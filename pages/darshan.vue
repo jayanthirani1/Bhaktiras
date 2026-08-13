@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-stone-50 pb-24 pt-8 md:pt-12 px-4">
+  <div class="min-h-screen bg-[hsl(var(--background))] pb-24 pt-8 md:pt-12 px-4">
     <div class="max-w-4xl mx-auto">
       <PageHeader
         title="Live Darshan"
@@ -27,7 +27,7 @@
         </div>
       </div>
 
-      <div class="bg-white rounded-3xl p-8 shadow-sm border border-[hsl(var(--golden-200))] max-w-lg mx-auto text-center">
+      <div class="bg-[hsl(var(--card))] rounded-3xl p-8 shadow-sm border border-[hsl(var(--golden-200))] max-w-lg mx-auto text-center">
         <h3 class="text-2xl font-display font-bold text-[hsl(var(--foreground))] mb-2">Submit Sankalp</h3>
         <p class="text-[hsl(var(--muted-foreground))] mb-6 text-sm">Offer a prayer request for the evening Aarti.</p>
         <form class="space-y-4" @submit.prevent="handleSankalpSubmit">

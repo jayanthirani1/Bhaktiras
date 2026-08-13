@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-stone-50 pb-32 pt-8 md:pt-12 px-4">
+  <div class="min-h-screen bg-[hsl(var(--background))] pb-32 pt-8 md:pt-12 px-4">
     <div class="max-w-lg mx-auto">
       <NuxtLink
         to="/play"
@@ -78,7 +78,7 @@
         <div class="flex justify-center gap-1">
           <button
             type="button"
-            class="h-11 sm:h-14 px-5 sm:px-7 rounded-md font-bold text-sm sm:text-base bg-[hsl(var(--primary))] text-white hover:opacity-90 disabled:opacity-50 transition-all"
+            class="h-11 sm:h-14 px-5 sm:px-7 rounded-md font-bold text-sm sm:text-base bg-[hsl(var(--primary))] text-[hsl(var(--accent))] hover:opacity-90 disabled:opacity-50 transition-all"
             :disabled="isComplete"
             @click="submitGuess"
           >
@@ -97,7 +97,7 @@
           </button>
           <button
             type="button"
-            class="h-11 sm:h-14 px-5 sm:px-7 rounded-md font-bold text-base bg-stone-300 text-[hsl(var(--foreground))] hover:bg-stone-400 disabled:opacity-50 transition-all"
+            class="h-11 sm:h-14 px-5 sm:px-7 rounded-md font-bold text-base bg-[hsl(var(--muted))] text-[hsl(var(--foreground))] hover:bg-[hsl(var(--border))] disabled:opacity-50 transition-all"
             :disabled="isComplete"
             @click="removeLetter"
           >
@@ -113,7 +113,7 @@
           <NuxtLink to="/login" class="text-[hsl(var(--primary))] underline">Sign in</NuxtLink> to submit your score.
         </p>
         <div v-if="leaderboard.loading" class="text-sm text-[hsl(var(--muted-foreground))]">Loading...</div>
-        <ul v-else class="bg-white rounded-xl border border-[hsl(var(--golden-200))] overflow-hidden divide-y divide-[hsl(var(--border))]">
+        <ul v-else class="bg-[hsl(var(--card))] rounded-xl border border-[hsl(var(--golden-200))] overflow-hidden divide-y divide-[hsl(var(--border))]">
           <li
             v-for="(entry, idx) in leaderboard.entries.slice(0, 10)"
             :key="entry.id"
@@ -143,7 +143,7 @@
           <div
             ref="modalContentRef"
             tabindex="-1"
-            class="bg-white rounded-2xl p-8 shadow-xl border border-[hsl(var(--golden-200))] max-w-md w-full text-center outline-none"
+            class="bg-[hsl(var(--card))] rounded-2xl p-8 shadow-xl border border-[hsl(var(--golden-200))] max-w-md w-full text-center outline-none"
             @keydown.esc="closeModal"
           >
             <div v-if="isWin" class="text-4xl mb-4" aria-hidden="true">🎉</div>
@@ -162,7 +162,7 @@
               <p class="font-bold text-lg text-[hsl(var(--primary))] mb-6">{{ solution }}</p>
             </template>
 
-            <div class="mb-6 p-4 bg-stone-50 rounded-xl text-left">
+            <div class="mb-6 p-4 bg-[hsl(var(--background))] rounded-xl text-left">
               <h3 class="text-sm font-semibold text-[hsl(var(--muted-foreground))] mb-3">STATISTICS</h3>
               <div class="grid grid-cols-4 gap-3">
                 <div>
@@ -192,7 +192,7 @@
                     class="flex items-center gap-2 text-xs"
                   >
                     <span class="w-4 font-medium text-[hsl(var(--foreground))]">{{ n }}</span>
-                    <div class="flex-1 h-5 bg-stone-200 rounded overflow-hidden">
+                    <div class="flex-1 h-5 bg-[hsl(var(--muted))] rounded overflow-hidden">
                       <div
                         class="h-full bg-[hsl(var(--primary))] rounded transition-all duration-300"
                         :style="{ width: guessDistributionWidth(n) + '%' }"
@@ -222,7 +222,7 @@
               <button
                 v-if="isComplete"
                 type="button"
-                class="w-full py-2.5 rounded-xl bg-stone-200 text-[hsl(var(--foreground))] font-semibold hover:bg-stone-300"
+                class="w-full py-2.5 rounded-xl bg-[hsl(var(--muted))] text-[hsl(var(--foreground))] font-semibold hover:bg-[hsl(var(--border))]"
                 @click="shareResult"
               >
                 {{ shareCopied ? 'Copied!' : 'Share' }}
@@ -232,7 +232,7 @@
               </p>
               <NuxtLink
                 to="/play"
-                class="inline-flex items-center justify-center gap-2 py-2.5 rounded-xl bg-stone-200 text-[hsl(var(--foreground))] font-semibold hover:bg-stone-300"
+                class="inline-flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[hsl(var(--muted))] text-[hsl(var(--foreground))] font-semibold hover:bg-[hsl(var(--border))]"
                 @click="closeModal"
               >
                 <IconArrowLeft class="w-4 h-4" />
@@ -353,16 +353,16 @@ const keyStatusMap = computed(() => {
 function cellBg(status: LetterStatus) {
   if (status === 'correct') return 'bg-emerald-500 border-emerald-600 text-white'
   if (status === 'present') return 'bg-amber-400 border-amber-500 text-white'
-  if (status === 'absent') return 'bg-stone-300 border-stone-400 text-stone-600'
-  return 'bg-white border-stone-200 text-[hsl(var(--foreground))]'
+  if (status === 'absent') return 'bg-[hsl(var(--muted))] border-[hsl(var(--border))] text-[hsl(var(--muted-foreground))]'
+  return 'bg-[hsl(var(--card))] border-[hsl(var(--border))] text-[hsl(var(--foreground))]'
 }
 
 function keyBg(letter: string) {
   const s = keyStatusMap.value.get(letter)
   if (s === 'correct') return 'bg-emerald-500 text-white'
   if (s === 'present') return 'bg-amber-400 text-white'
-  if (s === 'absent') return 'bg-stone-300 text-stone-600'
-  return 'bg-stone-200 text-[hsl(var(--foreground))] hover:bg-stone-300'
+  if (s === 'absent') return 'bg-[hsl(var(--muted))] text-[hsl(var(--muted-foreground))]'
+  return 'bg-[hsl(var(--muted))] text-[hsl(var(--foreground))] hover:bg-[hsl(var(--border))]'
 }
 
 function statusLabel(status: LetterStatus): string {

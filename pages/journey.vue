@@ -1,59 +1,78 @@
 <template>
-  <div class="min-h-screen bg-stone-50 pb-24 pt-8 md:pt-12 px-4">
-    <div class="max-w-4xl mx-auto">
+  <div class="min-h-screen bg-[hsl(var(--background))] pb-24 pt-8 md:pt-12 px-4">
+    <div class="max-w-5xl mx-auto">
       <PageHeader
         title="Our Journey"
-        subtitle="Tracing the footsteps of devotion that led us to this momentous milestone."
+        subtitle="39 years of satsang — pick a year, then scroll the moments, photos and videos."
       />
 
       <ClientOnly>
-        <div v-if="isLoading" class="flex min-h-[40vh] items-center justify-center text-[hsl(var(--muted-foreground))]">
+        <div v-if="isLoading" class="flex min-h-[30vh] items-center justify-center text-[hsl(var(--muted-foreground))]">
           Loading Journey...
         </div>
-        <div v-else-if="error" class="flex min-h-[40vh] flex-col items-center justify-center gap-2 text-red-600">
-          <p class="font-medium">Failed to load timeline</p>
-          <p class="text-sm text-center text-[hsl(var(--muted-foreground))] max-w-md">{{ error.message }}</p>
-        </div>
-        <div v-else class="relative mt-12">
-          <div class="absolute left-4 md:left-1/2 top-0 bottom-0 w-0.5 bg-gradient-to-b from-[hsl(var(--primary))]/10 via-[hsl(var(--primary))]/40 to-[hsl(var(--primary))]/10 transform md:-translate-x-1/2" />
-          <div class="space-y-12">
-            <div
-              v-for="(item, index) in timeline"
-              :key="item.id"
-              class="relative flex flex-col md:flex-row gap-8"
-              :class="index % 2 === 0 ? 'md:flex-row-reverse' : ''"
+        <template v-else>
+          <div class="-mx-4 mb-8 flex gap-2 overflow-x-auto px-4 pb-2 md:mx-0 md:flex-wrap md:overflow-visible">
+            <button
+              v-for="y in years"
+              :key="y"
+              type="button"
+              class="shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors"
+              :class="selectedYear === String(y)
+                ? 'bg-[hsl(var(--primary))] text-white'
+                : 'bg-[hsl(var(--muted))] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--primary))]'"
+              @click="selectedYear = String(y)"
             >
-              <div class="absolute left-4 md:left-1/2 w-8 h-8 rounded-full bg-white border-4 border-[hsl(var(--primary))] shadow-lg transform -translate-x-1/2 z-10 flex items-center justify-center">
-                <div class="w-2 h-2 rounded-full bg-[hsl(var(--primary))]" />
+              {{ y }}
+            </button>
+          </div>
+
+          <div v-if="yearMoments.length === 0" class="card-surface p-8 text-center">
+            <p class="font-display text-3xl text-[hsl(var(--primary))]">{{ selectedYear }}</p>
+            <p class="mt-3 text-sm text-[hsl(var(--muted-foreground))]">
+              No photos or stories for this year yet. Add a Firestore <code>timeline</code> document with
+              <code>year</code>, <code>title</code>, <code>description</code>, and <code>media</code> (images/videos).
+            </p>
+          </div>
+
+          <div v-else class="space-y-8">
+            <article
+              v-for="item in yearMoments"
+              :key="item.id"
+              class="card-surface overflow-hidden"
+            >
+              <div class="p-6 sm:p-8">
+                <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-[hsl(var(--accent))]">
+                  {{ item.date || item.year }}
+                </p>
+                <h3 class="mt-2 text-2xl font-display font-semibold">{{ item.title }}</h3>
+                <p class="mt-3 text-[hsl(var(--muted-foreground))] leading-relaxed">{{ item.description }}</p>
               </div>
-              <div class="ml-12 md:ml-0 md:w-1/2 md:px-8">
+              <div v-if="itemMedia(item).length" class="flex snap-x snap-mandatory gap-3 overflow-x-auto px-6 pb-6">
                 <div
-                  class="bg-white p-6 rounded-2xl shadow-sm border border-[hsl(var(--golden-200))] hover:shadow-md transition-shadow"
-                  :class="index % 2 === 0 ? 'text-left' : 'md:text-right'"
+                  v-for="(m, i) in itemMedia(item)"
+                  :key="i"
+                  class="w-[85%] sm:w-[70%] shrink-0 snap-center overflow-hidden rounded-xl bg-[hsl(var(--muted))]"
                 >
-                  <span class="inline-block px-3 py-1 bg-[hsl(var(--golden-50))] text-[hsl(var(--foreground))] text-xs font-bold rounded-full mb-3">
-                    {{ item.year }}
-                  </span>
-                  <h3 class="text-xl font-bold text-[hsl(var(--foreground))] mb-2">{{ item.title }}</h3>
-                  <p class="text-[hsl(var(--muted-foreground))] leading-relaxed text-sm">{{ item.description }}</p>
-                  <div v-if="item.imageUrl" class="mt-4 rounded-lg overflow-hidden h-40 w-full relative">
-                    <img
-                      :src="item.imageUrl"
-                      :alt="item.title"
-                      class="w-full h-full object-cover"
-                      @error="($event.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1545638100-249071c33c37?w=800&auto=format&fit=crop&q=60'"
-                    >
-                  </div>
+                  <video
+                    v-if="m.type === 'video'"
+                    :src="m.url"
+                    controls
+                    class="aspect-video w-full object-cover"
+                  />
+                  <img
+                    v-else
+                    :src="m.url"
+                    :alt="m.caption || item.title"
+                    class="aspect-video w-full object-cover"
+                  >
+                  <p v-if="m.caption" class="px-3 py-2 text-xs text-[hsl(var(--muted-foreground))]">{{ m.caption }}</p>
                 </div>
               </div>
-              <div class="md:w-1/2" />
-            </div>
+            </article>
           </div>
-        </div>
+        </template>
         <template #fallback>
-          <div class="flex min-h-[40vh] items-center justify-center text-[hsl(var(--muted-foreground))]">
-            Loading Journey...
-          </div>
+          <div class="flex min-h-[30vh] items-center justify-center text-[hsl(var(--muted-foreground))]">Loading Journey...</div>
         </template>
       </ClientOnly>
     </div>
@@ -61,5 +80,22 @@
 </template>
 
 <script setup lang="ts">
-const { timeline, isLoading, error } = useTimeline()
+import type { TimelineItem, TimelineMedia } from '~/types'
+import { journeyYears } from '~/data/timeline'
+
+const { timeline, isLoading } = useTimeline()
+const years = journeyYears()
+const selectedYear = ref(String(new Date().getFullYear()))
+
+const yearMoments = computed(() =>
+  timeline.value.filter(t => t.year === selectedYear.value)
+)
+
+function itemMedia(item: TimelineItem): TimelineMedia[] {
+  if (item.media?.length) return item.media
+  const out: TimelineMedia[] = []
+  if (item.imageUrl) out.push({ type: 'image', url: item.imageUrl })
+  if (item.videoUrl) out.push({ type: 'video', url: item.videoUrl })
+  return out
+}
 </script>

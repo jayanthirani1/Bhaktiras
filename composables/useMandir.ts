@@ -8,7 +8,8 @@ import {
   type DocumentData,
   type Firestore
 } from 'firebase/firestore'
-import type { TimelineItem, Event, GratitudeMessage, VolunteerRole, TimeCapsuleMessage } from '~/types'
+import type { TimelineItem, TimelineMedia, Event, GratitudeMessage, VolunteerRole, TimeCapsuleMessage, SevaHourLog } from '~/types'
+import { JOURNEY_MILESTONES } from '~/data/timeline'
 
 /** Max length for time capsule message (chars). */
 export const TIME_CAPSULE_MESSAGE_MAX_LENGTH = 1000
@@ -41,18 +42,34 @@ export function useTimeline() {
     try {
       const db = getDb()
       if (!db) {
-        error.value = new Error('Firebase is not configured. Add NUXT_PUBLIC_FIREBASE_* to .env')
-        items.value = []
+        items.value = [...JOURNEY_MILESTONES].sort((a, b) => a.year.localeCompare(b.year))
+        error.value = null
         return
       }
       const snap = await getDocs(collection(db, 'timeline'))
-      items.value = snap.docs.map((d) =>
-        mapDoc<TimelineItem>(d.id, { ...d.data(), imageUrl: d.data().imageUrl ?? null })
-      )
-      items.value.sort((a, b) => a.year.localeCompare(b.year))
+      const remote = snap.docs.map((d) => {
+        const data = d.data()
+        const media = Array.isArray(data.media) ? (data.media as TimelineMedia[]) : []
+        if (data.imageUrl && !media.some(m => m.url === data.imageUrl)) {
+          media.unshift({ type: 'image', url: data.imageUrl })
+        }
+        if (data.videoUrl && !media.some(m => m.url === data.videoUrl)) {
+          media.push({ type: 'video', url: data.videoUrl })
+        }
+        return mapDoc<TimelineItem>(d.id, {
+          ...data,
+          imageUrl: data.imageUrl ?? null,
+          videoUrl: data.videoUrl ?? null,
+          media
+        })
+      })
+      const byYear = new Map<string, TimelineItem>()
+      for (const m of JOURNEY_MILESTONES) byYear.set(m.year, { ...m, media: m.media ?? [] })
+      for (const r of remote) byYear.set(r.year, r)
+      items.value = Array.from(byYear.values()).sort((a, b) => a.year.localeCompare(b.year))
     } catch (e) {
       error.value = e as Error
-      items.value = []
+      items.value = [...JOURNEY_MILESTONES].sort((a, b) => a.year.localeCompare(b.year))
     } finally {
       loading.value = false
     }
@@ -100,6 +117,9 @@ export function useGratitudeMessages() {
         const data = d.data()
         return mapDoc<GratitudeMessage>(d.id, {
           ...data,
+          name: data.anonymous ? 'Anonymous' : (data.name || 'Anonymous'),
+          prompt: data.prompt ?? null,
+          anonymous: !!data.anonymous,
           createdAt: data.createdAt ?? undefined
         })
       })
@@ -122,16 +142,22 @@ export function useGratitudeMessages() {
 export function useCreateGratitudeMessage() {
   const pending = ref(false)
 
-  async function create(data: { name: string; message: string }) {
+  async function create(data: { name?: string; message: string; prompt?: string; anonymous?: boolean }) {
     pending.value = true
     try {
       const db = getDb()
       if (!db) throw new Error('Firebase not configured')
-      const ref = await addDoc(collection(db, 'gratitude'), {
-        ...data,
+      const anonymous = data.anonymous !== false || !data.name?.trim()
+      const name = anonymous ? 'Anonymous' : data.name!.trim()
+      const payload = {
+        name,
+        message: data.message.trim(),
+        prompt: data.prompt?.trim() || null,
+        anonymous,
         createdAt: serverTimestamp()
-      })
-      return { id: ref.id, ...data, createdAt: new Date() }
+      }
+      const ref = await addDoc(collection(db, 'gratitude'), payload)
+      return { id: ref.id, ...payload, createdAt: new Date() }
     } finally {
       pending.value = false
     }
@@ -207,4 +233,50 @@ export function useCreateTimeCapsuleMessage() {
   }
 
   return { create, isPending: pending }
+}
+
+export function useSevaHours() {
+  const logs = ref<SevaHourLog[]>([])
+  const loading = ref(true)
+  const pending = ref(false)
+
+  const totalHours = computed(() =>
+    logs.value.reduce((sum, l) => sum + (Number(l.hours) || 0), 0)
+  )
+
+  async function fetchHours() {
+    loading.value = true
+    try {
+      const db = getDb()
+      if (!db) { logs.value = []; return }
+      const snap = await getDocs(collection(db, 'sevaHours'))
+      logs.value = snap.docs.map((d) =>
+        mapDoc<SevaHourLog>(d.id, { hours: Number(d.data().hours) || 0, createdAt: d.data().createdAt })
+      )
+    } catch (_) {
+      logs.value = []
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function logHours(hours: number) {
+    const h = Math.round(hours * 10) / 10
+    if (h < 0.5 || h > 24) throw new Error('Enter between 0.5 and 24 hours')
+    const db = getDb()
+    if (!db) throw new Error('Firebase not configured')
+    pending.value = true
+    try {
+      await addDoc(collection(db, 'sevaHours'), {
+        hours: h,
+        createdAt: serverTimestamp()
+      })
+      await fetchHours()
+    } finally {
+      pending.value = false
+    }
+  }
+
+  onMounted(() => { fetchHours() })
+  return { logs, totalHours, isLoading: loading, isPending: pending, logHours, refetch: fetchHours }
 }

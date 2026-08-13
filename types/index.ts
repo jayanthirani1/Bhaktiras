@@ -5,12 +5,21 @@ export interface AuthUserSnapshot {
   displayName: string | null
 }
 
+export interface TimelineMedia {
+  type: 'image' | 'video'
+  url: string
+  caption?: string
+}
+
 export interface TimelineItem {
   id: string
   year: string
+  date?: string
   title: string
   description: string
   imageUrl?: string | null
+  videoUrl?: string | null
+  media?: TimelineMedia[]
 }
 
 export interface Event {
@@ -25,6 +34,14 @@ export interface GratitudeMessage {
   id: string
   name: string
   message: string
+  prompt?: string | null
+  anonymous?: boolean
+  createdAt?: { seconds: number; nanoseconds: number } | Date
+}
+
+export interface SevaHourLog {
+  id: string
+  hours: number
   createdAt?: { seconds: number; nanoseconds: number } | Date
 }
 

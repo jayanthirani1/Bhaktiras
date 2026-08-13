@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-stone-50 pb-24 pt-8 md:pt-12 px-4">
+  <div class="min-h-screen bg-[hsl(var(--background))] pb-24 pt-8 md:pt-12 px-4">
     <div class="max-w-3xl mx-auto">
       <PageHeader
         title="Time Capsule 2036"
@@ -9,7 +9,7 @@
       <div class="mt-12">
         <div
           v-if="submitted"
-          class="bg-white rounded-3xl p-12 shadow-xl border border-[hsl(var(--primary))]/20 text-center"
+          class="bg-[hsl(var(--card))] rounded-3xl p-12 shadow-xl border border-[hsl(var(--primary))]/20 text-center"
         >
           <div class="w-20 h-20 bg-[hsl(var(--primary))]/10 rounded-full flex items-center justify-center mx-auto mb-6 text-[hsl(var(--primary))]">
             <IconLock class="w-10 h-10" />
@@ -29,7 +29,7 @@
         </div>
         <div
           v-else
-          class="bg-white rounded-3xl p-8 shadow-xl border border-[hsl(var(--golden-200))] relative overflow-hidden"
+          class="bg-[hsl(var(--card))] rounded-3xl p-8 shadow-xl border border-[hsl(var(--golden-200))] relative overflow-hidden"
         >
           <div class="absolute top-0 right-0 w-32 h-32 bg-[hsl(var(--primary))]/5 rounded-bl-full" />
           <div class="flex items-center space-x-2 text-[hsl(var(--primary))] font-bold mb-6 text-sm uppercase tracking-wider">

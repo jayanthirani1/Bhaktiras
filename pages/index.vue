@@ -1,52 +1,85 @@
 <template>
-  <div class="min-h-screen bg-[url('https://www.transparenttextures.com/patterns/cream-paper.png')] bg-fixed pb-24 md:pb-12">
-    <section class="relative h-[60vh] md:h-[50vh] flex flex-col items-center justify-center text-center px-4 overflow-hidden">
-      <div class="absolute inset-0 z-0 bg-gradient-to-b from-[hsl(var(--golden-50))] to-transparent opacity-50" />
-      <div class="absolute -top-24 -right-24 w-64 h-64 bg-[hsl(var(--primary))]/10 rounded-full blur-3xl" />
-      <div class="absolute -bottom-24 -left-24 w-64 h-64 bg-gold/10 rounded-full blur-3xl" />
+  <div class="min-h-screen pb-28 md:pb-16">
+    <section class="relative overflow-hidden px-4 pt-8 pb-10 md:pt-14 md:pb-16">
+      <div class="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[hsl(var(--golden-300))] to-transparent" />
+      <div class="pointer-events-none absolute -top-32 left-1/2 h-64 w-64 -translate-x-1/2 rounded-full bg-[hsl(var(--golden-100))]/70 blur-3xl" />
 
-      <div class="z-10 relative max-w-2xl mx-auto">
-        <span class="inline-block px-3 py-1 mb-4 text-xs font-bold tracking-wider text-[hsl(var(--foreground))] uppercase bg-[hsl(var(--golden-100))] rounded-full">
-          {{ auth.greeting || 'Jai Swaminarayan' }}
-        </span>
-        <h1 class="text-5xl md:text-7xl font-display font-bold text-[hsl(var(--foreground))] mb-4 tracking-tight">
-          Bhaktiras
-        </h1>
-        <p class="text-lg md:text-xl text-[hsl(var(--muted-foreground))] font-light leading-relaxed mb-8">
-          Celebrating a decade of devotion, community, and selfless service.
-          Join us in commemorating 10 glorious years.
+      <div class="relative z-10 mx-auto flex max-w-3xl flex-col items-center text-center">
+        <p class="reveal text-[11px] font-semibold uppercase tracking-[0.28em] text-[hsl(var(--accent))]">
+          {{ greeting || 'Jai Swaminarayan' }}
         </p>
-        <NuxtLink to="/events">
-          <button class="px-8 py-3 rounded-full bg-[hsl(var(--primary))] text-white font-semibold shadow-lg shadow-[hsl(var(--primary))]/20 hover:shadow-[hsl(var(--primary))]/40 hover:-translate-y-1 transition-all duration-300">
-            Join Celebrations
-          </button>
+        <div class="reveal reveal-delay-1 mt-6 md:mt-8">
+          <BhaktirasLogo size="lg" animate />
+        </div>
+
+        <p class="reveal reveal-delay-2 mt-6 text-sm font-medium tracking-wide text-[hsl(var(--primary))]">
+          {{ dateRange }}
+        </p>
+
+        <ClientOnly>
+          <div class="reveal reveal-delay-2 mt-8 w-full max-w-lg">
+            <p v-if="countdown.isLive.value" class="text-sm font-semibold uppercase tracking-[0.2em] text-red-600">
+              Live now · {{ SITE.patotsavLabel }}
+            </p>
+            <p v-else-if="countdown.isPast.value" class="text-sm text-[hsl(var(--muted-foreground))]">
+              {{ SITE.patotsavLabel }} has begun its next chapter.
+            </p>
+            <template v-else>
+              <p class="mb-4 text-[11px] font-semibold uppercase tracking-[0.22em] text-[hsl(var(--muted-foreground))]">
+                Live countdown
+              </p>
+              <div class="grid grid-cols-4 gap-2 sm:gap-3">
+                <div v-for="unit in countdownUnits" :key="unit.label" class="card-surface px-2 py-3 sm:py-4">
+                  <div class="font-display text-2xl font-semibold tabular-nums text-[hsl(var(--primary))] sm:text-3xl">
+                    {{ String(unit.value).padStart(2, '0') }}
+                  </div>
+                  <div class="mt-1 text-[10px] uppercase tracking-wider text-[hsl(var(--muted-foreground))]">{{ unit.label }}</div>
+                </div>
+              </div>
+            </template>
+          </div>
+          <template #fallback>
+            <div class="mt-8 h-24 w-full max-w-lg rounded-2xl bg-[hsl(var(--muted))] animate-pulse" />
+          </template>
+        </ClientOnly>
+
+        <NuxtLink to="/seva" class="reveal reveal-delay-3 mt-8">
+          <button class="btn-primary text-sm md:text-base">Join the seva</button>
         </NuxtLink>
       </div>
     </section>
 
-    <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-12 relative z-20">
-      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+    <section class="mx-auto max-w-2xl px-4">
+      <div class="card-surface p-6 sm:p-8 text-center">
+        <p class="text-[11px] font-semibold uppercase tracking-[0.22em] text-[hsl(var(--accent))]">Bhakti quote of the week</p>
+        <blockquote class="mt-4 font-display text-xl italic leading-relaxed text-[hsl(var(--primary))] sm:text-2xl">
+          “{{ weeklyQuote.quote }}”
+        </blockquote>
+        <p class="mt-3 text-sm text-[hsl(var(--muted-foreground))]">— {{ weeklyQuote.source }}</p>
+      </div>
+    </section>
+
+    <section class="mx-auto mt-12 max-w-6xl px-4 sm:px-6 md:mt-16">
+      <div class="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4 md:gap-5">
         <NuxtLink
-          v-for="(item, index) in menuItems"
+          v-for="item in menuItems"
           :key="item.id"
           :to="item.href"
-          class="group h-full bg-white p-6 rounded-2xl shadow-sm border border-[hsl(var(--golden-200))] hover:shadow-xl hover:border-[hsl(var(--primary))]/20 transition-all duration-300 cursor-pointer flex flex-col items-center text-center"
+          class="card-surface group flex flex-col items-center p-5 text-center sm:p-7"
         >
-          <div
-            class="w-14 h-14 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300"
-            :class="item.color"
-          >
-            <component :is="item.icon" class="w-7 h-7" />
+          <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[hsl(var(--golden-50))] text-[hsl(var(--primary))] transition-transform duration-500 ease-out group-hover:scale-110 group-hover:bg-[hsl(var(--primary))] group-hover:text-white sm:h-14 sm:w-14">
+            <component :is="item.icon" class="h-6 w-6 sm:h-7 sm:w-7" />
           </div>
-          <h3 class="text-lg font-bold text-[hsl(var(--foreground))] mb-1">{{ item.title }}</h3>
-          <p class="text-sm text-[hsl(var(--muted-foreground))] font-medium">{{ item.desc }}</p>
+          <h3 class="text-base font-semibold sm:text-lg">{{ item.title }}</h3>
+          <p class="mt-1 text-xs text-[hsl(var(--muted-foreground))] sm:text-sm">{{ item.desc }}</p>
         </NuxtLink>
       </div>
     </section>
 
-    <footer class="mt-20 text-center px-6">
-      <blockquote class="font-display text-2xl italic text-[hsl(var(--muted-foreground))]/80 max-w-2xl mx-auto">
-        "In the joy of others, lies our own."
+    <footer class="mt-16 px-6 pb-10 text-center md:mt-24">
+      <div class="mx-auto mb-5 h-px w-16 bg-gradient-to-r from-transparent via-[hsl(var(--golden-300))] to-transparent" />
+      <blockquote class="font-display text-lg italic text-[hsl(var(--primary))]/80 md:text-2xl">
+        “In the joy of others, lies our own.”
       </blockquote>
     </footer>
   </div>
@@ -55,22 +88,38 @@
 <script setup lang="ts">
 import {
   IconMapPin,
-  IconCalendar,
   IconUsers,
-  IconVideo,
   IconHandGrab,
-  IconDeviceGamepad2,
-  IconClock
+  IconFlame,
+  IconDeviceGamepad2
 } from '@tabler/icons-vue'
+import { SITE } from '~/data/site'
+import { getQuoteOfTheWeek } from '~/utils/quotes'
 
-const auth = useAuth()
+const { greeting } = useAuth()
+const countdown = useCountdown()
+const weeklyQuote = getQuoteOfTheWeek()
+
+const dateRange = computed(() => {
+  const start = new Date(SITE.patotsavStart)
+  const end = new Date(SITE.patotsavEnd)
+  const fmt = (d: Date) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+  if (fmt(start) === fmt(end)) return fmt(start)
+  return `${fmt(start)} – ${fmt(end)}`
+})
+
+const countdownUnits = computed(() => [
+  { label: 'Days', value: countdown.parts.value.days },
+  { label: 'Hours', value: countdown.parts.value.hours },
+  { label: 'Mins', value: countdown.parts.value.minutes },
+  { label: 'Secs', value: countdown.parts.value.seconds }
+])
+
 const menuItems = [
-  { id: 'journey', title: 'Journey', desc: '10 Years of Grace', icon: IconMapPin, color: 'bg-orange-100 text-orange-600', href: '/journey' },
-  { id: 'events', title: 'Events', desc: 'Celebration Schedule', icon: IconCalendar, color: 'bg-blue-100 text-blue-600', href: '/events' },
-  { id: 'community', title: 'Community', desc: 'Wall of Gratitude', icon: IconUsers, color: 'bg-rose-100 text-rose-600', href: '/community' },
-  { id: 'darshan', title: 'Darshan', desc: 'Live Streaming', icon: IconVideo, color: 'bg-purple-100 text-purple-600', href: '/darshan' },
-  { id: 'seva', title: 'Seva', desc: 'Volunteer Roles', icon: IconHandGrab, color: 'bg-green-100 text-green-600', href: '/seva' },
-  { id: 'play', title: 'Play', desc: 'Quiz, Wordle, Spelling Bee & more', icon: IconDeviceGamepad2, color: 'bg-yellow-100 text-yellow-600', href: '/play' },
-  { id: 'legacy', title: 'Legacy', desc: 'Time Capsule', icon: IconClock, color: 'bg-indigo-100 text-indigo-600', href: '/legacy' }
+  { id: 'journey', title: 'Our Journey', desc: '39 years of satsang', icon: IconMapPin, href: '/journey' },
+  { id: 'community', title: 'Our Community', desc: 'What mandir means to you', icon: IconUsers, href: '/community' },
+  { id: 'seva', title: 'Seva', desc: 'Teams, WhatsApp & hours', icon: IconHandGrab, href: '/seva' },
+  { id: 'niyams', title: 'Our Niyams', desc: 'Utsav niyams & tracker', icon: IconFlame, href: '/niyams' },
+  { id: 'play', title: 'Games', desc: 'Coming along later', icon: IconDeviceGamepad2, href: '/play' }
 ]
 </script>

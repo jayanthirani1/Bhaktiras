@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-stone-50 flex items-center justify-center px-4 py-12">
+  <div class="min-h-screen bg-[hsl(var(--background))] flex items-center justify-center px-4 py-12">
     <div class="w-full max-w-sm">
       <h1 class="text-2xl font-bold text-[hsl(var(--foreground))] text-center mb-2">Create account</h1>
       <p class="text-sm text-[hsl(var(--muted-foreground))] text-center mb-6">
@@ -9,7 +9,7 @@
       <!-- Google sign up -->
       <button
         type="button"
-        class="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-stone-200 bg-white font-semibold text-[hsl(var(--foreground))] hover:bg-stone-50 disabled:opacity-50 mb-4"
+        class="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-[hsl(var(--border))] bg-[hsl(var(--card))] font-semibold text-[hsl(var(--foreground))] hover:border-[hsl(var(--accent))] disabled:opacity-50 mb-4"
         :disabled="loading || googleLoading"
         @click="handleGoogleSignUp"
       >
@@ -27,7 +27,7 @@
           <div class="w-full border-t border-[hsl(var(--border))]" />
         </div>
         <div class="relative flex justify-center text-xs">
-          <span class="bg-stone-50 px-2 text-[hsl(var(--muted-foreground))]">or with email</span>
+          <span class="bg-[hsl(var(--background))] px-2 text-[hsl(var(--muted-foreground))]">or with email</span>
         </div>
       </div>
 
@@ -56,7 +56,7 @@
         <p v-if="error" class="text-sm text-red-600">{{ error }}</p>
         <button
           type="submit"
-          class="w-full py-2.5 rounded-xl bg-[hsl(var(--primary))] text-white font-semibold hover:opacity-90 disabled:opacity-50"
+          class="w-full py-2.5 rounded-xl bg-[hsl(var(--primary))] text-[hsl(var(--accent))] font-semibold hover:opacity-90 disabled:opacity-50"
           :disabled="loading"
         >
           {{ loading ? 'Creating account...' : 'Create account with email' }}
@@ -64,7 +64,7 @@
       </form>
       <p class="mt-4 text-center text-sm text-[hsl(var(--muted-foreground))]">
         Already have an account?
-        <NuxtLink to="/login" class="text-[hsl(var(--primary))] font-medium underline">Sign in</NuxtLink>
+        <NuxtLink to="/login" class="text-[hsl(var(--accent))] font-medium underline">Sign in</NuxtLink>
       </p>
       <p class="mt-2 text-center">
         <NuxtLink to="/" class="text-sm text-[hsl(var(--muted-foreground))] hover:underline">Back to home</NuxtLink>

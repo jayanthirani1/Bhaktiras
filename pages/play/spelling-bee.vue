@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-stone-50 pb-24 pt-8 md:pt-12 px-4">
+  <div class="min-h-screen bg-[hsl(var(--background))] pb-24 pt-8 md:pt-12 px-4">
     <div class="max-w-md mx-auto">
       <NuxtLink
         to="/play"
@@ -27,7 +27,7 @@
           </button>
           <button
             type="button"
-            class="w-14 h-14 rounded-full bg-[hsl(var(--primary))] text-white font-bold text-xl hover:opacity-90 transition-opacity"
+            class="w-14 h-14 rounded-full bg-[hsl(var(--primary))] text-[hsl(var(--accent))] font-bold text-xl hover:opacity-90 transition-opacity"
             @click="addLetter(middleLetter)"
           >
             {{ middleLetter }}
@@ -52,14 +52,14 @@
       <div class="flex gap-2 mb-6">
         <button
           type="button"
-          class="px-4 py-2 rounded-lg bg-[hsl(var(--primary))] text-white font-semibold hover:opacity-90"
+          class="px-4 py-2 rounded-lg bg-[hsl(var(--primary))] text-[hsl(var(--accent))] font-semibold hover:opacity-90"
           @click="submitWord"
         >
           Enter
         </button>
         <button
           type="button"
-          class="px-4 py-2 rounded-lg bg-stone-200 text-[hsl(var(--foreground))] font-semibold hover:bg-stone-300"
+          class="px-4 py-2 rounded-lg bg-[hsl(var(--muted))] text-[hsl(var(--foreground))] font-semibold hover:bg-[hsl(var(--border))]"
           @click="clearWord"
         >
           Clear
@@ -72,7 +72,7 @@
           <span
             v-for="w in foundWords"
             :key="w"
-            class="px-3 py-1 rounded-lg bg-white border border-[hsl(var(--golden-200))] text-sm font-medium"
+            class="px-3 py-1 rounded-lg bg-[hsl(var(--card))] border border-[hsl(var(--golden-200))] text-sm font-medium"
           >
             {{ w }}
           </span>
