@@ -21,7 +21,7 @@ const props = withDefaults(defineProps<{
 const compact = computed(() => props.size === 'sm')
 
 function prepareSvg(raw: string, prefix: string) {
-  return raw
+  let out = raw
     .replace(/<\?xml[^>]*>/, '')
     .replaceAll('class="cls-', `class="${prefix}-cls-`)
     .replaceAll('.cls-', `.${prefix}-cls-`)
@@ -29,6 +29,24 @@ function prepareSvg(raw: string, prefix: string) {
       '<svg ',
       `<svg class="logo-svg-inner block h-full w-full overflow-visible" width="100%" height="100%" role="img" aria-label="Bhaktiras" `
     )
+
+  if (prefix === 'main') {
+    out = out.replace(
+      /(<path id="logo-main-tilak"[^/]*\/>)/,
+      `$1
+          <g id="logo-splash" fill="#d9ae30" aria-hidden="true">
+            <ellipse class="logo-splash-drop" cx="230.4" cy="330.4" rx="0.95" ry="1.5"/>
+            <ellipse class="logo-splash-drop" cx="230.4" cy="330.4" rx="0.75" ry="1.2"/>
+            <ellipse class="logo-splash-drop" cx="230.4" cy="330.4" rx="0.55" ry="0.95"/>
+            <ellipse class="logo-splash-drop" cx="230.4" cy="330.4" rx="0.85" ry="1.3"/>
+            <ellipse class="logo-splash-drop" cx="230.4" cy="330.4" rx="0.5" ry="0.85"/>
+            <ellipse class="logo-splash-drop" cx="230.4" cy="330.4" rx="0.7" ry="1.1"/>
+            <circle class="logo-splash-drop" cx="230.4" cy="330.4" r="0.55"/>
+          </g>`
+    )
+  }
+
+  return out
 }
 
 const markup = computed(() =>

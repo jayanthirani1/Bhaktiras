@@ -102,7 +102,12 @@
   transform-origin: 50% 0%;
 }
 .logo-lockup #logo-main-tilak {
-  transform-origin: 50% 0%;
+  transform-origin: center bottom;
+}
+.logo-lockup #logo-splash .logo-splash-drop {
+  transform-box: fill-box;
+  transform-origin: center center;
+  opacity: 0;
 }
 .logo-lockup #logo-arch,
 .logo-lockup #logo-filigree {
@@ -126,7 +131,43 @@
   animation: logo-rise 0.7s var(--ease-out-expo) 4.5s both;
 }
 .logo-lockup.logo-animate #logo-main-tilak {
-  animation: logo-droplet 0.7s cubic-bezier(0.45, 0, 0.85, 0.35) 5.15s both;
+  animation: logo-droplet 1.2s linear 5.15s both;
+}
+.logo-lockup.logo-animate #logo-splash .logo-splash-drop {
+  animation: logo-splash 0.72s cubic-bezier(0.2, 0.65, 0.3, 1) 5.72s both;
+}
+.logo-lockup.logo-animate #logo-splash .logo-splash-drop:nth-child(1) {
+  --sx: -420%; --sy: -560%; --ex: -700%; --ey: 110%; --rot: -38deg;
+}
+.logo-lockup.logo-animate #logo-splash .logo-splash-drop:nth-child(2) {
+  --sx: 460%; --sy: -520%; --ex: 740%; --ey: 90%; --rot: 34deg;
+  animation-duration: 0.66s;
+  animation-delay: 5.74s;
+}
+.logo-lockup.logo-animate #logo-splash .logo-splash-drop:nth-child(3) {
+  --sx: -620%; --sy: -280%; --ex: -900%; --ey: 40%; --rot: -18deg;
+  animation-duration: 0.58s;
+  animation-delay: 5.73s;
+}
+.logo-lockup.logo-animate #logo-splash .logo-splash-drop:nth-child(4) {
+  --sx: 580%; --sy: -240%; --ex: 880%; --ey: 60%; --rot: 22deg;
+  animation-duration: 0.6s;
+  animation-delay: 5.75s;
+}
+.logo-lockup.logo-animate #logo-splash .logo-splash-drop:nth-child(5) {
+  --sx: -180%; --sy: -680%; --ex: -260%; --ey: 20%; --rot: -8deg;
+  animation-duration: 0.78s;
+  animation-delay: 5.71s;
+}
+.logo-lockup.logo-animate #logo-splash .logo-splash-drop:nth-child(6) {
+  --sx: 220%; --sy: -640%; --ex: 340%; --ey: 30%; --rot: 12deg;
+  animation-duration: 0.76s;
+  animation-delay: 5.72s;
+}
+.logo-lockup.logo-animate #logo-splash .logo-splash-drop:nth-child(7) {
+  --sx: -40%; --sy: -320%; --ex: -80%; --ey: 160%; --rot: 6deg;
+  animation-duration: 0.5s;
+  animation-delay: 5.76s;
 }
 
 .logo-lockup.logo-animate #logo-text-tagline {
@@ -170,8 +211,55 @@
   100% { opacity: 1; transform: scale(1); }
 }
 @keyframes logo-droplet {
-  from { opacity: 0; transform: translateY(-38px); }
-  to { opacity: 1; transform: translateY(0); }
+  0% {
+    opacity: 0;
+    transform: translateY(-44px) scaleX(0.7) scaleY(1.5);
+    animation-timing-function: cubic-bezier(0.55, 0.06, 0.9, 0.35);
+  }
+  8% {
+    opacity: 1;
+  }
+  48% {
+    opacity: 1;
+    transform: translateY(0) scaleX(0.78) scaleY(1.32);
+    animation-timing-function: cubic-bezier(0.15, 0.85, 0.3, 1);
+  }
+  58% {
+    transform: translateY(1.6px) scaleX(1.5) scaleY(0.48);
+    animation-timing-function: cubic-bezier(0.22, 0.9, 0.32, 1);
+  }
+  72% {
+    transform: translateY(-10px) scaleX(0.8) scaleY(1.26);
+    animation-timing-function: cubic-bezier(0.4, 0, 0.7, 0.4);
+  }
+  84% {
+    transform: translateY(0.8px) scaleX(1.2) scaleY(0.78);
+    animation-timing-function: cubic-bezier(0.22, 0.9, 0.32, 1);
+  }
+  92% {
+    transform: translateY(-2.8px) scaleX(0.94) scaleY(1.1);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scaleX(1) scaleY(1);
+  }
+}
+@keyframes logo-splash {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.15) rotate(var(--rot, 0deg));
+  }
+  12% {
+    opacity: 1;
+  }
+  42% {
+    opacity: 1;
+    transform: translate(var(--sx, 0), var(--sy, -400%)) scale(1) rotate(var(--rot, 0deg));
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--ex, 0), var(--ey, 80%)) scale(0.22) rotate(var(--rot, 0deg));
+  }
 }
 @keyframes logo-shimmer {
   0%, 100% { opacity: 1; }
@@ -213,6 +301,7 @@
   .logo-lockup.logo-animate #logo-text-tagline,
   .logo-lockup.logo-animate #logo-tilak,
   .logo-lockup.logo-animate #logo-main-tilak,
+  .logo-lockup.logo-animate #logo-splash .logo-splash-drop,
   .logo-lockup.logo-animate #logo-wordmark path {
     animation: none !important;
   }
