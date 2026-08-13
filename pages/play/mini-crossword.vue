@@ -64,6 +64,19 @@
             </div>
           </div>
 
+          <div v-if="!solved" class="mt-4">
+            <CrosswordKeyboardCapture
+              ref="captureRef"
+              placeholder="Type letters here"
+              @letter="typeLetter"
+              @backspace="backspace"
+              @arrow="onCaptureArrow"
+            />
+            <p class="mt-1.5 text-center text-xs text-[hsl(var(--muted-foreground))]">
+              Tap a square, then type on your keyboard.
+            </p>
+          </div>
+
           <div class="mt-5 flex flex-wrap gap-2">
             <button type="button" class="btn-primary text-sm" :disabled="solved" @click="checkAnswers">Check</button>
             <button
@@ -172,6 +185,13 @@ const {
 
 const timer = useGameTimer(`mini-crossword-timer:${ukDateId()}`)
 const timerDisplay = computed(() => timer.display.value)
+const captureRef = ref<{ focus: () => void } | null>(null)
+
+function focusCapture() {
+  // Focus in the same user gesture when possible (required for iOS soft keyboard).
+  captureRef.value?.focus()
+  nextTick(() => captureRef.value?.focus())
+}
 
 const activeId = ref('')
 const guesses = reactive<Record<string, string>>({})
@@ -286,6 +306,7 @@ function onCellClick(row: number, col: number) {
   activeRow.value = row
   activeCol.value = col
   checked.value = false
+  focusCapture()
 }
 
 function selectWord(key: string) {
@@ -298,6 +319,17 @@ function selectWord(key: string) {
   activeRow.value = target.row
   activeCol.value = target.col
   checked.value = false
+  focusCapture()
+}
+
+function onCaptureArrow(dir: 'left' | 'right' | 'up' | 'down') {
+  if (dir === 'left' || dir === 'right') {
+    activeDir.value = 'across'
+    moveInWord(dir === 'right' ? 1 : -1)
+  } else {
+    activeDir.value = 'down'
+    moveInWord(dir === 'down' ? 1 : -1)
+  }
 }
 
 function moveInWord(delta: number) {
@@ -417,30 +449,7 @@ onMounted(() => {
   timer.read()
   if (solved.value && timer.startedAt.value && !timer.finishedAt.value) timer.stop()
   else if (Object.keys(guesses).length && !solved.value) timer.ensureStarted()
-
-  const onKey = (e: KeyboardEvent) => {
-    if (e.metaKey || e.ctrlKey || e.altKey) return
-    const tag = (e.target as HTMLElement | null)?.tagName
-    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
-    if (!layout.value || solved.value) return
-    if (e.key === 'Backspace') {
-      e.preventDefault()
-      backspace()
-    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-      e.preventDefault()
-      activeDir.value = 'across'
-      moveInWord(e.key === 'ArrowRight' ? 1 : -1)
-    } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-      e.preventDefault()
-      activeDir.value = 'down'
-      moveInWord(e.key === 'ArrowDown' ? 1 : -1)
-    } else if (/^[A-Za-z]$/.test(e.key)) {
-      e.preventDefault()
-      typeLetter(e.key.toUpperCase())
-    }
-  }
-  window.addEventListener('keydown', onKey)
-  onUnmounted(() => window.removeEventListener('keydown', onKey))
+  focusCapture()
 })
 
 useHead({ title: 'Mini Crossword · Bhaktiras' })
