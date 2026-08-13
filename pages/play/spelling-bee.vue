@@ -82,37 +82,39 @@
 
       <div v-if="totalScore > 0" class="mt-6 space-y-2">
         <button
-          v-if="isLoggedIn && !scoreSubmitted"
+          v-if="isLoggedIn && canSubmitBest"
           type="button"
           class="w-full rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-600 disabled:opacity-50"
           :disabled="submittingScore"
           @click="submitToLeaderboard"
         >
-          {{ submittingScore ? 'Submitting...' : 'Submit score to leaderboard' }}
+          {{ submittingScore ? 'Submitting...' : myBest > 0 ? 'Submit new best' : 'Submit score to leaderboard' }}
         </button>
         <NuxtLink
-          v-else-if="!isLoggedIn && !scoreSubmitted"
+          v-else-if="!isLoggedIn"
           to="/login?redirect=/play/spelling-bee"
           class="block w-full rounded-xl bg-emerald-500 px-4 py-2.5 text-center text-sm font-semibold text-white hover:bg-emerald-600"
         >
           Sign in to submit score
         </NuxtLink>
-        <p v-else-if="scoreSubmitted" class="text-sm text-emerald-700">Score submitted to today’s leaderboard.</p>
+        <p v-else-if="myBest > 0 && totalScore <= myBest" class="text-sm text-emerald-700">
+          Your all-time best ({{ myBest }} pts) is on the board.
+        </p>
         <p v-if="submitError" class="text-sm text-red-600">{{ submitError }}</p>
       </div>
 
       <GameLeaderboard
         :entries="leaderboardEntries"
         :loading="leaderboardLoading"
-        :date-id="leaderboardDateId"
+        all-time
         :format-score="(e) => `${e.score} pts`"
       >
         <template v-if="!isLoggedIn">
           <NuxtLink to="/login?redirect=/play/spelling-bee" class="text-[hsl(var(--primary))] underline">Sign in</NuxtLink>
-          to submit yours.
+          to submit your best.
         </template>
-        <template v-else-if="scoreSubmitted">
-          Your score is on the board.
+        <template v-else-if="myBest > 0">
+          Your best: {{ myBest }} pts.
         </template>
       </GameLeaderboard>
     </div>
@@ -129,22 +131,26 @@ const isLoggedIn = computed(() => !!auth.user.value)
 const {
   entries: leaderboardEntries,
   loading: leaderboardLoading,
-  dateId: leaderboardDateId,
   submitScore
-} = useGameLeaderboard('spelling-bee', { sort: 'desc' })
-const { submitted: scoreSubmitted, markSubmitted } = useDailySubmitFlag('spelling-bee')
+} = useGameLeaderboard('spelling-bee', { sort: 'desc', allTime: true })
 const submittingScore = ref(false)
 const submitError = ref('')
 const puzzle = ref(SPELLING_BEE_PUZZLES[0])
-
-watch(puzzles, (list) => {
-  if (list?.length) puzzle.value = list[Math.floor(Math.random() * list.length)]
-}, { immediate: true })
 const currentWord = ref('')
 const foundWords = ref<string[]>([])
 const totalScore = ref(0)
 const message = ref('')
 const messageOk = ref(false)
+const myBest = computed(() => {
+  const uid = auth.user.value?.uid
+  if (!uid) return 0
+  return leaderboardEntries.value.find(e => e.userId === uid)?.score || 0
+})
+const canSubmitBest = computed(() => totalScore.value > myBest.value)
+
+watch(puzzles, (list) => {
+  if (list?.length) puzzle.value = list[Math.floor(Math.random() * list.length)]
+}, { immediate: true })
 
 const middleLetter = computed(() => getMiddleLetter(puzzle.value))
 const outerLetters = computed(() => getHiveLetters(puzzle.value).filter((l) => l !== middleLetter.value))
@@ -194,7 +200,6 @@ async function submitToLeaderboard() {
       userEmail: auth.userEmail.value || undefined,
       detail: `${foundWords.value.length} words`
     })
-    markSubmitted()
   } catch (e: unknown) {
     submitError.value = e instanceof Error ? e.message : 'Could not submit score.'
   } finally {

@@ -65,6 +65,12 @@
         New user?
         <NuxtLink :to="signupLink" class="text-[hsl(var(--accent))] font-medium underline">Create an account</NuxtLink>
       </p>
+      <p class="mt-2 text-center text-xs text-[hsl(var(--muted-foreground))]">
+        By continuing you agree to our
+        <NuxtLink to="/privacy" class="font-medium text-[hsl(var(--accent))] hover:underline">Privacy</NuxtLink>
+        and
+        <NuxtLink to="/policy" class="font-medium text-[hsl(var(--accent))] hover:underline">Policy</NuxtLink>.
+      </p>
       <p class="mt-2 text-center">
         <NuxtLink to="/" class="text-sm text-[hsl(var(--muted-foreground))] hover:underline">Back to home</NuxtLink>
       </p>

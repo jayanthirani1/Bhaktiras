@@ -31,6 +31,8 @@ definePageMeta({ layout: 'admin', middleware: 'admin' })
 const cards = [
   { key: 'timeline', title: 'Timeline', desc: 'Journey years, stories, photos and videos.', to: '/admin/timeline' },
   { key: 'events', title: 'Events', desc: 'Title, date, description and poster.', to: '/admin/events' },
+  { key: 'niyams', title: 'Niyams', desc: 'Utsav niyams for the personal tracker.', to: '/admin/niyams' },
+  { key: 'legal', title: 'Privacy & Policy', desc: 'Footer legal pages anyone can read.', to: '/admin/legal' },
   { key: 'wordle', title: 'Wordle', desc: 'Solution words and today’s override.', to: '/admin/games/wordle' },
   { key: 'quiz', title: 'Quiz', desc: 'Devotional questions and answers.', to: '/admin/games/quiz' },
   { key: 'crossword', title: 'Crossword', desc: 'Puzzle titles and clues.', to: '/admin/games/crossword' },
@@ -40,6 +42,8 @@ const cards = [
 const counts = reactive<Record<string, number | null>>({
   timeline: null,
   events: null,
+  niyams: null,
+  legal: null,
   wordle: null,
   quiz: null,
   crossword: null,
@@ -49,6 +53,8 @@ const counts = reactive<Record<string, number | null>>({
 const collectionNames: Record<string, string> = {
   timeline: 'timeline',
   events: 'events',
+  niyams: 'niyams',
+  legal: 'sitePages',
   wordle: 'wordleWords',
   quiz: 'quizQuestions',
   crossword: 'crosswordPuzzles',

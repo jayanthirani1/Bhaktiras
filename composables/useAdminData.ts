@@ -5,11 +5,12 @@ import {
   doc,
   getDocs,
   serverTimestamp,
+  setDoc,
   updateDoc,
   type DocumentData,
   type Firestore
 } from 'firebase/firestore'
-import type { CrosswordPuzzle, Event, QuizQuestion, TimelineItem, WordleWordDoc } from '~/types'
+import type { CrosswordPuzzle, Event, Niyam, QuizQuestion, SitePage, TimelineItem, WordleWordDoc } from '~/types'
 import type { SpellingBeePuzzle } from '~/data/spellingBeePuzzles'
 
 function getDb(): Firestore | null {
@@ -125,4 +126,47 @@ export function useAdminCrossword() {
 }
 export function useAdminSpellingBee() {
   return useAdminCollection<SpellingBeePuzzle & { id: string }>('spellingBeePuzzles')
+}
+export function useAdminNiyams() {
+  return useAdminCollection<Niyam>('niyams')
+}
+
+export function useAdminSitePages() {
+  const items = ref<SitePage[]>([])
+  const loading = ref(false)
+  const saving = ref(false)
+  const error = ref('')
+
+  async function fetchAll() {
+    loading.value = true
+    error.value = ''
+    try {
+      const db = requireDb()
+      const snap = await getDocs(collection(db, 'sitePages'))
+      items.value = snap.docs.map(d => mapAdminItem<SitePage>(d.id, d.data()))
+    } catch (e) {
+      error.value = (e as Error).message
+      items.value = []
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function save(id: string, data: { title: string, body: string }) {
+    if (!id) throw new Error('Missing page id')
+    saving.value = true
+    error.value = ''
+    try {
+      const db = requireDb()
+      await setDoc(doc(db, 'sitePages', id), writePayload({ title: data.title, body: data.body }), { merge: true })
+      await fetchAll()
+    } catch (e) {
+      error.value = (e as Error).message
+      throw e
+    } finally {
+      saving.value = false
+    }
+  }
+
+  return { items, loading, saving, error, fetchAll, save }
 }

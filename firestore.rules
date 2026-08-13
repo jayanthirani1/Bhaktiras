@@ -38,14 +38,24 @@ service cloud.firestore {
         && request.resource.data.dateId.size() == 10
         && request.resource.data.userName is string
         && request.resource.data.userName.size() <= 32
-        && request.resource.data.score is int
+        && request.resource.data.score is number
+        && request.resource.data.score == int(request.resource.data.score)
         && request.resource.data.score >= 0
         && request.resource.data.score <= 100000
         && (
           request.resource.data.game != 'wordle'
           || (request.resource.data.score >= 1 && request.resource.data.score <= 6)
         );
-      allow update: if false;
+      allow update: if isSignedIn()
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.game == resource.data.game
+        && request.resource.data.userName is string
+        && request.resource.data.userName.size() <= 32
+        && request.resource.data.score is number
+        && request.resource.data.score == int(request.resource.data.score)
+        && request.resource.data.score >= resource.data.score
+        && request.resource.data.score <= 100000;
       allow delete: if (resource.data.dateId is string && resource.data.dateId < utcDateId())
         || (isSignedIn() && resource.data.userId == request.auth.uid);
     }
@@ -104,6 +114,34 @@ service cloud.firestore {
       allow read: if true;
       allow create: if true;
       allow update, delete: if isAdmin();
+    }
+
+    // Admin-editable niyam list. Public read.
+    match /niyams/{id} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Personal niyam ticks. Doc ID = Auth UID.
+    match /niyamProgress/{uid} {
+      allow read: if isSignedIn() && request.auth.uid == uid;
+      allow create, update: if isSignedIn()
+        && request.auth.uid == uid
+        && request.resource.data.userId == request.auth.uid;
+      allow delete: if isSignedIn() && request.auth.uid == uid;
+    }
+
+    // Aggregate encouragement stats (counts + participants). Public read; signed-in write.
+    match /niyamStats/{id} {
+      allow read: if true;
+      allow create, update: if isSignedIn();
+      allow delete: if isAdmin();
+    }
+
+    // Privacy / policy pages. Public read; admin write.
+    match /sitePages/{id} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
     }
   }
 }

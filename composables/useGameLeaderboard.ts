@@ -56,6 +56,7 @@ async function cleanseOldScores(db: import('firebase/firestore').Firestore, toda
   try {
     const oldSnap = await getDocs(query(
       collection(db, SCORES_COLLECTION),
+      where('game', '==', 'wordle'),
       where('dateId', '<', today),
       limit(MAX_CLEANSE)
     ))
@@ -83,14 +84,70 @@ async function cleanseOldScores(db: import('firebase/firestore').Firestore, toda
   }
 }
 
+function mapScoreDoc(
+  id: string,
+  data: Record<string, unknown>,
+  game: GameLeaderboardId
+): GameScoreEntry {
+  return {
+    id,
+    game: (data.game || game) as GameLeaderboardId,
+    dateId: String(data.dateId || ''),
+    userId: String(data.userId || ''),
+    userName: String(data.userName || 'Anonymous'),
+    userEmail: data.userEmail ? String(data.userEmail) : undefined,
+    score: Number(data.score ?? data.guesses ?? 0),
+    detail: String(data.detail || data.word || ''),
+    completedAt: data.completedAt as GameScoreEntry['completedAt']
+  }
+}
+
+function currentUid() {
+  if (import.meta.server) return ''
+  const auth = useNuxtApp().$firebaseAuth as import('firebase/auth').Auth | null
+  return auth?.currentUser?.uid || ''
+}
+
 export function useGameLeaderboard(
   game: GameLeaderboardId,
-  options: { sort?: 'asc' | 'desc' } = {}
+  options: { sort?: 'asc' | 'desc'; allTime?: boolean } = {}
 ) {
   const sortDir = options.sort ?? 'desc'
+  const allTime = !!options.allTime
   const entries = ref<GameScoreEntry[]>([])
   const loading = ref(false)
   const dateId = ref(ukDateId())
+
+  function sortEntries(list: GameScoreEntry[]) {
+    const bestByUser = new Map<string, GameScoreEntry>()
+    const extraIds: string[] = []
+    for (const e of list) {
+      if (!e.userId) continue
+      const prev = bestByUser.get(e.userId)
+      if (!prev) {
+        bestByUser.set(e.userId, e)
+        continue
+      }
+      const takeNew = sortDir === 'asc' ? e.score < prev.score : e.score > prev.score
+      if (takeNew) {
+        extraIds.push(prev.id)
+        bestByUser.set(e.userId, e)
+      } else {
+        extraIds.push(e.id)
+      }
+    }
+    const deduped = [...bestByUser.values()]
+    deduped.sort((a, b) => {
+      if (a.score !== b.score) return sortDir === 'asc' ? a.score - b.score : b.score - a.score
+      return timestampSeconds(b.completedAt) - timestampSeconds(a.completedAt)
+    })
+    return { deduped, extraIds }
+  }
+
+  function upsertLocal(entry: GameScoreEntry) {
+    const { deduped } = sortEntries([...entries.value.filter(e => e.id !== entry.id), entry])
+    entries.value = deduped
+  }
 
   async function fetchLeaderboard() {
     loading.value = true
@@ -109,55 +166,48 @@ export function useGameLeaderboard(
 
       let snap
       try {
+        snap = allTime
+          ? await getDocs(query(
+            collection(db, SCORES_COLLECTION),
+            where('game', '==', game),
+            limit(200)
+          ))
+          : await getDocs(query(
+            collection(db, SCORES_COLLECTION),
+            where('game', '==', game),
+            where('dateId', '==', today),
+            limit(100)
+          ))
+      } catch {
         snap = await getDocs(query(
           collection(db, SCORES_COLLECTION),
           where('game', '==', game),
-          where('dateId', '==', today),
-          limit(100)
+          limit(200)
         ))
-      } catch {
-        snap = await getDocs(query(collection(db, SCORES_COLLECTION), limit(100)))
       }
 
-      const mapped = snap.docs.map((d) => {
-        const data = d.data()
-        return {
-          id: d.id,
-          game: (data.game || game) as GameLeaderboardId,
-          dateId: data.dateId || '',
-          userId: data.userId,
-          userName: data.userName || 'Anonymous',
-          userEmail: data.userEmail,
-          score: Number(data.score ?? data.guesses ?? 0),
-          detail: data.detail || data.word || '',
-          completedAt: data.completedAt
-        } as GameScoreEntry
-      }).filter(e => e.dateId === today)
+      const mapped = snap.docs.map(d => mapScoreDoc(d.id, d.data() as Record<string, unknown>, game))
+        .filter(e => e.game === game && (allTime || e.dateId === today))
 
-      const bestByUser = new Map<string, GameScoreEntry>()
-      const extraIds: string[] = []
-      for (const e of mapped) {
-        const prev = bestByUser.get(e.userId)
-        if (!prev) {
-          bestByUser.set(e.userId, e)
-          continue
-        }
-        const takeNew = sortDir === 'asc' ? e.score < prev.score : e.score > prev.score
-        if (takeNew) {
-          extraIds.push(prev.id)
-          bestByUser.set(e.userId, e)
-        } else {
-          extraIds.push(e.id)
+      const uid = currentUid()
+      if (uid) {
+        const mineId = allTime ? `${game}_${uid}` : `${game}_${today}_${uid}`
+        if (!mapped.some(e => e.id === mineId || e.userId === uid)) {
+          try {
+            const mine = await getDoc(doc(db, SCORES_COLLECTION, mineId))
+            if (mine.exists()) {
+              const row = mapScoreDoc(mine.id, mine.data() as Record<string, unknown>, game)
+              if (row.game === game && (allTime || row.dateId === today)) mapped.push(row)
+            }
+          } catch {
+            // ignore
+          }
         }
       }
 
-      const deduped = [...bestByUser.values()]
-      deduped.sort((a, b) => {
-        if (a.score !== b.score) return sortDir === 'asc' ? a.score - b.score : b.score - a.score
-        return timestampSeconds(b.completedAt) - timestampSeconds(a.completedAt)
-      })
+      const { deduped, extraIds } = sortEntries(mapped)
       entries.value = deduped
-      void cleanseOldScores(db, today)
+      if (!allTime) void cleanseOldScores(db, today)
       if (extraIds.length) void deleteOwnDuplicates(db, extraIds)
     } catch {
       entries.value = []
@@ -179,13 +229,18 @@ export function useGameLeaderboard(
     if (!db) throw new Error('Firebase not configured')
     const today = ukDateId()
     dateId.value = today
+    const score = Math.trunc(Number(payload.score))
 
-    const scoreId = `${game}_${today}_${payload.userId}`
+    const scoreId = allTime ? `${game}_${payload.userId}` : `${game}_${today}_${payload.userId}`
     const scoreRef = doc(db, SCORES_COLLECTION, scoreId)
     const existing = await getDoc(scoreRef)
     if (existing.exists()) {
-      await fetchLeaderboard()
-      return
+      const prev = Number(existing.data().score || 0)
+      if (allTime ? score <= prev : true) {
+        upsertLocal(mapScoreDoc(existing.id, existing.data() as Record<string, unknown>, game))
+        await fetchLeaderboard()
+        return
+      }
     }
 
     const data: Record<string, unknown> = {
@@ -193,18 +248,15 @@ export function useGameLeaderboard(
       dateId: today,
       userId: payload.userId,
       userName: safeDisplayName(payload.userName),
-      score: Math.round(payload.score),
+      score,
       completedAt: serverTimestamp()
     }
     if (payload.detail) data.detail = String(payload.detail).slice(0, 64)
-    if (payload.userEmail) data.userEmail = payload.userEmail
 
-    try {
-      await setDoc(scoreRef, data)
-    } catch (e: unknown) {
-      const code = (e as { code?: string })?.code || ''
-      if (!code.includes('permission-denied') && !code.includes('already-exists')) throw e
-    }
+    await setDoc(scoreRef, data)
+    const written = await getDoc(scoreRef)
+    if (!written.exists()) throw new Error('Score did not save. Please try again.')
+    upsertLocal(mapScoreDoc(written.id, written.data() as Record<string, unknown>, game))
     await fetchLeaderboard()
   }
 

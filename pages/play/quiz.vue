@@ -24,27 +24,7 @@
             🏆
           </div>
           <h2 class="text-3xl font-bold text-[hsl(var(--foreground))] mb-2">Quiz Completed!</h2>
-          <p class="text-[hsl(var(--muted-foreground))] mb-6">You scored {{ score }} out of {{ questions.length }}</p>
-          <div class="mb-6 space-y-2">
-            <button
-              v-if="isLoggedIn && !scoreSubmitted"
-              type="button"
-              class="w-full py-2.5 rounded-xl bg-emerald-500 text-white font-semibold hover:bg-emerald-600 disabled:opacity-50"
-              :disabled="submittingScore"
-              @click="submitToLeaderboard"
-            >
-              {{ submittingScore ? 'Submitting...' : 'Submit to leaderboard' }}
-            </button>
-            <NuxtLink
-              v-else-if="!isLoggedIn && !scoreSubmitted"
-              to="/login?redirect=/play/quiz"
-              class="block w-full py-2.5 rounded-xl bg-emerald-500 text-white font-semibold hover:bg-emerald-600 text-center"
-            >
-              Sign in to submit score
-            </NuxtLink>
-            <p v-else-if="scoreSubmitted" class="text-sm text-emerald-700">Score submitted to today’s leaderboard.</p>
-            <p v-if="submitError" class="text-sm text-red-600">{{ submitError }}</p>
-          </div>
+          <p class="text-[hsl(var(--muted-foreground))] mb-8">You scored {{ score }} out of {{ questions.length }}</p>
           <button
             type="button"
             class="inline-flex items-center px-6 py-3 rounded-xl bg-[hsl(var(--primary))] text-[hsl(var(--accent))] font-semibold hover:opacity-90"
@@ -88,21 +68,6 @@
           </div>
         </div>
       </div>
-
-      <GameLeaderboard
-        :entries="leaderboardEntries"
-        :loading="leaderboardLoading"
-        :date-id="leaderboardDateId"
-        :format-score="(e) => `${e.score}${e.detail ? ` (${e.detail})` : ''}`"
-      >
-        <template v-if="!isLoggedIn">
-          <NuxtLink to="/login?redirect=/play/quiz" class="text-[hsl(var(--primary))] underline">Sign in</NuxtLink>
-          to submit yours.
-        </template>
-        <template v-else-if="scoreSubmitted">
-          Your score is on the board.
-        </template>
-      </GameLeaderboard>
     </div>
   </div>
 </template>
@@ -112,17 +77,6 @@ import { IconArrowLeft, IconRefresh, IconCheck, IconX } from '@tabler/icons-vue'
 
 const { questions: remoteQuestions } = useQuizQuestions()
 const questions = computed(() => remoteQuestions.value)
-const auth = useAuth()
-const isLoggedIn = computed(() => !!auth.user.value)
-const {
-  entries: leaderboardEntries,
-  loading: leaderboardLoading,
-  dateId: leaderboardDateId,
-  submitScore
-} = useGameLeaderboard('quiz', { sort: 'desc' })
-const { submitted: scoreSubmitted, markSubmitted } = useDailySubmitFlag('quiz')
-const submittingScore = ref(false)
-const submitError = ref('')
 
 const currentQuestion = ref(0)
 const selectedOption = ref<string | null>(null)
@@ -162,25 +116,5 @@ function restartQuiz() {
   isCorrect.value = null
   score.value = 0
   isFinished.value = false
-}
-
-async function submitToLeaderboard() {
-  if (!auth.user.value || !isFinished.value) return
-  submitError.value = ''
-  submittingScore.value = true
-  try {
-    await submitScore({
-      score: score.value,
-      userName: auth.userName.value || auth.userEmail.value || 'Player',
-      userId: auth.user.value.uid,
-      userEmail: auth.userEmail.value || undefined,
-      detail: `${score.value}/${questions.value.length}`
-    })
-    markSubmitted()
-  } catch (e: unknown) {
-    submitError.value = e instanceof Error ? e.message : 'Could not submit score.'
-  } finally {
-    submittingScore.value = false
-  }
 }
 </script>

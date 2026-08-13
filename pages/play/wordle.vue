@@ -166,6 +166,7 @@
         :entries="leaderboardEntries"
         :loading="leaderboardLoading"
         :date-id="leaderboardDateId"
+        :current-user-id="auth.user.value?.uid"
         :format-score="(e) => `${e.guesses ?? e.score}/6`"
       >
         <template v-if="!isLoggedIn">
@@ -574,29 +575,34 @@ watch([solution, guesses, isComplete, scoreSubmitted], () => {
 }, { deep: true })
 
 watch(
-  [leaderboardEntries, () => auth.user.value?.uid],
-  ([list, uid]) => {
-    if (uid && list.some(e => e.userId === uid)) scoreSubmitted.value = true
-  },
-  { immediate: true }
+  [leaderboardEntries, leaderboardLoading, () => auth.user.value?.uid],
+  ([list, loading, uid]) => {
+    if (!uid || loading) return
+    const onBoard = Array.isArray(list) && list.some(e => e.userId === uid)
+    if (onBoard) scoreSubmitted.value = true
+    else if (!submittingScore.value) scoreSubmitted.value = false
+  }
 )
 
 async function submitToLeaderboard() {
   if (!auth.user.value || !isWin.value || scoreSubmitted.value || submittingScore.value) return
   submitError.value = ''
   submittingScore.value = true
-  scoreSubmitted.value = true
-  saveDailyState(solution.value, guesses.value, isComplete.value, true)
   try {
     await submitScore(
       guesses.value.length,
       solution.value,
-      auth.userName.value || auth.userEmail.value || 'Anonymous',
+      auth.userName.value || auth.userEmail.value || 'Player',
       auth.user.value.uid,
       auth.userEmail.value || undefined
     )
+    const uid = auth.user.value.uid
+    const onBoard = leaderboardEntries.value.some(e => e.userId === uid)
+    if (!onBoard) await refetchLeaderboard()
+    scoreSubmitted.value = leaderboardEntries.value.some(e => e.userId === uid)
+    if (!scoreSubmitted.value) throw new Error('Score saved, but it is not on today’s board yet. Tap submit again.')
+    saveDailyState(solution.value, guesses.value, isComplete.value, true)
     showResultModal.value = false
-    await refetchLeaderboard()
   } catch (e: unknown) {
     scoreSubmitted.value = false
     saveDailyState(solution.value, guesses.value, isComplete.value, false)
@@ -656,7 +662,7 @@ function closeModal() {
 onMounted(async () => {
   const state = loadDailyState()
   hasRecordedResult.value = state.isComplete
-  scoreSubmitted.value = state.scoreSubmitted
+  scoreSubmitted.value = false
   showResultModal.value = false
   solution.value = state.solution
   guesses.value = state.guesses

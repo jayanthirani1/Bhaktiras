@@ -94,6 +94,27 @@
   .admin-panel {
     @apply rounded-xl border border-[hsl(var(--border))] bg-white p-4 sm:p-5;
   }
+  .legal-prose {
+    @apply text-sm leading-relaxed text-[hsl(var(--foreground))] sm:text-[15px];
+  }
+  .legal-prose h2 {
+    @apply mb-2 mt-8 text-lg font-semibold text-[hsl(var(--primary))] first:mt-0;
+  }
+  .legal-prose h3 {
+    @apply mb-2 mt-6 text-base font-semibold text-[hsl(var(--primary))];
+  }
+  .legal-prose p {
+    @apply mb-3 text-[hsl(var(--muted-foreground))];
+  }
+  .legal-prose ul {
+    @apply mb-3 list-disc space-y-1 pl-5 text-[hsl(var(--muted-foreground))];
+  }
+  .legal-prose strong {
+    @apply font-semibold text-[hsl(var(--foreground))];
+  }
+  .legal-prose a {
+    @apply font-medium text-[hsl(var(--primary))];
+  }
 }
 
 @layer utilities {

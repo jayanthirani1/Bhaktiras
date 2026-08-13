@@ -87,6 +87,27 @@ export interface SevaHourLog {
   createdAt?: { seconds: number; nanoseconds: number } | Date
 }
 
+export interface Niyam {
+  id: string
+  title: string
+  detail: string
+  order?: number
+}
+
+export interface NiyamStats {
+  participants: number
+  counts: Record<string, number>
+}
+
+export type LegalSlug = 'privacy' | 'policy'
+
+export interface SitePage {
+  id: LegalSlug | string
+  title: string
+  body: string
+  updatedAt?: { seconds: number; nanoseconds: number } | Date
+}
+
 export interface VolunteerRole {
   id: string
   role: string
