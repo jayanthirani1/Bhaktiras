@@ -19,13 +19,17 @@
           <p class="mt-8 text-center text-sm text-[hsl(var(--muted-foreground))]">Loading Wordle…</p>
         </template>
 
+      <div class="mb-4 flex items-center justify-center gap-2 text-sm font-semibold text-[hsl(var(--primary))]">
+        <span class="rounded-full bg-[hsl(var(--muted))] px-3 py-1 tabular-nums">⏱ {{ timer.display.value }}</span>
+      </div>
+
       <div
         v-if="isComplete"
         class="mb-6 rounded-2xl border border-[hsl(var(--golden-200))] bg-[hsl(var(--card))] p-5 text-center"
       >
         <p class="font-display text-xl font-semibold text-[hsl(var(--primary))]">Today’s Wordle complete</p>
         <p v-if="isWin" class="mt-2 text-sm text-[hsl(var(--muted-foreground))]">
-          You got it in {{ guesses.length }}/6.
+          You got it in {{ guesses.length }}/6 · {{ timer.display.value }}
         </p>
         <p v-else class="mt-2 text-sm text-[hsl(var(--muted-foreground))]">
           The word was <span class="font-semibold uppercase text-[hsl(var(--primary))]">{{ solution }}</span>.
@@ -167,7 +171,7 @@
         :loading="leaderboardLoading"
         :date-id="leaderboardDateId"
         :current-user-id="auth.user.value?.uid"
-        :format-score="(e) => `${e.guesses ?? e.score}/6`"
+        :format-score="(e) => formatWordleScore(e)"
       >
         <template v-if="!isLoggedIn">
           <NuxtLink to="/login?redirect=/play/wordle" class="text-[hsl(var(--primary))] underline">Sign in</NuxtLink>
@@ -311,6 +315,7 @@ import { IconArrowLeft } from '@tabler/icons-vue'
 import { getWordForDate, wordleDateId } from '~/utils/wordleDaily'
 import { getFeedback } from '~/utils/wordle'
 import { isValidWord } from '~/data/wordleGuessList'
+import { formatElapsed } from '~/composables/useGameTimer'
 import type { LetterStatus } from '~/types/wordle'
 
 const WORD_LEN = 5
@@ -393,6 +398,13 @@ const {
   refetch: refetchLeaderboard
 } = useWordleLeaderboard()
 const isLoggedIn = computed(() => !!auth.user.value)
+const timer = useGameTimer(`wordle-timer:${getTodayId()}`)
+
+function formatWordleScore(e: { guesses?: number; score?: number; timeMs?: number }) {
+  const g = e.guesses ?? e.score
+  const t = e.timeMs != null ? ` · ${formatElapsed(e.timeMs)}` : ''
+  return `${g}/6${t}`
+}
 
 const isWin = computed(() => guesses.value.length > 0 && guesses.value[guesses.value.length - 1] === solution.value)
 const isLose = computed(() => !isWin.value && guesses.value.length >= ROWS)
@@ -511,10 +523,12 @@ function submitGuess() {
   setTimeout(() => { flipRow.value = null }, 600)
   if (trimmed === solution.value) {
     isComplete.value = true
+    timer.stop()
     showResultModal.value = true
     setTimeout(() => { shouldDance.value = true }, 600)
   } else if (guesses.value.length >= ROWS) {
     isComplete.value = true
+    timer.stop()
     showResultModal.value = true
   }
 }
@@ -530,6 +544,7 @@ function addLetter(letter: string) {
     haptic(20)
     return
   }
+  timer.ensureStarted()
   currentGuess.value += letter.toUpperCase()
   popTile.value = currentGuess.value.length - 1
   if (popTimer) clearTimeout(popTimer)
@@ -594,7 +609,8 @@ async function submitToLeaderboard() {
       solution.value,
       auth.userName.value || auth.userEmail.value || 'Player',
       auth.user.value.uid,
-      auth.userEmail.value || undefined
+      auth.userEmail.value || undefined,
+      timer.elapsedMs.value
     )
     const uid = auth.user.value.uid
     const onBoard = leaderboardEntries.value.some(e => e.userId === uid)
@@ -644,6 +660,7 @@ function shareResult() {
     .map((row) => row.map((c) => statusEmoji[c.status]).join(''))
   const text = [
     `Bhaktiras Wordle ${guesses.value.length}/${ROWS}`,
+    timer.display.value,
     '',
     ...lines
   ].join('\n')
@@ -667,6 +684,13 @@ onMounted(async () => {
   solution.value = state.solution
   guesses.value = state.guesses
   isComplete.value = state.isComplete
+  timer.read()
+  if (state.isComplete) {
+    if (timer.startedAt.value && !timer.finishedAt.value) timer.stop()
+  } else if (state.guesses.length || timer.startedAt.value) {
+    // Continue wall-clock timer from earlier session
+    if (!timer.startedAt.value) timer.ensureStarted()
+  }
   try {
     const remote = await fetchWordleRemote(new Date())
     remoteExtraWords.value = [

@@ -1,7 +1,9 @@
 import { collection, doc, getDoc, getDocs, type Firestore } from 'firebase/firestore'
-import type { CrosswordPuzzle, QuizQuestion, WordleWordDoc } from '~/types'
+import type { CrosswordPuzzle, OnePercentQuestion, QuizQuestion, WordleWordDoc } from '~/types'
 import type { SpellingBeePuzzle } from '~/data/spellingBeePuzzles'
 import { SPELLING_BEE_PUZZLES } from '~/data/spellingBeePuzzles'
+import { DEFAULT_ONE_PERCENT } from '~/data/onePercentClub'
+import { DEFAULT_MINI_CROSSWORD } from '~/data/miniCrossword'
 import { wordleDateId } from '~/utils/wordleDaily'
 
 function getDb(): Firestore | null {
@@ -73,6 +75,47 @@ export function useCrosswordPuzzles() {
   })
 
   return { puzzles, loading }
+}
+
+export function useMiniCrosswordPuzzles() {
+  const puzzles = ref<CrosswordPuzzle[]>([{ ...DEFAULT_MINI_CROSSWORD }])
+  const loading = ref(true)
+
+  onMounted(async () => {
+    try {
+      const db = getDb()
+      if (!db) return
+      const snap = await getDocs(collection(db, 'miniCrosswordPuzzles'))
+      const remote = snap.docs.map(d => ({ id: d.id, ...d.data() } as CrosswordPuzzle))
+        .filter(p => p.title && p.clues?.length)
+      if (remote.length) puzzles.value = remote
+    } finally {
+      loading.value = false
+    }
+  })
+
+  return { puzzles, loading }
+}
+
+export function useOnePercentQuestions() {
+  const questions = ref<OnePercentQuestion[]>([...DEFAULT_ONE_PERCENT])
+  const loading = ref(true)
+
+  onMounted(async () => {
+    try {
+      const db = getDb()
+      if (!db) return
+      const snap = await getDocs(collection(db, 'onePercentQuestions'))
+      const remote = snap.docs.map(d => ({ id: d.id, ...d.data() } as OnePercentQuestion))
+        .filter(q => q.question && q.options?.length && q.correctAnswer && q.percent != null)
+        .sort((a, b) => (b.percent - a.percent) || (a.order ?? 0) - (b.order ?? 0))
+      if (remote.length) questions.value = remote
+    } finally {
+      loading.value = false
+    }
+  })
+
+  return { questions, loading }
 }
 
 export async function fetchWordleRemote(date = new Date()) {

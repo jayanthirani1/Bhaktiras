@@ -41,11 +41,21 @@ service cloud.firestore {
         && request.resource.data.score is number
         && request.resource.data.score == int(request.resource.data.score)
         && request.resource.data.score >= 0
-        && request.resource.data.score <= 100000
+        && request.resource.data.score <= 9999999
         && (
           request.resource.data.game != 'wordle'
           || (request.resource.data.score >= 1 && request.resource.data.score <= 6)
+        )
+        && (
+          !('timeMs' in request.resource.data)
+          || (
+            request.resource.data.timeMs is number
+            && request.resource.data.timeMs == int(request.resource.data.timeMs)
+            && request.resource.data.timeMs >= 0
+            && request.resource.data.timeMs <= 86400000
+          )
         );
+      // Own score updates: all-time spelling-bee must improve; daily boards may overwrite with a better run.
       allow update: if isSignedIn()
         && resource.data.userId == request.auth.uid
         && request.resource.data.userId == request.auth.uid
@@ -54,8 +64,21 @@ service cloud.firestore {
         && request.resource.data.userName.size() <= 32
         && request.resource.data.score is number
         && request.resource.data.score == int(request.resource.data.score)
-        && request.resource.data.score >= resource.data.score
-        && request.resource.data.score <= 100000;
+        && request.resource.data.score >= 0
+        && request.resource.data.score <= 9999999
+        && (
+          resource.data.game != 'spelling-bee'
+          || request.resource.data.score >= resource.data.score
+        )
+        && (
+          !('timeMs' in request.resource.data)
+          || (
+            request.resource.data.timeMs is number
+            && request.resource.data.timeMs == int(request.resource.data.timeMs)
+            && request.resource.data.timeMs >= 0
+            && request.resource.data.timeMs <= 86400000
+          )
+        );
       allow delete: if (resource.data.dateId is string && resource.data.dateId < utcDateId())
         || (isSignedIn() && resource.data.userId == request.auth.uid);
     }
@@ -106,6 +129,16 @@ service cloud.firestore {
     }
 
     match /spellingBeePuzzles/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /onePercentQuestions/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /miniCrosswordPuzzles/{id} {
       allow read: if true;
       allow write: if isAdmin();
     }

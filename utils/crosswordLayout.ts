@@ -32,7 +32,8 @@ function canPlace(
   row: number,
   col: number,
   dir: 'across' | 'down',
-  grid: Map<string, string>
+  grid: Map<string, string>,
+  opts: { relaxAdjacency?: boolean } = {}
 ) {
   const dr = dir === 'down' ? 1 : 0
   const dc = dir === 'across' ? 1 : 0
@@ -45,7 +46,7 @@ function canPlace(
     const c = col + dc * i
     const existing = grid.get(keyRC(r, c))
     if (existing && existing !== word[i]) return false
-    if (!existing) {
+    if (!existing && !opts.relaxAdjacency) {
       if (dir === 'across') {
         if (grid.get(keyRC(r - 1, c)) || grid.get(keyRC(r + 1, c))) return false
       } else if (grid.get(keyRC(r, c - 1)) || grid.get(keyRC(r, c + 1))) return false
@@ -77,6 +78,29 @@ function tryPlace(
   if (!answer) return null
   const dir = clue.direction === 'down' ? 'down' : 'across'
 
+  const makeWord = (row: number, col: number): LaidWord => {
+    const dr = dir === 'down' ? 1 : 0
+    const dc = dir === 'across' ? 1 : 0
+    writeWord(answer, row, col, dir, grid)
+    return {
+      key: `${dir}-${clue.number}`,
+      number: clue.number,
+      direction: dir,
+      clue: clue.clue,
+      answer,
+      row,
+      col,
+      cells: answer.split('').map((_, i) => ({ row: row + dr * i, col: col + dc * i }))
+    }
+  }
+
+  if (clue.row != null && clue.col != null && Number.isFinite(clue.row) && Number.isFinite(clue.col)) {
+    if (canPlace(answer, Number(clue.row), Number(clue.col), dir, grid, { relaxAdjacency: true })) {
+      return makeWord(Number(clue.row), Number(clue.col))
+    }
+    return null
+  }
+
   const candidates: { row: number; col: number; score: number }[] = []
 
   const sameNumber = placed.find(p => p.number === clue.number && p.direction !== dir)
@@ -102,20 +126,7 @@ function tryPlace(
   candidates.sort((a, b) => b.score - a.score)
   const spot = candidates[0]
   if (!spot) return null
-
-  writeWord(answer, spot.row, spot.col, dir, grid)
-  const dr = dir === 'down' ? 1 : 0
-  const dc = dir === 'across' ? 1 : 0
-  return {
-    key: `${dir}-${clue.number}`,
-    number: clue.number,
-    direction: dir,
-    clue: clue.clue,
-    answer,
-    row: spot.row,
-    col: spot.col,
-    cells: answer.split('').map((_, i) => ({ row: spot.row + dr * i, col: spot.col + dc * i }))
-  }
+  return makeWord(spot.row, spot.col)
 }
 
 export function layoutCrossword(clues: CrosswordClue[]): CrosswordLayout | null {

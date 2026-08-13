@@ -53,6 +53,9 @@ export interface CrosswordClue {
   direction: 'across' | 'down'
   clue: string
   answer: string
+  /** Optional fixed start cell for mini / curated grids. */
+  row?: number
+  col?: number
 }
 
 export interface CrosswordPuzzle {
@@ -121,7 +124,13 @@ export interface TimeCapsuleMessage {
   submittedAt?: { seconds: number; nanoseconds: number } | Date
 }
 
-export type GameLeaderboardId = 'wordle' | 'quiz' | 'crossword' | 'spelling-bee'
+export type GameLeaderboardId =
+  | 'wordle'
+  | 'quiz'
+  | 'crossword'
+  | 'spelling-bee'
+  | 'one-percent'
+  | 'mini-crossword'
 
 export interface GameScoreEntry {
   id: string
@@ -131,6 +140,18 @@ export interface GameScoreEntry {
   userName: string
   userEmail?: string
   score: number
+  /** Elapsed time in milliseconds when relevant (Wordle, Mini Crossword, 1% Club). */
+  timeMs?: number
   detail?: string
   completedAt?: { seconds?: number; nanoseconds?: number } | Date
+}
+
+export interface OnePercentQuestion {
+  id: string
+  /** Hardness label shown on the show ladder, e.g. 90 → 1. */
+  percent: number
+  question: string
+  options: string[]
+  correctAnswer: string
+  order?: number
 }

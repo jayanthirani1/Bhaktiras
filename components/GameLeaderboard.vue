@@ -44,6 +44,7 @@ type LeaderboardRow = {
   userName: string
   score?: number
   guesses?: number
+  timeMs?: number
   detail?: string
 }
 
