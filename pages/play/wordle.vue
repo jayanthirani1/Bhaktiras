@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-[hsl(var(--background))] pb-32 pt-8 md:pt-12 px-4">
+  <div class="min-h-screen bg-[hsl(var(--background))] pb-36 pt-8 md:pt-12 px-4">
     <div class="max-w-lg mx-auto">
       <NuxtLink
         to="/play"
@@ -101,7 +101,7 @@
       </div>
 
       <!-- Keyboard -->
-      <div v-if="!isComplete" class="flex flex-col gap-1.5">
+      <div v-if="!isComplete" class="flex flex-col gap-1.5 touch-manipulation">
         <div class="flex justify-center gap-1">
           <button
             v-for="k in KEYBOARD_TOP"
@@ -110,8 +110,8 @@
             class="h-11 sm:h-12 rounded-md font-semibold text-sm uppercase min-w-[1.75rem] px-2 sm:min-w-[2rem] transition-transform duration-75 active:scale-90 disabled:opacity-50"
             :class="[keyBg(k), { 'key-press': pressedKey === k }]"
             :disabled="isComplete"
-            @pointerdown="primeKey(k)"
-            @click="addLetter(k)"
+            @pointerdown="onKeyPointer($event, k)"
+            @click="onKeyClick(k)"
           >
             {{ k }}
           </button>
@@ -124,8 +124,8 @@
             class="h-11 sm:h-12 rounded-md font-semibold text-sm uppercase min-w-[1.75rem] px-2 sm:min-w-[2rem] transition-transform duration-75 active:scale-90 disabled:opacity-50"
             :class="[keyBg(k), { 'key-press': pressedKey === k }]"
             :disabled="isComplete"
-            @pointerdown="primeKey(k)"
-            @click="addLetter(k)"
+            @pointerdown="onKeyPointer($event, k)"
+            @click="onKeyClick(k)"
           >
             {{ k }}
           </button>
@@ -136,8 +136,8 @@
             class="h-11 sm:h-14 px-5 sm:px-7 rounded-md font-bold text-sm sm:text-base bg-[hsl(var(--primary))] text-[hsl(var(--accent))] hover:opacity-90 disabled:opacity-50 transition-transform duration-75 active:scale-90"
             :class="{ 'key-press': pressedKey === 'ENTER' }"
             :disabled="isComplete"
-            @pointerdown="primeKey('ENTER', [12, 20, 12])"
-            @click="submitGuess"
+            @pointerdown="onKeyPointer($event, 'ENTER')"
+            @click="onKeyClick('ENTER')"
           >
             ENTER
           </button>
@@ -148,8 +148,8 @@
             class="h-11 sm:h-12 rounded-md font-semibold text-sm uppercase min-w-[1.75rem] px-2 sm:min-w-[2rem] transition-transform duration-75 active:scale-90 disabled:opacity-50"
             :class="[keyBg(k), { 'key-press': pressedKey === k }]"
             :disabled="isComplete"
-            @pointerdown="primeKey(k)"
-            @click="addLetter(k)"
+            @pointerdown="onKeyPointer($event, k)"
+            @click="onKeyClick(k)"
           >
             {{ k }}
           </button>
@@ -158,8 +158,8 @@
             class="h-11 sm:h-14 px-5 sm:px-7 rounded-md font-bold text-base bg-[hsl(var(--muted))] text-[hsl(var(--foreground))] hover:bg-[hsl(var(--border))] disabled:opacity-50 transition-transform duration-75 active:scale-90"
             :class="{ 'key-press': pressedKey === 'BACK' }"
             :disabled="isComplete"
-            @pointerdown="primeKey('BACK', 14)"
-            @click="removeLetter"
+            @pointerdown="onKeyPointer($event, 'BACK')"
+            @click="onKeyClick('BACK')"
           >
             ⌫
           </button>
@@ -378,7 +378,8 @@ const pressedKey = ref<string | null>(null)
 const popTile = ref<number | null>(null)
 let pressTimer: ReturnType<typeof setTimeout> | null = null
 let popTimer: ReturnType<typeof setTimeout> | null = null
-let keyPrimed = false
+/** When true, the next click is a leftover from a touch pointerdown we already handled. */
+let ignoreClickFromTouch = false
 const hasRecordedResult = ref(false)
 const scoreSubmitted = ref(false)
 const submittingScore = ref(false)
@@ -484,19 +485,41 @@ function pressKeyVisual(key: string) {
   pressTimer = setTimeout(() => { pressedKey.value = null }, 140)
 }
 
-function primeKey(key: string, pattern: number | number[] = 10) {
-  keyPrimed = true
-  pressKeyVisual(key)
-  haptic(pattern)
-  setTimeout(() => { keyPrimed = false }, 400)
+function runKey(key: string) {
+  const k = key.toUpperCase()
+  if (k === 'ENTER') {
+    pressKeyVisual('ENTER')
+    haptic([12, 20, 12])
+    submitGuess()
+    return
+  }
+  if (k === 'BACK' || k === 'BACKSPACE') {
+    pressKeyVisual('BACK')
+    haptic(14)
+    removeLetter()
+    return
+  }
+  pressKeyVisual(k)
+  haptic(10)
+  addLetter(k)
+}
+
+/** Touch/pen: act immediately and suppress the follow-up click (often lost after re-render). */
+function onKeyPointer(e: PointerEvent, key: string) {
+  if (e.pointerType === 'mouse') return
+  e.preventDefault()
+  ignoreClickFromTouch = true
+  runKey(key)
+  setTimeout(() => { ignoreClickFromTouch = false }, 400)
+}
+
+/** Mouse / keyboard activation of the button. */
+function onKeyClick(key: string) {
+  if (ignoreClickFromTouch) return
+  runKey(key)
 }
 
 function submitGuess() {
-  if (!keyPrimed) {
-    pressKeyVisual('ENTER')
-    haptic([12, 20, 12])
-  }
-  keyPrimed = false
   invalidWordMessage.value = ''
   const trimmed = currentGuess.value.toUpperCase().trim()
   const currentRow = guesses.value.length
@@ -535,11 +558,6 @@ function submitGuess() {
 
 function addLetter(letter: string) {
   if (isComplete.value) return
-  if (!keyPrimed) {
-    pressKeyVisual(letter)
-    haptic(10)
-  }
-  keyPrimed = false
   if (currentGuess.value.length >= WORD_LEN) {
     haptic(20)
     return
@@ -553,11 +571,6 @@ function addLetter(letter: string) {
 
 function removeLetter() {
   if (isComplete.value) return
-  if (!keyPrimed) {
-    pressKeyVisual('BACK')
-    haptic(14)
-  }
-  keyPrimed = false
   currentGuess.value = currentGuess.value.slice(0, -1)
   popTile.value = null
 }
@@ -706,15 +719,17 @@ onMounted(async () => {
   const onKeyDown = (e: KeyboardEvent) => {
     if (e.repeat) return
     if (isComplete.value) return
+    const tag = (e.target as HTMLElement | null)?.tagName
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
     if (e.key === 'Enter') {
       e.preventDefault()
-      submitGuess()
+      runKey('ENTER')
     } else if (e.key === 'Backspace') {
       e.preventDefault()
-      removeLetter()
+      runKey('BACK')
     } else if (/^[A-Za-z]$/.test(e.key)) {
       e.preventDefault()
-      addLetter(e.key)
+      runKey(e.key)
     }
   }
   window.addEventListener('keydown', onKeyDown)
