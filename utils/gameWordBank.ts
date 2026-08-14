@@ -4,6 +4,11 @@ import type { CrosswordClue, CrosswordPuzzle, GameWordEntry, GameWordTarget } fr
 
 export const SATSANG_WORD_BANK = rawWordBank as GameWordEntry[]
 
+export function findGameWord(answer: string, entries: GameWordEntry[] = SATSANG_WORD_BANK): GameWordEntry | undefined {
+  const clean = normalizeGameWord(answer)
+  return entries.find(entry => entry.answer === clean)
+}
+
 export function normalizeGameWord(value: string): string {
   return String(value || '')
     .normalize('NFKD')

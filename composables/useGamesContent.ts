@@ -155,7 +155,13 @@ export function useOnePercentQuestions() {
 
 export async function fetchWordleRemote(date = new Date()) {
   const db = getDb()
-  if (!db) return { extraWords: [] as string[], dailyWord: null as string | null }
+  if (!db) {
+    return {
+      extraWords: [] as string[],
+      dailyWord: null as string | null,
+      wordEntries: [] as GameWordEntry[]
+    }
+  }
   const dateId = wordleDateId(date)
   const [dailySnap, wordsSnap, gameWordsSnap] = await Promise.all([
     getDoc(doc(db, 'wordleDaily', dateId)),
@@ -169,5 +175,9 @@ export async function fetchWordleRemote(date = new Date()) {
     .map(d => String((d.data() as WordleWordDoc).word || '').toUpperCase())
     .filter(w => w.length === 5), ...customWords]
   const dailyWord = dailySnap.exists() ? String(dailySnap.data().word || '').toUpperCase() : null
-  return { extraWords, dailyWord: dailyWord && dailyWord.length === 5 ? dailyWord : null }
+  return {
+    extraWords,
+    dailyWord: dailyWord && dailyWord.length === 5 ? dailyWord : null,
+    wordEntries: customWords
+  }
 }

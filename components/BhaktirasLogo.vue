@@ -43,13 +43,13 @@ function prepareSvg(raw: string, prefix: string) {
         `<g id="logo-droplet-layer">
           ${tilak}
           <g id="logo-splash" fill="#d9ae30" aria-hidden="true">
-            <ellipse class="logo-splash-drop" cx="230.4" cy="330.4" rx="2.1" ry="3.3"/>
-            <ellipse class="logo-splash-drop" cx="230.4" cy="330.4" rx="1.7" ry="2.7"/>
-            <ellipse class="logo-splash-drop" cx="230.4" cy="330.4" rx="1.3" ry="2.1"/>
-            <ellipse class="logo-splash-drop" cx="230.4" cy="330.4" rx="1.9" ry="2.9"/>
-            <ellipse class="logo-splash-drop" cx="230.4" cy="330.4" rx="1.15" ry="1.85"/>
-            <ellipse class="logo-splash-drop" cx="230.4" cy="330.4" rx="1.5" ry="2.4"/>
-            <circle class="logo-splash-drop" cx="230.4" cy="330.4" r="1.25"/>
+            <ellipse class="logo-splash-drop" cx="224.3" cy="317.1" rx="2.1" ry="3.3"/>
+            <ellipse class="logo-splash-drop" cx="224.3" cy="317.1" rx="1.7" ry="2.7"/>
+            <ellipse class="logo-splash-drop" cx="224.3" cy="317.1" rx="1.3" ry="2.1"/>
+            <ellipse class="logo-splash-drop" cx="224.3" cy="317.1" rx="1.9" ry="2.9"/>
+            <ellipse class="logo-splash-drop" cx="224.3" cy="317.1" rx="1.15" ry="1.85"/>
+            <ellipse class="logo-splash-drop" cx="224.3" cy="317.1" rx="1.5" ry="2.4"/>
+            <circle class="logo-splash-drop" cx="224.3" cy="317.1" r="1.25"/>
           </g>
         </g></svg>`
       )
@@ -88,7 +88,7 @@ const markup = computed(() =>
 
 const sizeClass = computed(() => {
   if (props.size === 'sm') return 'h-7 w-auto aspect-[321/55] max-w-[14rem] sm:h-8 md:h-9 md:max-w-[20rem]'
-  if (props.size === 'lg') return 'w-44 sm:w-56 md:w-64 aspect-[267/354]'
-  return 'w-28 sm:w-36 aspect-[267/354]'
+  if (props.size === 'lg') return 'w-44 sm:w-56 md:w-64 aspect-[267/345]'
+  return 'w-28 sm:w-36 aspect-[267/345]'
 })
 </script>

@@ -37,6 +37,10 @@
         <p v-else class="mt-2 text-sm text-[hsl(var(--muted-foreground))]">
           The word was <span class="font-semibold uppercase text-[hsl(var(--primary))]">{{ solution }}</span>.
         </p>
+        <div v-if="solutionMeaning" class="mt-3 rounded-xl bg-[hsl(var(--background))] p-3">
+          <p class="font-semibold text-[hsl(var(--primary))]">{{ solutionDisplay }}</p>
+          <p class="mt-1 text-sm text-[hsl(var(--muted-foreground))]">{{ solutionMeaning }}</p>
+        </div>
         <p class="mt-2 text-xs text-[hsl(var(--muted-foreground))]">{{ nextPuzzleIn }}</p>
         <div class="mt-4 flex flex-col items-center gap-2">
           <button
@@ -96,7 +100,7 @@
               cellBg(cell.status),
               { 'tile-pop': popTile === cellIndex && rowIndex === guesses.length && !!cell.letter }
             ]"
-            :style="{ animation: (flipRow === rowIndex || (shouldDance && rowIndex === guesses.length - 1 && solution === guesses[guesses.length - 1])) ? 'flip 0.5s ease-in-out' : '' }"
+            :style="{ animation: tileAnimation(rowIndex, cellIndex) }"
           >
             {{ cell.letter }}
           </div>
@@ -110,9 +114,10 @@
             v-for="k in KEYBOARD_TOP"
             :key="k"
             type="button"
-            class="h-11 sm:h-12 rounded-md font-semibold text-sm uppercase min-w-[1.75rem] px-2 sm:min-w-[2rem] transition-transform duration-75 active:scale-90 disabled:opacity-50"
+            class="h-11 sm:h-12 rounded-md font-semibold text-sm uppercase min-w-[1.75rem] px-2 sm:min-w-[2rem] transition-transform duration-75 active:scale-90"
             :class="[keyBg(k), { 'key-press': pressedKey === k }]"
-            :disabled="isComplete"
+            :aria-label="`${k}, ${statusLabel(keyStatusMap.get(k) || 'empty')}`"
+            :disabled="isComplete || isLetterRuledOut(k)"
             @pointerdown="onKeyPointer($event, k)"
             @click="onKeyClick(k)"
           >
@@ -124,9 +129,10 @@
             v-for="k in KEYBOARD_MID"
             :key="k"
             type="button"
-            class="h-11 sm:h-12 rounded-md font-semibold text-sm uppercase min-w-[1.75rem] px-2 sm:min-w-[2rem] transition-transform duration-75 active:scale-90 disabled:opacity-50"
+            class="h-11 sm:h-12 rounded-md font-semibold text-sm uppercase min-w-[1.75rem] px-2 sm:min-w-[2rem] transition-transform duration-75 active:scale-90"
             :class="[keyBg(k), { 'key-press': pressedKey === k }]"
-            :disabled="isComplete"
+            :aria-label="`${k}, ${statusLabel(keyStatusMap.get(k) || 'empty')}`"
+            :disabled="isComplete || isLetterRuledOut(k)"
             @pointerdown="onKeyPointer($event, k)"
             @click="onKeyClick(k)"
           >
@@ -148,9 +154,10 @@
             v-for="k in KEYBOARD_BOT"
             :key="k"
             type="button"
-            class="h-11 sm:h-12 rounded-md font-semibold text-sm uppercase min-w-[1.75rem] px-2 sm:min-w-[2rem] transition-transform duration-75 active:scale-90 disabled:opacity-50"
+            class="h-11 sm:h-12 rounded-md font-semibold text-sm uppercase min-w-[1.75rem] px-2 sm:min-w-[2rem] transition-transform duration-75 active:scale-90"
             :class="[keyBg(k), { 'key-press': pressedKey === k }]"
-            :disabled="isComplete"
+            :aria-label="`${k}, ${statusLabel(keyStatusMap.get(k) || 'empty')}`"
+            :disabled="isComplete || isLetterRuledOut(k)"
             @pointerdown="onKeyPointer($event, k)"
             @click="onKeyClick(k)"
           >
@@ -221,6 +228,11 @@
               <p class="text-[hsl(var(--muted-foreground))] mb-2">The word was</p>
               <p class="font-bold text-lg text-[hsl(var(--primary))] mb-6">{{ solution }}</p>
             </template>
+
+            <div v-if="solutionMeaning" class="mb-6 rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--background))] p-4 text-left">
+              <p class="font-display text-lg font-semibold text-[hsl(var(--primary))]">{{ solutionDisplay }}</p>
+              <p class="mt-1 text-sm leading-relaxed text-[hsl(var(--muted-foreground))]">{{ solutionMeaning }}</p>
+            </div>
 
             <div class="mb-6 p-4 bg-[hsl(var(--background))] rounded-xl text-left">
               <h3 class="text-sm font-semibold text-[hsl(var(--muted-foreground))] mb-3">STATISTICS</h3>
@@ -317,8 +329,10 @@
 import { IconArrowLeft } from '@tabler/icons-vue'
 import { getWordForDate, wordleDateId } from '~/utils/wordleDaily'
 import { getFeedback } from '~/utils/wordle'
+import { findGameWord } from '~/utils/gameWordBank'
 import { isValidWord } from '~/data/wordleGuessList'
 import { formatElapsed } from '~/composables/useGameTimer'
+import type { GameWordEntry } from '~/types'
 import type { LetterStatus } from '~/types/wordle'
 
 const WORD_LEN = 5
@@ -330,6 +344,7 @@ const KEYBOARD_BOT = ['Z', 'X', 'C', 'V', 'B', 'N', 'M']
 const DAILY_STORAGE_KEY = 'wordle-daily'
 
 const remoteExtraWords = ref<string[]>([])
+const remoteWordEntries = ref<GameWordEntry[]>([])
 
 function getTodayId(): string {
   return wordleDateId()
@@ -412,6 +427,12 @@ function formatWordleScore(e: { guesses?: number; score?: number; timeMs?: numbe
 
 const isWin = computed(() => guesses.value.length > 0 && guesses.value[guesses.value.length - 1] === solution.value)
 const isLose = computed(() => !isWin.value && guesses.value.length >= ROWS)
+const solutionEntry = computed(() =>
+  findGameWord(solution.value, remoteWordEntries.value)
+  ?? findGameWord(solution.value)
+)
+const solutionDisplay = computed(() => solutionEntry.value?.display || solution.value)
+const solutionMeaning = computed(() => solutionEntry.value?.clue || '')
 
 const rows = computed(() => {
   const out: { letter: string; status: LetterStatus }[][] = []
@@ -452,12 +473,28 @@ function cellBg(status: LetterStatus) {
   return 'bg-[hsl(var(--card))] border-[hsl(var(--border))] text-[hsl(var(--foreground))]'
 }
 
+function tileAnimation(rowIndex: number, cellIndex: number): string {
+  if (flipRow.value === rowIndex) {
+    return `flip 0.5s ease-in-out ${cellIndex * 0.1}s both`
+  }
+  const winningRow = guesses.value.length - 1
+  if (shouldDance.value && isWin.value && rowIndex === winningRow) {
+    return `wordle-win-bounce 0.6s ease ${cellIndex * 0.1}s both`
+  }
+  return ''
+}
+
 function keyBg(letter: string) {
   const s = keyStatusMap.value.get(letter)
   if (s === 'correct') return 'bg-emerald-500 text-white'
   if (s === 'present') return 'bg-amber-400 text-white'
-  if (s === 'absent') return 'bg-[hsl(var(--muted))] text-[hsl(var(--muted-foreground))]'
+  if (s === 'absent') return 'bg-slate-500 text-slate-200/70 opacity-60 cursor-not-allowed'
   return 'bg-[hsl(var(--muted))] text-[hsl(var(--foreground))] hover:bg-[hsl(var(--border))]'
+}
+
+/** Letters already ruled out can never help, so they stop accepting input. */
+function isLetterRuledOut(letter: string) {
+  return keyStatusMap.value.get(letter) === 'absent'
 }
 
 function statusLabel(status: LetterStatus): string {
@@ -500,6 +537,12 @@ function runKey(key: string) {
     pressKeyVisual('BACK')
     haptic(14)
     removeLetter()
+    return
+  }
+  if (isLetterRuledOut(k)) {
+    haptic([20, 30])
+    invalidWordMessage.value = `${k} isn’t in today’s word.`
+    setTimeout(() => { invalidWordMessage.value = '' }, 1500)
     return
   }
   pressKeyVisual(k)
@@ -546,16 +589,17 @@ function submitGuess() {
   currentGuess.value = ''
   popTile.value = null
   flipRow.value = currentRow
-  setTimeout(() => { flipRow.value = null }, 600)
+  setTimeout(() => { flipRow.value = null }, 950)
   if (trimmed === solution.value) {
     isComplete.value = true
     timer.stop()
-    showResultModal.value = true
-    setTimeout(() => { shouldDance.value = true }, 600)
+    // Let the green tiles reveal, then celebrate the row before covering it.
+    setTimeout(() => { shouldDance.value = true }, 1000)
+    setTimeout(() => { showResultModal.value = true }, 2100)
   } else if (guesses.value.length >= ROWS) {
     isComplete.value = true
     timer.stop()
-    showResultModal.value = true
+    setTimeout(() => { showResultModal.value = true }, 1000)
   }
 }
 
@@ -709,6 +753,7 @@ onMounted(async () => {
   }
   try {
     const remote = await fetchWordleRemote(new Date())
+    remoteWordEntries.value = remote.wordEntries
     remoteExtraWords.value = [
       ...remote.extraWords.map(w => w.toUpperCase()),
       ...(remote.dailyWord ? [remote.dailyWord.toUpperCase()] : [])

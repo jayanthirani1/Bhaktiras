@@ -1,336 +1,382 @@
 #!/usr/bin/env python3
-"""Generate the shared 2,000-entry game vocabulary.
+"""Generate the shared game vocabulary.
+
+Only curated Swaminarayan, Gujarati and basic Hinduism terms are included —
+no Sahasranama or obscure Sanskrit name dumps.
 
 The generated JSON is committed so the games do not need network access.
-Run this script only when intentionally refreshing the source datasets.
+Run this script only when intentionally refreshing the bank.
+
+After regenerating, bump WORD_BANK_VERSION in utils/gameStorageReset.ts so
+browsers clear cached daily Wordle / Mini Crossword / 1% Club progress.
 """
 
 from __future__ import annotations
 
-import csv
-import html
-import io
 import json
-import os
 import re
 import unicodedata
-import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "data" / "satsangWordBank.json"
-TARGET_COUNT = 2000
 
-HINDU_NAMES_URL = (
-    "https://huggingface.co/datasets/aryansai/Hindu-Gods-DB/"
-    "resolve/main/Hindu-Gods-DB.csv"
-)
-VISHNU_NAMES_URL = (
-    "https://raw.githubusercontent.com/sahasranama/"
-    "sahasranama.github.io/main/data/names_1000.json"
-)
-SHIVA_NAMES_URL = "https://99pandit.com/blog/1008-names-of-lord-shiva-complete-list/"
-
-# Familiar terms are deliberately first so they are never displaced by the
-# larger name collections. Format: display|clue|category.
+# Familiar everyday vocabulary only. Format: display|clue|category
 CURATED = """
 Aarti|Worship ceremony performed with lighted lamps|worship
+Abhishek|Ritual bathing of a sacred murti|worship
 Acharya|A spiritual teacher or guide|satsang
-Adharma|Conduct contrary to righteousness|philosophy
 Agna|A spiritual command or instruction|satsang
-Ahimsa|The principle of non-violence|philosophy
+Ahmedabad|Gujarat city home to the first Swaminarayan mandir|place
+Ahimsa|The principle of non-violence|value
 Akshar|The eternal abode and ideal devotee of Purushottam|swaminarayan
-Aksharbrahman|The eternal reality above maya that serves Purushottam|swaminarayan
 Akshardham|The divine abode of Bhagwan Swaminarayan|swaminarayan
 Amrut|Nectar or that which is immortal|satsang
-Anand|Spiritual bliss or joy|philosophy
+Anand|Spiritual bliss or joy|hinduism
+Anjali|A gesture of reverence with joined palms|worship
 Anuvrutti|Following the inner wish of the guru|satsang
+Arjun|Warrior taught by Krishna in the Bhagavad Gita|hinduism
 Arti|A shorter spelling of the lamp worship ceremony|worship
+Ashirwad|A blessing|worship
 Ashram|A place for spiritual practice and community|community
-Ashtang Yoga|The eight-limbed path of yoga|philosophy
-Atma|The eternal self or soul|philosophy
+Atladra|Swaminarayan pilgrimage centre near Vadodara|place
+Atma|The eternal self or soul|hinduism
 Atmabuddhi|Deep identification and oneness with the Satpurush|swaminarayan
-Atmajnan|Knowledge of the true self|philosophy
-Atmanivedan|Complete offering of oneself to God|worship
-Atmarup|Established in awareness of oneself as atma|swaminarayan
 Avatar|A divine manifestation on earth|hinduism
 Ayodhya|Sacred birthplace of Bhagwan Ram|place
-Bal Mandal|A satsang group for children|community
+Badrinath|Himalayan pilgrimage shrine dedicated to Vishnu|place
 Balak|A child|community
+Balika|A young girl in satsang|community
+Bal Mandal|A satsang group for children|community
 Bapa|An affectionate form of address for a revered guru|swaminarayan
+Bapu|Affectionate Gujarati address for a respected elder or guru|gujarati
+Barfi|A milk-based Indian sweet often offered as prasad|food
 Bhagavad Gita|Krishna's sacred teaching to Arjuna|scripture
 Bhagwan|The supreme Lord|hinduism
 Bhajan|A devotional song or act of worship|worship
+Bhajiya|Deep-fried Gujarati snack often shared after sabha|food
 Bhakta|A devotee of God|devotion
 Bhakti|Loving devotion to God|devotion
-Brahma|The deity associated with creation|deity
-Brahmacharya|Self-restraint and purity|philosophy
-Brahmabhav|Awareness of one's spiritual identity with Akshar|swaminarayan
-Brahmajnan|Knowledge of Brahman|philosophy
-Brahman|The eternal spiritual reality|philosophy
-Brahmarup|Having become like Brahman|swaminarayan
-Brahmavidya|Knowledge of Brahman and Parabrahman|philosophy
+Bhasma|Sacred ash used in worship|worship
+Bhima|One of the Pandava brothers known for strength|hinduism
+Bhog|Food prepared as an offering to God|worship
+Bhumi|The earth, revered as a divine mother|hinduism
+Bhuj|Town in Kutch with a historic Swaminarayan mandir|place
+Bochasan|Swaminarayan pilgrimage town in Gujarat|place
+Brahma|The deity associated with creation|hinduism
+Brahmacharya|Self-restraint and purity|hinduism
+Chaas|Gujarati buttermilk drink|food
+Chaitra|A month in the Hindu lunar calendar|festival
+Chakra|A wheel or sacred discus symbol|hinduism
 Chandan|Sandalwood paste used in worship|worship
 Chandlo|The round red mark worn on the forehead|swaminarayan
+Charan|The feet, especially of God or the guru|devotion
+Charanarvind|The lotus feet of God|devotion
 Chaturmas|Four holy monsoon months of added observance|festival
 Chesta|Verses describing Bhagwan Swaminarayan's divine form|swaminarayan
+Chhapaiya|Birthplace of Bhagwan Swaminarayan|place
+Chutney|Spiced accompaniment served with Indian food|food
+Dal|Lentil dish common in Gujarati meals|food
+Damaru|The small drum associated with Shiva|worship
 Darshan|Reverent sight of God, a murti, or a holy person|worship
 Dasbhav|The humble attitude of being God's servant|devotion
 Daya|Compassion|value
-Deh|The physical body|philosophy
-Dehbhav|Identification of the self with the body|philosophy
+Deep|A lighted lamp used in worship|worship
 Deepavali|The festival of lights|festival
-Deva|A deity or divine being|deity
+Deva|A deity or divine being|hinduism
+Devaki|Mother of Krishna|hinduism
 Devotee|One who is devoted to God|devotion
-Dharma|Righteous conduct and sacred duty|philosophy
-Dharmic|In accordance with dharma|philosophy
+Dhanteras|Festival day welcoming auspicious prosperity|festival
+Dharma|Righteous conduct and sacred duty|hinduism
+Dhokla|Steamed Gujarati snack made from fermented batter|food
+Dholak|A hand drum used in devotional music|worship
+Dhoti|Traditional lower garment worn by men|gujarati
 Dhun|Repetitive chanting of God's name|worship
 Dhyan|Meditation and focused remembrance|worship
 Diksha|Formal spiritual initiation|satsang
 Divyabhav|Seeing the divine qualities of God and the Satpurush|swaminarayan
 Diwali|The Hindu festival of lights|festival
+Draupadi|Wife of the Pandavas in the Mahabharata|hinduism
+Durga|The powerful mother goddess|hinduism
+Dussehra|Festival celebrating the victory of dharma|festival
+Dwarka|Krishna's sacred coastal city in Gujarat|place
 Ekadashi|A sacred fasting day on the eleventh lunar day|festival
 Ekantik Dharma|Dharma, jnan, vairagya and bhakti together|swaminarayan
+Fafda|Crispy Gujarati snack often eaten with jalebi|food
 Gadhada|Town where many Vachanamrut discourses were delivered|place
-Ganesh|The elephant-headed remover of obstacles|deity
+Ganesh|The elephant-headed remover of obstacles|hinduism
 Ganga|India's sacred river|place
+Garbhagruh|The innermost shrine of a mandir|worship
+Garuda|The eagle-like vehicle of Vishnu|hinduism
+Gayatri|A revered Vedic mantra|worship
+Ghanthi|A knot, often referring to a spiritual resolve|gujarati
+Ghanshyam|Childhood name of Bhagwan Swaminarayan|swaminarayan
+Ghanta|A temple bell rung during worship|worship
 Ghar Sabha|A regular spiritual assembly held at home|community
-Ghee|Clarified butter used in food and rituals|worship
+Ghee|Clarified butter used in food and rituals|food
+Girnar|Sacred mountain in Gujarat|place
 Gita|Sacred dialogue between Krishna and Arjuna|scripture
-Gnan|Spiritual knowledge|philosophy
+Gnan|Spiritual knowledge|hinduism
+Gokul|Village associated with Krishna's childhood|place
 Goloka|The divine abode associated with Krishna|place
-Gopi|A devotee remembered for pure love of Krishna|devotion
+Gondal|Gujarat town with a Swaminarayan mandir|place
+Gopi|A devotee remembered for pure love of Krishna|hinduism
+Gopuram|Monumental gateway of a Hindu temple|worship
 Govardhan|The sacred hill lifted by Krishna|place
+Govinda|A beloved name of Krishna|hinduism
+Grihastha|The householder stage of life|hinduism
+Gujarat|Western Indian state of Swaminarayan origins|place
+Gunatit|Beyond the three gunas|swaminarayan
+Gunatitanand|The first spiritual successor of Bhagwan Swaminarayan|swaminarayan
 Guru|A spiritual teacher who dispels ignorance|satsang
 Guru Bhakti|Devotion to the spiritual guru|swaminarayan
 Guru Purnima|Festival honouring the spiritual teacher|festival
 Gurukul|A traditional place of learning with a guru|community
-Gunatit|Beyond the three gunas|swaminarayan
-Gunatitanand|The first spiritual successor of Bhagwan Swaminarayan|swaminarayan
-Gunas|The three qualities of sattva, rajas and tamas|philosophy
-Hanuman|Ram's devoted servant, known for strength and bhakti|deity
+Hanuman|Ram's devoted servant, known for strength and bhakti|hinduism
+Hari|A beloved name of God|hinduism
+Haribol|A joyful call to chant God's name|hinduism
 Havan|A sacred fire ceremony|worship
 Holi|Spring festival of colour|festival
-Jagannath|A celebrated form of Krishna|deity
+Jagannath|A celebrated form of Krishna|hinduism
 Jai|An exclamation of victory or praise|worship
+Jalaram|Gujarati saint renowned for service and hospitality|gujarati
+Jalebi|Spiral sweet often paired with fafda|food
 Janmashtami|Festival celebrating Krishna's birth|festival
 Japa|Repetition of a divine name or mantra|worship
-Jiva|An individual eternal soul|philosophy
-Jnan|Knowledge of the self and God|philosophy
-Kaliyug|The fourth and present age in the cycle of yugas|philosophy
-Karma|Action and its moral consequence|philosophy
+Japmala|Rosary used for repeating God's name|worship
+Jayanti|A sacred birth anniversary celebration|festival
+Jetpur|Gujarat town linked with Swaminarayan history|place
+Jiva|An individual eternal soul|hinduism
+Jnan|Knowledge of the self and God|hinduism
+Junagadh|Gujarat city near Girnar|place
+Jyot|A sacred flame or lamp|worship
+Kadhi|Yogurt-based Gujarati curry|food
+Kailash|Sacred mountain abode associated with Shiva|place
+Kalash|A sacred water vessel used in rituals|worship
+Kaliyug|The present age in the cycle of yugas|hinduism
+Kanthi|Double-stranded necklace worn by Swaminarayan devotees|swaminarayan
+Karma|Action and its moral consequence|hinduism
+Karyakar|A volunteer worker in satsang|community
 Katha|A spiritual discourse on scripture|satsang
+Kedarnath|Himalayan pilgrimage shrine dedicated to Shiva|place
+Khes|A shawl or wrap worn in Gujarati tradition|gujarati
+Khichdi|Simple rice and lentil dish|food
 Kirtan|A devotional hymn or song|worship
-Kishore|A teenager or youth|community
-Krishna|The divine teacher of the Bhagavad Gita|deity
+Kishore|A teenage boy in satsang|community
+Kishori|A teenage girl in satsang|community
+Krishna|The divine teacher of the Bhagavad Gita|hinduism
 Krupa|Grace|value
-Lakshmi|Goddess associated with prosperity|deity
+Kumkum|Red powder used for auspicious forehead marks|worship
+Kurukshetra|Field where the Bhagavad Gita was taught|place
+Kutch|Region of Gujarat with deep Swaminarayan roots|place
+Ladoo|A round Indian sweet commonly offered as prasad|food
+Lakshmi|Goddess associated with prosperity|hinduism
+Lassi|Sweet or salty yogurt drink|food
 Lila|A divine act or sacred episode|hinduism
+Loj|Village where Nilkanth Varni met Ramanand Swami|place
 Mahabharata|Epic containing the Bhagavad Gita|scripture
-Mahadev|A revered name of Shiva meaning great God|deity
+Mahadev|A revered name of Shiva meaning great God|hinduism
 Mahant|A senior sadhu or spiritual leader|satsang
-Mahima|Understanding divine glory and greatness|devotion
 Mahapuja|An extended communal form of worship|worship
+Maharaj|A respectful title for a spiritual leader|satsang
+Mahashivratri|Festival night devoted to Shiva|festival
+Mahila|A woman; also a satsang group for women|community
+Mahima|Understanding divine glory and greatness|devotion
+Makar Sankranti|Harvest festival also known as Uttarayan|festival
 Mala|Rosary beads used for mantra repetition|worship
 Mandal|A local satsang group or centre|community
 Mandir|A Hindu temple|worship
 Mantra|Sacred words repeated in prayer or meditation|worship
-Maya|That which causes attachment and spiritual ignorance|philosophy
-Moksha|Liberation from rebirth and maya|philosophy
+Mathura|Sacred birthplace of Krishna|place
+Maya|That which causes attachment and spiritual ignorance|hinduism
+Modak|Sweet traditionally offered to Ganesh|food
+Moksha|Liberation from rebirth and maya|hinduism
+Mridang|A double-headed drum used in devotional music|worship
 Murti|A sacred image or embodied form of a deity|worship
-Narayan|A name of the supreme Lord|deity
+Narayan|A name of the supreme Lord|hinduism
 Narnarayan|The divine pair worshipped at Ahmedabad|swaminarayan
-Nirakar|Without a material form|philosophy
-Nirgun|Beyond material qualities|philosophy
-Nirvikalp|A state of unwavering conviction and absorption|swaminarayan
+Navratri|Nine-night festival honouring the divine mother|festival
+Nilkanth|Youthful name of Bhagwan Swaminarayan during his travels|swaminarayan
 Nischay|Firm conviction in God|devotion
 Nitya Puja|Daily personal worship|worship
 Niyam|A spiritual rule or daily observance|satsang
-Paramatma|The supreme self or God|philosophy
+Omkar|The sacred sound Om|worship
+Pagh|A traditional turban worn in Gujarat|gujarati
+Palitana|Jain and Hindu pilgrimage town in Gujarat|place
+Panchamrut|Fivefold sacred mixture used in abhishek|worship
+Pandava|One of the five righteous brothers in the Mahabharata|hinduism
 Parabrahman|The supreme God, Purushottam|swaminarayan
+Paramatma|The supreme self or God|hinduism
 Paramhansa|A sadhu of the highest renounced order|swaminarayan
 Parikrama|Walking reverently around a sacred object or shrine|worship
 Parshad|An initiated renunciant dressed in white|swaminarayan
+Pedha|A milk sweet often offered as prasad|food
 Pradakshina|Clockwise circumambulation during worship|worship
 Pragat|Manifest and present|swaminarayan
 Pramukh|One who leads or presides|swaminarayan
+Pramukh Swami|Fifth spiritual successor of Bhagwan Swaminarayan|swaminarayan
 Prarthana|A heartfelt prayer|worship
 Prasad|Food sanctified by offering it to God|worship
 Prasadi|Something sanctified through association with God|swaminarayan
 Prem|Selfless spiritual love|value
 Puja|Ritual and personal worship|worship
-Punya|Spiritual merit from righteous action|philosophy
+Punya|Spiritual merit from righteous action|hinduism
+Puri|Deep-fried flatbread|food
 Purushottam|The supreme person, beyond all other realities|swaminarayan
-Ram|The righteous king and avatar celebrated in the Ramayana|deity
+Radha|Beloved devotee associated with Krishna|hinduism
+Rajkot|Major Gujarat city with a large Swaminarayan presence|place
+Raksha Bandhan|Festival celebrating a protective bond|festival
+Ram|The righteous king and avatar celebrated in the Ramayana|hinduism
+Ramanavami|Festival celebrating the birth of Bhagwan Ram|festival
 Ramayana|Epic recounting the life of Bhagwan Ram|scripture
 Rangoli|Decorative floor art made for auspicious occasions|festival
-Rishi|An inspired sage or seer|satsang
+Rishi|An inspired sage or seer|hinduism
+Rotli|Soft Gujarati flatbread|food
+Rudraksha|Sacred seed beads associated with Shiva|worship
 Sabha|A spiritual assembly|community
 Sadachar|Moral and disciplined conduct|value
 Sadhak|An aspirant following a spiritual path|satsang
 Sadhana|Disciplined spiritual practice|satsang
 Sadhu|A holy renunciant|satsang
 Sadhvi|A female renunciant|satsang
-Sahasranam|A litany of one thousand divine names|scripture
-Samadhi|A state of deep spiritual absorption|philosophy
+Saffron|Colour associated with renunciation and holiness|satsang
+Samadhi|A state of deep spiritual absorption|hinduism
 Samagam|Spiritual association with saints and devotees|satsang
 Sampraday|A religious tradition or fellowship|community
-Samsara|The cycle of worldly birth and death|philosophy
-Sanskrit|Classical language of many Hindu scriptures|scripture
+Samsara|The cycle of worldly birth and death|hinduism
+Sanchalak|A coordinator or organiser in satsang|community
+Sankalp|A solemn spiritual resolve|worship
 Sant|A saint or holy person|satsang
 Sanstha|An organised religious fellowship|community
-Saraswati|Goddess associated with learning and the arts|deity
+Sarangpur|Major Swaminarayan pilgrimage centre in Gujarat|place
+Saraswati|Goddess associated with learning and the arts|hinduism
+Sarovar|A sacred lake or reservoir|place
 Satpurush|The God-realised saint who guides seekers|swaminarayan
 Satsang|Holy fellowship and association with truth|swaminarayan
 Satsangi|A member of the satsang fellowship|community
 Satya|Truth|value
+Sev|Crispy chickpea noodle snack|food
 Seva|Selfless voluntary service|devotion
 Sevak|One who serves|devotion
+Shaak|Gujarati vegetable curry|food
+Shakti|Divine power, often personified as the goddess|hinduism
 Shangar|Adornment of a murti|worship
+Shankh|A conch shell sounded during worship|worship
 Shanti|Peace|value
+Sharad Purnima|Autumn full-moon festival|festival
 Shastra|A sacred or authoritative scripture|scripture
+Shikhar|The towering spire of a mandir|worship
 Shikshapatri|Bhagwan Swaminarayan's code of conduct|swaminarayan
-Shiva|The deity associated with transformation|deity
-Shlok|A verse from a Sanskrit scripture|scripture
+Shirdi|Pilgrimage town associated with Sai Baba|place
+Shiva|The deity associated with transformation|hinduism
+Shivling|Sacred symbol worshipped as Shiva|worship
+Shlok|A verse from a sacred scripture|scripture
 Shraddha|Faith and reverence|devotion
+Shrawan|A month of special devotion in the Hindu calendar|festival
 Shreeji Maharaj|A loving name for Bhagwan Swaminarayan|swaminarayan
-Shruti|Revealed Hindu scripture|scripture
-Smruti|Remembered sacred tradition and scripture|scripture
-Swabhav|One's ingrained nature or habit|philosophy
-Swadharma|Living according to one's righteous duty|philosophy
+Sinhasan|The throne or seat for a murti|worship
+Sita|Ram's devoted consort in the Ramayana|hinduism
+Somnath|Ancient jyotirlinga pilgrimage shrine in Gujarat|place
+Sukhdi|Sweet Gujarati prasad made with wheat flour and ghee|food
+Surya|The sun deity|hinduism
+Swabhav|One's ingrained nature or habit|hinduism
+Swadharma|Living according to one's righteous duty|hinduism
 Swami|A title for a spiritual master or renunciant|satsang
 Swaminarayan|Bhagwan Swaminarayan and his sacred mantra|swaminarayan
-Swarup|Divine form or essential nature|philosophy
+Swarup|Divine form or essential nature|hinduism
+Swastik|Ancient auspicious Hindu symbol of wellbeing|worship
 Tapa|Religious austerity|satsang
-Tej|Divine radiance|philosophy
-Thaad|A devotional offering arranged before a murti|worship
-Thaal|A devotional song sung while offering food|worship
+Tapasya|Spiritual austerity and disciplined effort|satsang
+Tej|Divine radiance|hinduism
+Thaal|A plate of food offered to God with devotion|worship
+Thepla|Spiced Gujarati flatbread|food
 Tilak|The U-shaped sacred mark worn on the forehead|swaminarayan
 Tilak Chandlo|The forehead marks worn by Swaminarayan devotees|swaminarayan
 Tirth|A sacred pilgrimage place|place
+Tithal|Coastal Swaminarayan pilgrimage place in Gujarat|place
+Torana|Decorative gateway or auspicious door hanging|festival
+Tridev|The divine triad of Brahma, Vishnu and Shiva|hinduism
+Trishul|The trident associated with Shiva|hinduism
 Tulsi|Holy basil revered in Hindu worship|worship
+Undhiyu|Traditional Gujarati mixed-vegetable dish|food
 Upanishad|A philosophical scripture of the Vedas|scripture
 Upasana|The doctrine and practice of worship|swaminarayan
 Utsav|A sacred celebration or festival|festival
+Uttarayan|Gujarati kite festival marking the sun's northward path|festival
 Vachanamrut|Principal collection of Bhagwan Swaminarayan's discourses|swaminarayan
-Vairagya|Detachment from worldly pleasures|philosophy
+Vadtal|Swaminarayan pilgrimage town in Gujarat|place
+Vaikunth|The divine abode associated with Vishnu|place
+Vairagya|Detachment from worldly pleasures|hinduism
+Varanasi|Ancient sacred city on the Ganga|place
+Vasant|The spring season|festival
 Vartal|A principal Swaminarayan pilgrimage town|place
 Vato|Spiritual talks or discourses|swaminarayan
 Veda|Ancient revealed Hindu scripture|scripture
-Vedanta|Philosophical teaching based on the Upanishads|philosophy
-Vishnu|The all-pervading preserver|deity
+Vedas|The four foundational revealed scriptures|scripture
+Vishnu|The all-pervading preserver|hinduism
 Vivek|Spiritual discrimination between right and wrong|value
 Vrat|A religious vow or fast|worship
+Vrindavan|Sacred place of Krishna's childhood lilas|place
 Yagna|A sacred offering or sacrifice|worship
 Yamuna|Sacred river associated with Krishna|place
-Yoga|A disciplined path toward spiritual union|philosophy
+Yashoda|Krishna's loving foster mother|hinduism
+Yatra|A sacred pilgrimage journey|worship
+Yoga|A disciplined path toward spiritual union|hinduism
 Yogi|One who practises yoga and spiritual discipline|satsang
 Yogiji Maharaj|Fourth spiritual successor of Bhagwan Swaminarayan|swaminarayan
-Abhishek|Ritual bathing of a sacred murti|worship
-Advaita|The Vedantic school teaching non-duality|philosophy
-Agni|The Vedic deity of fire|deity
-Alakshmi|A figure representing misfortune|deity
-Anjali|A gesture of reverence with joined palms|worship
-Antaryami|God as the inner controller of all beings|philosophy
-Arjuna|Warrior taught by Krishna in the Bhagavad Gita|scripture
-Artha|Righteous material wellbeing, one of life's aims|philosophy
-Ashirwad|A blessing|worship
-Ashoka|A sacred tree and a name meaning without sorrow|hinduism
-Asura|A powerful being often opposed to the devas|scripture
-Ayurveda|Traditional Hindu system of health and wellbeing|philosophy
-Badrinath|Himalayan pilgrimage shrine dedicated to Vishnu|place
-Bhagavat|Relating to the blessed Lord|scripture
-Bhasma|Sacred ash used in worship|worship
-Bhog|Food prepared as an offering to God|worship
-Bhumi|The earth, revered as a divine mother|deity
-Chaitra|A month in the Hindu lunar calendar|festival
-Chakra|A wheel or spiritual energy centre|hinduism
-Charan|The feet, especially the revered feet of God or guru|devotion
-Charanarvind|The lotus feet of God|devotion
-Damaru|The small drum associated with Shiva|worship
-Devaki|Mother of Krishna|scripture
-Dhanteras|Festival day welcoming auspicious prosperity|festival
-Dholak|A hand drum used in devotional music|worship
-Durga|The powerful mother goddess|deity
-Dussehra|Festival celebrating the victory of dharma|festival
-Dwarka|Krishna's sacred coastal city|place
-Garbhagruh|The innermost shrine of a mandir|worship
-Garuda|The eagle-like vehicle of Vishnu|deity
-Gayatri|A revered Vedic mantra and divine mother|worship
-Ghanshyam|Childhood name of Bhagwan Swaminarayan|swaminarayan
-Girnar|Sacred mountain in Gujarat|place
-Gokul|Village associated with Krishna's childhood|place
-Gopuram|Monumental gateway of a Hindu temple|worship
-Govinda|A beloved name of Krishna|deity
-Grihastha|The householder stage of life|philosophy
-Indra|Vedic king of the devas|deity
-Jagat|The world or created universe|philosophy
-Jalaram|Gujarati saint renowned for service and hospitality|satsang
-Jatayu|The noble bird who aided Ram in the Ramayana|scripture
-Jayanti|A sacred birth anniversary celebration|festival
-Kailash|Sacred mountain abode associated with Shiva|place
-Kalash|A sacred water vessel used in rituals|worship
-Kans|The tyrant defeated by Krishna|scripture
-Kedarnath|Himalayan pilgrimage shrine dedicated to Shiva|place
-Kumkum|Red powder used for auspicious forehead marks|worship
-Kurukshetra|Field where the Bhagavad Gita was taught|place
-Ladoo|A round Indian sweet commonly offered as prasad|food
-Mahashivratri|Festival night devoted to Shiva|festival
-Manas|The mind or faculty of thought|philosophy
-Mathura|Sacred birthplace of Krishna|place
-Modak|Sweet traditionally offered to Ganesh|food
-Mridang|A double-headed drum used in devotional music|worship
-Navratri|Nine-night festival honouring the divine mother|festival
-Nilkanth|Youthful name of Bhagwan Swaminarayan during his travels|swaminarayan
-Omkar|The sacred sound Om|worship
-Panchamrut|Fivefold sacred mixture used in abhishek|worship
-Pandava|One of the five righteous brothers in the Mahabharata|scripture
-Pongal|Harvest festival celebrated in southern India|festival
-Raksha Bandhan|Festival celebrating a protective bond|festival
-Ramanavami|Festival celebrating the birth of Bhagwan Ram|festival
-Rameshwaram|Southern pilgrimage place associated with Ram and Shiva|place
-Rudra|A powerful Vedic name and form of Shiva|deity
-Rudraksha|Sacred seed beads associated with Shiva|worship
-Saffron|Colour associated with renunciation and holiness|satsang
-Samprapti|Attainment or arrival|philosophy
-Sankalp|A solemn spiritual resolve|worship
-Saras|Graceful or full of essence|value
-Sarovar|A sacred lake or reservoir|place
-Shakti|Divine power, often personified as the goddess|philosophy
-Shankh|A conch shell sounded during worship|worship
-Shivling|Sacred symbol worshipped as Shiva|worship
-Shrawan|A month of special devotion in the Hindu calendar|festival
-Sita|Ram's devoted consort in the Ramayana|scripture
-Somnath|Ancient jyotirlinga pilgrimage shrine in Gujarat|place
-Sudarshan|Vishnu's divine discus|deity
-Sugriva|Ally of Ram and king of the vanaras|scripture
-Surya|The sun deity|deity
-Sutra|A concise sacred teaching or aphorism|scripture
-Swastik|Ancient auspicious Hindu symbol of wellbeing|worship
-Tapasya|Spiritual austerity and disciplined effort|satsang
-Torana|Decorative gateway or auspicious door hanging|festival
-Tridev|The divine triad of Brahma, Vishnu and Shiva|deity
-Trishul|The trident associated with Shiva|deity
-Vaikunth|The divine abode associated with Vishnu|place
-Vanaprastha|The forest-dweller stage of life|philosophy
-Varanasi|Ancient sacred city on the Ganga|place
-Vasant|The spring season|festival
-Vedas|The four foundational revealed scriptures|scripture
-Vrindavan|Sacred place of Krishna's childhood lilas|place
-Vyas|Sage traditionally credited with compiling the Vedas|scripture
-Yajurveda|Veda containing formulas for sacred rituals|scripture
-Yashoda|Krishna's loving foster mother|scripture
-Yatra|A sacred pilgrimage journey|worship
-Yuga|A great age in the Hindu cycle of time|philosophy
+Yuga|A great age in the Hindu cycle of time|hinduism
+Yuvak|A young man in satsang|community
+Yuvati|A young woman in satsang|community
+Aasan|A seat or posture used in worship and yoga|worship
+Ambaji|Popular mother-goddess pilgrimage place in Gujarat|place
+Ashtak|A set of eight verses in praise of God|scripture
+Bhaktiyoga|The path of loving devotion|hinduism
+Bhajanmandali|A group that sings bhajans together|community
+Brahmanand|A celebrated poet-sant of the Swaminarayan tradition|swaminarayan
+Chaitanya|Spiritual awareness or divine consciousness|hinduism
+Chorasi|A traditional gathering or group of eighty-four|community
+Dandvat|Full-body prostration before God or a murti|worship
+Divo|A small oil lamp used in Gujarati homes and mandirs|gujarati
+Gadi|The spiritual seat or throne of a tradition|satsang
+Ghee lamp|A lamp fuelled by clarified butter for aarti|worship
+Harijan|A loving servant of God|devotion
+Harikrishna|A beloved name of Bhagwan Swaminarayan|swaminarayan
+Jai Swaminarayan|The greeting used among Swaminarayan devotees|swaminarayan
+Katha varta|Spiritual storytelling and discourse|satsang
+Kirtankars|Devotees who lead kirtan singing|community
+Mahaprasad|Food that has been offered and shared as blessing|worship
+Manan|Quiet reflection on spiritual teaching|satsang
+Mangal aarti|Early-morning aarti performed at the mandir|worship
+Mukta|A liberated soul|hinduism
+Mukti|Liberation|hinduism
+Nitya|Eternal or daily|hinduism
+Panchang|The Hindu calendar used for festivals and observances|hinduism
+Prarthana sabha|A prayer assembly|community
+Rajbhog|The midday food offering to God|worship
+Ramanand Swami|Guru of Bhagwan Swaminarayan|swaminarayan
+Sadhuta|The quality of saintliness|satsang
+Sahajanand|A sacred name of Bhagwan Swaminarayan|swaminarayan
+Sandhya aarti|Evening aarti performed at dusk|worship
+Sant samagam|Gathering in the company of saints|satsang
+Sarva|All or everything, as in all-pervading God|hinduism
+Sharanagati|Complete surrender to God|devotion
+Shayan aarti|Night-time aarti before resting the murti|worship
+Shravan|Listening attentively to spiritual discourses|satsang
+Siddhanta|Core doctrine of a spiritual tradition|satsang
+Smruti|Sacred remembrance or remembered tradition|hinduism
+Sneha|Affectionate spiritual love|value
+Stotra|A hymn of praise|scripture
+Thakorji|Affectionate name for the murti of God|swaminarayan
+Tyag|Renunciation|hinduism
+Tyagi|One who has renounced worldly life|satsang
+Utsahi|An enthusiastic devotee|community
+Vandan|Respectful salutation|worship
+Vidya|Knowledge or learning|hinduism
+Vishay|Worldly sense-object|hinduism
+Vruti|Tendency of the mind|hinduism
+Yagna kund|Fire pit used for a havan|worship
+Yuva Mandal|Satsang group for young adults|community
 """.strip()
-
-
-def fetch_text(url: str, file_env: str = "") -> str:
-    if file_env and os.environ.get(file_env):
-        return Path(os.environ[file_env]).read_text(encoding="utf-8")
-    req = urllib.request.Request(url, headers={"User-Agent": "Bhaktiras word-bank generator"})
-    with urllib.request.urlopen(req, timeout=30) as response:
-        return response.read().decode("utf-8-sig")
 
 
 def answer_for(value: str) -> str:
@@ -385,50 +431,17 @@ def main() -> None:
         display, clue, category = line.split("|", 2)
         add_entry(rows, seen, display, clue, category, "Bhaktiras curated")
 
-    hindu_csv = csv.DictReader(io.StringIO(fetch_text(HINDU_NAMES_URL, "WORD_BANK_HINDU_NAMES_FILE")))
-    for item in hindu_csv:
-        deity = item.get("Deity", "").strip() or "a Hindu deity"
-        name = item.get("Name", "").strip()
-        meaning = item.get("Meaning", "").strip()
-        clue = f"{meaning} — a sacred name associated with {deity}" if meaning else f"A sacred name associated with {deity}"
-        add_entry(rows, seen, name, clue, f"{deity.lower()}-name", "Hindu Gods DB (CC BY 4.0)")
-
-    shiva_text = fetch_text(SHIVA_NAMES_URL, "WORD_BANK_SHIVA_NAMES_FILE")
-    shiva_start = shiva_text.find("Shiva – Pure")
-    shiva_end = shiva_text.find("Sarvayoni – Source Of Everything", shiva_start)
-    shiva_section = shiva_text[shiva_start:shiva_end + 100]
-    shiva_items = re.findall(r"<li[^>]*>(.*?)</li>", shiva_section, flags=re.DOTALL)
-    if not shiva_items:
-        shiva_items = re.findall(r"^\d+\.\s+(.+)$", shiva_section, flags=re.MULTILINE)
-    for item in shiva_items:
-        text = html.unescape(re.sub(r"<[^>]+>", "", item))
-        parts = re.split(r"\s+[–—-]\s+", text, maxsplit=1)
-        name = parts[0].strip()
-        if name:
-            add_entry(rows, seen, name, "A sacred name of Shiva", "shiva-name", "Shiva Sahasranama")
-
-    vishnu_names = json.loads(fetch_text(VISHNU_NAMES_URL, "WORD_BANK_VISHNU_NAMES_FILE"))
-    for item in vishnu_names:
-        add_entry(
-            rows,
-            seen,
-            str(item.get("name", "")),
-            str(item.get("meaning", "")) or "A sacred name of Vishnu",
-            "vishnu-name",
-            "Vishnu Sahasranama Atlas",
-        )
-
-    if len(rows) < TARGET_COUNT:
-        raise RuntimeError(f"Only generated {len(rows)} entries; need {TARGET_COUNT}")
-
-    rows = rows[:TARGET_COUNT]
-    # Re-number after truncation so IDs remain a simple stable sequence.
     for index, row in enumerate(rows, 1):
         row["id"] = f"word-{index:04d}"
 
     OUTPUT.write_text(json.dumps(rows, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     unique_answers = len({row["answer"] for row in rows})
+    by_game = {
+        game: sum(1 for row in rows if game in row["games"])
+        for game in ("wordle", "crossword", "spelling-bee")
+    }
     print(f"Wrote {len(rows)} entries ({unique_answers} unique answers) to {OUTPUT}")
+    print(f"Game coverage: {by_game}")
 
 
 if __name__ == "__main__":

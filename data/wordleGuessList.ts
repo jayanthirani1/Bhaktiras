@@ -3,6 +3,7 @@
  * WORD_LEN / WORDLE_WORDS / getWordForDate (those live only in wordleDaily).
  */
 import { WORDLE_WORDS } from '~/utils/wordleDaily'
+import { FIVE_LETTER_WORDS } from '~/data/fiveLetterWords'
 
 const LEN = 5
 
@@ -70,7 +71,7 @@ const WORD_SET = new Set(VALID_WORDS)
 export const WORDS = Array.from(WORD_SET)
 
 const commonUpper = COMMON_FIVE_LETTER_WORDS.filter((w) => w.length === LEN).map((w) => w.toUpperCase())
-const ALLOWED_GUESS_SET = new Set([...Array.from(WORD_SET), ...commonUpper])
+const ALLOWED_GUESS_SET = new Set([...Array.from(WORD_SET), ...commonUpper, ...FIVE_LETTER_WORDS])
 
 export function getRandomWord(): string {
   if (WORDS.length === 0) return 'BHAKT'

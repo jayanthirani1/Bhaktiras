@@ -1,7 +1,7 @@
 # Satsang game word bank
 
-`satsangWordBank.json` is a generated, offline dataset of exactly 2,000
-vocabulary entries used by Wordle, Crossword and Spelling Bee.
+`satsangWordBank.json` is a curated, offline vocabulary used by Wordle,
+Crossword and Spelling Bee.
 
 Each entry contains:
 
@@ -10,14 +10,23 @@ Each entry contains:
 - a clue, category and source;
 - the games for which its length and letter pattern are compatible.
 
-## Sources
+## Scope
 
-1. Bhaktiras-curated Swaminarayan, satsang and general Hindu vocabulary.
-2. [Hindu Gods DB](https://huggingface.co/datasets/aryansai/Hindu-Gods-DB)
-   by Aryan Sai, used under CC BY 4.0.
-3. Shiva Sahasranama names, used as sacred-name vocabulary.
-4. [Vishnu Sahasranama Atlas](https://github.com/sahasranama/sahasranama.github.io),
-   an educational dataset of the 1,000 names of Vishnu.
+Only familiar Swaminarayan, Gujarati and basic Hinduism terms are included.
+Obscure Sanskrit deity-name lists (Sahasranama dumps and similar) are
+intentionally excluded so players meet words they know from mandir and
+satsang life.
+
+## Source
+
+Bhaktiras-curated vocabulary in `scripts/generate_word_bank.py`.
+
+Admins can still add custom words from **Admin → Game Word Bank**; those
+merge on top of this built-in list at runtime.
+
+After regenerating this file, bump `WORD_BANK_VERSION` in
+`utils/gameStorageReset.ts` so browsers clear cached daily game progress
+(Wordle guesses, Mini Crossword fills, 1% Club runs, and related timers).
 
 The normalised ASCII answer is intentionally separate from the display name.
 For example, spaces and diacritics can be retained for readers without
