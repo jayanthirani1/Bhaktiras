@@ -109,6 +109,7 @@ function handleOptionSelect(option: string) {
       isCorrect.value = null
     } else {
       isFinished.value = true
+      markPlayDone('quiz')
     }
   }, 1500)
 }

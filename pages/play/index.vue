@@ -43,9 +43,20 @@
           v-for="game in games"
           :key="game.slug"
           :to="game.href"
-          class="block rounded-2xl border-2 bg-gradient-to-br p-6 transition-all duration-200 hover:shadow-lg hover:scale-[1.02] active:scale-[0.99]"
-          :class="game.color"
+          class="relative block rounded-2xl border-2 bg-gradient-to-br p-6 transition-all duration-200 hover:shadow-lg hover:scale-[1.02] active:scale-[0.99]"
+          :class="[
+            game.color,
+            done[game.slug]
+              ? '!border-emerald-500 ring-2 ring-emerald-500/25 shadow-[0_0_0_1px_rgba(16,185,129,0.15)]'
+              : ''
+          ]"
         >
+          <span
+            v-if="done[game.slug]"
+            class="absolute right-4 top-4 rounded-full bg-emerald-500 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-white"
+          >
+            Done today
+          </span>
           <div
             class="inline-flex items-center justify-center w-14 h-14 rounded-xl mb-4"
             :class="game.iconBg"
@@ -58,7 +69,19 @@
           <p class="text-[hsl(var(--muted-foreground))] text-sm leading-relaxed mb-4">
             {{ game.description }}
           </p>
-          <span class="inline-flex items-center gap-1 text-sm font-semibold text-[hsl(var(--foreground))]">
+          <template v-if="done[game.slug]">
+            <span class="inline-flex items-center gap-1 text-sm font-semibold text-emerald-700">
+              See your results
+              <IconArrowRight class="w-4 h-4" />
+            </span>
+            <p class="mt-1.5 text-xs text-emerald-700/80">
+              Come back tomorrow for a new challenge
+            </p>
+          </template>
+          <span
+            v-else
+            class="inline-flex items-center gap-1 text-sm font-semibold text-[hsl(var(--foreground))]"
+          >
             Play
             <IconArrowRight class="w-4 h-4" />
           </span>
@@ -80,6 +103,8 @@ import {
   IconArrowRight
 } from '@tabler/icons-vue'
 
+import type { PlayGameSlug } from '~/utils/playCompletion'
+
 const auth = useAuth()
 const isLoggedIn = computed(() => !!auth.user.value)
 const { record: streak, recording: streakLoading } = usePlayStreak()
@@ -87,7 +112,15 @@ const { record: streak, recording: streakLoading } = usePlayStreak()
 const card = 'from-[hsl(var(--primary))]/40 to-[hsl(var(--accent))]/10 border-[hsl(var(--golden-200))] hover:border-[hsl(var(--accent))]'
 const icon = 'bg-[hsl(var(--primary))] text-[hsl(var(--accent))]'
 
-const games = [
+const games: Array<{
+  slug: PlayGameSlug
+  title: string
+  description: string
+  icon: typeof IconTypography
+  href: string
+  color: string
+  iconBg: string
+}> = [
   { slug: 'wordle', title: 'Wordle', description: 'Guess the word in six tries — timer keeps going if you leave.', icon: IconTypography, href: '/play/wordle', color: card, iconBg: icon },
   { slug: 'mini-crossword', title: 'Mini Crossword', description: 'A quick Telegraph-style mini. Beat the clock.', icon: IconLayoutGrid, href: '/play/mini-crossword', color: card, iconBg: icon },
   { slug: 'one-percent', title: '1% Club', description: 'Climb from 90% to 1%. One wrong answer ends your run.', icon: IconChartBar, href: '/play/one-percent', color: card, iconBg: icon },
@@ -95,4 +128,6 @@ const games = [
   { slug: 'quiz', title: 'Devotional Quiz', description: "Test your knowledge about our temple's history and traditions.", icon: IconBrain, href: '/play/quiz', color: card, iconBg: icon },
   { slug: 'spelling-bee', title: 'Spelling Bee', description: 'Make words from the hive. Every word must use the center letter.', icon: IconHexagon, href: '/play/spelling-bee', color: card, iconBg: icon }
 ]
+
+const { done } = usePlayCompletion(games.map(g => g.slug))
 </script>

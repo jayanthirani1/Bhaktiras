@@ -42,6 +42,13 @@ function mapCustomGameWords(snap: Awaited<ReturnType<typeof getDocs>>): GameWord
   }).filter(entry => entry.answer.length >= 3 && entry.answer.length <= 24 && entry.clue)
 }
 
+export async function fetchMergedGameWords(): Promise<GameWordEntry[]> {
+  const db = getDb()
+  if (!db) return mergeGameWords()
+  const snap = await getDocs(collection(db, 'gameWords'))
+  return mergeGameWords(mapCustomGameWords(snap))
+}
+
 export function useQuizQuestions() {
   const questions = ref<QuizQuestion[]>(FALLBACK_QUIZ)
   const loading = ref(true)
@@ -89,7 +96,8 @@ export function useSpellingBeePuzzles() {
 }
 
 export function useCrosswordPuzzles() {
-  const dailyPuzzle = createWordBankCrossword(wordleDateId())
+  const today = wordleDateId()
+  const dailyPuzzle = createWordBankCrossword(today)
   const puzzles = ref<CrosswordPuzzle[]>([dailyPuzzle])
   const loading = ref(true)
 
@@ -103,8 +111,10 @@ export function useCrosswordPuzzles() {
       ])
       const remote = snap.docs.map(d => ({ id: d.id, ...d.data() } as CrosswordPuzzle))
         .filter(p => p.title && p.clues?.length)
-      const customDaily = createWordBankCrossword(wordleDateId(), 10, mergeGameWords(mapCustomGameWords(wordSnap)))
-      puzzles.value = [customDaily, ...remote]
+      const customDaily = createWordBankCrossword(today, 10, mergeGameWords(mapCustomGameWords(wordSnap)))
+      const overrideId = `daily-${today}`
+      const override = remote.find(p => p.id === overrideId)
+      puzzles.value = [override || customDaily, ...remote.filter(p => p.id !== overrideId)]
     } finally {
       loading.value = false
     }
@@ -114,7 +124,8 @@ export function useCrosswordPuzzles() {
 }
 
 export function useMiniCrosswordPuzzles() {
-  const dailyPuzzle = createWordBankMiniCrossword(wordleDateId())
+  const today = wordleDateId()
+  const dailyPuzzle = createWordBankMiniCrossword(today)
   const puzzles = ref<CrosswordPuzzle[]>([dailyPuzzle])
   const loading = ref(true)
 
@@ -129,14 +140,18 @@ export function useMiniCrosswordPuzzles() {
       const remote = snap.docs.map(d => ({ id: d.id, ...d.data() } as CrosswordPuzzle))
         .filter(p => p.title && p.clues?.length)
       const customDaily = createWordBankMiniCrossword(
-        wordleDateId(),
+        today,
         mergeGameWords(mapCustomGameWords(wordSnap))
       )
+      const overrideId = `daily-${today}`
+      const override = remote.find(p => p.id === overrideId)
       // The generated puzzle is the only player-facing mini. Admin-authored
       // puzzles and the built-in mini remain safe fallbacks if generation
       // ever has too few usable words.
-      puzzles.value = customDaily.clues.length >= 4
-        ? [customDaily]
+      puzzles.value = override
+        ? [override]
+        : customDaily.clues.length >= 4
+          ? [customDaily]
         : [remote[0] || { ...DEFAULT_MINI_CROSSWORD }]
     } finally {
       loading.value = false

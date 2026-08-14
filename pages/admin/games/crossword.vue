@@ -1,6 +1,12 @@
 <template>
   <div>
     <p v-if="error" class="mb-3 text-sm text-red-600">{{ error }}</p>
+    <AdminDailyCrosswordCard
+      :puzzle="todayPuzzle"
+      :date-label="todayDateLabel"
+      :overridden="!!todayOverride"
+      @edit="openToday"
+    />
     <AdminEditorLayout
       :count-label="`${items.length} puzzle${items.length === 1 ? '' : 's'}`"
       create-label="Add puzzle"
@@ -25,8 +31,12 @@
       <template #form>
         <form v-if="showForm" class="space-y-4" @submit.prevent="save">
           <div class="flex items-center justify-between gap-3">
-            <h2 class="font-display text-xl font-semibold text-[hsl(var(--primary))]">{{ isEditing ? 'Edit puzzle' : 'New puzzle' }}</h2>
-            <button v-if="isEditing && editingId" type="button" class="admin-btn-danger" @click="onDelete(editingId)">Delete</button>
+            <h2 class="font-display text-xl font-semibold text-[hsl(var(--primary))]">
+              {{ editingToday ? 'Today’s crossword override' : isEditing ? 'Edit puzzle' : 'New puzzle' }}
+            </h2>
+            <button v-if="isEditing && editingId && (!editingToday || todayOverride)" type="button" class="admin-btn-danger" @click="onDelete(editingId)">
+              {{ editingToday ? 'Remove override' : 'Delete' }}
+            </button>
           </div>
           <div>
             <label class="admin-label">Title</label>
@@ -57,17 +67,30 @@
 
 <script setup lang="ts">
 import type { CrosswordClue, CrosswordPuzzle } from '~/types'
+import { createWordBankCrossword } from '~/utils/gameWordBank'
+import { formatUkDateLabel, ukDateId } from '~/utils/gameDay'
 
 definePageMeta({ layout: 'admin', middleware: 'admin' })
 
-const { items, loading, saving, error, fetchAll, create, updateItem, remove } = useAdminCrossword()
+const { items, loading, saving, error, fetchAll, create, setItem, updateItem, remove } = useAdminCrossword()
+const todayId = ukDateId()
+const todayOverrideId = `daily-${todayId}`
+const todayDateLabel = formatUkDateLabel(todayId)
+const generatedToday = ref<CrosswordPuzzle>(createWordBankCrossword(todayId))
+const todayOverride = computed(() => items.value.find(p => p.id === todayOverrideId))
+const todayPuzzle = computed(() => todayOverride.value || generatedToday.value)
 const showForm = ref(false)
 const isEditing = ref(false)
+const editingToday = ref(false)
 const editingId = ref<string | null>(null)
 const form = reactive({ title: '', clues: [] as CrosswordClue[] })
 
 onMounted(async () => {
-  await fetchAll()
+  const [entries] = await Promise.all([
+    fetchMergedGameWords().catch(() => null),
+    fetchAll()
+  ])
+  if (entries) generatedToday.value = createWordBankCrossword(todayId, 10, entries)
   if (!items.value.length) openNew()
 })
 
@@ -77,6 +100,7 @@ function addClue() {
 
 function openNew() {
   isEditing.value = false
+  editingToday.value = false
   editingId.value = null
   form.title = ''
   form.clues = [{ number: 1, direction: 'across', clue: '', answer: '' }]
@@ -90,10 +114,21 @@ function openEdit(p: CrosswordPuzzle) {
     return
   }
   isEditing.value = true
+  editingToday.value = id === todayOverrideId
   editingId.value = id
   form.title = p.title
   form.clues = (p.clues || []).map(c => ({ ...c }))
   if (!form.clues.length) addClue()
+  showForm.value = true
+}
+
+function openToday() {
+  const puzzle = todayPuzzle.value
+  isEditing.value = true
+  editingToday.value = true
+  editingId.value = todayOverrideId
+  form.title = puzzle.title
+  form.clues = puzzle.clues.map(clue => ({ ...clue }))
   showForm.value = true
 }
 
@@ -113,7 +148,10 @@ async function save() {
   }
   const payload = { title: form.title.trim(), clues, published: true }
   try {
-    if (isEditing.value) {
+    if (editingToday.value) {
+      await setItem(todayOverrideId, payload)
+      editingId.value = todayOverrideId
+    } else if (isEditing.value) {
       if (!editingId.value) {
         error.value = 'Cannot update this puzzle — it has no document id.'
         return
@@ -135,6 +173,7 @@ async function onDelete(id: string) {
   await remove(id)
   showForm.value = false
   isEditing.value = false
+  editingToday.value = false
   editingId.value = null
 }
 

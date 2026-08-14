@@ -311,6 +311,10 @@ const correctCount = computed(() => layout.value?.words.filter(isWordCorrect).le
 
 function checkAnswers() {
   checked.value = true
+  const l = layout.value
+  if (l && l.words.length && l.words.every(isWordCorrect)) {
+    markPlayDone('crossword')
+  }
 }
 
 function clearGuesses() {

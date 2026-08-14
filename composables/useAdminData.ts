@@ -90,6 +90,22 @@ export function useAdminCollection<T extends { id: string }>(name: string) {
     }
   }
 
+  async function setItem(id: string, data: Record<string, unknown>) {
+    if (!id) throw new Error('Missing document id')
+    saving.value = true
+    error.value = ''
+    try {
+      const db = requireDb()
+      await setDoc(doc(db, name, id), writePayload(data), { merge: true })
+      await fetchAll()
+    } catch (e) {
+      error.value = (e as Error).message
+      throw e
+    } finally {
+      saving.value = false
+    }
+  }
+
   async function remove(id: string) {
     if (!id) throw new Error('Missing document id')
     saving.value = true
@@ -106,7 +122,7 @@ export function useAdminCollection<T extends { id: string }>(name: string) {
     }
   }
 
-  return { items, loading, saving, error, fetchAll, create, updateItem, update: updateItem, remove }
+  return { items, loading, saving, error, fetchAll, create, setItem, updateItem, update: updateItem, remove }
 }
 
 export function useAdminTimeline() {

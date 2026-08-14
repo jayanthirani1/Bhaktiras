@@ -296,6 +296,11 @@ function isWordCorrect(word: LaidWord) {
 
 const correctCount = computed(() => layout.value?.words.filter(isWordCorrect).length || 0)
 
+function puzzleSignature(puzzle: typeof active.value): string {
+  if (!puzzle) return ''
+  return `${puzzle.id}:${puzzle.clues.map(clue => `${clue.direction}:${clue.answer}`).join('|')}`
+}
+
 function wordsAt(row: number, col: number) {
   return (layout.value?.words || []).filter(w => w.cells.some(c => c.row === row && c.col === col))
 }
@@ -304,6 +309,7 @@ function persist() {
   try {
     localStorage.setItem(STATE_KEY, JSON.stringify({
       puzzleId: activeId.value,
+      puzzleSignature: puzzleSignature(active.value),
       guesses: { ...guesses },
       solved: solved.value,
       scoreSubmitted: scoreSubmitted.value,
@@ -319,7 +325,17 @@ function restore() {
     const raw = localStorage.getItem(STATE_KEY)
     if (!raw) return
     const data = JSON.parse(raw)
-    if (data.puzzleId) activeId.value = data.puzzleId
+    const savedPuzzle = puzzles.value.find(p => p.id === data.puzzleId)
+    if (!savedPuzzle || data.puzzleSignature !== puzzleSignature(savedPuzzle)) {
+      localStorage.removeItem(STATE_KEY)
+      Object.keys(guesses).forEach(k => { delete guesses[k] })
+      activeId.value = puzzles.value[0]?.id || ''
+      solved.value = false
+      scoreSubmitted.value = false
+      timer.reset()
+      return
+    }
+    activeId.value = savedPuzzle.id
     if (data.guesses && typeof data.guesses === 'object') {
       Object.keys(guesses).forEach(k => { delete guesses[k] })
       Object.assign(guesses, data.guesses)

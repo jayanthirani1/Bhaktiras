@@ -15,6 +15,7 @@ const GAME_STORAGE_PREFIXES = [
   'one-percent-run:',
   'one-percent-timer:',
   'leaderboard-submitted:',
+  'play-done:',
 ] as const
 
 function shouldClearKey(key: string): boolean {
