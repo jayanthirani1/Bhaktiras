@@ -1,23 +1,25 @@
 <template>
-  <div class="min-h-screen bg-[hsl(var(--background))] pb-24 pt-8 md:pt-12 px-4">
+  <div class="min-h-screen bg-[hsl(var(--background))] pb-24 pt-0 md:pt-12 px-4">
     <div class="mx-auto max-w-lg">
-      <NuxtLink
-        to="/play"
-        class="mb-6 inline-flex items-center gap-2 text-sm font-medium text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]"
-      >
-        ← Back to games
-      </NuxtLink>
+      <!-- Pinned so Back and the clock stay visible while scrolling -->
+      <div class="sticky top-0 z-40 -mx-4 mb-4 flex items-center justify-between gap-2 border-b border-[hsl(var(--border))] bg-[hsl(var(--background))]/95 px-4 py-2 backdrop-blur md:top-16">
+        <NuxtLink
+          to="/play"
+          class="inline-flex items-center gap-1.5 rounded-full bg-[hsl(var(--muted))] px-3 py-1.5 text-sm font-medium text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]"
+        >
+          ‹ Back
+        </NuxtLink>
+        <div class="flex items-center gap-2 text-sm font-semibold text-[hsl(var(--primary))]">
+          <span class="rounded-full bg-[hsl(var(--muted))] px-3 py-1 tabular-nums">⏱ {{ timerDisplay }}</span>
+          <span v-if="cleared" class="rounded-full bg-[hsl(var(--golden-50))] px-3 py-1">
+            Cleared {{ cleared }}
+          </span>
+        </div>
+      </div>
       <PageHeader
         title="1% Club"
         subtitle="Climb the ladder from 90% to 1%. One wrong answer ends your run."
       />
-
-      <div class="mb-4 flex items-center justify-center gap-3 text-sm font-semibold text-[hsl(var(--primary))]">
-        <span class="rounded-full bg-[hsl(var(--muted))] px-3 py-1 tabular-nums">⏱ {{ timerDisplay }}</span>
-        <span v-if="cleared" class="rounded-full bg-[hsl(var(--golden-50))] px-3 py-1">
-          Cleared {{ cleared }}
-        </span>
-      </div>
 
       <div v-if="loading" class="card-surface p-8 text-center text-sm text-[hsl(var(--muted-foreground))]">
         Loading questions…

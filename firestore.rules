@@ -113,6 +113,11 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    match /gameWords/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     match /wordleDaily/{id} {
       allow read: if true;
       allow write: if isAdmin();
@@ -141,6 +146,23 @@ service cloud.firestore {
     match /miniCrosswordPuzzles/{id} {
       allow read: if true;
       allow write: if isAdmin();
+    }
+
+    // A signed-in user's daily Play visit streak. Public read powers the leaderboard.
+    match /playStreaks/{uid} {
+      allow read: if true;
+      allow create, update: if isSignedIn()
+        && request.auth.uid == uid
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.userName is string
+        && request.resource.data.userName.size() <= 32
+        && request.resource.data.currentStreak is int
+        && request.resource.data.currentStreak >= 1
+        && request.resource.data.longestStreak is int
+        && request.resource.data.longestStreak >= request.resource.data.currentStreak
+        && request.resource.data.lastVisitDate is string
+        && request.resource.data.lastVisitDate.size() == 10;
+      allow delete: if isAdmin() || (isSignedIn() && request.auth.uid == uid);
     }
 
     match /sevaHours/{id} {

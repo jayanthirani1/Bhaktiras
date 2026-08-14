@@ -1,7 +1,10 @@
 <template>
   <div>
-    <!-- Mobile top brand bar -->
-    <div class="fixed top-0 left-0 right-0 z-50 md:hidden overflow-visible bg-[hsl(var(--background))]/90 backdrop-blur-md border-b border-[hsl(var(--border))]">
+    <!-- Mobile top brand bar. On game pages it scrolls away so the game's own bar can pin. -->
+    <div
+      class="left-0 right-0 z-50 md:hidden overflow-visible bg-[hsl(var(--background))]/90 backdrop-blur-md border-b border-[hsl(var(--border))]"
+      :class="isGamePage ? 'relative' : 'fixed top-0'"
+    >
       <div class="h-14 px-3 flex items-center justify-center overflow-visible">
         <NuxtLink to="/" class="flex min-w-0 shrink-0 items-center overflow-visible">
           <BhaktirasLogo size="sm" animate />
@@ -10,7 +13,10 @@
     </div>
 
     <!-- Mobile bottom nav -->
-    <div class="fixed bottom-0 left-0 right-0 z-50 bg-[hsl(var(--card))]/95 backdrop-blur-md border-t border-[hsl(var(--border))] md:hidden">
+    <div
+      v-if="!isGamePage"
+      class="fixed bottom-0 left-0 right-0 z-50 bg-[hsl(var(--card))]/95 backdrop-blur-md border-t border-[hsl(var(--border))] md:hidden"
+    >
       <div class="flex justify-around items-center h-16 px-1 safe-bottom">
         <NuxtLink
           v-for="item in navItems"
@@ -84,7 +90,7 @@
         </div>
       </div>
     </div>
-    <div class="h-14 md:h-16" />
+    <div :class="isGamePage ? 'h-0 md:h-16' : 'h-14 md:h-16'" />
   </div>
 </template>
 
@@ -100,6 +106,7 @@ import {
   IconLogin,
   IconLogout
 } from '@tabler/icons-vue'
+import { isGamePagePath } from '~/utils/gameRoutes'
 
 const route = useRoute()
 const { isLoggedIn, signOut } = useAuth()
@@ -112,6 +119,8 @@ const navItems = [
   { href: '/niyams', icon: IconFlame, label: 'Niyams' },
   { href: '/play', icon: IconPlayerPlay, label: 'Play' }
 ]
+
+const isGamePage = computed(() => isGamePagePath(route.path))
 
 function isActive(href: string) {
   if (href === '/') return route.path === '/'

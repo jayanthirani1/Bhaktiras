@@ -1,13 +1,16 @@
 <template>
-  <div class="min-h-screen bg-[hsl(var(--background))] pb-36 pt-8 md:pt-12 px-4">
+  <div class="min-h-screen bg-[hsl(var(--background))] pb-24 pt-0 md:pt-12 px-4">
     <div class="max-w-lg mx-auto">
-      <NuxtLink
-        to="/play"
-        class="inline-flex items-center gap-2 text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] text-sm font-medium mb-6"
-      >
-        <IconArrowLeft class="w-4 h-4" />
-        Back to games
-      </NuxtLink>
+      <!-- Pinned so Back stays reachable while scrolling -->
+      <div class="sticky top-0 z-40 -mx-4 mb-6 border-b border-[hsl(var(--border))] bg-[hsl(var(--background))]/95 px-4 py-2 backdrop-blur md:top-16">
+        <NuxtLink
+          to="/play"
+          class="inline-flex items-center gap-2 rounded-full bg-[hsl(var(--muted))] px-3 py-1.5 text-sm font-medium text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]"
+        >
+          <IconArrowLeft class="w-4 h-4" />
+          Back
+        </NuxtLink>
+      </div>
 
       <PageHeader
         title="Wordle"

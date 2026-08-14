@@ -4,6 +4,7 @@ export const ADMIN_MENU = [
   { label: 'Events', to: '/admin/events', subtitle: 'Title, date, description and poster' },
   { label: 'Niyams', to: '/admin/niyams', subtitle: 'Utsav niyams shown on the tracker' },
   { label: 'Privacy & Policy', to: '/admin/legal', subtitle: 'Footer legal pages' },
+  { label: 'Game Word Bank', to: '/admin/games/word-bank', subtitle: '2,000 shared satsang and Hindu words' },
   { label: 'Wordle', to: '/admin/games/wordle', subtitle: 'Plan daily words for the week or month' },
   { label: 'Quiz', to: '/admin/games/quiz', subtitle: 'Questions and answers' },
   { label: 'Crossword', to: '/admin/games/crossword', subtitle: 'Puzzle titles and clues' },

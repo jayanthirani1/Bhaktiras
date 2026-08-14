@@ -75,6 +75,20 @@ export interface WordleDailyDoc {
   word: string
 }
 
+export type GameWordTarget = 'wordle' | 'crossword' | 'spelling-bee'
+
+export interface GameWordEntry {
+  id: string
+  /** ASCII A–Z answer used by the game engines. */
+  answer: string
+  /** Human-friendly spelling, which may contain spaces or diacritics. */
+  display: string
+  clue: string
+  category: string
+  source: string
+  games: GameWordTarget[]
+}
+
 export interface GratitudeMessage {
   id: string
   name: string
@@ -154,4 +168,14 @@ export interface OnePercentQuestion {
   options: string[]
   correctAnswer: string
   order?: number
+}
+
+export interface PlayStreakRecord {
+  id: string
+  userId: string
+  userName: string
+  currentStreak: number
+  longestStreak: number
+  lastVisitDate: string
+  updatedAt?: { seconds?: number; nanoseconds?: number } | Date
 }

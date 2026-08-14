@@ -6,6 +6,38 @@
         subtitle="Choose a game — Wordle, Mini Crossword, 1% Club, and more."
       />
 
+      <section
+        v-if="isLoggedIn"
+        class="mx-auto mt-8 max-w-xl overflow-hidden rounded-2xl border border-orange-200 bg-gradient-to-br from-orange-50 to-amber-50 shadow-[0_12px_35px_-20px_rgba(234,88,12,0.45)]"
+      >
+        <div class="flex items-center gap-4 p-5">
+          <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-orange-500 text-white shadow-lg shadow-orange-200">
+            <IconFlame class="h-8 w-8" />
+          </div>
+          <div class="min-w-0 flex-1">
+            <p class="text-xs font-bold uppercase tracking-[0.18em] text-orange-700">Your streak</p>
+            <p class="mt-1 font-display text-3xl font-bold text-[hsl(var(--primary))]">
+              {{ streak?.currentStreak ?? (streakLoading ? '…' : 1) }}
+              <span class="font-sans text-sm font-semibold text-[hsl(var(--muted-foreground))]">
+                day{{ streak?.currentStreak === 1 ? '' : 's' }}
+              </span>
+            </p>
+            <p class="mt-1 text-xs text-[hsl(var(--muted-foreground))]">Play a game every day to keep it alive.</p>
+          </div>
+        </div>
+        <NuxtLink
+          to="/play/streaks"
+          class="flex items-center justify-between border-t border-orange-200/70 bg-white/55 px-5 py-3 text-sm font-semibold text-[hsl(var(--primary))] hover:bg-white/80"
+        >
+          View streak leaderboard
+          <IconArrowRight class="h-4 w-4" />
+        </NuxtLink>
+      </section>
+      <p v-else class="mt-7 text-center text-sm text-[hsl(var(--muted-foreground))]">
+        <NuxtLink to="/login?redirect=/play" class="font-semibold text-[hsl(var(--accent))] underline">Sign in</NuxtLink>
+        to start a daily Play streak.
+      </p>
+
       <div class="grid gap-6 sm:grid-cols-1 md:grid-cols-2 mt-10">
         <NuxtLink
           v-for="game in games"
@@ -44,8 +76,13 @@ import {
   IconHexagon,
   IconChartBar,
   IconLayoutGrid,
+  IconFlame,
   IconArrowRight
 } from '@tabler/icons-vue'
+
+const auth = useAuth()
+const isLoggedIn = computed(() => !!auth.user.value)
+const { record: streak, recording: streakLoading } = usePlayStreak()
 
 const card = 'from-[hsl(var(--primary))]/40 to-[hsl(var(--accent))]/10 border-[hsl(var(--golden-200))] hover:border-[hsl(var(--accent))]'
 const icon = 'bg-[hsl(var(--primary))] text-[hsl(var(--accent))]'

@@ -114,6 +114,6 @@ const menuItems = [
   { id: 'community', title: 'Our Community', desc: 'What mandir means to you', icon: IconUsers, href: '/community' },
   { id: 'seva', title: 'Seva', desc: 'Teams, hours & WhatsApp', icon: IconHandGrab, href: '/seva' },
   { id: 'niyams', title: 'Our Niyams', desc: 'Utsav niyams & tracker', icon: IconFlame, href: '/niyams' },
-  { id: 'play', title: 'Games', desc: 'Coming along later', icon: IconDeviceGamepad2, href: '/play' }
+  { id: 'play', title: 'Games', desc: 'Wordle, crosswords & daily streaks', icon: IconDeviceGamepad2, href: '/play' }
 ]
 </script>

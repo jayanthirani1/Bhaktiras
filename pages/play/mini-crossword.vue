@@ -1,8 +1,8 @@
 <template>
-  <div class="min-h-screen bg-[hsl(var(--background))] pb-[calc(13.5rem+env(safe-area-inset-bottom))] pt-3 md:pb-24 md:pt-12 px-3 sm:px-4">
+  <div class="min-h-screen bg-[hsl(var(--background))] pb-[calc(13.5rem+env(safe-area-inset-bottom))] pt-0 md:pb-24 md:pt-12 px-3 sm:px-4">
     <div class="mx-auto max-w-3xl">
-      <!-- Top bar -->
-      <div class="mb-3 flex items-center justify-between gap-2 md:mb-6">
+      <!-- Top bar: pinned so Back and Check stay reachable while scrolling -->
+      <div class="sticky top-0 z-40 -mx-3 mb-3 flex items-center justify-between gap-2 border-b border-[hsl(var(--border))] bg-[hsl(var(--background))]/95 px-3 py-2 backdrop-blur sm:-mx-4 sm:px-4 md:top-16 md:mb-6">
         <NuxtLink
           to="/play"
           class="inline-flex items-center gap-1.5 rounded-full bg-[hsl(var(--muted))] px-3 py-1.5 text-sm font-medium text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]"
@@ -15,11 +15,11 @@
         </div>
         <button
           type="button"
-          class="rounded-full bg-[hsl(var(--muted))] px-3 py-1.5 text-sm font-semibold text-[hsl(var(--foreground))] disabled:opacity-40"
+          class="rounded-full bg-[hsl(var(--primary))] px-4 py-2 text-sm font-bold text-white shadow-lg shadow-[hsl(var(--primary))]/20 disabled:opacity-40"
           :disabled="!layout || solved"
           @click="checkAnswers"
         >
-          Check
+          ✓ Check
         </button>
       </div>
 
@@ -180,13 +180,22 @@
     <!-- Fixed custom keyboard (mobile / tablet play chrome) -->
     <div
       v-if="layout && !solved"
-      class="fixed inset-x-0 bottom-16 z-40 border-t border-[hsl(var(--border))] bg-[hsl(var(--background))]/95 px-2 pb-2 pt-2 backdrop-blur md:bottom-0 md:hidden"
+      class="fixed inset-x-0 bottom-0 z-40 border-t border-[hsl(var(--border))] bg-[hsl(var(--background))]/95 px-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2 backdrop-blur md:hidden"
     >
-      <GameLetterKeyboard
-        class="mx-auto max-w-lg"
-        @letter="typeLetter"
-        @delete="backspace"
-      />
+      <div class="mx-auto max-w-lg">
+        <button
+          type="button"
+          class="mb-2 w-full rounded-xl bg-[hsl(var(--primary))] py-2.5 text-sm font-bold text-white shadow-lg shadow-[hsl(var(--primary))]/20 active:scale-[0.99] disabled:opacity-40"
+          :disabled="solved"
+          @click="checkAnswers"
+        >
+          ✓ Check answers
+        </button>
+        <GameLetterKeyboard
+          @letter="typeLetter"
+          @delete="backspace"
+        />
+      </div>
     </div>
   </div>
 </template>

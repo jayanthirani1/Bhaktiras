@@ -13,3 +13,11 @@ export function formatUkDateLabel(id: string = ukDateId()): string {
   if (!y || !m || !d) return id
   return `${d}/${m}/${y}`
 }
+
+export function addUkDays(id: string, days: number): string {
+  const [year, month, day] = id.split('-').map(Number)
+  if (!year || !month || !day) return id
+  const date = new Date(Date.UTC(year, month - 1, day))
+  date.setUTCDate(date.getUTCDate() + days)
+  return date.toISOString().slice(0, 10)
+}

@@ -1,4 +1,5 @@
 import { ukDateId } from '~/utils/gameDay'
+import { WORD_BANK_WORDLE_WORDS } from '~/utils/gameWordBank'
 
 /**
  * Lightweight Wordle daily puzzle: solution words + date-based word.
@@ -6,13 +7,15 @@ import { ukDateId } from '~/utils/gameDay'
  */
 export const WORD_LEN = 5
 
-export const WORDLE_WORDS: string[] = [
+const ORIGINAL_WORDLE_WORDS: string[] = [
   'AARTI', 'AMRUT', 'ATMAA', 'BHAKT', 'BHUMI', 'BRAHM', 'DHOTI', 'DHVAJ', 'DHYAN', 'DIVYA',
   'GOPIS', 'KARMA', 'KATHA', 'KUTCH', 'LEELA', 'MOKSH', 'MUKTA', 'MUKTI', 'MUNIS', 'MURTI',
   'NITYA', 'PADMA', 'POOJA', 'RAJAS', 'SABHA', 'SADHU', 'SANTS', 'SATYA', 'SHIVA', 'SHLOK',
   'SURYA', 'SWAMI', 'TAMAS', 'THAAL', 'TILAK', 'TIRTH', 'TYAGI', 'VARNA', 'VIDYA', 'VIVEK',
   'YOGIS',
 ]
+
+export const WORDLE_WORDS = [...new Set([...ORIGINAL_WORDLE_WORDS, ...WORD_BANK_WORDLE_WORDS])]
 
 const WORDS = WORDLE_WORDS.filter((w) => w.length === WORD_LEN).map((w) => w.toUpperCase().slice(0, WORD_LEN))
 const WORD_SET = new Set(WORDS)
