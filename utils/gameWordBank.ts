@@ -101,6 +101,46 @@ export function createWordBankCrossword(
   }
 }
 
+/**
+ * Builds a compact deterministic puzzle for the UK calendar day.
+ * Short answers keep the grid suitable for phones; changing the date changes
+ * both the selected words and their order.
+ */
+export function createWordBankMiniCrossword(
+  dateId: string,
+  entries: GameWordEntry[] = SATSANG_WORD_BANK
+): CrosswordPuzzle {
+  const candidates = seededOrder(
+    gameWordsFor('crossword', entries).filter(entry =>
+      entry.answer.length >= 4
+      && entry.answer.length <= 7
+    ),
+    `mini-crossword:${dateId}`
+  ).sort((a, b) => Number(b.source === 'Custom') - Number(a.source === 'Custom'))
+
+  const selected: GameWordEntry[] = []
+  for (const candidate of candidates) {
+    if (!selected.length || selected.some(entry =>
+      [...candidate.answer].some(letter => entry.answer.includes(letter))
+    )) {
+      selected.push(candidate)
+    }
+    if (selected.length === 5) break
+  }
+
+  return {
+    id: `daily-mini-${dateId}`,
+    title: 'Today’s Mini',
+    published: true,
+    clues: selected.map((entry, index) => ({
+      number: index + 1,
+      direction: index % 2 === 0 ? 'across' : 'down',
+      clue: entry.clue,
+      answer: entry.answer
+    }))
+  }
+}
+
 function letterSet(word: string): string {
   return [...new Set(word)].sort().join('')
 }

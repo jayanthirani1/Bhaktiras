@@ -117,7 +117,7 @@
             class="h-11 sm:h-12 rounded-md font-semibold text-sm uppercase min-w-[1.75rem] px-2 sm:min-w-[2rem] transition-transform duration-75 active:scale-90"
             :class="[keyBg(k), { 'key-press': pressedKey === k }]"
             :aria-label="`${k}, ${statusLabel(keyStatusMap.get(k) || 'empty')}`"
-            :disabled="isComplete || isLetterRuledOut(k)"
+            :disabled="isComplete"
             @pointerdown="onKeyPointer($event, k)"
             @click="onKeyClick(k)"
           >
@@ -132,7 +132,7 @@
             class="h-11 sm:h-12 rounded-md font-semibold text-sm uppercase min-w-[1.75rem] px-2 sm:min-w-[2rem] transition-transform duration-75 active:scale-90"
             :class="[keyBg(k), { 'key-press': pressedKey === k }]"
             :aria-label="`${k}, ${statusLabel(keyStatusMap.get(k) || 'empty')}`"
-            :disabled="isComplete || isLetterRuledOut(k)"
+            :disabled="isComplete"
             @pointerdown="onKeyPointer($event, k)"
             @click="onKeyClick(k)"
           >
@@ -157,7 +157,7 @@
             class="h-11 sm:h-12 rounded-md font-semibold text-sm uppercase min-w-[1.75rem] px-2 sm:min-w-[2rem] transition-transform duration-75 active:scale-90"
             :class="[keyBg(k), { 'key-press': pressedKey === k }]"
             :aria-label="`${k}, ${statusLabel(keyStatusMap.get(k) || 'empty')}`"
-            :disabled="isComplete || isLetterRuledOut(k)"
+            :disabled="isComplete"
             @pointerdown="onKeyPointer($event, k)"
             @click="onKeyClick(k)"
           >
@@ -488,13 +488,9 @@ function keyBg(letter: string) {
   const s = keyStatusMap.value.get(letter)
   if (s === 'correct') return 'bg-emerald-500 text-white'
   if (s === 'present') return 'bg-amber-400 text-white'
-  if (s === 'absent') return 'bg-slate-500 text-slate-200/70 opacity-60 cursor-not-allowed'
+  // NYT-style: grey highlight only — keys stay clickable.
+  if (s === 'absent') return 'bg-slate-500 text-slate-200/80'
   return 'bg-[hsl(var(--muted))] text-[hsl(var(--foreground))] hover:bg-[hsl(var(--border))]'
-}
-
-/** Letters already ruled out can never help, so they stop accepting input. */
-function isLetterRuledOut(letter: string) {
-  return keyStatusMap.value.get(letter) === 'absent'
 }
 
 function statusLabel(status: LetterStatus): string {
@@ -537,12 +533,6 @@ function runKey(key: string) {
     pressKeyVisual('BACK')
     haptic(14)
     removeLetter()
-    return
-  }
-  if (isLetterRuledOut(k)) {
-    haptic([20, 30])
-    invalidWordMessage.value = `${k} isn’t in today’s word.`
-    setTimeout(() => { invalidWordMessage.value = '' }, 1500)
     return
   }
   pressKeyVisual(k)

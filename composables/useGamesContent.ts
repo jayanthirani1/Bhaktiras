@@ -8,6 +8,7 @@ import { wordleDateId } from '~/utils/wordleDaily'
 import {
   buildWordBankSpellingBeePuzzles,
   createWordBankCrossword,
+  createWordBankMiniCrossword,
   gameTargetsForAnswer,
   mergeGameWords,
   normalizeGameWord,
@@ -113,17 +114,30 @@ export function useCrosswordPuzzles() {
 }
 
 export function useMiniCrosswordPuzzles() {
-  const puzzles = ref<CrosswordPuzzle[]>([{ ...DEFAULT_MINI_CROSSWORD }])
+  const dailyPuzzle = createWordBankMiniCrossword(wordleDateId())
+  const puzzles = ref<CrosswordPuzzle[]>([dailyPuzzle])
   const loading = ref(true)
 
   onMounted(async () => {
     try {
       const db = getDb()
       if (!db) return
-      const snap = await getDocs(collection(db, 'miniCrosswordPuzzles'))
+      const [snap, wordSnap] = await Promise.all([
+        getDocs(collection(db, 'miniCrosswordPuzzles')),
+        getDocs(collection(db, 'gameWords'))
+      ])
       const remote = snap.docs.map(d => ({ id: d.id, ...d.data() } as CrosswordPuzzle))
         .filter(p => p.title && p.clues?.length)
-      if (remote.length) puzzles.value = remote
+      const customDaily = createWordBankMiniCrossword(
+        wordleDateId(),
+        mergeGameWords(mapCustomGameWords(wordSnap))
+      )
+      // The generated puzzle is the only player-facing mini. Admin-authored
+      // puzzles and the built-in mini remain safe fallbacks if generation
+      // ever has too few usable words.
+      puzzles.value = customDaily.clues.length >= 4
+        ? [customDaily]
+        : [remote[0] || { ...DEFAULT_MINI_CROSSWORD }]
     } finally {
       loading.value = false
     }
