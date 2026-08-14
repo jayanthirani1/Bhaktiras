@@ -39,7 +39,10 @@
       </div>
 
       <div class="mb-4">
-        <p class="text-sm text-[hsl(var(--muted-foreground))] mb-2">Score: {{ totalScore }}</p>
+        <p class="text-sm text-[hsl(var(--muted-foreground))] mb-2">
+          Words: {{ foundWords.length }}
+          <span v-if="totalScore > 0" class="text-[hsl(var(--muted-foreground))]/80">· {{ totalScore }} pts this hive</span>
+        </p>
         <input
           v-model="currentWord"
           type="text"
@@ -83,7 +86,7 @@
         </div>
       </div>
 
-      <div v-if="totalScore > 0" class="mt-6 space-y-2">
+      <div v-if="foundWords.length > 0" class="mt-6 space-y-2">
         <button
           v-if="isLoggedIn && canSubmitBest"
           type="button"
@@ -91,7 +94,7 @@
           :disabled="submittingScore"
           @click="submitToLeaderboard"
         >
-          {{ submittingScore ? 'Submitting...' : myBest > 0 ? 'Submit new best' : 'Submit score to leaderboard' }}
+          {{ submittingScore ? 'Submitting...' : myBest > 0 ? 'Submit new best' : 'Submit to leaderboard' }}
         </button>
         <NuxtLink
           v-else-if="!isLoggedIn"
@@ -100,8 +103,8 @@
         >
           Sign in to submit score
         </NuxtLink>
-        <p v-else-if="myBest > 0 && totalScore <= myBest" class="text-sm text-emerald-700">
-          Your all-time best ({{ myBest }} pts) is on the board.
+        <p v-else-if="myBest > 0 && foundWords.length <= myBest" class="text-sm text-emerald-700">
+          Your all-time best ({{ myBest }} words) is on the board.
         </p>
         <p v-if="submitError" class="text-sm text-red-600">{{ submitError }}</p>
       </div>
@@ -110,14 +113,14 @@
         :entries="leaderboardEntries"
         :loading="leaderboardLoading"
         all-time
-        :format-score="(e) => `${e.score} pts`"
+        :format-score="(e) => `${e.score} word${e.score === 1 ? '' : 's'}`"
       >
         <template v-if="!isLoggedIn">
           <NuxtLink to="/login?redirect=/play/spelling-bee" class="text-[hsl(var(--primary))] underline">Sign in</NuxtLink>
           to submit your best.
         </template>
         <template v-else-if="myBest > 0">
-          Your best: {{ myBest }} pts.
+          Your best: {{ myBest }} words.
         </template>
       </GameLeaderboard>
     </div>
@@ -149,14 +152,15 @@ const myBest = computed(() => {
   if (!uid) return 0
   return leaderboardEntries.value.find(e => e.userId === uid)?.score || 0
 })
-const canSubmitBest = computed(() => totalScore.value > myBest.value)
+const canSubmitBest = computed(() => foundWords.value.length > myBest.value)
 
 watch(puzzles, (list) => {
   if (list?.length) puzzle.value = list[Math.floor(Math.random() * list.length)]
 }, { immediate: true })
 
 const middleLetter = computed(() => getMiddleLetter(puzzle.value))
-const outerLetters = computed(() => getHiveLetters(puzzle.value).filter((l) => l !== middleLetter.value))
+const hiveLetters = computed(() => getHiveLetters(puzzle.value))
+const outerLetters = computed(() => hiveLetters.value.filter((l) => l !== middleLetter.value))
 
 function addLetter(letter: string) {
   currentWord.value += letter
@@ -183,7 +187,9 @@ function submitWord() {
     messageOk.value = true
     currentWord.value = ''
   } else {
+    const outside = [...new Set(upper)].filter(letter => !hiveLetters.value.includes(letter))
     if (w.length < 4) message.value = 'Too short (min 4 letters)'
+    else if (outside.length) message.value = `Not in this hive: ${outside.join(', ')}`
     else if (!upper.includes(middleLetter.value)) message.value = 'Must use center letter'
     else message.value = 'Not in word list'
     messageOk.value = false
@@ -192,16 +198,17 @@ function submitWord() {
 }
 
 async function submitToLeaderboard() {
-  if (!auth.user.value || totalScore.value <= 0) return
+  const wordCount = foundWords.value.length
+  if (!auth.user.value || wordCount <= 0) return
   submitError.value = ''
   submittingScore.value = true
   try {
     await submitScore({
-      score: totalScore.value,
+      score: wordCount,
       userName: auth.userName.value || auth.userEmail.value || 'Player',
       userId: auth.user.value.uid,
       userEmail: auth.userEmail.value || undefined,
-      detail: `${foundWords.value.length} words`
+      detail: `${totalScore.value} pts this hive`
     })
   } catch (e: unknown) {
     submitError.value = e instanceof Error ? e.message : 'Could not submit score.'

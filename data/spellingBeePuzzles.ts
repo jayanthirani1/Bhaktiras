@@ -20,7 +20,7 @@ export function isValidSpellingBeeWord(word: string, puzzle: SpellingBeePuzzle):
   for (const c of w) {
     if (!allowed.has(c)) return false
   }
-  return puzzle.answers.includes(w)
+  return puzzle.answers.some(answer => String(answer || '').toUpperCase().trim() === w)
 }
 
 export function isPangram(word: string, puzzle: SpellingBeePuzzle): boolean {
