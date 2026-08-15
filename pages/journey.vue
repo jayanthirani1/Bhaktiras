@@ -11,19 +11,42 @@
           Loading Journey...
         </div>
         <template v-else>
-          <div class="-mx-4 mb-8 flex gap-2 overflow-x-auto px-4 pb-2 md:mx-0 md:flex-wrap md:overflow-visible">
-            <button
-              v-for="y in years"
-              :key="y"
-              type="button"
-              class="shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors"
-              :class="selectedYear === String(y)
-                ? 'bg-[hsl(var(--primary))] text-white'
-                : 'bg-[hsl(var(--muted))] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--primary))]'"
-              @click="selectedYear = String(y)"
+          <div class="relative -mx-4 mb-8 md:mx-0">
+            <div
+              ref="yearRow"
+              class="flex snap-x gap-2 overflow-x-auto px-4 pb-2 md:flex-wrap md:overflow-visible"
+              @scroll.passive="updateEdges"
             >
-              {{ y }}
-            </button>
+              <button
+                v-for="y in years"
+                :key="y"
+                :ref="el => setChipRef(el, y)"
+                type="button"
+                class="shrink-0 snap-center rounded-full px-3 py-1.5 text-xs font-semibold transition-colors"
+                :class="selectedYear === String(y)
+                  ? 'bg-[hsl(var(--primary))] text-white'
+                  : 'bg-[hsl(var(--muted))] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--primary))]'"
+                @click="selectYear(y)"
+              >
+                {{ y }}
+              </button>
+            </div>
+
+            <!-- Cues that more years sit off-screen; taps pass through to the chips. -->
+            <div
+              v-show="canScrollLeft"
+              aria-hidden="true"
+              class="pointer-events-none absolute inset-y-0 left-0 flex w-10 items-start justify-start bg-gradient-to-r from-[hsl(var(--background))] via-[hsl(var(--background))]/80 to-transparent pb-2 md:hidden"
+            >
+              <IconChevronLeft class="h-6 w-6 text-[hsl(var(--primary))]/70" />
+            </div>
+            <div
+              v-show="canScrollRight"
+              aria-hidden="true"
+              class="pointer-events-none absolute inset-y-0 right-0 flex w-10 items-start justify-end bg-gradient-to-l from-[hsl(var(--background))] via-[hsl(var(--background))]/80 to-transparent pb-2 md:hidden"
+            >
+              <IconChevronRight class="h-6 w-6 text-[hsl(var(--primary))]/70" />
+            </div>
           </div>
 
           <div v-if="yearMoments.length === 0" class="card-surface p-8 text-center">
@@ -80,6 +103,7 @@
 </template>
 
 <script setup lang="ts">
+import { IconChevronLeft, IconChevronRight } from '@tabler/icons-vue'
 import type { TimelineItem, TimelineMedia } from '~/types'
 import { journeyYears } from '~/data/timeline'
 
@@ -91,6 +115,56 @@ const selectedYear = ref(String(years.includes(nowYear) ? nowYear : years[years.
 const yearMoments = computed(() =>
   timeline.value.filter(t => t.year === selectedYear.value)
 )
+
+const yearRow = ref<HTMLElement | null>(null)
+const chips = new Map<number, HTMLElement>()
+const canScrollLeft = ref(false)
+const canScrollRight = ref(false)
+
+function setChipRef(el: unknown, year: number) {
+  if (el instanceof HTMLElement) chips.set(year, el)
+  else chips.delete(year)
+}
+
+function updateEdges() {
+  const el = yearRow.value
+  if (!el) return
+  const max = el.scrollWidth - el.clientWidth
+  canScrollLeft.value = el.scrollLeft > 4
+  canScrollRight.value = el.scrollLeft < max - 4
+}
+
+/** Centres a year in the strip so the active chip is never hidden off-screen. */
+function centreOn(year: number, behavior: ScrollBehavior = 'smooth') {
+  const el = yearRow.value
+  const chip = chips.get(year)
+  if (!el || !chip) return
+  el.scrollTo({
+    left: chip.offsetLeft - (el.clientWidth - chip.clientWidth) / 2,
+    behavior
+  })
+}
+
+function selectYear(year: number) {
+  selectedYear.value = String(year)
+  centreOn(year)
+}
+
+let observer: ResizeObserver | null = null
+
+watch(isLoading, async loading => {
+  if (loading) return
+  await nextTick()
+  const el = yearRow.value
+  if (!el) return
+  centreOn(Number(selectedYear.value), 'auto')
+  updateEdges()
+  observer?.disconnect()
+  observer = new ResizeObserver(updateEdges)
+  observer.observe(el)
+}, { immediate: true })
+
+onUnmounted(() => observer?.disconnect())
 
 function itemMedia(item: TimelineItem): TimelineMedia[] {
   if (item.media?.length) return item.media

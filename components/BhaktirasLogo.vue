@@ -19,6 +19,28 @@ const props = withDefaults(defineProps<{
 })
 
 const compact = computed(() => props.size === 'sm')
+/** Masks are referenced by url(#id), so each mounted logo needs its own ids. */
+const uid = useId()
+
+/**
+ * Feathered wipe used to reveal the arch and its filigree. A soft-edged mask
+ * avoids the hard rectangular edges a clip-path polygon leaves behind.
+ */
+function wipeDefs(id: string) {
+  return `<defs>
+    <linearGradient id="${id}-wipe-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity="0"/>
+      <stop offset="0.12" stop-color="#fff" stop-opacity="1"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="1"/>
+    </linearGradient>
+    <mask id="${id}-arch-mask" maskUnits="userSpaceOnUse" x="-40" y="-400" width="350" height="1100">
+      <rect class="logo-wipe-rect logo-wipe-arch" x="-40" y="0" width="350" height="690" fill="url(#${id}-wipe-grad)"/>
+    </mask>
+    <mask id="${id}-filigree-mask" maskUnits="userSpaceOnUse" x="-40" y="-400" width="350" height="1100">
+      <rect class="logo-wipe-rect logo-wipe-filigree" x="-40" y="0" width="350" height="690" fill="url(#${id}-wipe-grad)"/>
+    </mask>
+  </defs>`
+}
 
 function prepareSvg(raw: string, prefix: string) {
   let out = raw
@@ -34,6 +56,11 @@ function prepareSvg(raw: string, prefix: string) {
     )
 
   if (prefix === 'main') {
+    out = out
+      .replace(/(<svg[^>]*>)/, `$1${wipeDefs(uid)}`)
+      .replace('<path id="logo-arch"', `<path id="logo-arch" mask="url(#${uid}-arch-mask)"`)
+      .replace('<g id="logo-filigree"', `<g id="logo-filigree" mask="url(#${uid}-filigree-mask)"`)
+
     const tilakRe = /<path id="logo-main-tilak"[^/]*\/>/
     const tilak = out.match(tilakRe)?.[0]
     if (tilak) {

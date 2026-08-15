@@ -152,11 +152,19 @@
 .logo-lockup.logo-animate #logo-figure {
   animation: logo-drop 0.75s var(--ease-out-expo) 0.7s backwards;
 }
-.logo-lockup.logo-animate #logo-arch {
-  animation: logo-arch-draw 1.6s cubic-bezier(0.33, 0, 0.2, 1) 1.35s both;
+/* Revealed by a soft-edged mask sliding up the viewBox, so the sweep never
+   shows the straight edges a clip-path polygon leaves behind. */
+.logo-lockup .logo-wipe-rect {
+  transform: translateY(-90px);
+}
+.logo-lockup.logo-animate .logo-wipe-arch {
+  animation: logo-wipe 1.7s cubic-bezier(0.33, 0, 0.2, 1) 1.35s both;
+}
+.logo-lockup.logo-animate .logo-wipe-filigree {
+  animation: logo-wipe 1.9s cubic-bezier(0.33, 0, 0.2, 1) 2.85s both;
 }
 .logo-lockup.logo-animate #logo-filigree {
-  animation: logo-arch-draw 1.8s cubic-bezier(0.33, 0, 0.2, 1) 2.85s both, logo-shimmer 5s ease-in-out 4.9s infinite;
+  animation: logo-shimmer 5s ease-in-out 4.9s infinite;
 }
 .logo-lockup.logo-animate #logo-type {
   animation: logo-rise 0.7s var(--ease-out-expo) 4.5s backwards;
@@ -384,36 +392,15 @@
   0%, 100% { fill-opacity: 1; }
   50% { fill-opacity: 0.72; }
 }
-@keyframes logo-arch-draw {
-  0% {
-    fill-opacity: 0;
-    clip-path: polygon(0% 100%, 40% 100%, 40% 92%, 0% 92%);
-  }
-  6% {
-    fill-opacity: 1;
-    clip-path: polygon(0% 100%, 40% 100%, 40% 88%, 0% 88%);
-  }
-  28% {
-    clip-path: polygon(0% 100%, 42% 100%, 42% 38%, 0% 38%);
-  }
-  42% {
-    clip-path: polygon(0% 100%, 42% 100%, 42% 0%, 0% 0%);
-  }
-  62% {
-    clip-path: polygon(0% 100%, 52% 100%, 100% 0%, 0% 0%);
-  }
-  80% {
-    clip-path: polygon(0% 100%, 82% 100%, 100% 28%, 0% 0%);
-  }
-  100% {
-    fill-opacity: 1;
-    clip-path: polygon(0% 100%, 100% 100%, 100% 0%, 0% 0%);
-  }
+@keyframes logo-wipe {
+  from { transform: translateY(345px); }
+  to { transform: translateY(-90px); }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .logo-lockup.logo-animate #logo-one,
-  .logo-lockup.logo-animate #logo-arch,
+  .logo-lockup.logo-animate .logo-wipe-arch,
+  .logo-lockup.logo-animate .logo-wipe-filigree,
   .logo-lockup.logo-animate #logo-filigree,
   .logo-lockup.logo-animate #logo-figure,
   .logo-lockup.logo-animate #logo-type,
