@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-[hsl(var(--background))] pb-[calc(13.5rem+env(safe-area-inset-bottom))] pt-0 md:pb-24 md:pt-12 px-3 sm:px-4">
+  <div class="min-h-screen bg-[hsl(var(--background))] pb-[calc(16.5rem+env(safe-area-inset-bottom))] pt-0 md:pb-24 md:pt-12 px-3 sm:px-4">
     <div class="mx-auto max-w-3xl">
       <!-- Top bar: pinned so Back and Check stay reachable while scrolling -->
       <div class="sticky top-0 z-40 -mx-3 mb-3 flex items-center justify-between gap-2 border-b border-[hsl(var(--border))] bg-[hsl(var(--background))]/95 px-3 py-2 backdrop-blur sm:-mx-4 sm:px-4 md:top-16 md:mb-6">
@@ -14,6 +14,7 @@
           <span v-if="solved" class="rounded-full bg-emerald-50 px-3 py-1 text-emerald-700">Solved</span>
         </div>
         <button
+          v-if="!playedElsewhere"
           type="button"
           class="rounded-full bg-[hsl(var(--primary))] px-4 py-2 text-sm font-bold text-white shadow-lg shadow-[hsl(var(--primary))]/20 disabled:opacity-40"
           :disabled="!layout || solved"
@@ -33,7 +34,13 @@
         {{ active?.title || 'Mini Crossword' }}
       </h1>
 
-      <div v-if="loading" class="card-surface p-8 text-center text-sm text-[hsl(var(--muted-foreground))]">Loading mini…</div>
+      <GamePlayedElsewhere
+        v-if="playedElsewhere"
+        title="Mini Crossword"
+        :summary="elsewhereSummary"
+      />
+
+      <div v-else-if="loading" class="card-surface p-8 text-center text-sm text-[hsl(var(--muted-foreground))]">Loading mini…</div>
       <div v-else-if="!active || !layout" class="card-surface p-8 text-center text-[hsl(var(--muted-foreground))]">
         Mini crossword will appear here once it is added.
       </div>
@@ -118,6 +125,24 @@
             <button type="button" class="btn-primary text-sm" :disabled="solved" @click="checkAnswers">Check</button>
             <button
               type="button"
+              class="inline-flex items-center gap-1.5 rounded-xl bg-amber-100 px-4 py-2 text-sm font-semibold text-amber-900 hover:bg-amber-200 disabled:opacity-40"
+              :disabled="solved || !canRevealLetter"
+              @click="askHint('letter')"
+            >
+              <IconEye class="h-4 w-4" aria-hidden="true" />
+              Hint: letter (+5s)
+            </button>
+            <button
+              type="button"
+              class="inline-flex items-center gap-1.5 rounded-xl bg-amber-100 px-4 py-2 text-sm font-semibold text-amber-900 hover:bg-amber-200 disabled:opacity-40"
+              :disabled="solved || !canRevealWord"
+              @click="askHint('word')"
+            >
+              <IconHelp class="h-4 w-4" aria-hidden="true" />
+              Hint: word (+20s)
+            </button>
+            <button
+              type="button"
               class="rounded-xl bg-[hsl(var(--muted))] px-4 py-2 text-sm font-semibold text-[hsl(var(--foreground))] hover:bg-[hsl(var(--border))]"
               :disabled="solved"
               @click="clearGuesses"
@@ -164,7 +189,7 @@
         </div>
       </div>
 
-      <div class="mt-10 hidden md:block">
+      <div class="mt-10">
         <GameLeaderboard
           :entries="entries"
           :loading="boardLoading"
@@ -179,10 +204,30 @@
 
     <!-- Fixed custom keyboard (mobile / tablet play chrome) -->
     <div
-      v-if="layout && !solved"
+      v-if="layout && !solved && !playedElsewhere"
       class="fixed inset-x-0 bottom-0 z-40 border-t border-[hsl(var(--border))] bg-[hsl(var(--background))]/95 px-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2 backdrop-blur md:hidden"
     >
       <div class="mx-auto max-w-lg">
+        <div class="mb-2 grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            class="inline-flex items-center justify-center gap-1 rounded-xl bg-amber-100 py-2 text-xs font-bold text-amber-900 active:scale-[0.99] disabled:opacity-40"
+            :disabled="!canRevealLetter"
+            @click="askHint('letter')"
+          >
+            <IconEye class="h-3.5 w-3.5" aria-hidden="true" />
+            Letter +5s
+          </button>
+          <button
+            type="button"
+            class="inline-flex items-center justify-center gap-1 rounded-xl bg-amber-100 py-2 text-xs font-bold text-amber-900 active:scale-[0.99] disabled:opacity-40"
+            :disabled="!canRevealWord"
+            @click="askHint('word')"
+          >
+            <IconHelp class="h-3.5 w-3.5" aria-hidden="true" />
+            Word +20s
+          </button>
+        </div>
         <button
           type="button"
           class="mb-2 w-full rounded-xl bg-[hsl(var(--primary))] py-2.5 text-sm font-bold text-white shadow-lg shadow-[hsl(var(--primary))]/20 active:scale-[0.99] disabled:opacity-40"
@@ -197,10 +242,18 @@
         />
       </div>
     </div>
+
+    <GameHintConfirm
+      :open="!!pendingHint"
+      :kind="pendingHint"
+      @confirm="confirmHint"
+      @cancel="pendingHint = null"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
+import { IconEye, IconHelp } from '@tabler/icons-vue'
 import { cellKey, layoutCrossword, type LaidWord } from '~/utils/crosswordLayout'
 import { ukDateId } from '~/utils/gameDay'
 import { formatElapsed } from '~/composables/useGameTimer'
@@ -220,6 +273,16 @@ const {
 
 const timer = useGameTimer(`mini-crossword-timer:${ukDateId()}`)
 const timerDisplay = computed(() => timer.display.value)
+const {
+  playedElsewhere,
+  result: elsewhereResult,
+  markDone,
+  backfill
+} = useDailyGameCompletion('mini-crossword')
+
+const elsewhereSummary = computed(() =>
+  elsewhereResult.value?.timeMs != null ? `solved in ${formatElapsed(elsewhereResult.value.timeMs)}` : ''
+)
 
 const activeId = ref('')
 const guesses = reactive<Record<string, string>>({})
@@ -231,6 +294,7 @@ const activeDir = ref<'across' | 'down'>('across')
 const scoreSubmitted = ref(false)
 const submitting = ref(false)
 const submitError = ref('')
+const pendingHint = ref<'letter' | 'word' | null>(null)
 
 const active = computed(() => puzzles.value.find(p => p.id === activeId.value) || puzzles.value[0] || null)
 const layout = computed(() => active.value ? layoutCrossword(active.value.clues) : null)
@@ -269,6 +333,13 @@ const activeWord = computed(() => {
 })
 
 const activeWordKeys = computed(() => new Set((activeWord.value?.cells || []).map(c => cellKey(c.row, c.col))))
+const canRevealLetter = computed(() => {
+  const l = layout.value
+  return !!l && flatCells.value.some(cell =>
+    cell.open && guesses[cell.id] !== l.letters[cell.row][cell.col]
+  )
+})
+const canRevealWord = computed(() => !!activeWord.value && !isWordCorrect(activeWord.value))
 
 function cellClass(cell: { id: string; open: boolean; row: number; col: number }) {
   if (!cell.open) return 'bg-[hsl(var(--primary))] cursor-default'
@@ -419,10 +490,59 @@ function maybeComplete() {
   checked.value = true
   timer.stop()
   persist()
+  void markDone({ timeMs: timer.elapsedMs.value, detail: 'Solved' })
+}
+
+function askHint(kind: 'letter' | 'word') {
+  if (solved.value || playedElsewhere.value) return
+  if (kind === 'letter' && !canRevealLetter.value) return
+  if (kind === 'word' && !canRevealWord.value) return
+  pendingHint.value = kind
+}
+
+function confirmHint() {
+  const kind = pendingHint.value
+  pendingHint.value = null
+  if (kind === 'letter') revealLetter()
+  else if (kind === 'word') revealWord()
+}
+
+function revealLetter() {
+  const l = layout.value
+  if (!l || solved.value || playedElsewhere.value) return
+  const word = activeWord.value
+  const candidates = word?.cells.length
+    ? word.cells
+    : flatCells.value.filter(cell => cell.open)
+  const target = candidates.find(cell => {
+    const id = cellKey(cell.row, cell.col)
+    return guesses[id] !== l.letters[cell.row][cell.col]
+  })
+  if (!target) return
+  guesses[cellKey(target.row, target.col)] = l.letters[target.row][target.col]
+  activeRow.value = target.row
+  activeCol.value = target.col
+  checked.value = false
+  timer.addPenalty(5_000)
+  persist()
+  maybeComplete()
+}
+
+function revealWord() {
+  const word = activeWord.value
+  if (!word || solved.value || playedElsewhere.value || isWordCorrect(word)) return
+  word.cells.forEach((cell, index) => {
+    guesses[cellKey(cell.row, cell.col)] = word.answer[index]
+  })
+  checked.value = false
+  timer.addPenalty(20_000)
+  persist()
+  maybeComplete()
 }
 
 function typeLetter(letter: string) {
-  if (solved.value || !layout.value?.letters[activeRow.value]?.[activeCol.value]) return
+  if (solved.value || playedElsewhere.value) return
+  if (!layout.value?.letters[activeRow.value]?.[activeCol.value]) return
   timer.ensureStarted()
   guesses[cellKey(activeRow.value, activeCol.value)] = letter.toUpperCase()
   checked.value = false
@@ -432,7 +552,7 @@ function typeLetter(letter: string) {
 }
 
 function backspace() {
-  if (solved.value) return
+  if (solved.value || playedElsewhere.value) return
   const id = cellKey(activeRow.value, activeCol.value)
   if (guesses[id]) {
     delete guesses[id]
@@ -447,6 +567,7 @@ function backspace() {
 }
 
 function checkAnswers() {
+  if (playedElsewhere.value) return
   checked.value = true
   maybeComplete()
 }
@@ -508,6 +629,8 @@ watch(puzzles, (list) => {
 watch([entries, () => auth.user.value?.uid], ([list, uid]) => {
   if (uid && list.some(e => e.userId === uid)) scoreSubmitted.value = true
 })
+
+backfill(() => ({ timeMs: timer.elapsedMs.value, detail: 'Solved' }))
 
 onMounted(() => {
   timer.read()

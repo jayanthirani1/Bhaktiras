@@ -8,50 +8,65 @@ export type PlayGameSlug =
   | 'quiz'
   | 'spelling-bee'
 
+export interface PlayCompletionEntry {
+  /** Game-specific headline number (guesses, cleared rungs, quiz score). */
+  score?: number
+  timeMs?: number
+  /** Short human summary, e.g. "4/6" or "12/20 correct". */
+  detail?: string
+}
+
 function doneKey(slug: PlayGameSlug, dateId = ukDateId()) {
   return `play-done:${slug}:${dateId}`
 }
 
-/** Explicit day marker used by games that do not already persist completion. */
-export function markPlayDone(slug: PlayGameSlug) {
+/** Records today's completion on this device. */
+export function markPlayDoneLocally(slug: PlayGameSlug, meta: PlayCompletionEntry = {}) {
   if (import.meta.server || typeof localStorage === 'undefined') return
   try {
-    localStorage.setItem(doneKey(slug), '1')
+    localStorage.setItem(doneKey(slug), JSON.stringify(meta))
   } catch {}
 }
 
-export function isPlayDone(slug: PlayGameSlug, dateId = ukDateId()): boolean {
-  if (import.meta.server || typeof localStorage === 'undefined') return false
+export function readLocalPlayCompletion(
+  slug: PlayGameSlug,
+  dateId = ukDateId()
+): PlayCompletionEntry | null {
+  if (import.meta.server || typeof localStorage === 'undefined') return null
   try {
-    if (localStorage.getItem(doneKey(slug, dateId)) === '1') return true
+    const raw = localStorage.getItem(doneKey(slug, dateId))
+    if (raw) {
+      // Older builds stored a bare "1".
+      return raw === '1' ? {} : (JSON.parse(raw) as PlayCompletionEntry)
+    }
 
     if (slug === 'wordle') {
-      const raw = localStorage.getItem('wordle-daily')
-      if (!raw) return false
-      const data = JSON.parse(raw) as { date?: string; isComplete?: boolean }
-      return data.date === dateId && !!data.isComplete
+      const state = localStorage.getItem('wordle-daily')
+      if (!state) return null
+      const data = JSON.parse(state) as { date?: string; isComplete?: boolean; guesses?: string[] }
+      if (data.date !== dateId || !data.isComplete) return null
+      return { score: data.guesses?.length }
     }
 
     if (slug === 'mini-crossword') {
-      const raw = localStorage.getItem(`mini-crossword:${dateId}`)
-      if (!raw) return false
-      return !!JSON.parse(raw).solved
+      const state = localStorage.getItem(`mini-crossword:${dateId}`)
+      if (!state) return null
+      return JSON.parse(state).solved ? {} : null
     }
 
     if (slug === 'one-percent') {
-      const raw = localStorage.getItem(`one-percent-run:${dateId}`)
-      if (!raw) return false
-      return !!JSON.parse(raw).finished
+      const state = localStorage.getItem(`one-percent-run:${dateId}`)
+      if (!state) return null
+      const data = JSON.parse(state)
+      return data.finished ? { score: Number(data.cleared) || 0 } : null
     }
 
-    return false
+    return null
   } catch {
-    return false
+    return null
   }
 }
 
-export function readPlayCompletion(slugs: PlayGameSlug[]): Record<PlayGameSlug, boolean> {
-  const out = {} as Record<PlayGameSlug, boolean>
-  for (const slug of slugs) out[slug] = isPlayDone(slug)
-  return out
+export function isPlayDoneLocally(slug: PlayGameSlug, dateId = ukDateId()): boolean {
+  return !!readLocalPlayCompletion(slug, dateId)
 }

@@ -22,12 +22,19 @@
           <p class="mt-8 text-center text-sm text-[hsl(var(--muted-foreground))]">Loading Wordle…</p>
         </template>
 
-      <div class="mb-4 flex items-center justify-center gap-2 text-sm font-semibold text-[hsl(var(--primary))]">
+      <GamePlayedElsewhere
+        v-if="playedElsewhere"
+        title="Wordle"
+        :summary="elsewhereSummary"
+        class="mb-6"
+      />
+
+      <div v-if="!playedElsewhere" class="mb-4 flex items-center justify-center gap-2 text-sm font-semibold text-[hsl(var(--primary))]">
         <span class="rounded-full bg-[hsl(var(--muted))] px-3 py-1 tabular-nums">⏱ {{ timer.display.value }}</span>
       </div>
 
       <div
-        v-if="isComplete"
+        v-if="isComplete && !playedElsewhere"
         class="mb-6 rounded-2xl border border-[hsl(var(--golden-200))] bg-[hsl(var(--card))] p-5 text-center"
       >
         <p class="font-display text-xl font-semibold text-[hsl(var(--primary))]">Today’s Wordle complete</p>
@@ -82,7 +89,7 @@
       </div>
 
       <!-- Grid -->
-      <div class="flex flex-col gap-2 mb-8" role="grid" aria-label="Wordle guesses">
+      <div v-if="!playedElsewhere" class="flex flex-col gap-2 mb-8" role="grid" aria-label="Wordle guesses">
         <div
           v-for="(row, rowIndex) in rows"
           :key="rowIndex"
@@ -108,7 +115,7 @@
       </div>
 
       <!-- Keyboard -->
-      <div v-if="!isComplete" class="flex flex-col gap-1.5 touch-manipulation">
+      <div v-if="!isComplete && !playedElsewhere" class="flex flex-col gap-1.5 touch-manipulation">
         <div class="flex justify-center gap-1">
           <button
             v-for="k in KEYBOARD_TOP"
@@ -418,6 +425,18 @@ const {
 } = useWordleLeaderboard()
 const isLoggedIn = computed(() => !!auth.user.value)
 const timer = useGameTimer(`wordle-timer:${getTodayId()}`)
+const {
+  playedElsewhere,
+  result: elsewhereResult,
+  markDone,
+  backfill
+} = useDailyGameCompletion('wordle')
+
+const elsewhereSummary = computed(() => {
+  const r = elsewhereResult.value
+  if (!r) return ''
+  return [r.detail, r.timeMs != null ? formatElapsed(r.timeMs) : ''].filter(Boolean).join(' · ')
+})
 
 function formatWordleScore(e: { guesses?: number; score?: number; timeMs?: number }) {
   const g = e.guesses ?? e.score
@@ -427,6 +446,12 @@ function formatWordleScore(e: { guesses?: number; score?: number; timeMs?: numbe
 
 const isWin = computed(() => guesses.value.length > 0 && guesses.value[guesses.value.length - 1] === solution.value)
 const isLose = computed(() => !isWin.value && guesses.value.length >= ROWS)
+
+backfill(() => ({
+  score: isWin.value ? guesses.value.length : undefined,
+  timeMs: timer.elapsedMs.value,
+  detail: isWin.value ? `${guesses.value.length}/${ROWS}` : `X/${ROWS}`
+}))
 const solutionEntry = computed(() =>
   findGameWord(solution.value, remoteWordEntries.value)
   ?? findGameWord(solution.value)
@@ -556,6 +581,7 @@ function onKeyClick(key: string) {
 }
 
 function submitGuess() {
+  if (playedElsewhere.value) return
   invalidWordMessage.value = ''
   const trimmed = currentGuess.value.toUpperCase().trim()
   const currentRow = guesses.value.length
@@ -583,18 +609,24 @@ function submitGuess() {
   if (trimmed === solution.value) {
     isComplete.value = true
     timer.stop()
+    void markDone({
+      score: guesses.value.length,
+      timeMs: timer.elapsedMs.value,
+      detail: `${guesses.value.length}/${ROWS}`
+    })
     // Let the green tiles reveal, then celebrate the row before covering it.
     setTimeout(() => { shouldDance.value = true }, 1000)
     setTimeout(() => { showResultModal.value = true }, 2100)
   } else if (guesses.value.length >= ROWS) {
     isComplete.value = true
     timer.stop()
+    void markDone({ timeMs: timer.elapsedMs.value, detail: `X/${ROWS}` })
     setTimeout(() => { showResultModal.value = true }, 1000)
   }
 }
 
 function addLetter(letter: string) {
-  if (isComplete.value) return
+  if (isComplete.value || playedElsewhere.value) return
   if (currentGuess.value.length >= WORD_LEN) {
     haptic(20)
     return

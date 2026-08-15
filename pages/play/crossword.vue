@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-[hsl(var(--background))] pb-[calc(13.5rem+env(safe-area-inset-bottom))] pt-0 md:pb-24 md:pt-12 px-3 sm:px-4">
+  <div class="min-h-screen bg-[hsl(var(--background))] pb-[calc(16.5rem+env(safe-area-inset-bottom))] pt-0 md:pb-24 md:pt-12 px-3 sm:px-4">
     <div class="mx-auto max-w-5xl">
       <!-- Top bar: pinned so Back and Check stay reachable while scrolling -->
       <div class="sticky top-0 z-40 -mx-3 mb-3 flex items-center justify-between gap-2 border-b border-[hsl(var(--border))] bg-[hsl(var(--background))]/95 px-3 py-2 backdrop-blur sm:-mx-4 sm:px-4 md:top-16 md:mb-6">
@@ -9,9 +9,12 @@
         >
           ‹ Back
         </NuxtLink>
-        <h1 class="font-display text-lg font-semibold text-[hsl(var(--primary))] md:hidden">
-          {{ active?.title || 'Crossword' }}
-        </h1>
+        <div class="text-center md:hidden">
+          <h1 class="font-display text-base font-semibold text-[hsl(var(--primary))]">
+            {{ active?.title || 'Crossword' }}
+          </h1>
+          <p class="text-xs font-semibold tabular-nums text-[hsl(var(--muted-foreground))]">⏱ {{ timer.display.value }}</p>
+        </div>
         <button
           type="button"
           class="rounded-full bg-[hsl(var(--primary))] px-4 py-2 text-sm font-bold text-white shadow-lg shadow-[hsl(var(--primary))]/20 disabled:opacity-40"
@@ -46,7 +49,10 @@
 
         <div v-if="active && layout" class="space-y-4 md:space-y-6">
           <div class="rounded-2xl border border-[hsl(var(--border))] bg-white p-3 sm:p-5">
-            <h3 class="mb-3 hidden font-display text-xl font-semibold text-[hsl(var(--primary))] md:block">{{ active.title }}</h3>
+            <div class="mb-3 hidden items-center justify-between md:flex">
+              <h3 class="font-display text-xl font-semibold text-[hsl(var(--primary))]">{{ active.title }}</h3>
+              <span class="rounded-full bg-[hsl(var(--muted))] px-3 py-1 text-sm font-semibold tabular-nums">⏱ {{ timer.display.value }}</span>
+            </div>
 
             <div class="flex justify-center overflow-x-auto">
               <div
@@ -59,7 +65,7 @@
                   type="button"
                   class="relative aspect-square select-none text-sm font-bold uppercase sm:text-base"
                   :class="cellClass(cell)"
-                  :disabled="!cell.open"
+                  :disabled="!cell.open || allCorrect"
                   @click="onCellClick(cell.row, cell.col)"
                 >
                   <span
@@ -84,6 +90,24 @@
 
             <div class="mt-4 hidden flex-wrap gap-2 md:flex">
               <button type="button" class="btn-primary text-sm" @click="checkAnswers">Check answers</button>
+            <button
+              type="button"
+              class="inline-flex items-center gap-1.5 rounded-xl bg-amber-100 px-4 py-2 text-sm font-semibold text-amber-900 hover:bg-amber-200 disabled:opacity-40"
+              :disabled="allCorrect || !canRevealLetter"
+              @click="askHint('letter')"
+            >
+              <IconEye class="h-4 w-4" aria-hidden="true" />
+              Hint: letter (+5s)
+            </button>
+            <button
+              type="button"
+              class="inline-flex items-center gap-1.5 rounded-xl bg-amber-100 px-4 py-2 text-sm font-semibold text-amber-900 hover:bg-amber-200 disabled:opacity-40"
+              :disabled="allCorrect || !canRevealWord"
+              @click="askHint('word')"
+            >
+              <IconHelp class="h-4 w-4" aria-hidden="true" />
+              Hint: word (+20s)
+            </button>
               <button
                 type="button"
                 class="rounded-xl bg-[hsl(var(--muted))] px-4 py-2 text-sm font-semibold text-[hsl(var(--foreground))] hover:bg-[hsl(var(--border))]"
@@ -136,10 +160,30 @@
     </div>
 
     <div
-      v-if="layout"
+      v-if="layout && !allCorrect"
       class="fixed inset-x-0 bottom-0 z-40 border-t border-[hsl(var(--border))] bg-[hsl(var(--background))]/95 px-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2 backdrop-blur md:hidden"
     >
       <div class="mx-auto max-w-lg">
+        <div class="mb-2 grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            class="inline-flex items-center justify-center gap-1 rounded-xl bg-amber-100 py-2 text-xs font-bold text-amber-900 active:scale-[0.99] disabled:opacity-40"
+            :disabled="!canRevealLetter"
+            @click="askHint('letter')"
+          >
+            <IconEye class="h-3.5 w-3.5" aria-hidden="true" />
+            Letter +5s
+          </button>
+          <button
+            type="button"
+            class="inline-flex items-center justify-center gap-1 rounded-xl bg-amber-100 py-2 text-xs font-bold text-amber-900 active:scale-[0.99] disabled:opacity-40"
+            :disabled="!canRevealWord"
+            @click="askHint('word')"
+          >
+            <IconHelp class="h-3.5 w-3.5" aria-hidden="true" />
+            Word +20s
+          </button>
+        </div>
         <button
           type="button"
           class="mb-2 w-full rounded-xl bg-[hsl(var(--primary))] py-2.5 text-sm font-bold text-white shadow-lg shadow-[hsl(var(--primary))]/20 active:scale-[0.99]"
@@ -153,19 +197,32 @@
         />
       </div>
     </div>
+
+    <GameHintConfirm
+      :open="!!pendingHint"
+      :kind="pendingHint"
+      @confirm="confirmHint"
+      @cancel="pendingHint = null"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
+import { IconEye, IconHelp } from '@tabler/icons-vue'
 import { cellKey, layoutCrossword, type LaidWord } from '~/utils/crosswordLayout'
+import { ukDateId } from '~/utils/gameDay'
 
 const { puzzles, loading } = useCrosswordPuzzles()
+// Replayable across puzzles, so it syncs its "done today" marker without locking.
+const { markDone } = useDailyGameCompletion('crossword')
 const activeId = ref('')
 const guesses = reactive<Record<string, string>>({})
 const checked = ref(false)
 const activeRow = ref(0)
 const activeCol = ref(0)
 const activeDir = ref<'across' | 'down'>('across')
+const timer = useGameTimer(`crossword-timer:${ukDateId()}`)
+const pendingHint = ref<'letter' | 'word' | null>(null)
 
 const active = computed(() => puzzles.value.find(p => p.id === activeId.value) || puzzles.value[0] || null)
 const layout = computed(() => active.value ? layoutCrossword(active.value.clues) : null)
@@ -204,6 +261,20 @@ const activeWord = computed(() => {
 })
 
 const activeWordKeys = computed(() => new Set((activeWord.value?.cells || []).map(c => cellKey(c.row, c.col))))
+const allCorrect = computed(() => {
+  const words = layout.value?.words || []
+  return words.length > 0 && words.every(isWordCorrect)
+})
+const canRevealLetter = computed(() => {
+  const l = layout.value
+  return !!l && flatCells.value.some(cell =>
+    cell.open && guesses[cell.id] !== l.letters[cell.row][cell.col]
+  )
+})
+const canRevealWord = computed(() => {
+  const word = activeWord.value
+  return !!word && !isWordCorrect(word)
+})
 
 function cellClass(cell: { id: string; open: boolean; row: number; col: number }) {
   if (!cell.open) return 'bg-[hsl(var(--primary))] cursor-default'
@@ -286,9 +357,11 @@ function moveInWord(delta: number) {
 
 function typeLetter(letter: string) {
   if (!layout.value?.letters[activeRow.value]?.[activeCol.value]) return
+  timer.ensureStarted()
   guesses[cellKey(activeRow.value, activeCol.value)] = letter.toUpperCase()
   checked.value = false
   moveInWord(1)
+  finishIfComplete()
 }
 
 function backspace() {
@@ -309,12 +382,64 @@ function isWordCorrect(word: LaidWord) {
 
 const correctCount = computed(() => layout.value?.words.filter(isWordCorrect).length || 0)
 
+function finishIfComplete() {
+  if (!allCorrect.value) return
+  checked.value = true
+  timer.stop()
+  void markDone({
+    timeMs: timer.elapsedMs.value,
+    detail: active.value?.title || 'Solved'
+  })
+}
+
+function askHint(kind: 'letter' | 'word') {
+  if (allCorrect.value) return
+  if (kind === 'letter' && !canRevealLetter.value) return
+  if (kind === 'word' && !canRevealWord.value) return
+  pendingHint.value = kind
+}
+
+function confirmHint() {
+  const kind = pendingHint.value
+  pendingHint.value = null
+  if (kind === 'letter') revealLetter()
+  else if (kind === 'word') revealWord()
+}
+
+function revealLetter() {
+  const l = layout.value
+  if (!l || allCorrect.value) return
+  const word = activeWord.value
+  const candidates = word?.cells.length
+    ? word.cells
+    : flatCells.value.filter(cell => cell.open)
+  const target = candidates.find(cell => {
+    const id = cellKey(cell.row, cell.col)
+    return guesses[id] !== l.letters[cell.row][cell.col]
+  })
+  if (!target) return
+  guesses[cellKey(target.row, target.col)] = l.letters[target.row][target.col]
+  activeRow.value = target.row
+  activeCol.value = target.col
+  checked.value = false
+  timer.addPenalty(5_000)
+  finishIfComplete()
+}
+
+function revealWord() {
+  const word = activeWord.value
+  if (!word || allCorrect.value || isWordCorrect(word)) return
+  word.cells.forEach((cell, index) => {
+    guesses[cellKey(cell.row, cell.col)] = word.answer[index]
+  })
+  checked.value = false
+  timer.addPenalty(20_000)
+  finishIfComplete()
+}
+
 function checkAnswers() {
   checked.value = true
-  const l = layout.value
-  if (l && l.words.length && l.words.every(isWordCorrect)) {
-    markPlayDone('crossword')
-  }
+  finishIfComplete()
 }
 
 function clearGuesses() {
@@ -325,6 +450,7 @@ function clearGuesses() {
 function select(id: string) {
   activeId.value = id
   clearGuesses()
+  timer.reset()
   activeDir.value = 'across'
   const l = layoutCrossword(puzzles.value.find(p => p.id === id)?.clues || [])
   const first = l?.words[0]

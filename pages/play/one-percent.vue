@@ -21,7 +21,13 @@
         subtitle="Climb the ladder from 90% to 1%. One wrong answer ends your run."
       />
 
-      <div v-if="loading" class="card-surface p-8 text-center text-sm text-[hsl(var(--muted-foreground))]">
+      <GamePlayedElsewhere
+        v-if="playedElsewhere"
+        title="1% Club run"
+        :summary="elsewhereSummary"
+      />
+
+      <div v-else-if="loading" class="card-surface p-8 text-center text-sm text-[hsl(var(--muted-foreground))]">
         Loading questions…
       </div>
 
@@ -130,6 +136,18 @@ const {
 
 const timer = useGameTimer(`one-percent-timer:${ukDateId()}`)
 const timerDisplay = computed(() => timer.display.value)
+const {
+  playedElsewhere,
+  result: elsewhereResult,
+  markDone,
+  backfill
+} = useDailyGameCompletion('one-percent')
+
+const elsewhereSummary = computed(() => {
+  const r = elsewhereResult.value
+  if (!r) return ''
+  return [r.detail, r.timeMs != null ? formatElapsed(r.timeMs) : ''].filter(Boolean).join(' · ')
+})
 
 const started = ref(false)
 const finished = ref(false)
@@ -186,7 +204,7 @@ function loadRun() {
 }
 
 function startRun() {
-  if (finished.value) return
+  if (finished.value || playedElsewhere.value) return
   started.value = true
   timer.ensureStarted()
   saveRun()
@@ -196,10 +214,15 @@ function finishRun() {
   finished.value = true
   timer.stop()
   saveRun()
+  void markDone({
+    score: cleared.value,
+    timeMs: timer.elapsedMs.value,
+    detail: `${cleared.value}/${ladder.value.length} cleared`
+  })
 }
 
 function answer(opt: string) {
-  if (!current.value || feedback.value || finished.value) return
+  if (!current.value || feedback.value || finished.value || playedElsewhere.value) return
   selected.value = opt
   const ok = opt.trim() === current.value.correctAnswer.trim()
   feedbackOk.value = ok
@@ -256,6 +279,12 @@ async function submitToLeaderboard() {
 watch([entries, () => auth.user.value?.uid], ([list, uid]) => {
   if (uid && list.some(e => e.userId === uid)) scoreSubmitted.value = true
 })
+
+backfill(() => ({
+  score: cleared.value,
+  timeMs: timer.elapsedMs.value,
+  detail: `${cleared.value}/${ladder.value.length} cleared`
+}))
 
 onMounted(() => {
   loadRun()

@@ -16,13 +16,14 @@ export function formatElapsed(ms: number): string {
 export function useGameTimer(storageKey: string) {
   const startedAt = ref<number | null>(null)
   const finishedAt = ref<number | null>(null)
+  const penaltyMs = ref(0)
   const now = ref(Date.now())
   let tick: ReturnType<typeof setInterval> | null = null
 
   const elapsedMs = computed(() => {
     if (!startedAt.value) return 0
     const end = finishedAt.value ?? now.value
-    return Math.max(0, end - startedAt.value)
+    return Math.max(0, end - startedAt.value + penaltyMs.value)
   })
 
   const display = computed(() => formatElapsed(elapsedMs.value))
@@ -33,9 +34,14 @@ export function useGameTimer(storageKey: string) {
     try {
       const raw = localStorage.getItem(storageKey)
       if (!raw) return
-      const data = JSON.parse(raw) as { startedAt?: number; finishedAt?: number | null }
+      const data = JSON.parse(raw) as {
+        startedAt?: number
+        finishedAt?: number | null
+        penaltyMs?: number
+      }
       if (data.startedAt) startedAt.value = data.startedAt
       if (data.finishedAt) finishedAt.value = data.finishedAt
+      if (Number.isFinite(data.penaltyMs)) penaltyMs.value = Math.max(0, Number(data.penaltyMs))
     } catch {}
   }
 
@@ -48,7 +54,8 @@ export function useGameTimer(storageKey: string) {
       }
       localStorage.setItem(storageKey, JSON.stringify({
         startedAt: startedAt.value,
-        finishedAt: finishedAt.value
+        finishedAt: finishedAt.value,
+        penaltyMs: penaltyMs.value
       }))
     } catch {}
   }
@@ -65,9 +72,17 @@ export function useGameTimer(storageKey: string) {
     write()
   }
 
+  function addPenalty(ms: number) {
+    if (!Number.isFinite(ms) || ms <= 0) return
+    ensureStarted()
+    penaltyMs.value += Math.trunc(ms)
+    write()
+  }
+
   function reset() {
     startedAt.value = null
     finishedAt.value = null
+    penaltyMs.value = 0
     write()
   }
 
@@ -91,12 +106,14 @@ export function useGameTimer(storageKey: string) {
   return {
     startedAt,
     finishedAt,
+    penaltyMs,
     elapsedMs,
     display,
     running,
     ensureStarted,
     loadOrStart,
     stop,
+    addPenalty,
     reset,
     read,
     write

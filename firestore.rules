@@ -165,6 +165,19 @@ service cloud.firestore {
       allow delete: if isAdmin() || (isSignedIn() && request.auth.uid == uid);
     }
 
+    // Which games a user finished on a given day, so results follow them across devices.
+    match /playCompletions/{uid}/days/{dateId} {
+      allow read: if isSignedIn() && request.auth.uid == uid;
+      allow create, update: if isSignedIn()
+        && request.auth.uid == uid
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.dateId is string
+        && request.resource.data.dateId.size() == 10
+        && request.resource.data.games is map
+        && request.resource.data.games.size() <= 12;
+      allow delete: if isSignedIn() && request.auth.uid == uid;
+    }
+
     match /sevaHours/{id} {
       allow read: if true;
       allow create: if true;

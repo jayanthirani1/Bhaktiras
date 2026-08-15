@@ -87,6 +87,9 @@ const isCorrect = ref<boolean | null>(null)
 const score = ref(0)
 const isFinished = ref(false)
 
+// Replayable, so the quiz syncs its "done today" marker without locking.
+const { markDone } = useDailyGameCompletion('quiz')
+
 function getOptionClass(option: string) {
   if (!selectedOption.value) return 'border-[hsl(var(--golden-200))] hover:border-[hsl(var(--primary))]/40 hover:bg-[hsl(var(--golden-50))]/50'
   if (option === selectedOption.value) {
@@ -109,7 +112,10 @@ function handleOptionSelect(option: string) {
       isCorrect.value = null
     } else {
       isFinished.value = true
-      markPlayDone('quiz')
+      void markDone({
+        score: score.value,
+        detail: `${score.value}/${questions.value.length}`
+      })
     }
   }, 1500)
 }

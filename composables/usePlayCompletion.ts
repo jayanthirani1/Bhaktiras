@@ -1,16 +1,17 @@
-import {
-  isPlayDone,
-  readPlayCompletion,
-  type PlayGameSlug
-} from '~/utils/playCompletion'
+import { isPlayDoneLocally, type PlayGameSlug } from '~/utils/playCompletion'
 
-/** Reactive “done today” map for the Play hub cards. */
+/** Reactive “done today” map for the Play hub cards, merged across devices. */
 export function usePlayCompletion(slugs: PlayGameSlug[]) {
-  const done = reactive({} as Record<PlayGameSlug, boolean>)
+  const { remote, load } = usePlayCompletionStore()
+  const local = reactive({} as Record<PlayGameSlug, boolean>)
 
   function refresh() {
-    const next = readPlayCompletion(slugs)
-    for (const slug of slugs) done[slug] = next[slug]
+    for (const slug of slugs) local[slug] = isPlayDoneLocally(slug)
+    void load(true)
+  }
+
+  function onVisible() {
+    if (document.visibilityState === 'visible') refresh()
   }
 
   onMounted(() => {
@@ -27,9 +28,11 @@ export function usePlayCompletion(slugs: PlayGameSlug[]) {
     document.removeEventListener('visibilitychange', onVisible)
   })
 
-  function onVisible() {
-    if (document.visibilityState === 'visible') refresh()
-  }
+  const done = computed(() => {
+    const map = {} as Record<PlayGameSlug, boolean>
+    for (const slug of slugs) map[slug] = !!local[slug] || !!remote.value[slug]
+    return map
+  })
 
-  return { done, refresh, isDone: (slug: PlayGameSlug) => isPlayDone(slug) }
+  return { done, refresh }
 }

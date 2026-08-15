@@ -8,7 +8,7 @@
         class="game-letter-key"
         :class="{ 'game-letter-key--press': pressed === k }"
         @pointerdown="onPointer($event, k)"
-        @click="onClick(k)"
+        @click="onClick($event, k)"
       >
         {{ k }}
       </button>
@@ -21,7 +21,7 @@
         class="game-letter-key"
         :class="{ 'game-letter-key--press': pressed === k }"
         @pointerdown="onPointer($event, k)"
-        @click="onClick(k)"
+        @click="onClick($event, k)"
       >
         {{ k }}
       </button>
@@ -34,7 +34,7 @@
         class="game-letter-key"
         :class="{ 'game-letter-key--press': pressed === k }"
         @pointerdown="onPointer($event, k)"
-        @click="onClick(k)"
+        @click="onClick($event, k)"
       >
         {{ k }}
       </button>
@@ -44,7 +44,7 @@
         :class="{ 'game-letter-key--press': pressed === 'DEL' }"
         aria-label="Delete"
         @pointerdown="onPointer($event, 'DEL')"
-        @click="onClick('DEL')"
+        @click="onClick($event, 'DEL')"
       >
         DEL
       </button>
@@ -62,8 +62,6 @@ const BOT = ['Z', 'X', 'C', 'V', 'B', 'N', 'M']
 
 const pressed = ref<string | null>(null)
 let pressTimer: ReturnType<typeof setTimeout> | null = null
-let ignoreClickFromTouch = false
-
 function flash(key: string) {
   pressed.value = key
   if (pressTimer) clearTimeout(pressTimer)
@@ -83,16 +81,15 @@ function run(key: string) {
 }
 
 function onPointer(e: PointerEvent, key: string) {
-  if (e.pointerType === 'mouse') return
+  // Handle every pointer here for immediate feedback. preventDefault suppresses
+  // the synthetic click that otherwise follows a touch and can enter twice.
   e.preventDefault()
-  ignoreClickFromTouch = true
   run(key)
-  setTimeout(() => { ignoreClickFromTouch = false }, 400)
 }
 
-function onClick(key: string) {
-  if (ignoreClickFromTouch) return
-  run(key)
+function onClick(e: MouseEvent, key: string) {
+  // detail === 0 is a keyboard-generated click (Enter/Space), not a pointer.
+  if (e.detail === 0) run(key)
 }
 </script>
 
