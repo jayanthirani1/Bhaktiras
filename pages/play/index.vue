@@ -11,8 +11,8 @@
         class="mx-auto mt-8 max-w-xl overflow-hidden rounded-2xl border border-orange-200 bg-gradient-to-br from-orange-50 to-amber-50 shadow-[0_12px_35px_-20px_rgba(234,88,12,0.45)]"
       >
         <div class="flex items-center gap-4 p-5">
-          <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-orange-500 text-white shadow-lg shadow-orange-200">
-            <IconFlame class="h-8 w-8" />
+          <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-b from-amber-50 to-orange-100 ring-1 ring-orange-200">
+            <FlameIcon class="h-9 w-9" />
           </div>
           <div class="min-w-0 flex-1">
             <p class="text-xs font-bold uppercase tracking-[0.18em] text-orange-700">Your streak</p>
@@ -97,7 +97,6 @@ import {
   IconHexagon,
   IconChartBar,
   IconLayoutGrid,
-  IconFlame,
   IconArrowRight,
   IconCheck,
   IconCirclesRelation

@@ -39,7 +39,7 @@
               <span class="text-xs text-[hsl(var(--muted-foreground))]">Best: {{ entry.longestStreak }} days</span>
             </span>
             <span class="inline-flex items-center gap-1 rounded-full bg-orange-100 px-3 py-1 font-bold text-orange-700">
-              <IconFlame class="h-4 w-4" />
+              <FlameIcon class="h-4 w-4" />
               {{ entry.currentStreak }}
             </span>
           </li>
@@ -57,8 +57,6 @@
 </template>
 
 <script setup lang="ts">
-import { IconFlame } from '@tabler/icons-vue'
-
 const auth = useAuth()
 const { entries, loading, error } = usePlayStreakLeaderboard()
 
