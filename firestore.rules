@@ -98,12 +98,44 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
+    // Anyone may report a bug. Reports are private and managed by admins.
+    match /bugReports/{id} {
+      allow create: if request.resource.data.keys().hasOnly([
+          'title', 'description', 'pageUrl', 'contactEmail', 'status', 'createdAt'
+        ])
+        && request.resource.data.keys().hasAll(['title', 'description', 'status', 'createdAt'])
+        && request.resource.data.title is string
+        && request.resource.data.title.size() >= 3
+        && request.resource.data.title.size() <= 100
+        && request.resource.data.description is string
+        && request.resource.data.description.size() >= 10
+        && request.resource.data.description.size() <= 1500
+        && request.resource.data.status == 'open'
+        && request.resource.data.createdAt == request.time
+        && (
+          !('pageUrl' in request.resource.data)
+          || request.resource.data.pageUrl == null
+          || (request.resource.data.pageUrl is string && request.resource.data.pageUrl.size() <= 300)
+        )
+        && (
+          !('contactEmail' in request.resource.data)
+          || request.resource.data.contactEmail == null
+          || (request.resource.data.contactEmail is string && request.resource.data.contactEmail.size() <= 150)
+        );
+      allow read, update, delete: if isAdmin();
+    }
+
     match /timeline/{id} {
       allow read: if true;
       allow create, update, delete: if isAdmin();
     }
 
     match /events/{id} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /yajmanOpportunities/{id} {
       allow read: if true;
       allow create, update, delete: if isAdmin();
     }
@@ -148,6 +180,11 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    match /connectionsPuzzles/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     // A signed-in user's daily Play visit streak. Public read powers the leaderboard.
     match /playStreaks/{uid} {
       allow read: if true;
@@ -176,12 +213,6 @@ service cloud.firestore {
         && request.resource.data.games is map
         && request.resource.data.games.size() <= 12;
       allow delete: if isSignedIn() && request.auth.uid == uid;
-    }
-
-    match /sevaHours/{id} {
-      allow read: if true;
-      allow create: if true;
-      allow update, delete: if isAdmin();
     }
 
     // Admin-editable niyam list. Public read.

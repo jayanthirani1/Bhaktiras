@@ -1,9 +1,11 @@
 import { collection, doc, getDoc, getDocs, type Firestore } from 'firebase/firestore'
-import type { CrosswordPuzzle, GameWordEntry, OnePercentQuestion, QuizQuestion, WordleWordDoc } from '~/types'
+import type { ConnectionsPuzzle, CrosswordPuzzle, GameWordEntry, OnePercentQuestion, QuizQuestion, WordleWordDoc } from '~/types'
 import type { SpellingBeePuzzle } from '~/data/spellingBeePuzzles'
 import { SPELLING_BEE_PUZZLES } from '~/data/spellingBeePuzzles'
 import { DEFAULT_ONE_PERCENT } from '~/data/onePercentClub'
 import { DEFAULT_MINI_CROSSWORD } from '~/data/miniCrossword'
+import { DEFAULT_CONNECTIONS_PUZZLES } from '~/data/connectionsPuzzles'
+import { ukDateId } from '~/utils/gameDay'
 import { wordleDateId } from '~/utils/wordleDaily'
 import {
   buildWordBankSpellingBeePuzzles,
@@ -28,7 +30,7 @@ const FALLBACK_QUIZ: QuizQuestion[] = [
 
 function mapCustomGameWords(snap: Awaited<ReturnType<typeof getDocs>>): GameWordEntry[] {
   return snap.docs.map((item) => {
-    const data = item.data()
+    const data = item.data() as Record<string, unknown>
     const answer = normalizeGameWord(String(data.answer || data.display || ''))
     return {
       id: item.id,
@@ -182,6 +184,38 @@ export function useOnePercentQuestions() {
   return { questions, loading }
 }
 
+export function useConnectionsPuzzle() {
+  const dateId = ukDateId()
+  const dateSeed = [...dateId].reduce((hash, char) => (hash * 31 + char.charCodeAt(0)) >>> 0, 2166136261)
+  const fallbackIndex = dateSeed % DEFAULT_CONNECTIONS_PUZZLES.length
+  const puzzle = ref<ConnectionsPuzzle>(DEFAULT_CONNECTIONS_PUZZLES[fallbackIndex])
+  const loading = ref(true)
+
+  onMounted(async () => {
+    try {
+      const db = getDb()
+      if (!db) return
+      const snap = await getDocs(collection(db, 'connectionsPuzzles'))
+      const remote = snap.docs
+        .map(d => ({ id: d.id, ...d.data() } as ConnectionsPuzzle))
+        .filter(item =>
+          item.published !== false
+          && item.groups?.length === 4
+          && item.groups.every(group => group.title && group.words?.length === 4)
+        )
+      const exact = remote.find(item => item.id === `daily-${dateId}` || item.dateId === dateId)
+      if (exact) puzzle.value = exact
+      else if (remote.length) {
+        puzzle.value = remote[dateSeed % remote.length]
+      }
+    } finally {
+      loading.value = false
+    }
+  })
+
+  return { puzzle, loading }
+}
+
 export async function fetchWordleRemote(date = new Date()) {
   const db = getDb()
   if (!db) {
@@ -197,9 +231,9 @@ export async function fetchWordleRemote(date = new Date()) {
     getDocs(collection(db, 'wordleWords')),
     getDocs(collection(db, 'gameWords'))
   ])
-  const customWords = mapCustomGameWords(gameWordsSnap)
+  const customEntries = mapCustomGameWords(gameWordsSnap)
     .filter(entry => entry.games.includes('wordle'))
-    .map(entry => entry.answer)
+  const customWords = customEntries.map(entry => entry.answer)
   const extraWords = [...wordsSnap.docs
     .map(d => String((d.data() as WordleWordDoc).word || '').toUpperCase())
     .filter(w => w.length === 5), ...customWords]
@@ -207,6 +241,6 @@ export async function fetchWordleRemote(date = new Date()) {
   return {
     extraWords,
     dailyWord: dailyWord && dailyWord.length === 5 ? dailyWord : null,
-    wordEntries: customWords
+    wordEntries: customEntries
   }
 }

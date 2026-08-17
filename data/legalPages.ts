@@ -33,7 +33,7 @@ Depending on how you use the site, we may store:
 - Game scores you choose to submit to a leaderboard (with your display name)
 - Niyam ticks saved to your account
 - Community wall messages you post (you can post anonymously)
-- Anonymous seva hours if you log them
+- Bug reports you submit, including an optional contact email
 - Admin-only records if you are a temple editor
 
 We do **not** sell your data. We do **not** use it for advertising.
@@ -47,6 +47,7 @@ Access to data is limited by Firestore security rules. For example:
 - Anyone can read public content (events, timeline, published niyams, leaderboards)
 - Only you can update your own niyam tracker and your own scores
 - Only temple admins can edit site content, including this policy
+- Only temple admins can read submitted bug reports
 
 You should use a strong password (or Google sign-in with 2-step verification) and never share your account.
 

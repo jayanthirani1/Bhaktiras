@@ -245,19 +245,19 @@
               <h3 class="text-sm font-semibold text-[hsl(var(--muted-foreground))] mb-3">STATISTICS</h3>
               <div class="grid grid-cols-4 gap-3">
                 <div>
-                  <div class="text-2xl font-bold text-[hsl(var(--foreground))]">{{ wordleStats.stats.gamesPlayed }}</div>
+                  <div class="text-2xl font-bold text-[hsl(var(--foreground))]">{{ displayStats.gamesPlayed }}</div>
                   <div class="text-xs text-[hsl(var(--muted-foreground))]">Played</div>
                 </div>
                 <div>
-                  <div class="text-2xl font-bold text-[hsl(var(--foreground))]">{{ wordleStats.winRate }}%</div>
+                  <div class="text-2xl font-bold text-[hsl(var(--foreground))]">{{ displayWinRate }}%</div>
                   <div class="text-xs text-[hsl(var(--muted-foreground))]">Win Rate</div>
                 </div>
                 <div>
-                  <div class="text-2xl font-bold text-[hsl(var(--foreground))]">{{ wordleStats.stats.currentStreak }}</div>
+                  <div class="text-2xl font-bold text-[hsl(var(--foreground))]">{{ displayStats.currentStreak }}</div>
                   <div class="text-xs text-[hsl(var(--muted-foreground))]">Streak</div>
                 </div>
                 <div>
-                  <div class="text-2xl font-bold text-[hsl(var(--foreground))]">{{ wordleStats.stats.maxStreak }}</div>
+                  <div class="text-2xl font-bold text-[hsl(var(--foreground))]">{{ displayStats.maxStreak }}</div>
                   <div class="text-xs text-[hsl(var(--muted-foreground))]">Max</div>
                 </div>
               </div>
@@ -277,7 +277,7 @@
                         :style="{ width: guessDistributionWidth(n) + '%' }"
                       />
                     </div>
-                    <span class="w-6 text-right text-[hsl(var(--muted-foreground))]">{{ wordleStats.stats.guessDistribution?.[n] ?? 0 }}</span>
+                    <span class="w-6 text-right text-[hsl(var(--muted-foreground))]">{{ displayStats.guessDistribution?.[n] ?? 0 }}</span>
                   </div>
                 </div>
               </div>
@@ -415,6 +415,8 @@ const modalBackdropRef = ref<HTMLElement | null>(null)
 const modalContentRef = ref<HTMLElement | null>(null)
 
 const wordleStats = useWordleStats()
+const displayStats = wordleStats.stats
+const displayWinRate = wordleStats.winRate
 const auth = useAuth()
 const {
   entries: leaderboardEntries,

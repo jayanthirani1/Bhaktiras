@@ -27,6 +27,11 @@
                 {{ event.description }}
               </p>
             </div>
+            <EventFlickrAlbum
+              v-if="event.flickrAlbumId"
+              :album-id="event.flickrAlbumId"
+              :event-title="event.title"
+            />
           </article>
         </div>
         <div v-else class="card-surface p-8 text-center sm:p-12">

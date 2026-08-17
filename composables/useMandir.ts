@@ -8,7 +8,7 @@ import {
   type DocumentData,
   type Firestore
 } from 'firebase/firestore'
-import type { TimelineItem, TimelineMedia, Event, GratitudeMessage, VolunteerRole, TimeCapsuleMessage, SevaHourLog } from '~/types'
+import type { TimelineItem, TimelineMedia, Event, GratitudeMessage, VolunteerRole, TimeCapsuleMessage } from '~/types'
 import { JOURNEY_MILESTONES } from '~/data/timeline'
 
 /** Max length for time capsule message (chars). */
@@ -20,7 +20,6 @@ function getDb(): Firestore | null {
   const nuxtApp = useNuxtApp()
   return (nuxtApp.$firebaseDb as Firestore | null) ?? null
 }
-
 function mapDoc<T>(id: string, data: DocumentData): T {
   const rest = { ...data } as Record<string, unknown>
   delete rest.id
@@ -103,6 +102,7 @@ export function useEvents() {
             date: data.date || data.time || '',
             description: data.description || '',
             posterUrl: data.posterUrl ?? null,
+            flickrAlbumId: data.flickrAlbumId ?? null,
             time: data.time ?? null,
             isLive: data.isLive ?? false
           })
@@ -182,7 +182,6 @@ export function useCreateGratitudeMessage() {
 
   return { create, isPending: pending }
 }
-
 export function useVolunteerRoles() {
   const items = ref<VolunteerRole[]>([])
   const loading = ref(true)
@@ -250,50 +249,4 @@ export function useCreateTimeCapsuleMessage() {
   }
 
   return { create, isPending: pending }
-}
-
-export function useSevaHours() {
-  const logs = ref<SevaHourLog[]>([])
-  const loading = ref(true)
-  const pending = ref(false)
-
-  const totalHours = computed(() =>
-    logs.value.reduce((sum, l) => sum + (Number(l.hours) || 0), 0)
-  )
-
-  async function fetchHours() {
-    loading.value = true
-    try {
-      const db = getDb()
-      if (!db) { logs.value = []; return }
-      const snap = await getDocs(collection(db, 'sevaHours'))
-      logs.value = snap.docs.map((d) =>
-        mapDoc<SevaHourLog>(d.id, { hours: Number(d.data().hours) || 0, createdAt: d.data().createdAt })
-      )
-    } catch (_) {
-      logs.value = []
-    } finally {
-      loading.value = false
-    }
-  }
-
-  async function logHours(hours: number) {
-    const h = Math.round(hours * 10) / 10
-    if (h < 0.5 || h > 24) throw new Error('Enter between 0.5 and 24 hours')
-    const db = getDb()
-    if (!db) throw new Error('Firebase not configured')
-    pending.value = true
-    try {
-      await addDoc(collection(db, 'sevaHours'), {
-        hours: h,
-        createdAt: serverTimestamp()
-      })
-      await fetchHours()
-    } finally {
-      pending.value = false
-    }
-  }
-
-  onMounted(() => { fetchHours() })
-  return { logs, totalHours, isLoading: loading, isPending: pending, logHours, refetch: fetchHours }
 }

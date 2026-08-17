@@ -65,6 +65,8 @@
           v-for="item in menuItems"
           :key="item.id"
           :to="item.href"
+          :target="item.external ? '_blank' : undefined"
+          :rel="item.external ? 'noopener noreferrer' : undefined"
           class="card-surface group flex flex-col items-center p-5 text-center sm:p-7"
         >
           <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[hsl(var(--golden-50))] text-[hsl(var(--primary))] transition-transform duration-500 ease-out group-hover:scale-110 group-hover:bg-[hsl(var(--primary))] group-hover:text-white sm:h-14 sm:w-14">
@@ -92,7 +94,9 @@ import {
   IconHandGrab,
   IconFlame,
   IconDeviceGamepad2,
-  IconCalendarEvent
+  IconCalendarEvent,
+  IconGift,
+  IconHeartHandshake
 } from '@tabler/icons-vue'
 import { SITE } from '~/data/site'
 import { getQuoteOfTheWeek } from '~/utils/quotes'
@@ -112,8 +116,10 @@ const menuItems = [
   { id: 'journey', title: 'Our Journey', desc: '10 years to Patotsav', icon: IconMapPin, href: '/journey' },
   { id: 'events', title: 'Our Events', desc: 'Sabhas & mahotsav dates', icon: IconCalendarEvent, href: '/events' },
   { id: 'community', title: 'Our Community', desc: 'What mandir means to you', icon: IconUsers, href: '/community' },
-  { id: 'seva', title: 'Seva', desc: 'Teams, hours & WhatsApp', icon: IconHandGrab, href: '/seva' },
+  { id: 'seva', title: 'Seva', desc: 'Teams & WhatsApp community', icon: IconHandGrab, href: '/seva' },
   { id: 'niyams', title: 'Our Niyams', desc: 'Utsav niyams & tracker', icon: IconFlame, href: '/niyams' },
+  { id: 'yajman', title: 'Yajman Opportunities', desc: 'Take part in the Utsav', icon: IconHeartHandshake, href: '/yajman' },
+  { id: 'donate', title: 'Donate', desc: 'Support Shree KS Swaminarayan Temple Woolwich', icon: IconGift, href: 'https://www.sksswoolwich.org/donate', external: true },
   { id: 'play', title: 'Games', desc: 'Wordle, crosswords & daily streaks', icon: IconDeviceGamepad2, href: '/play' }
 ]
 </script>

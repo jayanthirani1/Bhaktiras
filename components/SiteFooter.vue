@@ -11,14 +11,24 @@
         <NuxtLink to="/privacy" class="font-medium text-[hsl(var(--primary))] hover:underline">Privacy</NuxtLink>
         <span aria-hidden="true">|</span>
         <NuxtLink to="/policy" class="font-medium text-[hsl(var(--primary))] hover:underline">Policy</NuxtLink>
+        <span aria-hidden="true">|</span>
+        <NuxtLink :to="bugLink" class="inline-flex items-center gap-1 font-medium text-[hsl(var(--primary))] hover:underline">
+          <IconBug class="h-3.5 w-3.5" aria-hidden="true" />
+          Submit a bug
+        </NuxtLink>
       </p>
     </div>
   </footer>
 </template>
 
 <script setup lang="ts">
-import { IconCopyright } from '@tabler/icons-vue'
+import { IconBug, IconCopyright } from '@tabler/icons-vue'
 import { SITE } from '~/data/site'
 
 const year = new Date().getFullYear()
+const route = useRoute()
+const bugLink = computed(() => ({
+  path: '/submit-bug',
+  query: route.path === '/submit-bug' ? undefined : { from: route.fullPath }
+}))
 </script>

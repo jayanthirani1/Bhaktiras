@@ -1,7 +1,7 @@
 import { initializeApp } from 'firebase/app'
-import { getFirestore } from 'firebase/firestore'
-import { getAuth, onAuthStateChanged } from 'firebase/auth'
-import { getStorage } from 'firebase/storage'
+import { getFirestore, type Firestore } from 'firebase/firestore'
+import { getAuth, onAuthStateChanged, type Auth } from 'firebase/auth'
+import { getStorage, type FirebaseStorage } from 'firebase/storage'
 import type { AuthUserSnapshot } from '~/types'
 
 function toSnapshot(u: import('firebase/auth').User | null): AuthUserSnapshot | null {
@@ -13,7 +13,13 @@ function toSnapshot(u: import('firebase/auth').User | null): AuthUserSnapshot | 
   }
 }
 
-export default defineNuxtPlugin((nuxtApp) => {
+type FirebaseInjection = {
+  firebaseDb: Firestore | null
+  firebaseAuth: Auth | null
+  firebaseStorage: FirebaseStorage | null
+}
+
+export default defineNuxtPlugin<FirebaseInjection>((nuxtApp) => {
   const config = useRuntimeConfig().public
   const projectId = config.firebaseProjectId || (import.meta.env?.NUXT_PUBLIC_FIREBASE_PROJECT_ID as string) || ''
   const apiKey = config.firebaseApiKey || (import.meta.env?.NUXT_PUBLIC_FIREBASE_API_KEY as string) || ''

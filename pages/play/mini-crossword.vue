@@ -519,7 +519,7 @@ function revealLetter() {
     return guesses[id] !== l.letters[cell.row][cell.col]
   })
   if (!target) return
-  guesses[cellKey(target.row, target.col)] = l.letters[target.row][target.col]
+  guesses[cellKey(target.row, target.col)] = l.letters[target.row][target.col] ?? ''
   activeRow.value = target.row
   activeCol.value = target.col
   checked.value = false

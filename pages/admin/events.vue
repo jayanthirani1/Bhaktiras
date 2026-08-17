@@ -50,6 +50,11 @@
             <label class="admin-label">Poster</label>
             <AdminImageUpload v-model="form.posterUrl" folder="events" />
           </div>
+          <div>
+            <label class="admin-label">Flickr album ID <span class="font-normal">(optional)</span></label>
+            <input v-model="form.flickrAlbumId" maxlength="40" class="admin-input" placeholder="721577…">
+            <p class="mt-1 text-xs text-[hsl(var(--muted-foreground))]">The photoset ID from the Flickr album URL.</p>
+          </div>
           <div class="flex gap-2">
             <button type="submit" class="admin-btn" :disabled="saving">{{ saving ? 'Saving…' : 'Save' }}</button>
             <button type="button" class="admin-btn-secondary" @click="showForm = false">Cancel</button>
@@ -70,7 +75,7 @@ const { items, loading, saving, error, fetchAll, create, updateItem, remove } = 
 const showForm = ref(false)
 const isEditing = ref(false)
 const editingId = ref<string | null>(null)
-const form = reactive({ title: '', date: '', description: '', posterUrl: '' })
+const form = reactive({ title: '', date: '', description: '', posterUrl: '', flickrAlbumId: '' })
 
 const sorted = computed(() =>
   [...items.value].sort((a, b) => String(b.date).localeCompare(String(a.date)))
@@ -91,7 +96,7 @@ function formatDate(d: string) {
 function openNew() {
   isEditing.value = false
   editingId.value = null
-  Object.assign(form, { title: '', date: '', description: '', posterUrl: '' })
+  Object.assign(form, { title: '', date: '', description: '', posterUrl: '', flickrAlbumId: '' })
   showForm.value = true
 }
 
@@ -107,7 +112,8 @@ function openEdit(item: Event) {
     title: item.title || '',
     date: String(item.date || '').slice(0, 10),
     description: item.description || '',
-    posterUrl: item.posterUrl || ''
+    posterUrl: item.posterUrl || '',
+    flickrAlbumId: item.flickrAlbumId || ''
   })
   showForm.value = true
 }
@@ -118,7 +124,8 @@ async function save() {
     title: form.title.trim(),
     date: form.date,
     description: form.description.trim(),
-    posterUrl: form.posterUrl || null
+    posterUrl: form.posterUrl || null,
+    flickrAlbumId: form.flickrAlbumId.trim() || null
   }
   try {
     if (isEditing.value) {

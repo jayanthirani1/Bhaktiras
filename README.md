@@ -37,6 +37,8 @@ NUXT_PUBLIC_FIREBASE_PROJECT_ID=your-project-id
 NUXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your-project.appspot.com
 NUXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=123456789
 NUXT_PUBLIC_FIREBASE_APP_ID=1:123456789:web:abc123
+NUXT_PUBLIC_FLICKR_API_KEY=your-flickr-api-key
+NUXT_PUBLIC_FLICKR_USER_ID=your-flickr-user-id
 ```
 
 ### 4. Seed Firestore (optional)
@@ -48,7 +50,10 @@ To have timeline, events, gratitude, and volunteer data show up, create these **
 | Collection       | Fields |
 |-----------------|--------|
 | `timeline`      | `year` (string), `title` (string), `description` (string), `imageUrl` (string, optional) |
-| `events`        | `time`, `title`, `description` (strings), `isLive` (boolean) |
+| `events`        | `date`, `title`, `description`, `posterUrl` and `flickrAlbumId` (optional strings) |
+| `yajmanOpportunities` | `title`, `detail`, `amount`, `contactUrl`, `active`, `order` |
+| `bugReports`    | Created from the footer form and managed in Admin |
+| `connectionsPuzzles` | `title`, optional `dateId`, four `groups`, `published` |
 | `gratitude`     | `name`, `message` (strings), `createdAt` (timestamp) |
 | `volunteerRoles`| `role`, `timeSlot` (strings), `isFilled` (boolean) |
 | `timeCapsule`   | `message` (string), `submittedAt` (timestamp) |
@@ -110,6 +115,8 @@ A workflow in `.github/workflows/firebase-hosting.yml` builds and deploys on pus
 | `NUXT_PUBLIC_FIREBASE_STORAGE_BUCKET` | Same as in your `.env` |
 | `NUXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | Same as in your `.env` |
 | `NUXT_PUBLIC_FIREBASE_APP_ID` | Same as in your `.env` |
+| `NUXT_PUBLIC_FLICKR_API_KEY` | Flickr API key used by event galleries |
+| `NUXT_PUBLIC_FLICKR_USER_ID` | Flickr account/user ID that owns the albums |
 
 The workflow runs `nuxt generate` with those env vars (so they’re baked into the build), then deploys to Firebase Hosting. No `.env` file is used in GitHub; everything comes from secrets.
 

@@ -7,6 +7,7 @@ export type PlayGameSlug =
   | 'crossword'
   | 'quiz'
   | 'spelling-bee'
+  | 'connections'
 
 export interface PlayCompletionEntry {
   /** Game-specific headline number (guesses, cleared rungs, quiz score). */

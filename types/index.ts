@@ -36,8 +36,23 @@ export interface Event {
   date: string
   description: string
   posterUrl?: string | null
+  flickrAlbumId?: string | null
   time?: string
   isLive?: boolean
+}
+
+export type BugReportStatus = 'open' | 'resolved' | 'closed'
+
+export interface BugReport {
+  id: string
+  title: string
+  description: string
+  pageUrl?: string | null
+  contactEmail?: string | null
+  status: BugReportStatus
+  createdAt?: { seconds?: number; nanoseconds?: number } | Date
+  resolvedAt?: { seconds?: number; nanoseconds?: number } | Date | null
+  closedAt?: { seconds?: number; nanoseconds?: number } | Date | null
 }
 
 export interface QuizQuestion {
@@ -98,16 +113,20 @@ export interface GratitudeMessage {
   createdAt?: { seconds: number; nanoseconds: number } | Date
 }
 
-export interface SevaHourLog {
-  id: string
-  hours: number
-  createdAt?: { seconds: number; nanoseconds: number } | Date
-}
-
 export interface Niyam {
   id: string
   title: string
   detail: string
+  order?: number
+}
+
+export interface YajmanOpportunity {
+  id: string
+  title: string
+  detail: string
+  amount?: string | null
+  contactUrl?: string | null
+  active?: boolean
   order?: number
 }
 
@@ -145,6 +164,7 @@ export type GameLeaderboardId =
   | 'spelling-bee'
   | 'one-percent'
   | 'mini-crossword'
+  | 'connections'
 
 export interface GameScoreEntry {
   id: string
@@ -168,6 +188,21 @@ export interface OnePercentQuestion {
   options: string[]
   correctAnswer: string
   order?: number
+}
+
+export interface ConnectionsGroup {
+  title: string
+  words: string[]
+  /** 0 (yellow/easiest) through 3 (purple/hardest). */
+  difficulty: 0 | 1 | 2 | 3
+}
+
+export interface ConnectionsPuzzle {
+  id: string
+  title: string
+  dateId?: string | null
+  groups: ConnectionsGroup[]
+  published?: boolean
 }
 
 export interface PlayStreakRecord {
