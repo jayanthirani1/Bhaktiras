@@ -6,7 +6,7 @@
 
       <div class="relative z-10 mx-auto flex max-w-3xl flex-col items-center text-center">
         <p class="reveal text-[11px] font-semibold uppercase tracking-[0.28em] text-[hsl(var(--accent))]">
-          {{ greeting || 'Jai Swaminarayan' }}
+          {{ greeting || 'Jay Swaminarayan' }}
         </p>
         <div class="reveal reveal-delay-1 mt-6 md:mt-8">
           <BhaktirasLogo size="lg" animate />

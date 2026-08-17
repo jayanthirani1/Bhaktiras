@@ -15,7 +15,7 @@
 const route = useRoute()
 const auth = useAuth()
 const { recordVisit } = usePlayStreak()
-const { request: requestPushPrompt, push } = usePushPrompt()
+const { request: requestPushPrompt } = usePushPrompt()
 let signInPromptTimer: ReturnType<typeof setTimeout> | null = null
 
 watch(
@@ -38,7 +38,6 @@ watch(
   { immediate: true }
 )
 
-onMounted(() => { void push.startForegroundListener() })
 onUnmounted(() => {
   if (signInPromptTimer) clearTimeout(signInPromptTimer)
 })

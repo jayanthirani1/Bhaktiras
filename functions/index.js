@@ -1,4 +1,5 @@
 const { onCall, HttpsError } = require('firebase-functions/v2/https')
+const logger = require('firebase-functions/logger')
 const { onSchedule } = require('firebase-functions/v2/scheduler')
 const { onDocumentCreated } = require('firebase-functions/v2/firestore')
 const { initializeApp } = require('firebase-admin/app')
@@ -7,7 +8,7 @@ const { getMessaging } = require('firebase-admin/messaging')
 
 initializeApp()
 
-const ALLOWED_TOPICS = new Set(['all', 'patotsav', 'games', 'events'])
+const ALLOWED_TOPICS = new Set(['all', 'announcements', 'games'])
 const INVALID_TOKEN_CODES = new Set([
   'messaging/invalid-registration-token',
   'messaging/registration-token-not-registered'
@@ -25,22 +26,31 @@ function chunks(items, size) {
   return result
 }
 
+function subscriptionMatches(topics, topic) {
+  if (topic === 'all') return true
+  if (!Array.isArray(topics)) return false
+  if (topic === 'announcements') {
+    return topics.includes('announcements')
+      || topics.includes('patotsav')
+      || topics.includes('events')
+  }
+  return topics.includes(topic)
+}
+
 async function deliverNotification({ title, body, topic, url, sentBy }) {
   const db = getFirestore()
   const subscriptions = await db.collection('pushSubscriptions')
     .where('enabled', '==', true)
     .get()
   const recipients = subscriptions.docs
-    .filter(item => {
-      const data = item.data()
-      return topic === 'all' || (Array.isArray(data.topics) && data.topics.includes(topic))
-    })
-    .map(item => ({ ref: item.ref, token: item.data().token }))
+    .filter(item => subscriptionMatches(item.data().topics, topic))
+    .map(item => ({ ref: item.ref, token: item.data().token, updatedAt: item.data().updatedAt }))
     .filter(item => typeof item.token === 'string' && item.token)
 
   let successCount = 0
   let failureCount = 0
   const staleRefs = []
+  const errorCodes = []
 
   for (const batch of chunks(recipients, 500)) {
     const response = await getMessaging().sendEachForMulticast({
@@ -58,9 +68,20 @@ async function deliverNotification({ title, body, topic, url, sentBy }) {
     successCount += response.successCount
     failureCount += response.failureCount
     response.responses.forEach((result, index) => {
-      if (!result.success && INVALID_TOKEN_CODES.has(result.error?.code)) {
-        staleRefs.push(batch[index].ref)
-      }
+      if (result.success) return
+      const code = result.error?.code || 'unknown'
+      errorCodes.push(code)
+      const savedAt = batch[index].updatedAt
+      logger.error('Push delivery failed', {
+        code,
+        message: result.error?.message,
+        subscription: batch[index].ref.id,
+        tokenSavedAt: savedAt?.toDate?.().toISOString() || null,
+        tokenAgeSeconds: savedAt?.toDate
+          ? Math.round((Date.now() - savedAt.toDate().getTime()) / 1000)
+          : null
+      })
+      if (INVALID_TOKEN_CODES.has(code)) staleRefs.push(batch[index].ref)
     })
   }
 
@@ -69,6 +90,8 @@ async function deliverNotification({ title, body, topic, url, sentBy }) {
     staleBatch.forEach(ref => write.delete(ref))
     await write.commit()
   }
+
+  const uniqueErrorCodes = Array.from(new Set(errorCodes))
 
   await db.collection('pushMessages').add({
     title,
@@ -79,10 +102,16 @@ async function deliverNotification({ title, body, topic, url, sentBy }) {
     recipientCount: recipients.length,
     successCount,
     failureCount,
+    errorCodes: uniqueErrorCodes,
     createdAt: FieldValue.serverTimestamp()
   })
 
-  return { recipientCount: recipients.length, successCount, failureCount }
+  return {
+    recipientCount: recipients.length,
+    successCount,
+    failureCount,
+    errorCodes: uniqueErrorCodes
+  }
 }
 
 exports.sendPushNotification = onCall(
@@ -136,7 +165,7 @@ exports.notifyNewEvent = onDocumentCreated(
     return deliverNotification({
       title: 'New Bhaktiras event',
       body: date ? `${eventTitle} · ${date}` : `${eventTitle} has just been added.`,
-      topic: 'events',
+      topic: 'announcements',
       url: '/events',
       sentBy: 'system:new-event'
     })

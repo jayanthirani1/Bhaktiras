@@ -1,12 +1,21 @@
-import { deleteDoc, doc, getDoc, serverTimestamp, setDoc, type Firestore } from 'firebase/firestore'
+import {
+  deleteDoc,
+  doc,
+  getDoc,
+  serverTimestamp,
+  setDoc,
+  updateDoc,
+  type Firestore
+} from 'firebase/firestore'
 import { getApp } from 'firebase/app'
 
-export type PushTopic = 'patotsav' | 'games' | 'events'
+export type PushTopic = 'announcements' | 'games'
 export type PushPromptMoment = 'sign-in' | 'game-complete' | 'events'
 
-const ALL_TOPICS: PushTopic[] = ['patotsav', 'games', 'events']
+const ALL_TOPICS: PushTopic[] = ['announcements', 'games']
 const SUBSCRIPTION_ID_KEY = 'bhaktiras-push-subscription-id'
 const TOPICS_KEY = 'bhaktiras-push-topics'
+let foregroundUnsubscribe: (() => void) | null = null
 
 function getDb(): Firestore | null {
   if (import.meta.server) return null
@@ -21,15 +30,39 @@ async function tokenHash(token: string) {
     .join('')
 }
 
-function storedTopics(): PushTopic[] {
-  if (import.meta.server) return []
+/** Maps legacy patotsav/events preferences onto announcements. */
+function normalizeTopics(raw: unknown): PushTopic[] {
+  if (!Array.isArray(raw)) return []
+  const next = new Set<PushTopic>()
+  for (const item of raw) {
+    if (item === 'games') next.add('games')
+    if (item === 'announcements' || item === 'patotsav' || item === 'events') next.add('announcements')
+  }
+  return ALL_TOPICS.filter(topic => next.has(topic))
+}
+
+/**
+ * Rebuilds the subscription id for this device from its FCM token so the saved
+ * record is still found when local storage has been cleared. Only called once
+ * permission is granted, so this never triggers a browser prompt.
+ */
+async function deriveSubscriptionId(uid: string, vapidKey: string) {
   try {
-    const parsed = JSON.parse(localStorage.getItem(TOPICS_KEY) || '[]')
-    return Array.isArray(parsed) ? parsed.filter(topic => ALL_TOPICS.includes(topic)) : []
+    const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js')
+    const { getMessaging, getToken } = await import('firebase/messaging')
+    const token = await getToken(getMessaging(getApp()), {
+      serviceWorkerRegistration: registration,
+      ...(vapidKey ? { vapidKey } : {})
+    })
+    if (!token) return null
+    const hash = await tokenHash(token)
+    return `${uid}_${hash.slice(0, 32)}`
   } catch {
-    return []
+    return null
   }
 }
+
+let initialiseRun = 0
 
 /** Browser permission, FCM token registration and per-device topic preferences. */
 export function usePushNotifications() {
@@ -41,35 +74,55 @@ export function usePushNotifications() {
   const busy = useState<boolean>('push-busy', () => false)
   const error = useState<string>('push-error', () => '')
   const permission = useState<NotificationPermission>('push-permission', () => 'default')
-  let foregroundUnsubscribe: (() => void) | null = null
 
   async function initialise() {
     if (import.meta.server) return
+    const run = ++initialiseRun
+    const stale = () => run !== initialiseRun
+
     permission.value = typeof Notification === 'undefined' ? 'denied' : Notification.permission
     try {
       const { isSupported } = await import('firebase/messaging')
+      if (stale()) return
       supported.value = 'serviceWorker' in navigator && await isSupported()
     } catch {
       supported.value = false
     }
-    topics.value = storedTopics()
-    const id = localStorage.getItem(SUBSCRIPTION_ID_KEY)
+    if (stale()) return
+
     const uid = auth.user.value?.uid
-    enabled.value = false
-    if (id && uid && permission.value === 'granted') {
-      const db = getDb()
-      if (db) {
-        try {
-          const saved = await getDoc(doc(db, 'pushSubscriptions', id))
-          const data = saved.exists() ? saved.data() : null
-          enabled.value = !!data && data.userId === uid && data.enabled === true
-          if (enabled.value && Array.isArray(data?.topics)) {
-            topics.value = data.topics.filter((item: PushTopic) => ALL_TOPICS.includes(item))
-          }
-        } catch {
-          enabled.value = false
-        }
+    const db = getDb()
+    if (!uid || !db || permission.value !== 'granted' || !supported.value) {
+      if (stale()) return
+      enabled.value = false
+      topics.value = []
+      return
+    }
+
+    let id = localStorage.getItem(SUBSCRIPTION_ID_KEY)
+    if (!id) id = await deriveSubscriptionId(uid, String(config.firebaseVapidKey || ''))
+    if (stale()) return
+    if (!id) {
+      enabled.value = false
+      topics.value = []
+      return
+    }
+
+    try {
+      const saved = await getDoc(doc(db, 'pushSubscriptions', id))
+      if (stale()) return
+      const data = saved.exists() ? saved.data() : null
+      const mine = !!data && data.userId === uid && data.enabled === true
+      enabled.value = mine
+      topics.value = mine ? normalizeTopics(data?.topics) : []
+      if (mine) {
+        localStorage.setItem(SUBSCRIPTION_ID_KEY, id)
+        localStorage.setItem(TOPICS_KEY, JSON.stringify(topics.value))
       }
+    } catch {
+      if (stale()) return
+      enabled.value = false
+      topics.value = []
     }
   }
 
@@ -106,11 +159,8 @@ export function usePushNotifications() {
       const ref = doc(db, 'pushSubscriptions', subscriptionId)
       const existing = await getDoc(ref)
       const requested = topic ? [topic] : ALL_TOPICS
-      const previous = existing.exists() && Array.isArray(existing.data().topics)
-        ? existing.data().topics as PushTopic[]
-        : storedTopics()
-      const nextTopics = [...new Set([...previous, ...requested])]
-        .filter(item => ALL_TOPICS.includes(item))
+      const previous = existing.exists() ? normalizeTopics(existing.data().topics) : []
+      const nextTopics = normalizeTopics([...previous, ...requested])
 
       await setDoc(ref, {
         userId: uid,
@@ -140,8 +190,10 @@ export function usePushNotifications() {
     busy.value = true
     error.value = ''
     try {
-      const id = localStorage.getItem(SUBSCRIPTION_ID_KEY)
+      const uid = auth.user.value?.uid
       const db = getDb()
+      const id = localStorage.getItem(SUBSCRIPTION_ID_KEY)
+        || (uid ? await deriveSubscriptionId(uid, String(config.firebaseVapidKey || '')) : null)
       if (id && db) await deleteDoc(doc(db, 'pushSubscriptions', id))
       try {
         const { deleteToken, getMessaging } = await import('firebase/messaging')
@@ -155,6 +207,43 @@ export function usePushNotifications() {
       enabled.value = false
     } catch (value) {
       error.value = value instanceof Error ? value.message : 'Could not disable notifications.'
+      throw value
+    } finally {
+      busy.value = false
+    }
+  }
+
+  async function setTopicEnabled(topic: PushTopic, selected: boolean) {
+    if (selected) {
+      await enable(topic)
+      return
+    }
+    if (!enabled.value || !topics.value.includes(topic)) return
+
+    const nextTopics = topics.value.filter(item => item !== topic)
+    if (!nextTopics.length) {
+      await disable()
+      return
+    }
+
+    busy.value = true
+    error.value = ''
+    try {
+      const uid = auth.user.value?.uid
+      const db = getDb()
+      if (!uid || !db) throw new Error('Sign in to update notification preferences.')
+      const id = localStorage.getItem(SUBSCRIPTION_ID_KEY)
+        || await deriveSubscriptionId(uid, String(config.firebaseVapidKey || ''))
+      if (!id) throw new Error('This notification subscription could not be found.')
+      await updateDoc(doc(db, 'pushSubscriptions', id), {
+        topics: nextTopics,
+        updatedAt: serverTimestamp()
+      })
+      localStorage.setItem(SUBSCRIPTION_ID_KEY, id)
+      localStorage.setItem(TOPICS_KEY, JSON.stringify(nextTopics))
+      topics.value = nextTopics
+    } catch (value) {
+      error.value = value instanceof Error ? value.message : 'Could not update notification preferences.'
       throw value
     } finally {
       busy.value = false
@@ -187,10 +276,6 @@ export function usePushNotifications() {
 
   watch(() => auth.user.value?.uid, () => { void initialise() })
   onMounted(() => { void initialise() })
-  onUnmounted(() => {
-    foregroundUnsubscribe?.()
-    foregroundUnsubscribe = null
-  })
 
   return {
     supported,
@@ -202,6 +287,7 @@ export function usePushNotifications() {
     initialise,
     enable,
     disable,
+    setTopicEnabled,
     startForegroundListener
   }
 }
@@ -214,8 +300,7 @@ export function usePushPrompt() {
 
   function topicFor(value: PushPromptMoment): PushTopic {
     if (value === 'game-complete') return 'games'
-    if (value === 'events') return 'events'
-    return 'patotsav'
+    return 'announcements'
   }
 
   function request(value: PushPromptMoment) {

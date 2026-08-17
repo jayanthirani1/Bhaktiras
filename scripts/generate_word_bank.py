@@ -138,7 +138,7 @@ Haribol|A joyful call to chant God's name|hinduism
 Havan|A sacred fire ceremony|worship
 Holi|Spring festival of colour|festival
 Jagannath|A celebrated form of Krishna|hinduism
-Jai|An exclamation of victory or praise|worship
+Jay|An exclamation of victory or praise|worship
 Jalaram|Gujarati saint renowned for service and hospitality|gujarati
 Jalebi|Spiral sweet often paired with fafda|food
 Janmashtami|Festival celebrating Krishna's birth|festival
@@ -341,7 +341,7 @@ Gadi|The spiritual seat or throne of a tradition|satsang
 Ghee lamp|A lamp fuelled by clarified butter for aarti|worship
 Harijan|A loving servant of God|devotion
 Harikrishna|A beloved name of Bhagwan Swaminarayan|swaminarayan
-Jai Swaminarayan|The greeting used among Swaminarayan devotees|swaminarayan
+Jay Swaminarayan|The greeting used among Swaminarayan devotees|swaminarayan
 Katha varta|Spiritual storytelling and discourse|satsang
 Kirtankars|Devotees who lead kirtan singing|community
 Mahaprasad|Food that has been offered and shared as blessing|worship

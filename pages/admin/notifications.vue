@@ -28,8 +28,7 @@
         <label for="push-audience" class="admin-label">Audience</label>
         <select id="push-audience" v-model="form.topic" class="admin-input">
           <option value="all">All subscribers</option>
-          <option value="patotsav">Patotsav updates</option>
-          <option value="events">Event updates</option>
+          <option value="announcements">Announcements</option>
           <option value="games">Daily game reminders</option>
         </select>
       </div>
@@ -53,9 +52,11 @@
       <button type="submit" class="admin-btn w-full" :disabled="sending">
         {{ sending ? 'Sending…' : 'Send notification' }}
       </button>
-      <p v-if="result" class="text-sm font-medium text-emerald-700">
+      <p v-if="result" class="text-sm font-medium" :class="result.failureCount ? 'text-amber-700' : 'text-emerald-700'">
         Sent to {{ result.successCount }} device{{ result.successCount === 1 ? '' : 's' }}.
-        <span v-if="result.failureCount">{{ result.failureCount }} failed.</span>
+        <span v-if="result.failureCount">
+          {{ result.failureCount }} of {{ result.recipientCount }} failed<span v-if="result.errorCodes?.length">: {{ result.errorCodes.join(', ') }}</span>.
+        </span>
       </p>
       <p v-if="error" role="alert" class="text-sm text-red-600">{{ error }}</p>
     </form>
@@ -102,7 +103,12 @@ import {
 
 definePageMeta({ layout: 'admin', middleware: 'admin' })
 
-type SendResult = { recipientCount: number; successCount: number; failureCount: number }
+type SendResult = {
+  recipientCount: number
+  successCount: number
+  failureCount: number
+  errorCodes?: string[]
+}
 type MessageRow = {
   id: string
   title: string

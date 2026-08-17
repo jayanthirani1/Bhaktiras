@@ -42,7 +42,7 @@
               <div>
                 <h2 class="font-display text-xl font-semibold text-[hsl(var(--primary))]">Push notifications</h2>
                 <p class="mt-2 text-sm leading-relaxed text-[hsl(var(--muted-foreground))]">
-                  Receive Patotsav, event and daily game reminders on this device. You can turn them off at any time.
+                  Receive announcements and daily game reminders on this device. You can turn them off at any time.
                 </p>
               </div>
             </div>
@@ -56,17 +56,49 @@
               @click="togglePush"
             >
               <span
-                class="absolute top-1 h-5 w-5 rounded-full bg-white shadow-sm transition-transform"
-                :class="push.enabled.value ? 'translate-x-6' : 'translate-x-1'"
+                class="absolute left-1 top-1 h-5 w-5 rounded-full bg-white shadow-sm transition-transform"
+                :class="push.enabled.value ? 'translate-x-5' : 'translate-x-0'"
               />
               <span class="sr-only">{{ push.enabled.value ? 'Turn notifications off' : 'Turn notifications on' }}</span>
             </button>
+          </div>
+          <div
+            v-if="push.enabled.value"
+            class="mt-5 divide-y divide-[hsl(var(--border))] rounded-xl border border-[hsl(var(--border))]"
+          >
+            <div
+              v-for="option in pushCategories"
+              :key="option.topic"
+              class="flex items-center justify-between gap-4 p-4"
+            >
+              <div>
+                <p class="text-sm font-semibold text-[hsl(var(--foreground))]">{{ option.label }}</p>
+                <p class="mt-0.5 text-xs leading-relaxed text-[hsl(var(--muted-foreground))]">
+                  {{ option.description }}
+                </p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                :aria-label="`${option.label} notifications`"
+                :aria-checked="push.topics.value.includes(option.topic)"
+                :disabled="push.busy.value"
+                class="relative h-6 w-11 shrink-0 rounded-full transition-colors disabled:opacity-40"
+                :class="push.topics.value.includes(option.topic) ? 'bg-emerald-500' : 'bg-[hsl(var(--border))]'"
+                @click="togglePushTopic(option.topic)"
+              >
+                <span
+                  class="absolute left-1 top-1 h-4 w-4 rounded-full bg-white shadow-sm transition-transform"
+                  :class="push.topics.value.includes(option.topic) ? 'translate-x-5' : 'translate-x-0'"
+                />
+              </button>
+            </div>
           </div>
           <p v-if="push.supported.value === false" class="mt-3 text-xs text-amber-700">
             This browser does not support web push. On iPhone, add Bhaktiras to your Home Screen first.
           </p>
           <p v-else-if="push.enabled.value" class="mt-3 text-xs font-medium text-emerald-700">
-            Notifications are on for {{ push.topics.value.join(', ') || 'Bhaktiras updates' }}.
+            Choose the updates you want to receive above.
           </p>
           <p v-if="push.error.value" role="alert" class="mt-3 text-sm text-red-600">{{ push.error.value }}</p>
         </section>
@@ -264,6 +296,7 @@
 </template>
 
 <script setup lang="ts">
+import type { PushTopic } from '~/composables/usePushNotifications'
 import {
   IconBell,
   IconBrandGoogle,
@@ -296,11 +329,31 @@ const linkingMethod = ref<'google' | 'password' | null>(null)
 const linking = computed(() => linkingMethod.value != null)
 const linkError = ref('')
 const linkMessage = ref('')
+const pushCategories: Array<{ topic: PushTopic; label: string; description: string }> = [
+  {
+    topic: 'announcements',
+    label: 'Announcements',
+    description: 'Temple and Patotsav updates, including new events.'
+  },
+  {
+    topic: 'games',
+    label: 'Daily game reminders',
+    description: 'A reminder when the next daily challenge is ready.'
+  }
+]
 
 async function togglePush() {
   try {
     if (push.enabled.value) await push.disable()
     else await push.enable()
+  } catch {
+    // A user-friendly error is displayed in the notification section.
+  }
+}
+
+async function togglePushTopic(topic: PushTopic) {
+  try {
+    await push.setTopicEnabled(topic, !push.topics.value.includes(topic))
   } catch {
     // A user-friendly error is displayed in the notification section.
   }

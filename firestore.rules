@@ -51,8 +51,17 @@ service cloud.firestore {
 
     // One document per signed-in user/device. FCM tokens are private account data.
     match /pushSubscriptions/{subscriptionId} {
-      allow read, delete: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow create: if isSignedIn()
+      // Doc IDs are `{uid}_{tokenHash}`, so ownership can be checked before the doc exists.
+      function ownsSubscriptionId() {
+        return isSignedIn()
+          && subscriptionId.matches('^' + request.auth.uid + '_.*');
+      }
+
+      // get must work for missing docs (first subscribe). list stays owner-scoped for export/delete.
+      allow get: if ownsSubscriptionId();
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if ownsSubscriptionId()
         && request.resource.data.keys().hasOnly([
           'userId', 'token', 'topics', 'enabled', 'platform', 'createdAt', 'updatedAt'
         ])
@@ -60,14 +69,14 @@ service cloud.firestore {
         && request.resource.data.token is string
         && request.resource.data.token.size() <= 4096
         && request.resource.data.topics is list
-        && request.resource.data.topics.size() <= 3
-        && request.resource.data.topics.hasOnly(['patotsav', 'games', 'events'])
+        && request.resource.data.topics.size() <= 2
+        && request.resource.data.topics.hasOnly(['announcements', 'games'])
         && request.resource.data.enabled == true
         && request.resource.data.platform is string
         && request.resource.data.platform.size() <= 240
         && request.resource.data.createdAt == request.time
         && request.resource.data.updatedAt == request.time;
-      allow update: if isSignedIn()
+      allow update: if ownsSubscriptionId()
         && resource.data.userId == request.auth.uid
         && request.resource.data.keys().hasOnly([
           'userId', 'token', 'topics', 'enabled', 'platform', 'createdAt', 'updatedAt'
@@ -76,8 +85,8 @@ service cloud.firestore {
         && request.resource.data.token is string
         && request.resource.data.token.size() <= 4096
         && request.resource.data.topics is list
-        && request.resource.data.topics.size() <= 3
-        && request.resource.data.topics.hasOnly(['patotsav', 'games', 'events'])
+        && request.resource.data.topics.size() <= 2
+        && request.resource.data.topics.hasOnly(['announcements', 'games'])
         && request.resource.data.enabled == true
         && request.resource.data.createdAt == resource.data.createdAt
         && request.resource.data.updatedAt == request.time;

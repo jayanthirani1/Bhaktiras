@@ -65,16 +65,9 @@ const copy = computed(() => {
       action: 'Remind me'
     }
   }
-  if (moment.value === 'events') {
-    return {
-      title: 'Notify me about new events?',
-      body: 'Hear when a new sabha or Patotsav event is published.',
-      action: 'Notify me'
-    }
-  }
   return {
-    title: 'Stay updated for Patotsav?',
-    body: 'Receive important Patotsav announcements on this device.',
+    title: 'Stay updated with announcements?',
+    body: 'Receive temple and Patotsav announcements on this device.',
     action: 'Stay updated'
   }
 })

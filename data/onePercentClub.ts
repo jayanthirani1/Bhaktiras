@@ -29,7 +29,7 @@ export const DEFAULT_ONE_PERCENT: OnePercentQuestion[] = [
   {
     id: 'p50',
     percent: 50,
-    question: '“Jai Swaminarayan” is primarily a greeting of…',
+    question: '“Jay Swaminarayan” is primarily a greeting of…',
     options: ['Farewell only', 'Respect & devotion', 'Business', 'Sport'],
     correctAnswer: 'Respect & devotion',
     order: 4

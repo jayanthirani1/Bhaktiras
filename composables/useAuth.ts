@@ -107,10 +107,10 @@ export function useAuth() {
     if (!emailPart) return null
     return emailPart.charAt(0).toUpperCase() + emailPart.slice(1).toLowerCase()
   })
-  /** Greeting text: "Jai Swaminarayan, X" */
+  /** Greeting text: "Jay Swaminarayan, X" */
   const greeting = computed(() => {
     const name = userName.value
-    return name ? `Jai Swaminarayan, ${name}` : null
+    return name ? `Jay Swaminarayan, ${name}` : null
   })
 
   return {
