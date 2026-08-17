@@ -630,6 +630,12 @@ watch([entries, () => auth.user.value?.uid], ([list, uid]) => {
   if (uid && list.some(e => e.userId === uid)) scoreSubmitted.value = true
 })
 
+watch([solved, () => auth.user.value?.uid], ([done, uid]) => {
+  if (done && uid && !scoreSubmitted.value && !submitting.value) {
+    void submitToLeaderboard()
+  }
+}, { immediate: true })
+
 backfill(() => ({ timeMs: timer.elapsedMs.value, detail: 'Solved' }))
 
 onMounted(() => {

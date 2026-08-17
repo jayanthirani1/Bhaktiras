@@ -49,6 +49,7 @@ jobs:
           NUXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ${{ secrets.NUXT_PUBLIC_FIREBASE_STORAGE_BUCKET }}
           NUXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.NUXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}
           NUXT_PUBLIC_FIREBASE_APP_ID: ${{ secrets.NUXT_PUBLIC_FIREBASE_APP_ID }}
+          NUXT_PUBLIC_FIREBASE_VAPID_KEY: ${{ secrets.NUXT_PUBLIC_FIREBASE_VAPID_KEY }}
           NUXT_PUBLIC_FLICKR_API_KEY: ${{ secrets.NUXT_PUBLIC_FLICKR_API_KEY }}
           NUXT_PUBLIC_FLICKR_USER_ID: ${{ secrets.NUXT_PUBLIC_FLICKR_USER_ID }}
         run: |
@@ -58,6 +59,7 @@ jobs:
           echo "NUXT_PUBLIC_FIREBASE_STORAGE_BUCKET=$NUXT_PUBLIC_FIREBASE_STORAGE_BUCKET" >> .env
           echo "NUXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=$NUXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID" >> .env
           echo "NUXT_PUBLIC_FIREBASE_APP_ID=$NUXT_PUBLIC_FIREBASE_APP_ID" >> .env
+          echo "NUXT_PUBLIC_FIREBASE_VAPID_KEY=$NUXT_PUBLIC_FIREBASE_VAPID_KEY" >> .env
           echo "NUXT_PUBLIC_FLICKR_API_KEY=$NUXT_PUBLIC_FLICKR_API_KEY" >> .env
           echo "NUXT_PUBLIC_FLICKR_USER_ID=$NUXT_PUBLIC_FLICKR_USER_ID" >> .env
 
@@ -67,10 +69,13 @@ jobs:
       - name: Install Firebase CLI
         run: npm install -g firebase-tools
 
-      - name: Deploy to Firebase Hosting
+      - name: Install Cloud Functions dependencies
+        run: npm ci --prefix functions
+
+      - name: Deploy Firebase app
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ github.workspace }}/gcp-key.json
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_SKSSW_BHAKTIRAS }}
         run: |
           echo "$FIREBASE_SERVICE_ACCOUNT" > gcp-key.json
-          firebase deploy --only hosting
+          firebase deploy --only hosting,functions,firestore:rules

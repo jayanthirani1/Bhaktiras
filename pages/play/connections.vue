@@ -269,7 +269,7 @@ function formatBoardScore(entry: { score?: number; timeMs?: number }) {
 }
 
 async function submitToLeaderboard() {
-  if (!auth.user.value || scoreSubmitted.value) return
+  if (!auth.user.value || scoreSubmitted.value || submitting.value || !finished.value) return
   submitting.value = true
   submitError.value = ''
   try {
@@ -289,6 +289,12 @@ async function submitToLeaderboard() {
     submitting.value = false
   }
 }
+
+watch([finished, () => auth.user.value?.uid], ([done, uid]) => {
+  if (done && uid && !scoreSubmitted.value && !submitting.value) {
+    void submitToLeaderboard()
+  }
+}, { immediate: true })
 
 watch(loading, value => {
   if (value) return

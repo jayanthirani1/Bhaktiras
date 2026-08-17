@@ -93,6 +93,7 @@ export function usePlayCompletionStore() {
 /** Per-game guard so a game finished on another device cannot be replayed. */
 export function useDailyGameCompletion(slug: PlayGameSlug) {
   const auth = useAuth()
+  const { request: requestPushPrompt } = usePushPrompt()
   const { remote, loaded, markDone: store } = usePlayCompletionStore()
   const localDone = ref(false)
 
@@ -105,8 +106,10 @@ export function useDailyGameCompletion(slug: PlayGameSlug) {
   const playedElsewhere = computed(() => !localDone.value && !!remote.value[slug])
 
   async function markDone(meta: PlayCompletionEntry = {}) {
+    const firstCompletion = !localDone.value
     localDone.value = true
     await store(slug, meta)
+    if (firstCompletion && auth.user.value?.uid) requestPushPrompt('game-complete')
   }
 
   /**

@@ -5,12 +5,11 @@ export type PlayGameSlug =
   | 'mini-crossword'
   | 'one-percent'
   | 'crossword'
-  | 'quiz'
   | 'spelling-bee'
   | 'connections'
 
 export interface PlayCompletionEntry {
-  /** Game-specific headline number (guesses, cleared rungs, quiz score). */
+  /** Game-specific headline number (guesses, cleared rungs, words found). */
   score?: number
   timeMs?: number
   /** Short human summary, e.g. "4/6" or "12/20 correct". */

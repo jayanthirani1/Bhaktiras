@@ -103,6 +103,15 @@
 import type { Event } from '~/types'
 
 const { events, isLoading } = useEvents()
+const { request: requestPushPrompt } = usePushPrompt()
+let pushPromptTimer: number | null = null
+
+onMounted(() => {
+  pushPromptTimer = window.setTimeout(() => requestPushPrompt('events'), 1200)
+})
+onUnmounted(() => {
+  if (pushPromptTimer) window.clearTimeout(pushPromptTimer)
+})
 
 /** Start of today in local time, so today's events stay under Upcoming. */
 function todayStart() {

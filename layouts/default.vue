@@ -5,6 +5,9 @@
       <slot />
     </main>
     <SiteFooter />
+    <ClientOnly>
+      <PushNotificationPrompt />
+    </ClientOnly>
   </div>
 </template>
 
@@ -12,6 +15,8 @@
 const route = useRoute()
 const auth = useAuth()
 const { recordVisit } = usePlayStreak()
+const { request: requestPushPrompt, push } = usePushPrompt()
+let signInPromptTimer: ReturnType<typeof setTimeout> | null = null
 
 watch(
   [() => route.path, () => auth.user.value?.uid, auth.loading],
@@ -22,4 +27,19 @@ watch(
   },
   { immediate: true }
 )
+
+watch(
+  [() => auth.user.value?.uid, auth.loading],
+  ([uid, loading]) => {
+    if (loading || !uid || import.meta.server) return
+    if (signInPromptTimer) clearTimeout(signInPromptTimer)
+    signInPromptTimer = setTimeout(() => requestPushPrompt('sign-in'), 1500)
+  },
+  { immediate: true }
+)
+
+onMounted(() => { void push.startForegroundListener() })
+onUnmounted(() => {
+  if (signInPromptTimer) clearTimeout(signInPromptTimer)
+})
 </script>

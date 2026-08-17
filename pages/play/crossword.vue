@@ -155,6 +155,29 @@
               </ol>
             </section>
           </div>
+
+          <p v-if="submittingScore" class="text-center text-sm text-[hsl(var(--muted-foreground))]">
+            Adding your time to the leaderboard…
+          </p>
+          <p v-else-if="scoreSubmitted" class="text-center text-sm font-medium text-emerald-700">
+            Time added to the leaderboard.
+          </p>
+          <button
+            v-else-if="isLoggedIn && submitError"
+            type="button"
+            class="mx-auto block text-sm font-semibold text-red-600 underline"
+            @click="submitResult"
+          >
+            Submission failed — try again
+          </button>
+
+          <GameLeaderboard
+            :entries="leaderboardEntries"
+            :loading="leaderboardLoading"
+            :date-id="leaderboardDateId"
+            :current-user-id="auth.user.value?.uid"
+            :format-score="entry => entry.timeMs != null ? formatElapsed(entry.timeMs) : `${entry.score}s`"
+          />
         </div>
       </div>
     </div>
@@ -215,6 +238,17 @@ import { ukDateId } from '~/utils/gameDay'
 const { puzzles, loading } = useCrosswordPuzzles()
 // Replayable across puzzles, so it syncs its "done today" marker without locking.
 const { markDone } = useDailyGameCompletion('crossword')
+const auth = useAuth()
+const isLoggedIn = computed(() => !!auth.user.value)
+const {
+  entries: leaderboardEntries,
+  loading: leaderboardLoading,
+  dateId: leaderboardDateId,
+  submitScore
+} = useGameLeaderboard('crossword', { sort: 'asc' })
+const submittingScore = ref(false)
+const scoreSubmitted = ref(false)
+const submitError = ref('')
 const activeId = ref('')
 const guesses = reactive<Record<string, string>>({})
 const checked = ref(false)
@@ -390,6 +424,29 @@ function finishIfComplete() {
     timeMs: timer.elapsedMs.value,
     detail: active.value?.title || 'Solved'
   })
+  void submitResult()
+}
+
+async function submitResult() {
+  if (!auth.user.value || !allCorrect.value || scoreSubmitted.value || submittingScore.value) return
+  submittingScore.value = true
+  submitError.value = ''
+  try {
+    const ms = timer.elapsedMs.value
+    await submitScore({
+      score: Math.max(1, Math.ceil(ms / 1000)),
+      timeMs: ms,
+      userName: auth.userName.value || auth.userEmail.value || 'Player',
+      userId: auth.user.value.uid,
+      userEmail: auth.userEmail.value || undefined,
+      detail: active.value?.title || 'Solved'
+    })
+    scoreSubmitted.value = true
+  } catch (error) {
+    submitError.value = error instanceof Error ? error.message : 'Could not submit time.'
+  } finally {
+    submittingScore.value = false
+  }
 }
 
 function askHint(kind: 'letter' | 'word') {
@@ -451,6 +508,8 @@ function select(id: string) {
   activeId.value = id
   clearGuesses()
   timer.reset()
+  scoreSubmitted.value = false
+  submitError.value = ''
   activeDir.value = 'across'
   const l = layoutCrossword(puzzles.value.find(p => p.id === id)?.clues || [])
   const first = l?.words[0]

@@ -11,13 +11,13 @@
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
-    "deploy": "nuxt generate && npx firebase deploy --only hosting",
+    "deploy": "nuxt generate && npm ci --prefix functions && npx --yes firebase-tools deploy --only hosting,functions,firestore:rules",
     "typecheck": "nuxt typecheck"
   },
   "dependencies": {
     "@tabler/icons-vue": "^3.21.0",
+    "an-array-of-english-words": "^2.0.0",
     "firebase": "^11.0.2",
-    "firebase-cli": "^1.2.0",
     "nuxt": "^3.14.0",
     "vue": "^3.5.12"
   },

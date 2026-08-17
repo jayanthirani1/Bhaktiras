@@ -1,5 +1,5 @@
 import { collection, doc, getDoc, getDocs, type Firestore } from 'firebase/firestore'
-import type { ConnectionsPuzzle, CrosswordPuzzle, GameWordEntry, OnePercentQuestion, QuizQuestion, WordleWordDoc } from '~/types'
+import type { ConnectionsPuzzle, CrosswordPuzzle, GameWordEntry, OnePercentQuestion, WordleWordDoc } from '~/types'
 import type { SpellingBeePuzzle } from '~/data/spellingBeePuzzles'
 import { SPELLING_BEE_PUZZLES } from '~/data/spellingBeePuzzles'
 import { DEFAULT_ONE_PERCENT } from '~/data/onePercentClub'
@@ -22,12 +22,6 @@ function getDb(): Firestore | null {
   return (useNuxtApp().$firebaseDb as Firestore | null) ?? null
 }
 
-const FALLBACK_QUIZ: QuizQuestion[] = [
-  { id: '1', question: 'Which year was the temple inaugurated?', options: ['2013', '2014', '2015', '2016'], correctAnswer: '2014' },
-  { id: '2', question: "What is the primary material used in the main shrine?", options: ['White Marble', 'Sandstone', 'Granite', 'Limestone'], correctAnswer: 'White Marble' },
-  { id: '3', question: 'How many major festivals are celebrated annually?', options: ['5', '8', '12', '15'], correctAnswer: '12' }
-]
-
 function mapCustomGameWords(snap: Awaited<ReturnType<typeof getDocs>>): GameWordEntry[] {
   return snap.docs.map((item) => {
     const data = item.data() as Record<string, unknown>
@@ -49,27 +43,6 @@ export async function fetchMergedGameWords(): Promise<GameWordEntry[]> {
   if (!db) return mergeGameWords()
   const snap = await getDocs(collection(db, 'gameWords'))
   return mergeGameWords(mapCustomGameWords(snap))
-}
-
-export function useQuizQuestions() {
-  const questions = ref<QuizQuestion[]>(FALLBACK_QUIZ)
-  const loading = ref(true)
-
-  onMounted(async () => {
-    try {
-      const db = getDb()
-      if (!db) return
-      const snap = await getDocs(collection(db, 'quizQuestions'))
-      const remote = snap.docs.map(d => ({ id: d.id, ...d.data() } as QuizQuestion))
-        .filter(q => q.question && q.options?.length && q.correctAnswer)
-        .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
-      if (remote.length) questions.value = remote
-    } finally {
-      loading.value = false
-    }
-  })
-
-  return { questions, loading }
 }
 
 export function useSpellingBeePuzzles() {

@@ -40,6 +40,7 @@ Depending on how you use the site, we may store:
 - Niyam ticks saved to your account
 - Community wall messages you post (you can post anonymously)
 - Bug reports you submit, including an optional contact email
+- A device notification token and the update categories you choose, if you opt in to push notifications
 - The versions and times of policies accepted when creating an account
 - Admin-only records if you are a temple editor
 
@@ -70,7 +71,7 @@ Your email address is not shown on public pages.
 
 ## Cookies and device storage
 
-We use local device storage for things like a guest niyam tracker and your signed-in session. These are for the site to work, not for tracking you across the web.
+We use local device storage for things like a guest niyam tracker, your signed-in session, and whether this device has enabled notifications. These are for the site to work, not for tracking you across the web.
 
 ## Children and family use
 
@@ -82,6 +83,7 @@ You can:
 
 - Browse without signing in
 - Sign out at any time
+- Turn push notifications on or off from **Your account**
 - Open **Your account** to download a copy of data linked to your account
 - Permanently delete your account and linked scores, streaks, niyam progress and game completions
 - Ask a temple admin to correct information or remove a message you posted

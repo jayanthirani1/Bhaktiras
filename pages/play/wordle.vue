@@ -683,6 +683,12 @@ watch(
   }
 )
 
+watch([isComplete, isWin, () => auth.user.value?.uid], ([complete, won, uid]) => {
+  if (complete && won && uid && !scoreSubmitted.value && !submittingScore.value) {
+    void submitToLeaderboard()
+  }
+}, { immediate: true })
+
 async function submitToLeaderboard() {
   if (!auth.user.value || !isWin.value || scoreSubmitted.value || submittingScore.value) return
   submitError.value = ''

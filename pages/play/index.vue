@@ -92,7 +92,6 @@
 <script setup lang="ts">
 import {
   IconGrid3x3,
-  IconBrain,
   IconTypography,
   IconHexagon,
   IconChartBar,
@@ -122,7 +121,6 @@ const games: Array<{
   { slug: 'mini-crossword', title: 'Mini Crossword', description: 'A quick Telegraph-style mini. Beat the clock.', icon: IconLayoutGrid, href: '/play/mini-crossword', tile: 'bg-sky-100 text-sky-700', button: 'bg-sky-600 text-white' },
   { slug: 'one-percent', title: '1% Club', description: 'Climb from 90% to 1%. One wrong answer ends your run.', icon: IconChartBar, href: '/play/one-percent', tile: 'bg-orange-100 text-orange-700', button: 'bg-orange-500 text-white' },
   { slug: 'crossword', title: 'Crossword', description: 'Solve the full devotional crossword grid.', icon: IconGrid3x3, href: '/play/crossword', tile: 'bg-violet-100 text-[hsl(var(--primary))]', button: 'bg-[hsl(var(--primary))] text-white' },
-  { slug: 'quiz', title: 'Devotional Quiz', description: "Test your knowledge about our temple's history and traditions.", icon: IconBrain, href: '/play/quiz', tile: 'bg-rose-100 text-rose-700', button: 'bg-rose-600 text-white' },
   { slug: 'connections', title: 'Connections', description: 'Find four groups of four satsang-related words.', icon: IconCirclesRelation, href: '/play/connections', tile: 'bg-fuchsia-100 text-fuchsia-700', button: 'bg-fuchsia-600 text-white' },
   { slug: 'spelling-bee', title: 'Spelling Bee', description: 'Make words from the hive. Every word must use the center letter.', icon: IconHexagon, href: '/play/spelling-bee', tile: 'bg-amber-100 text-amber-700', button: 'bg-amber-500 text-white' }
 ]

@@ -10,7 +10,7 @@ import {
   type DocumentData,
   type Firestore
 } from 'firebase/firestore'
-import type { ConnectionsPuzzle, CrosswordPuzzle, Event, GameWordEntry, Niyam, OnePercentQuestion, QuizQuestion, SitePage, TimelineItem, WordleWordDoc, YajmanOpportunity } from '~/types'
+import type { ConnectionsPuzzle, CrosswordPuzzle, Event, GameWordEntry, Niyam, OnePercentQuestion, SitePage, TimelineItem, WordleWordDoc, YajmanOpportunity } from '~/types'
 import type { SpellingBeePuzzle } from '~/data/spellingBeePuzzles'
 
 function getDb(): Firestore | null {
@@ -136,9 +136,6 @@ export function useAdminWordleWords() {
 }
 export function useAdminGameWords() {
   return useAdminCollection<GameWordEntry>('gameWords')
-}
-export function useAdminQuiz() {
-  return useAdminCollection<QuizQuestion>('quizQuestions')
 }
 export function useAdminCrossword() {
   return useAdminCollection<CrosswordPuzzle>('crosswordPuzzles')

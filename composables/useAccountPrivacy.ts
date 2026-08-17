@@ -38,17 +38,18 @@ export function useAccountPrivacy() {
   const usesGoogle = computed(() => authState.user.value?.providerIds?.includes('google.com') || false)
 
   async function linkedData(db: Firestore, uid: string) {
-    const [profile, admin, scores, legacyWordleScores, streak, niyams, completions] = await Promise.all([
+    const [profile, admin, scores, legacyWordleScores, streak, niyams, completions, pushSubscriptions] = await Promise.all([
       getDoc(doc(db, 'users', uid)),
       getDoc(doc(db, 'admins', uid)),
       getDocs(query(collection(db, 'gameScores'), where('userId', '==', uid))),
       getDocs(query(collection(db, 'wordleScores'), where('userId', '==', uid))),
       getDoc(doc(db, 'playStreaks', uid)),
       getDoc(doc(db, 'niyamProgress', uid)),
-      getDocs(collection(db, 'playCompletions', uid, 'days'))
+      getDocs(collection(db, 'playCompletions', uid, 'days')),
+      getDocs(query(collection(db, 'pushSubscriptions'), where('userId', '==', uid)))
     ])
 
-    return { profile, admin, scores, legacyWordleScores, streak, niyams, completions }
+    return { profile, admin, scores, legacyWordleScores, streak, niyams, completions, pushSubscriptions }
   }
 
   async function exportMyData() {
@@ -73,6 +74,11 @@ export function useAccountPrivacy() {
         playStreak: data.streak.exists() ? data.streak.data() : null,
         niyamProgress: data.niyams.exists() ? data.niyams.data() : null,
         playCompletions: data.completions.docs.map(item => ({ id: item.id, ...item.data() })),
+        pushSubscriptions: data.pushSubscriptions.docs.map(item => ({
+          id: item.id,
+          ...item.data(),
+          token: '[redacted from export]'
+        })),
         notes: [
           'Anonymous community posts and bug reports are not linked to your account.',
           'Anonymous aggregate niyam totals do not contain your user ID.'
@@ -132,7 +138,8 @@ export function useAccountPrivacy() {
       const refs: DocumentReference[] = [
         ...data.scores.docs.map(item => item.ref),
         ...data.legacyWordleScores.docs.map(item => item.ref),
-        ...data.completions.docs.map(item => item.ref)
+        ...data.completions.docs.map(item => item.ref),
+        ...data.pushSubscriptions.docs.map(item => item.ref)
       ]
       if (data.profile.exists()) refs.push(data.profile.ref)
       if (data.streak.exists()) refs.push(data.streak.ref)

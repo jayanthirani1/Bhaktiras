@@ -36,6 +36,42 @@
         </section>
 
         <section class="card-surface p-5 sm:p-6">
+          <div class="flex items-start justify-between gap-4">
+            <div class="flex items-start gap-3">
+              <IconBell class="mt-0.5 h-6 w-6 shrink-0 text-[hsl(var(--accent))]" />
+              <div>
+                <h2 class="font-display text-xl font-semibold text-[hsl(var(--primary))]">Push notifications</h2>
+                <p class="mt-2 text-sm leading-relaxed text-[hsl(var(--muted-foreground))]">
+                  Receive Patotsav, event and daily game reminders on this device. You can turn them off at any time.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              :aria-checked="push.enabled.value"
+              :disabled="push.busy.value || push.supported.value === false"
+              class="relative mt-1 h-7 w-12 shrink-0 rounded-full transition-colors disabled:opacity-40"
+              :class="push.enabled.value ? 'bg-emerald-500' : 'bg-[hsl(var(--border))]'"
+              @click="togglePush"
+            >
+              <span
+                class="absolute top-1 h-5 w-5 rounded-full bg-white shadow-sm transition-transform"
+                :class="push.enabled.value ? 'translate-x-6' : 'translate-x-1'"
+              />
+              <span class="sr-only">{{ push.enabled.value ? 'Turn notifications off' : 'Turn notifications on' }}</span>
+            </button>
+          </div>
+          <p v-if="push.supported.value === false" class="mt-3 text-xs text-amber-700">
+            This browser does not support web push. On iPhone, add Bhaktiras to your Home Screen first.
+          </p>
+          <p v-else-if="push.enabled.value" class="mt-3 text-xs font-medium text-emerald-700">
+            Notifications are on for {{ push.topics.value.join(', ') || 'Bhaktiras updates' }}.
+          </p>
+          <p v-if="push.error.value" role="alert" class="mt-3 text-sm text-red-600">{{ push.error.value }}</p>
+        </section>
+
+        <section class="card-surface p-5 sm:p-6">
           <div class="flex items-start gap-3">
             <IconLink class="mt-0.5 h-6 w-6 shrink-0 text-[hsl(var(--accent))]" />
             <div>
@@ -229,6 +265,7 @@
 
 <script setup lang="ts">
 import {
+  IconBell,
   IconBrandGoogle,
   IconDownload,
   IconLink,
@@ -238,6 +275,7 @@ import {
 } from '@tabler/icons-vue'
 
 const auth = useAuth()
+const push = usePushNotifications()
 const {
   exporting,
   deleting,
@@ -258,6 +296,15 @@ const linkingMethod = ref<'google' | 'password' | null>(null)
 const linking = computed(() => linkingMethod.value != null)
 const linkError = ref('')
 const linkMessage = ref('')
+
+async function togglePush() {
+  try {
+    if (push.enabled.value) await push.disable()
+    else await push.enable()
+  } catch {
+    // A user-friendly error is displayed in the notification section.
+  }
+}
 
 async function connectGoogle() {
   linkingMethod.value = 'google'

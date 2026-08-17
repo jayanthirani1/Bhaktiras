@@ -14,9 +14,13 @@
 
       <PageHeader
         title="Spelling Bee"
-        subtitle="Make words from the hive. Every word must use the center letter. 4+ letters."
+        subtitle="Make words from today’s hive using the general English dictionary. Every word must use the center letter. 4+ letters."
       />
 
+      <div v-if="puzzlesLoading" class="card-surface p-8 text-center text-sm text-[hsl(var(--muted-foreground))]">
+        Loading today’s hive…
+      </div>
+      <template v-else>
       <div class="flex justify-center mb-6">
         <div class="flex flex-wrap justify-center gap-2 max-w-[280px]">
           <button
@@ -59,9 +63,10 @@
         <button
           type="button"
           class="px-4 py-2 rounded-lg bg-[hsl(var(--primary))] text-[hsl(var(--accent))] font-semibold hover:opacity-90"
+          :disabled="checkingWord"
           @click="submitWord"
         >
-          Enter
+          {{ checkingWord ? 'Checking…' : 'Enter' }}
         </button>
         <button
           type="button"
@@ -104,7 +109,7 @@
           Sign in to submit score
         </NuxtLink>
         <p v-else-if="myBest > 0 && foundWords.length <= myBest" class="text-sm text-emerald-700">
-          Your all-time best ({{ myBest }} words) is on the board.
+          Today’s best ({{ myBest }} words) is on the board.
         </p>
         <p v-if="submitError" class="text-sm text-red-600">{{ submitError }}</p>
       </div>
@@ -112,7 +117,6 @@
       <GameLeaderboard
         :entries="leaderboardEntries"
         :loading="leaderboardLoading"
-        all-time
         :format-score="(e) => `${e.score} word${e.score === 1 ? '' : 's'}`"
       >
         <template v-if="!isLoggedIn">
@@ -120,33 +124,46 @@
           to submit your best.
         </template>
         <template v-else-if="myBest > 0">
-          Your best: {{ myBest }} words.
+          Today’s best: {{ myBest }} words.
         </template>
       </GameLeaderboard>
+      </template>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { IconArrowLeft } from '@tabler/icons-vue'
-import { getHiveLetters, getMiddleLetter, isValidSpellingBeeWord, spellingBeePoints, SPELLING_BEE_PUZZLES } from '~/data/spellingBeePuzzles'
+import {
+  getHiveLetters,
+  getMiddleLetter,
+  isValidSpellingBeeWord,
+  matchesSpellingBeeLetters,
+  spellingBeePoints,
+  SPELLING_BEE_PUZZLES
+} from '~/data/spellingBeePuzzles'
+import { ukDateId } from '~/utils/gameDay'
 
-const { puzzles } = useSpellingBeePuzzles()
+const { puzzles, loading: puzzlesLoading } = useSpellingBeePuzzles()
 const auth = useAuth()
 const isLoggedIn = computed(() => !!auth.user.value)
 const {
   entries: leaderboardEntries,
   loading: leaderboardLoading,
   submitScore
-} = useGameLeaderboard('spelling-bee', { sort: 'desc', allTime: true })
+} = useGameLeaderboard('spelling-bee', { sort: 'desc' })
 const submittingScore = ref(false)
 const submitError = ref('')
 const puzzle = ref(SPELLING_BEE_PUZZLES[0])
+const dateId = ukDateId()
 const currentWord = ref('')
 const foundWords = ref<string[]>([])
 const totalScore = ref(0)
 const message = ref('')
 const messageOk = ref(false)
+const checkingWord = ref(false)
+const englishDictionary = shallowRef<ReadonlySet<string> | null>(null)
+let dictionaryPromise: Promise<ReadonlySet<string>> | null = null
 const myBest = computed(() => {
   const uid = auth.user.value?.uid
   if (!uid) return 0
@@ -154,8 +171,42 @@ const myBest = computed(() => {
 })
 const canSubmitBest = computed(() => foundWords.value.length > myBest.value)
 
-watch(puzzles, (list) => {
-  if (list?.length) puzzle.value = list[Math.floor(Math.random() * list.length)]
+function puzzleIdentity(item: typeof puzzle.value) {
+  return `${item.middleLetter.toUpperCase()}:${item.availableLetters.toUpperCase().split('').sort().join('')}`
+}
+
+function dateHash(value: string) {
+  return [...value].reduce((hash, char) => Math.imul(hash ^ char.charCodeAt(0), 16777619) >>> 0, 2166136261)
+}
+
+function progressKey() {
+  return `spelling-bee-progress:${dateId}:${puzzleIdentity(puzzle.value)}`
+}
+
+function loadProgress() {
+  foundWords.value = []
+  totalScore.value = 0
+  if (import.meta.server) return
+  try {
+    const saved = JSON.parse(localStorage.getItem(progressKey()) || '{}')
+    const words = Array.isArray(saved.words)
+      ? saved.words
+        .map((word: unknown) => String(word).toUpperCase())
+        .filter((word: string) => matchesSpellingBeeLetters(word, puzzle.value))
+      : []
+    foundWords.value = [...new Set<string>(words)].sort()
+    totalScore.value = foundWords.value.reduce((sum, word) => sum + spellingBeePoints(word, puzzle.value), 0)
+  } catch {
+    foundWords.value = []
+  }
+}
+
+watch([puzzles, puzzlesLoading], ([list, loading]) => {
+  if (loading || !list?.length) return
+  const ordered = [...list].sort((a, b) => puzzleIdentity(a).localeCompare(puzzleIdentity(b)))
+  const exact = ordered.find(item => item.id === `daily-${dateId}`)
+  puzzle.value = exact || ordered[dateHash(`spelling-bee:${dateId}`) % ordered.length]
+  loadProgress()
 }, { immediate: true })
 
 const middleLetter = computed(() => getMiddleLetter(puzzle.value))
@@ -171,7 +222,24 @@ function clearWord() {
   message.value = ''
 }
 
-function submitWord() {
+async function loadEnglishDictionary() {
+  if (englishDictionary.value) return englishDictionary.value
+  if (!dictionaryPromise) {
+    dictionaryPromise = import('an-array-of-english-words').then((module) => {
+      const raw = (module.default || module) as unknown as string[]
+      const words = new Set(
+        raw
+          .filter(word => word.length >= 4 && /^[A-Za-z]+$/.test(word))
+          .map(word => word.toUpperCase())
+      )
+      englishDictionary.value = words
+      return words
+    })
+  }
+  return dictionaryPromise
+}
+
+async function submitWord() {
   const w = currentWord.value.trim()
   if (!w) return
   const upper = w.toUpperCase()
@@ -180,7 +248,16 @@ function submitWord() {
     messageOk.value = false
     return
   }
-  if (isValidSpellingBeeWord(w, puzzle.value)) {
+  checkingWord.value = true
+  let dictionary: ReadonlySet<string> | undefined
+  try {
+    dictionary = await loadEnglishDictionary()
+  } catch {
+    dictionary = undefined
+  } finally {
+    checkingWord.value = false
+  }
+  if (isValidSpellingBeeWord(w, puzzle.value, dictionary)) {
     foundWords.value = [...foundWords.value, upper].sort()
     totalScore.value += spellingBeePoints(w, puzzle.value)
     message.value = 'Nice!'
@@ -197,9 +274,21 @@ function submitWord() {
   setTimeout(() => { message.value = '' }, 2000)
 }
 
+watch(
+  [foundWords, totalScore],
+  () => {
+    if (import.meta.server || puzzlesLoading.value) return
+    localStorage.setItem(progressKey(), JSON.stringify({
+      words: foundWords.value,
+      score: totalScore.value
+    }))
+  },
+  { deep: true }
+)
+
 async function submitToLeaderboard() {
   const wordCount = foundWords.value.length
-  if (!auth.user.value || wordCount <= 0) return
+  if (!auth.user.value || wordCount <= 0 || !canSubmitBest.value || submittingScore.value) return
   submitError.value = ''
   submittingScore.value = true
   try {
@@ -216,4 +305,30 @@ async function submitToLeaderboard() {
     submittingScore.value = false
   }
 }
+
+let autoSubmitTimer: ReturnType<typeof setTimeout> | null = null
+
+function queueAutoSubmit() {
+  if (autoSubmitTimer) clearTimeout(autoSubmitTimer)
+  autoSubmitTimer = setTimeout(() => {
+    if (submittingScore.value) {
+      queueAutoSubmit()
+      return
+    }
+    if (canSubmitBest.value) void submitToLeaderboard()
+  }, 500)
+}
+
+watch(
+  [() => foundWords.value.length, () => auth.user.value?.uid],
+  ([wordCount, uid]) => {
+    if (uid && wordCount > 0 && canSubmitBest.value) queueAutoSubmit()
+  }
+)
+
+onUnmounted(() => {
+  if (autoSubmitTimer) clearTimeout(autoSubmitTimer)
+})
+
+onMounted(() => { void loadEnglishDictionary() })
 </script>

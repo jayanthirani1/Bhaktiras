@@ -12,7 +12,7 @@ export function getMiddleLetter(puzzle: SpellingBeePuzzle): string {
   return puzzle.middleLetter.toUpperCase()
 }
 
-export function isValidSpellingBeeWord(word: string, puzzle: SpellingBeePuzzle): boolean {
+export function matchesSpellingBeeLetters(word: string, puzzle: SpellingBeePuzzle): boolean {
   const w = word.toUpperCase().trim()
   if (w.length < 4) return false
   if (!w.includes(puzzle.middleLetter.toUpperCase())) return false
@@ -20,7 +20,18 @@ export function isValidSpellingBeeWord(word: string, puzzle: SpellingBeePuzzle):
   for (const c of w) {
     if (!allowed.has(c)) return false
   }
+  return true
+}
+
+export function isValidSpellingBeeWord(
+  word: string,
+  puzzle: SpellingBeePuzzle,
+  englishDictionary?: ReadonlySet<string>
+): boolean {
+  const w = word.toUpperCase().trim()
+  if (!matchesSpellingBeeLetters(w, puzzle)) return false
   return puzzle.answers.some(answer => String(answer || '').toUpperCase().trim() === w)
+    || englishDictionary?.has(w) === true
 }
 
 export function isPangram(word: string, puzzle: SpellingBeePuzzle): boolean {

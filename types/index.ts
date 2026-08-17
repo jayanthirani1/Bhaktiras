@@ -56,14 +56,6 @@ export interface BugReport {
   closedAt?: { seconds?: number; nanoseconds?: number } | Date | null
 }
 
-export interface QuizQuestion {
-  id: string
-  question: string
-  options: string[]
-  correctAnswer: string
-  order?: number
-}
-
 export interface CrosswordClue {
   number: number
   direction: 'across' | 'down'
@@ -160,7 +152,6 @@ export interface TimeCapsuleMessage {
 
 export type GameLeaderboardId =
   | 'wordle'
-  | 'quiz'
   | 'crossword'
   | 'spelling-bee'
   | 'one-percent'

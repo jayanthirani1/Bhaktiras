@@ -37,6 +37,7 @@ NUXT_PUBLIC_FIREBASE_PROJECT_ID=your-project-id
 NUXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your-project.appspot.com
 NUXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=123456789
 NUXT_PUBLIC_FIREBASE_APP_ID=1:123456789:web:abc123
+NUXT_PUBLIC_FIREBASE_VAPID_KEY=your-web-push-certificate-key
 NUXT_PUBLIC_FLICKR_API_KEY=your-flickr-api-key
 NUXT_PUBLIC_FLICKR_USER_ID=your-flickr-user-id
 ```
@@ -54,6 +55,8 @@ To have timeline, events, gratitude, and volunteer data show up, create these **
 | `yajmanOpportunities` | `title`, `detail`, `amount`, `contactUrl`, `active`, `order` |
 | `bugReports`    | Created from the footer form and managed in Admin |
 | `users`         | Account UID and versioned policy-acceptance timestamps (created automatically at signup) |
+| `pushSubscriptions` | Private per-device FCM tokens and opted-in notification categories |
+| `pushMessages`  | Admin-only delivery audit written by the notification Cloud Function |
 | `connectionsPuzzles` | `title`, optional `dateId`, four `groups`, `published` |
 | `gratitude`     | `name`, `message` (strings), `createdAt` (timestamp) |
 | `volunteerRoles`| `role`, `timeSlot` (strings), `isFilled` (boolean) |
@@ -97,11 +100,12 @@ The app is configured to deploy as a **static site** to [Firebase Hosting](https
    ```bash
    npm run deploy
    ```
-   This runs `nuxt generate` (static export to `.output/public`) then `firebase deploy --only hosting`. Your site will be at `https://skssw-bhaktiras.web.app` (or your project’s URL).
+   This generates the static app. Deploy Hosting, Functions and Firestore rules with `firebase deploy --only hosting,functions,firestore:rules`.
 
 **Config:** `firebase.json` and `.firebaserc` point at project `skssw-bhaktiras`. To use another project, run `firebase use <project-id>` or edit `.firebaserc`.
 
-No server or Blaze plan is required; Auth and Firestore run from the client.
+Push delivery uses a callable Cloud Function, so the Firebase project must support Cloud Functions deployment (normally the Blaze plan).
+The backend also sends the opted-in game reminder daily at 08:30 Europe/London and automatically notifies event subscribers when an event is created.
 
 ### Deploy via GitHub (Actions)
 
@@ -116,10 +120,11 @@ A workflow in `.github/workflows/firebase-hosting.yml` builds and deploys on pus
 | `NUXT_PUBLIC_FIREBASE_STORAGE_BUCKET` | Same as in your `.env` |
 | `NUXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | Same as in your `.env` |
 | `NUXT_PUBLIC_FIREBASE_APP_ID` | Same as in your `.env` |
+| `NUXT_PUBLIC_FIREBASE_VAPID_KEY` | Web Push certificate key from Firebase Console → Cloud Messaging |
 | `NUXT_PUBLIC_FLICKR_API_KEY` | Flickr API key used by event galleries |
 | `NUXT_PUBLIC_FLICKR_USER_ID` | Flickr account/user ID that owns the albums |
 
-The workflow runs `nuxt generate` with those env vars (so they’re baked into the build), then deploys to Firebase Hosting. No `.env` file is used in GitHub; everything comes from secrets.
+The workflow builds the app, installs the Functions dependencies, then deploys Hosting, Functions and Firestore rules. No `.env` file is used in GitHub; everything comes from secrets.
 
 ## Project structure
 
@@ -135,4 +140,4 @@ The workflow runs `nuxt generate` with those env vars (so they’re baked into t
 - **Stack:** Nuxt 3 (Vue) + Firebase Firestore instead of React + Express + PostgreSQL.
 - **Hosting:** Can be deployed as a static site; no backend or Docker required.
 - **Data:** All persistence is in Firestore. Create the collections and indexes above for full functionality.
-- **Play games:** Quiz, Crossword, Wordle, and Spelling Bee are placeholder pages; game logic can be copied from the original app if needed.
+- **Play games:** Daily and all-time games include Wordle, crosswords, Connections, 1% Club, and Spelling Bee.

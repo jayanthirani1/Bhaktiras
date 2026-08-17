@@ -280,6 +280,12 @@ watch([entries, () => auth.user.value?.uid], ([list, uid]) => {
   if (uid && list.some(e => e.userId === uid)) scoreSubmitted.value = true
 })
 
+watch([finished, () => auth.user.value?.uid], ([done, uid]) => {
+  if (done && uid && !scoreSubmitted.value && !submitting.value) {
+    void submitToLeaderboard()
+  }
+}, { immediate: true })
+
 backfill(() => ({
   score: cleared.value,
   timeMs: timer.elapsedMs.value,

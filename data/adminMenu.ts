@@ -13,6 +13,7 @@ export type AdminMenuGroup = {
 /** Top-level links shown above grouped sections. */
 export const ADMIN_MENU_TOP: AdminMenuItem[] = [
   { label: 'Dashboard', to: '/admin', subtitle: 'Jump in and edit live content' },
+  { label: 'Push notifications', to: '/admin/notifications', subtitle: 'Send updates to opted-in devices' },
   { label: 'Bug reports', to: '/admin/bugs', subtitle: 'Review, resolve and close submitted bugs' }
 ]
 
@@ -35,7 +36,6 @@ export const ADMIN_MENU_GROUPS: AdminMenuGroup[] = [
     items: [
       { label: 'Game Word Bank', to: '/admin/games/word-bank', subtitle: 'Swaminarayan, Gujarati & basic Hindu words' },
       { label: 'Wordle', to: '/admin/games/wordle', subtitle: 'Plan daily words for the week or month' },
-      { label: 'Quiz', to: '/admin/games/quiz', subtitle: 'Questions and answers' },
       { label: 'Crossword', to: '/admin/games/crossword', subtitle: 'Puzzle titles and clues' },
       { label: 'Spelling Bee', to: '/admin/games/spelling-bee', subtitle: 'Hive letters and answers' },
       { label: '1% Club', to: '/admin/games/one-percent', subtitle: 'Ladder questions from 90% to 1%' },

@@ -59,8 +59,15 @@ async function cleanseOldScores(
   today: string,
   game: GameLeaderboardId
 ) {
-  // Only cleanse daily boards — never wipe all-time games like spelling-bee.
-  const dailyGames: GameLeaderboardId[] = ['wordle', 'one-percent', 'mini-crossword', 'connections']
+  // Clean up yesterday's rows for games whose leaderboards reset each UK day.
+  const dailyGames: GameLeaderboardId[] = [
+    'wordle',
+    'crossword',
+    'one-percent',
+    'mini-crossword',
+    'connections',
+    'spelling-bee'
+  ]
   if (!dailyGames.includes(game)) return
 
   try {

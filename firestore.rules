@@ -49,6 +49,46 @@ service cloud.firestore {
         && request.resource.data.updatedAt == request.time;
     }
 
+    // One document per signed-in user/device. FCM tokens are private account data.
+    match /pushSubscriptions/{subscriptionId} {
+      allow read, delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn()
+        && request.resource.data.keys().hasOnly([
+          'userId', 'token', 'topics', 'enabled', 'platform', 'createdAt', 'updatedAt'
+        ])
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.token is string
+        && request.resource.data.token.size() <= 4096
+        && request.resource.data.topics is list
+        && request.resource.data.topics.size() <= 3
+        && request.resource.data.topics.hasOnly(['patotsav', 'games', 'events'])
+        && request.resource.data.enabled == true
+        && request.resource.data.platform is string
+        && request.resource.data.platform.size() <= 240
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+      allow update: if isSignedIn()
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.keys().hasOnly([
+          'userId', 'token', 'topics', 'enabled', 'platform', 'createdAt', 'updatedAt'
+        ])
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.token is string
+        && request.resource.data.token.size() <= 4096
+        && request.resource.data.topics is list
+        && request.resource.data.topics.size() <= 3
+        && request.resource.data.topics.hasOnly(['patotsav', 'games', 'events'])
+        && request.resource.data.enabled == true
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedAt == request.time;
+    }
+
+    // Delivery audit shown in the admin portal. Only Cloud Functions writes these.
+    match /pushMessages/{messageId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
     // Daily leaderboards (all games). Read public; submit requires login; old days can be deleted.
     match /gameScores/{scoreId} {
       allow read: if true;
@@ -76,7 +116,7 @@ service cloud.firestore {
             && request.resource.data.timeMs <= 86400000
           )
         );
-      // Own score updates: all-time spelling-bee must improve; daily boards may overwrite with a better run.
+      // Own score updates: spelling-bee scores can only improve during the current daily hive.
       allow update: if isSignedIn()
         && resource.data.userId == request.auth.uid
         && request.resource.data.userId == request.auth.uid
@@ -172,11 +212,6 @@ service cloud.firestore {
     }
 
     match /wordleDaily/{id} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
-    match /quizQuestions/{id} {
       allow read: if true;
       allow write: if isAdmin();
     }
