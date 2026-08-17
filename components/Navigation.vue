@@ -37,15 +37,14 @@
             <IconLogin class="w-5 h-5 shrink-0" />
             <span class="text-[10px] font-medium">Sign in</span>
           </NuxtLink>
-          <button
+          <NuxtLink
             v-else
-            type="button"
+            to="/account"
             class="flex flex-col items-center justify-center space-y-0.5 p-2 rounded-xl transition-colors text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--accent))]"
-            @click="handleSignOut"
           >
-            <IconLogout class="w-5 h-5 shrink-0" />
-            <span class="text-[10px] font-medium">Sign out</span>
-          </button>
+            <IconUserCircle class="w-5 h-5 shrink-0" />
+            <span class="text-[10px] font-medium">Account</span>
+          </NuxtLink>
         </span>
       </div>
     </div>
@@ -77,15 +76,14 @@
               <IconLogin class="w-4 h-4" />
               Sign in
             </NuxtLink>
-            <button
+            <NuxtLink
               v-else
-              type="button"
+              to="/account"
               class="ml-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--muted))] hover:text-[hsl(var(--accent))]"
-              @click="handleSignOut"
             >
-              <IconLogout class="w-4 h-4" />
-              Sign out
-            </button>
+              <IconUserCircle class="w-4 h-4" />
+              Account
+            </NuxtLink>
           </span>
         </div>
       </div>
@@ -104,12 +102,12 @@ import {
   IconMapPin,
   IconCalendarEvent,
   IconLogin,
-  IconLogout
+  IconUserCircle
 } from '@tabler/icons-vue'
 import { isGamePagePath } from '~/utils/gameRoutes'
 
 const route = useRoute()
-const { isLoggedIn, signOut } = useAuth()
+const { isLoggedIn } = useAuth()
 const navItems = [
   { href: '/', icon: IconHome, label: 'Home' },
   { href: '/journey', icon: IconMapPin, label: 'Journey' },
@@ -127,8 +125,4 @@ function isActive(href: string) {
   return route.path.startsWith(href)
 }
 
-async function handleSignOut() {
-  await signOut()
-  await navigateTo('/login')
-}
 </script>

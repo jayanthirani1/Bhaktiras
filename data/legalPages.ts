@@ -6,7 +6,7 @@ export const DEFAULT_LEGAL_PAGES: Record<LegalSlug, SitePage> = {
   privacy: {
     id: 'privacy',
     title: 'Privacy Policy',
-    body: `Last updated: 13 August 2026
+    body: `Last updated: 17 August 2026
 
 Bhaktiras is the community site for Shree KS Swaminarayan Temple Woolwich. This policy explains what information we collect, how we use it, and how we keep it safe — especially when you sign in.
 
@@ -25,6 +25,12 @@ We offer two ways to sign in:
 
 When you sign in with Google, Google may share your name, email address, and profile photo with us (only what you allow in the Google consent screen). We use this to create your Bhaktiras account and show your name on the site.
 
+When you create an account, you must accept the current Privacy Policy and Site Policy. We store the document versions and acceptance times so we can show when that agreement was made.
+
+## Why we use your data
+
+We process account information because it is needed to provide the features you request, such as saving niyams and scores. We use legitimate interests to keep the service secure and prevent misuse. Where a feature is genuinely optional and requires consent, you can choose not to use it and withdraw that consent.
+
 ## What we store
 
 Depending on how you use the site, we may store:
@@ -34,6 +40,7 @@ Depending on how you use the site, we may store:
 - Niyam ticks saved to your account
 - Community wall messages you post (you can post anonymously)
 - Bug reports you submit, including an optional contact email
+- The versions and times of policies accepted when creating an account
 - Admin-only records if you are a temple editor
 
 We do **not** sell your data. We do **not** use it for advertising.
@@ -75,13 +82,19 @@ You can:
 
 - Browse without signing in
 - Sign out at any time
-- Ask a temple admin to update or remove your account data or a message you posted
+- Open **Your account** to download a copy of data linked to your account
+- Permanently delete your account and linked scores, streaks, niyam progress and game completions
+- Ask a temple admin to correct information or remove a message you posted
 
-If you want your account or personal data deleted, speak to a mandir admin or contact the temple.
+Anonymous wall posts, anonymous bug reports and anonymised community totals do not contain your account ID, so the account tool cannot identify them automatically. Speak to a mandir admin if you need help with a specific item.
+
+## How long we keep data
+
+Account-linked data is kept while your account is active, unless it is needed for security, legal or safeguarding reasons. Self-service account deletion removes the account-linked records listed above. Public content submitted outside an account is kept until an admin removes it.
 
 ## Third parties
 
-We rely on Google (Firebase Authentication, Firestore, Storage, and Google Sign-In) to run the site. Google's own privacy policy applies to their services. We do not add other advertising or analytics networks.
+We rely on Google (Firebase Authentication, Firestore, Storage, and Google Sign-In) to run the site. Event photos are delivered from Flickr. If you choose to open GuestCam from the Community page, GuestCam operates its own service and privacy terms, including any MagicFind selfie search you choose to use. These providers may process data outside the UK under their own safeguards. We do not add advertising or behavioural analytics networks.
 
 ## Changes
 
@@ -118,7 +131,7 @@ Games are for fun and satsang. Play fairly. Do not try to break or spam the lead
 
 ## Niyams and seva
 
-Niyams are a personal tracker. Community totals are shown only to encourage the mandal, not to compare individuals. Seva hours can be logged to inspire service, not to compete.
+Niyams are a personal tracker. Community totals are shown only to encourage the mandal, not to compare individuals.
 
 ## Content and photos
 

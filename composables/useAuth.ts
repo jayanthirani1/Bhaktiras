@@ -5,7 +5,9 @@ import {
   GoogleAuthProvider,
   signOut as firebaseSignOut
 } from 'firebase/auth'
+import { doc, serverTimestamp, setDoc, type Firestore } from 'firebase/firestore'
 import type { AuthUserSnapshot } from '~/types'
+import { PRIVACY_POLICY_VERSION, SITE_POLICY_VERSION } from '~/utils/privacy'
 
 export function useAuth() {
   const nuxtApp = useNuxtApp()
@@ -34,6 +36,22 @@ export function useAuth() {
     const auth = getAuth()
     if (!auth) throw new Error('Firebase Auth not configured')
     await createUserWithEmailAndPassword(auth, email, password)
+  }
+
+  /** Store an auditable, minimal record of the legal documents accepted at signup. */
+  async function recordPolicyAcceptance() {
+    const auth = getAuth()
+    const db = nuxtApp.$firebaseDb as Firestore | null
+    const currentUser = auth?.currentUser
+    if (!currentUser || !db) throw new Error('Could not record your policy acceptance.')
+    await setDoc(doc(db, 'users', currentUser.uid), {
+      userId: currentUser.uid,
+      privacyPolicyVersion: PRIVACY_POLICY_VERSION,
+      sitePolicyVersion: SITE_POLICY_VERSION,
+      privacyAcceptedAt: serverTimestamp(),
+      sitePolicyAcceptedAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    }, { merge: true })
   }
 
   async function signOut() {
@@ -70,6 +88,7 @@ export function useAuth() {
     signIn,
     signInWithGoogle,
     signUp,
+    recordPolicyAcceptance,
     signOut
   }
 }

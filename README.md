@@ -53,6 +53,7 @@ To have timeline, events, gratitude, and volunteer data show up, create these **
 | `events`        | `date`, `title`, `description`, `posterUrl` and `flickrAlbumId` (optional strings) |
 | `yajmanOpportunities` | `title`, `detail`, `amount`, `contactUrl`, `active`, `order` |
 | `bugReports`    | Created from the footer form and managed in Admin |
+| `users`         | Account UID and versioned policy-acceptance timestamps (created automatically at signup) |
 | `connectionsPuzzles` | `title`, optional `dateId`, four `groups`, `published` |
 | `gratitude`     | `name`, `message` (strings), `createdAt` (timestamp) |
 | `volunteerRoles`| `role`, `timeSlot` (strings), `isFilled` (boolean) |

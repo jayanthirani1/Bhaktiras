@@ -28,6 +28,27 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
 
+    // Minimal policy-acceptance record. Doc ID = Auth UID; readable only by its owner.
+    match /users/{uid} {
+      allow read, delete: if isSignedIn() && request.auth.uid == uid;
+      allow create, update: if isSignedIn()
+        && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly([
+          'userId',
+          'privacyPolicyVersion',
+          'sitePolicyVersion',
+          'privacyAcceptedAt',
+          'sitePolicyAcceptedAt',
+          'updatedAt'
+        ])
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.privacyPolicyVersion is string
+        && request.resource.data.sitePolicyVersion is string
+        && request.resource.data.privacyAcceptedAt == request.time
+        && request.resource.data.sitePolicyAcceptedAt == request.time
+        && request.resource.data.updatedAt == request.time;
+    }
+
     // Daily leaderboards (all games). Read public; submit requires login; old days can be deleted.
     match /gameScores/{scoreId} {
       allow read: if true;

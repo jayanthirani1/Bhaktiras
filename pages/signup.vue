@@ -6,11 +6,25 @@
         Sign up to save your scores and see your greeting across the app.
       </p>
 
+      <label class="mb-5 flex items-start gap-3 rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4 text-sm">
+        <input
+          v-model="acceptedPolicies"
+          type="checkbox"
+          class="mt-0.5 h-4 w-4 shrink-0 rounded"
+        >
+        <span class="leading-relaxed text-[hsl(var(--muted-foreground))]">
+          I have read and agree to the
+          <NuxtLink to="/privacy" target="_blank" class="font-semibold text-[hsl(var(--accent))] underline">Privacy Policy</NuxtLink>
+          and
+          <NuxtLink to="/policy" target="_blank" class="font-semibold text-[hsl(var(--accent))] underline">Site Policy</NuxtLink>.
+        </span>
+      </label>
+
       <!-- Google sign up -->
       <button
         type="button"
         class="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-[hsl(var(--border))] bg-[hsl(var(--card))] font-semibold text-[hsl(var(--foreground))] hover:border-[hsl(var(--accent))] disabled:opacity-50 mb-4"
-        :disabled="loading || googleLoading"
+        :disabled="loading || googleLoading || !acceptedPolicies"
         @click="handleGoogleSignUp"
       >
         <svg class="w-5 h-5" viewBox="0 0 24 24">
@@ -57,7 +71,7 @@
         <button
           type="submit"
           class="w-full py-2.5 rounded-xl bg-[hsl(var(--primary))] text-[hsl(var(--accent))] font-semibold hover:opacity-90 disabled:opacity-50"
-          :disabled="loading"
+          :disabled="loading || !acceptedPolicies"
         >
           {{ loading ? 'Creating account...' : 'Create account with email' }}
         </button>
@@ -65,12 +79,6 @@
       <p class="mt-4 text-center text-sm text-[hsl(var(--muted-foreground))]">
         Already have an account?
         <NuxtLink :to="loginLink" class="text-[hsl(var(--accent))] font-medium underline">Sign in</NuxtLink>
-      </p>
-      <p class="mt-2 text-center text-xs text-[hsl(var(--muted-foreground))]">
-        By continuing you agree to our
-        <NuxtLink to="/privacy" class="font-medium text-[hsl(var(--accent))] hover:underline">Privacy</NuxtLink>
-        and
-        <NuxtLink to="/policy" class="font-medium text-[hsl(var(--accent))] hover:underline">Policy</NuxtLink>.
       </p>
       <p class="mt-2 text-center">
         <NuxtLink to="/" class="text-sm text-[hsl(var(--muted-foreground))] hover:underline">Back to home</NuxtLink>
@@ -85,6 +93,7 @@ const password = ref('')
 const error = ref('')
 const loading = ref(false)
 const googleLoading = ref(false)
+const acceptedPolicies = ref(false)
 const auth = useAuth()
 const route = useRoute()
 
@@ -101,6 +110,10 @@ const loginLink = computed(() => {
 
 async function handleSubmit() {
   error.value = ''
+  if (!acceptedPolicies.value) {
+    error.value = 'Please accept the Privacy Policy and Site Policy to create an account.'
+    return
+  }
   if (password.value.length < 6) {
     error.value = 'Password must be at least 6 characters'
     return
@@ -108,6 +121,7 @@ async function handleSubmit() {
   loading.value = true
   try {
     await auth.signUp(email.value, password.value)
+    await auth.recordPolicyAcceptance()
     await navigateTo(safeRedirect())
   } catch (e: unknown) {
     error.value = (e as { message?: string })?.message ?? 'Sign up failed'
@@ -118,9 +132,14 @@ async function handleSubmit() {
 
 async function handleGoogleSignUp() {
   error.value = ''
+  if (!acceptedPolicies.value) {
+    error.value = 'Please accept the Privacy Policy and Site Policy to create an account.'
+    return
+  }
   googleLoading.value = true
   try {
     await auth.signInWithGoogle()
+    await auth.recordPolicyAcceptance()
     await navigateTo(safeRedirect())
   } catch (e: unknown) {
     error.value = (e as { message?: string })?.message ?? 'Sign up with Google failed'
