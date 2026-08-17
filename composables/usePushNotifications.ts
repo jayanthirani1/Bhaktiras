@@ -64,11 +64,26 @@ async function deriveSubscriptionId(uid: string, vapidKey: string) {
 
 let initialiseRun = 0
 
+/** iOS only exposes web push to web apps launched from the Home Screen. */
+function isIos() {
+  if (import.meta.server) return false
+  const ua = navigator.userAgent
+  return /iPad|iPhone|iPod/.test(ua)
+    || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+}
+
+function isStandalone() {
+  if (import.meta.server) return false
+  return window.matchMedia?.('(display-mode: standalone)').matches
+    || (navigator as { standalone?: boolean }).standalone === true
+}
+
 /** Browser permission, FCM token registration and per-device topic preferences. */
 export function usePushNotifications() {
   const auth = useAuth()
   const config = useRuntimeConfig().public
   const supported = useState<boolean | null>('push-supported', () => null)
+  const needsHomeScreen = useState<boolean>('push-needs-home-screen', () => false)
   const enabled = useState<boolean>('push-enabled', () => false)
   const topics = useState<PushTopic[]>('push-topics', () => [])
   const busy = useState<boolean>('push-busy', () => false)
@@ -81,6 +96,7 @@ export function usePushNotifications() {
     const stale = () => run !== initialiseRun
 
     permission.value = typeof Notification === 'undefined' ? 'denied' : Notification.permission
+    needsHomeScreen.value = isIos() && !isStandalone()
     try {
       const { isSupported } = await import('firebase/messaging')
       if (stale()) return
@@ -256,18 +272,19 @@ export function usePushNotifications() {
       const { getMessaging, onMessage } = await import('firebase/messaging')
       foregroundUnsubscribe = onMessage(getMessaging(getApp()), (payload) => {
         if (Notification.permission !== 'granted') return
-        const title = payload.notification?.title || payload.data?.title || 'Bhaktiras'
-        const body = payload.notification?.body || payload.data?.body || ''
-        const notice = new Notification(title, {
-          body,
-          icon: '/Bhaktiras%20-%20Main.svg',
-          data: { url: payload.data?.url || '/' }
+        const data = payload.data || {}
+        const title = payload.notification?.title || data.title || 'Bhaktiras'
+        const body = payload.notification?.body || data.body || ''
+        const url = data.url || '/'
+        void navigator.serviceWorker.ready.then((registration) => {
+          void registration.showNotification(title, {
+            body,
+            icon: '/notification-icon.png',
+            badge: '/notification-icon.png',
+            data: { url },
+            tag: data.tag || 'bhaktiras-update'
+          })
         })
-        notice.onclick = () => {
-          window.focus()
-          window.location.href = String(notice.data?.url || '/')
-          notice.close()
-        }
       })
     } catch {
       // Unsupported browsers simply do not install a foreground listener.
@@ -279,6 +296,7 @@ export function usePushNotifications() {
 
   return {
     supported,
+    needsHomeScreen,
     enabled,
     topics,
     busy,

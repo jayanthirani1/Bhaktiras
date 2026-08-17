@@ -3,15 +3,28 @@
   "short_name": "Bhaktiras",
   "description": "Shree KS Swaminarayan Temple Woolwich community app",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#fdfcf9",
   "theme_color": "#3b2061",
   "icons": [
     {
-      "src": "/Bhaktiras%20-%20Main.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
       "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }

@@ -94,8 +94,13 @@
               </button>
             </div>
           </div>
-          <p v-if="push.supported.value === false" class="mt-3 text-xs text-amber-700">
-            This browser does not support web push. On iPhone, add Bhaktiras to your Home Screen first.
+          <p v-if="push.needsHomeScreen.value" class="mt-3 text-xs text-amber-700">
+            On iPhone and iPad, notifications only work once Bhaktiras is installed. Tap Share, choose
+            “Add to Home Screen”, then open Bhaktiras from your Home Screen and turn notifications on there.
+          </p>
+          <p v-else-if="push.supported.value === false" class="mt-3 text-xs text-amber-700">
+            This browser does not support web push. Try the latest Chrome, Edge or Safari,
+            and make sure iOS is on version 16.4 or newer.
           </p>
           <p v-else-if="push.enabled.value" class="mt-3 text-xs font-medium text-emerald-700">
             Choose the updates you want to receive above.

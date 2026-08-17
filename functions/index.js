@@ -37,6 +37,8 @@ function subscriptionMatches(topics, topic) {
   return topics.includes(topic)
 }
 
+const SITE_ORIGIN = process.env.BHAKTRAS_SITE_ORIGIN || 'https://skssw-bhaktiras.web.app'
+
 async function deliverNotification({ title, body, topic, url, sentBy }) {
   const db = getFirestore()
   const subscriptions = await db.collection('pushSubscriptions')
@@ -51,18 +53,23 @@ async function deliverNotification({ title, body, topic, url, sentBy }) {
   let failureCount = 0
   const staleRefs = []
   const errorCodes = []
+  // Data-only so the client SW / foreground listener always owns display.
+  // A notification payload would auto-show in background and skip onMessage while focused.
+  const link = new URL(url || '/', SITE_ORIGIN).href
 
   for (const batch of chunks(recipients, 500)) {
     const response = await getMessaging().sendEachForMulticast({
       tokens: batch.map(item => item.token),
-      notification: { title, body },
-      data: { title, body, url, topic, tag: `bhaktiras-${topic}` },
+      data: {
+        title,
+        body,
+        url: url || '/',
+        topic,
+        tag: `bhaktiras-${topic}`
+      },
       webpush: {
-        fcmOptions: { link: url },
-        notification: {
-          icon: '/Bhaktiras%20-%20Main.svg',
-          badge: '/Bhaktiras%20-%20Main.svg'
-        }
+        fcmOptions: { link },
+        headers: { Urgency: 'high' }
       }
     })
     successCount += response.successCount
