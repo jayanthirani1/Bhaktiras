@@ -9,7 +9,8 @@ function toSnapshot(u: import('firebase/auth').User | null): AuthUserSnapshot | 
   return {
     uid: u.uid,
     email: u.email ?? null,
-    displayName: u.displayName ?? null
+    displayName: u.displayName ?? null,
+    providerIds: u.providerData.map(provider => provider.providerId)
   }
 }
 

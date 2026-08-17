@@ -3,6 +3,9 @@ import {
   createUserWithEmailAndPassword,
   signInWithPopup,
   GoogleAuthProvider,
+  EmailAuthProvider,
+  linkWithCredential,
+  linkWithPopup,
   signOut as firebaseSignOut
 } from 'firebase/auth'
 import { doc, serverTimestamp, setDoc, type Firestore } from 'firebase/firestore'
@@ -17,6 +20,18 @@ export function useAuth() {
   function getAuth() {
     if (import.meta.server) return null
     return nuxtApp.$firebaseAuth as ReturnType<typeof import('firebase/auth')['getAuth']> | null
+  }
+
+  function syncUserSnapshot() {
+    const currentUser = getAuth()?.currentUser
+    user.value = currentUser
+      ? {
+          uid: currentUser.uid,
+          email: currentUser.email,
+          displayName: currentUser.displayName,
+          providerIds: currentUser.providerData.map(provider => provider.providerId)
+        }
+      : null
   }
 
   async function signIn(email: string, password: string) {
@@ -54,6 +69,26 @@ export function useAuth() {
     }, { merge: true })
   }
 
+  async function linkGoogle() {
+    const currentUser = getAuth()?.currentUser
+    if (!currentUser) throw new Error('You need to sign in again.')
+    await linkWithPopup(currentUser, new GoogleAuthProvider())
+    await currentUser.reload()
+    syncUserSnapshot()
+  }
+
+  async function linkEmailPassword(password: string) {
+    const currentUser = getAuth()?.currentUser
+    if (!currentUser?.email) throw new Error('Your account does not have an email address to link.')
+    if (password.length < 6) throw new Error('Password must be at least 6 characters.')
+    await linkWithCredential(
+      currentUser,
+      EmailAuthProvider.credential(currentUser.email, password)
+    )
+    await currentUser.reload()
+    syncUserSnapshot()
+  }
+
   async function signOut() {
     user.value = null
     const auth = getAuth()
@@ -89,6 +124,8 @@ export function useAuth() {
     signInWithGoogle,
     signUp,
     recordPolicyAcceptance,
+    linkGoogle,
+    linkEmailPassword,
     signOut
   }
 }

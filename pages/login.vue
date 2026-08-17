@@ -118,7 +118,10 @@ async function handleGoogleSignIn() {
     await auth.signInWithGoogle()
     await navigateTo(safeRedirect())
   } catch (e: unknown) {
-    error.value = (e as { message?: string })?.message ?? 'Sign in with Google failed'
+    const message = (e as { message?: string })?.message || ''
+    error.value = message.includes('auth/account-exists-with-different-credential')
+      ? 'An account already exists with this email. Sign in with email and password, then link Google from Your account.'
+      : message || 'Sign in with Google failed'
   } finally {
     googleLoading.value = false
   }

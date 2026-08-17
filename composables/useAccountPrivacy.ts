@@ -34,19 +34,8 @@ export function useAccountPrivacy() {
     return { auth, db, currentUser: auth.currentUser }
   }
 
-  function providerIds() {
-    const auth = nuxtApp.$firebaseAuth as Auth | null
-    return auth?.currentUser?.providerData.map(provider => provider.providerId) || []
-  }
-
-  const usesPassword = computed(() => {
-    void authState.user.value?.uid
-    return providerIds().includes('password')
-  })
-  const usesGoogle = computed(() => {
-    void authState.user.value?.uid
-    return providerIds().includes('google.com')
-  })
+  const usesPassword = computed(() => authState.user.value?.providerIds?.includes('password') || false)
+  const usesGoogle = computed(() => authState.user.value?.providerIds?.includes('google.com') || false)
 
   async function linkedData(db: Firestore, uid: string) {
     const [profile, admin, scores, legacyWordleScores, streak, niyams, completions] = await Promise.all([

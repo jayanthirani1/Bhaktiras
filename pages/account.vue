@@ -37,6 +37,101 @@
 
         <section class="card-surface p-5 sm:p-6">
           <div class="flex items-start gap-3">
+            <IconLink class="mt-0.5 h-6 w-6 shrink-0 text-[hsl(var(--accent))]" />
+            <div>
+              <h2 class="font-display text-xl font-semibold text-[hsl(var(--primary))]">Sign-in methods</h2>
+              <p class="mt-2 text-sm leading-relaxed text-[hsl(var(--muted-foreground))]">
+                Link more than one method to this account. Your scores, niyams and streak stay under the same profile.
+              </p>
+            </div>
+          </div>
+
+          <div class="mt-5 space-y-3">
+            <div class="flex items-center justify-between gap-3 rounded-xl border border-[hsl(var(--border))] p-4">
+              <div class="flex min-w-0 items-center gap-3">
+                <IconBrandGoogle class="h-5 w-5 shrink-0" />
+                <div class="min-w-0">
+                  <p class="text-sm font-semibold">Google</p>
+                  <p class="text-xs text-[hsl(var(--muted-foreground))]">{{ usesGoogle ? 'Connected' : 'Not connected' }}</p>
+                </div>
+              </div>
+              <span v-if="usesGoogle" class="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-bold text-emerald-700">Linked</span>
+              <button
+                v-else
+                type="button"
+                class="rounded-xl bg-[hsl(var(--primary))] px-3 py-2 text-xs font-semibold text-white disabled:opacity-50"
+                :disabled="linking"
+                @click="connectGoogle"
+              >
+                {{ linkingMethod === 'google' ? 'Connecting…' : 'Link Google' }}
+              </button>
+            </div>
+
+            <div class="rounded-xl border border-[hsl(var(--border))] p-4">
+              <div class="flex items-center justify-between gap-3">
+                <div class="flex min-w-0 items-center gap-3">
+                  <IconMail class="h-5 w-5 shrink-0" />
+                  <div class="min-w-0">
+                    <p class="text-sm font-semibold">Email and password</p>
+                    <p class="truncate text-xs text-[hsl(var(--muted-foreground))]">
+                      {{ usesPassword ? 'Connected' : auth.user.value.email }}
+                    </p>
+                  </div>
+                </div>
+                <span v-if="usesPassword" class="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-bold text-emerald-700">Linked</span>
+                <button
+                  v-else-if="!emailLinkOpen"
+                  type="button"
+                  class="rounded-xl border border-[hsl(var(--border))] px-3 py-2 text-xs font-semibold text-[hsl(var(--primary))]"
+                  @click="emailLinkOpen = true"
+                >
+                  Add password
+                </button>
+              </div>
+
+              <form v-if="!usesPassword && emailLinkOpen" class="mt-4 space-y-3 border-t border-[hsl(var(--border))] pt-4" @submit.prevent="connectEmailPassword">
+                <div>
+                  <label for="link-password" class="mb-1 block text-sm font-medium">New password</label>
+                  <input
+                    id="link-password"
+                    v-model="linkPassword"
+                    type="password"
+                    minlength="6"
+                    required
+                    autocomplete="new-password"
+                    class="w-full rounded-lg border border-[hsl(var(--border))] px-3 py-2"
+                  >
+                </div>
+                <div>
+                  <label for="link-password-confirm" class="mb-1 block text-sm font-medium">Confirm password</label>
+                  <input
+                    id="link-password-confirm"
+                    v-model="linkPasswordConfirm"
+                    type="password"
+                    minlength="6"
+                    required
+                    autocomplete="new-password"
+                    class="w-full rounded-lg border border-[hsl(var(--border))] px-3 py-2"
+                  >
+                </div>
+                <div class="flex gap-2">
+                  <button type="submit" class="btn-primary text-sm" :disabled="linking">
+                    {{ linkingMethod === 'password' ? 'Connecting…' : 'Add email password' }}
+                  </button>
+                  <button type="button" class="px-3 py-2 text-sm font-semibold text-[hsl(var(--muted-foreground))]" :disabled="linking" @click="cancelEmailLink()">
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <p v-if="linkMessage" class="mt-3 text-sm font-medium text-emerald-700">{{ linkMessage }}</p>
+          <p v-if="linkError" role="alert" class="mt-3 text-sm text-red-600">{{ linkError }}</p>
+        </section>
+
+        <section class="card-surface p-5 sm:p-6">
+          <div class="flex items-start gap-3">
             <IconDownload class="mt-0.5 h-6 w-6 shrink-0 text-[hsl(var(--accent))]" />
             <div>
               <h2 class="font-display text-xl font-semibold text-[hsl(var(--primary))]">Download your data</h2>
@@ -133,7 +228,14 @@
 </template>
 
 <script setup lang="ts">
-import { IconDownload, IconLock, IconTrash } from '@tabler/icons-vue'
+import {
+  IconBrandGoogle,
+  IconDownload,
+  IconLink,
+  IconLock,
+  IconMail,
+  IconTrash
+} from '@tabler/icons-vue'
 
 const auth = useAuth()
 const {
@@ -149,6 +251,56 @@ const password = ref('')
 const confirmation = ref('')
 const error = ref('')
 const exportError = ref('')
+const emailLinkOpen = ref(false)
+const linkPassword = ref('')
+const linkPasswordConfirm = ref('')
+const linkingMethod = ref<'google' | 'password' | null>(null)
+const linking = computed(() => linkingMethod.value != null)
+const linkError = ref('')
+const linkMessage = ref('')
+
+async function connectGoogle() {
+  linkingMethod.value = 'google'
+  linkError.value = ''
+  linkMessage.value = ''
+  try {
+    await auth.linkGoogle()
+    linkMessage.value = 'Google is now linked to this account.'
+  } catch (value) {
+    linkError.value = linkFriendlyError(value)
+  } finally {
+    linkingMethod.value = null
+  }
+}
+
+async function connectEmailPassword() {
+  linkError.value = ''
+  linkMessage.value = ''
+  if (linkPassword.value !== linkPasswordConfirm.value) {
+    linkError.value = 'The passwords do not match.'
+    return
+  }
+  linkingMethod.value = 'password'
+  try {
+    await auth.linkEmailPassword(linkPassword.value)
+    linkMessage.value = 'Email and password sign-in is now linked to this account.'
+    cancelEmailLink(false)
+  } catch (value) {
+    linkError.value = linkFriendlyError(value)
+  } finally {
+    linkingMethod.value = null
+  }
+}
+
+function cancelEmailLink(clearMessages = true) {
+  emailLinkOpen.value = false
+  linkPassword.value = ''
+  linkPasswordConfirm.value = ''
+  if (clearMessages) {
+    linkError.value = ''
+    linkMessage.value = ''
+  }
+}
 
 async function downloadData() {
   exportError.value = ''
@@ -190,6 +342,20 @@ function friendlyError(value: unknown) {
   if (message.includes('auth/popup-closed-by-user')) return 'Google confirmation was cancelled.'
   if (message.includes('auth/requires-recent-login')) return 'Please sign out, sign in again, then retry deletion.'
   return message
+}
+
+function linkFriendlyError(value: unknown) {
+  const message = (value as { message?: string })?.message || ''
+  if (
+    message.includes('auth/credential-already-in-use')
+    || message.includes('auth/email-already-in-use')
+  ) {
+    return 'That sign-in method already belongs to another Bhaktiras account. Automatic merging is disabled to protect both accounts’ data; contact an admin for help.'
+  }
+  if (message.includes('auth/provider-already-linked')) return 'That sign-in method is already linked.'
+  if (message.includes('auth/popup-closed-by-user')) return 'Google linking was cancelled.'
+  if (message.includes('auth/weak-password')) return 'Choose a password with at least 6 characters.'
+  return message || 'Could not link that sign-in method. Please try again.'
 }
 
 useHead({ title: 'Your account · Bhaktiras' })

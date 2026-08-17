@@ -3,6 +3,7 @@ export interface AuthUserSnapshot {
   uid: string
   email: string | null
   displayName: string | null
+  providerIds: string[]
 }
 
 export interface AdminRecord {
