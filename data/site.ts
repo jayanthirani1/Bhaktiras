@@ -10,5 +10,11 @@ export const SITE = {
   journeyStartYear: 2018,
   journeyEndYear: 2027,
   whatsappInviteUrl: 'https://chat.whatsapp.com/JDfg56sbFGpCoPcUGecK39',
-  whatsappLabel: 'Join our WhatsApp community'
+  whatsappLabel: 'Join our WhatsApp community',
+  /**
+   * GuestCam guest access link (Gallery Menu → QR Code & Link).
+   * Leave empty to hide the Community photo section until the gallery is ready.
+   */
+  guestCamUrl: '',
+  guestCamLabel: 'Open photo gallery'
 }

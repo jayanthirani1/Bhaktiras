@@ -3,8 +3,35 @@
     <div class="max-w-6xl mx-auto">
       <PageHeader
         title="Our Community"
-        subtitle="Like a guest book or the Lee Valley message wall — leave a note. Post anonymously, or sign your name."
+        subtitle="Share a note on the wall, and find yourself in the event photos."
       />
+
+      <section
+        v-if="SITE.guestCamUrl"
+        class="card-surface mb-10 overflow-hidden"
+      >
+        <div class="bg-gradient-to-br from-[hsl(var(--golden-50))] via-[hsl(var(--background))] to-[hsl(var(--muted))] p-6 sm:p-8">
+          <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-[hsl(var(--accent))]">
+            Event photos
+          </p>
+          <h2 class="mt-2 font-display text-2xl font-semibold text-[hsl(var(--primary))] sm:text-3xl">
+            Find your face in the gallery
+          </h2>
+          <p class="mt-3 max-w-xl text-sm leading-relaxed text-[hsl(var(--muted-foreground))]">
+            Upload photos from your phone, or use GuestCam’s MagicFind to take a selfie and see every shot you’re in — no app download needed.
+          </p>
+          <a
+            :href="SITE.guestCamUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="btn-primary mt-6 inline-flex items-center gap-2 text-sm"
+          >
+            <IconCamera class="h-4 w-4" />
+            {{ SITE.guestCamLabel }}
+            <IconExternalLink class="h-4 w-4" />
+          </a>
+        </div>
+      </section>
 
       <div class="mb-6 flex flex-wrap justify-center gap-2">
         <button
@@ -89,7 +116,9 @@
 </template>
 
 <script setup lang="ts">
+import { IconCamera, IconExternalLink } from '@tabler/icons-vue'
 import { COMMUNITY_PROMPTS } from '~/data/communityPrompts'
+import { SITE } from '~/data/site'
 
 const { messages, isLoading, refetch } = useGratitudeMessages()
 const createMessage = useCreateGratitudeMessage()
