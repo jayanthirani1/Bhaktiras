@@ -48,11 +48,21 @@
     <div
       v-if="drawerOpen && !isGamePage"
       class="fixed inset-0 z-[60] md:hidden"
-      @click.self="closeDrawer"
     >
-      <div class="absolute inset-0 bg-black/30" />
-      <div class="absolute inset-x-0 bottom-0 rounded-t-[28px] border-t border-[hsl(var(--border))] bg-[hsl(var(--card))]/98 px-4 pb-6 pt-4 shadow-2xl backdrop-blur-xl">
-        <div class="mx-auto mb-4 h-1.5 w-12 rounded-full bg-[hsl(var(--border))]" />
+      <div class="absolute inset-0 bg-black/30" @click="closeDrawer" />
+      <div
+        class="absolute inset-x-0 bottom-0 rounded-t-[28px] border-t border-[hsl(var(--border))] bg-[hsl(var(--card))]/98 px-4 pb-6 pt-1 shadow-2xl backdrop-blur-xl"
+        :style="sheetOffset ? { transform: `translateY(${sheetOffset}px)` } : undefined"
+      >
+        <button
+          type="button"
+          class="flex w-full flex-col items-center py-3"
+          aria-label="Close menu"
+          @click="onDrawerHandleClick"
+          @pointerdown="onDrawerHandleDown"
+        >
+          <span class="h-1.5 w-12 rounded-full bg-[hsl(var(--border))]" />
+        </button>
         <div class="mb-4 flex items-center justify-between">
           <h2 class="font-display text-lg font-semibold text-[hsl(var(--primary))]">More</h2>
           <button
@@ -150,6 +160,7 @@ const route = useRoute()
 const { isLoggedIn } = useAuth()
 const { navItems: managedNavItems } = useSiteContent()
 const drawerOpen = ref(false)
+const sheetOffset = ref(0)
 const isGamePage = computed(() => isGamePagePath(route.path))
 const navItems = computed(() => managedNavItems.value.map(item => ({
   ...item,
@@ -176,6 +187,50 @@ function isActive(href: string) {
 
 function closeDrawer() {
   drawerOpen.value = false
+  sheetOffset.value = 0
+}
+
+let handleStartY = 0
+let draggingHandle = false
+let swipedHandle = false
+
+function onDrawerHandleClick() {
+  if (swipedHandle) {
+    swipedHandle = false
+    return
+  }
+  closeDrawer()
+}
+
+function onDrawerHandleDown(event: PointerEvent) {
+  if (event.button != null && event.button !== 0) return
+  draggingHandle = true
+  swipedHandle = false
+  handleStartY = event.clientY
+  sheetOffset.value = 0
+  const target = event.currentTarget as HTMLElement
+  target.setPointerCapture?.(event.pointerId)
+
+  function onMove(moveEvent: PointerEvent) {
+    if (!draggingHandle) return
+    const dy = Math.max(0, moveEvent.clientY - handleStartY)
+    if (dy > 10) swipedHandle = true
+    sheetOffset.value = dy
+  }
+
+  function onUp() {
+    const shouldClose = sheetOffset.value > 56
+    draggingHandle = false
+    window.removeEventListener('pointermove', onMove)
+    window.removeEventListener('pointerup', onUp)
+    window.removeEventListener('pointercancel', onUp)
+    if (shouldClose) closeDrawer()
+    else sheetOffset.value = 0
+  }
+
+  window.addEventListener('pointermove', onMove)
+  window.addEventListener('pointerup', onUp)
+  window.addEventListener('pointercancel', onUp)
 }
 
 watch(() => route.path, closeDrawer)
