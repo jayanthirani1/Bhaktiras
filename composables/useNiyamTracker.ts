@@ -1,11 +1,11 @@
 import {
   collection,
+  deleteField,
   doc,
   getDoc,
   getDocs,
-  increment,
+  runTransaction,
   serverTimestamp,
-  setDoc,
   type Firestore
 } from 'firebase/firestore'
 import type { Niyam, NiyamStats } from '~/types'
@@ -20,6 +20,49 @@ function emptyStats(): NiyamStats {
 
 function countDone(checked: Record<string, boolean>) {
   return Object.values(checked).filter(Boolean).length
+}
+
+function asCheckedMap(value: unknown): Record<string, boolean> {
+  if (!value || typeof value !== 'object') return {}
+  const out: Record<string, boolean> = {}
+  for (const [key, on] of Object.entries(value as Record<string, unknown>)) {
+    out[key] = !!on
+  }
+  return out
+}
+
+/**
+ * Community totals were previously written with setDoc({ 'counts.puja': increment(1) }).
+ * setDoc treats that as a literal field name, not nested counts.puja — so the UI
+ * summing data.counts stayed at 0. Read both shapes and fold them together.
+ */
+function parseStatsData(data: Record<string, unknown> | undefined): {
+  participants: number
+  counts: Record<string, number>
+  dottedKeys: string[]
+} {
+  const counts: Record<string, number> = {}
+  const dottedKeys: string[] = []
+  if (!data) return { participants: 0, counts, dottedKeys }
+
+  const nested = data.counts
+  if (nested && typeof nested === 'object' && !Array.isArray(nested)) {
+    for (const [key, value] of Object.entries(nested as Record<string, unknown>)) {
+      counts[key] = Number(value) || 0
+    }
+  }
+  for (const [key, value] of Object.entries(data)) {
+    if (!key.startsWith('counts.') || key === 'counts') continue
+    const id = key.slice('counts.'.length)
+    if (!id) continue
+    counts[id] = (counts[id] || 0) + (Number(value) || 0)
+    dottedKeys.push(key)
+  }
+  return {
+    participants: Math.max(0, Number(data.participants) || 0),
+    counts,
+    dottedKeys
+  }
 }
 
 export function useNiyamTracker() {
@@ -37,7 +80,7 @@ export function useNiyamTracker() {
   const total = computed(() => niyams.value.length)
   const percent = computed(() => total.value ? Math.round((doneCount.value / total.value) * 100) : 0)
   const communityChecks = computed(() =>
-    Object.values(stats.value.counts).reduce((sum, n) => sum + (Number(n) || 0), 0)
+    Object.values(stats.value.counts).reduce((sum, n) => sum + Math.max(0, Number(n) || 0), 0)
   )
 
   function getDb(): Firestore | null {
@@ -48,13 +91,20 @@ export function useNiyamTracker() {
   function readLocal(): Record<string, boolean> {
     try {
       const raw = localStorage.getItem(STORAGE_KEY)
-      if (raw) return JSON.parse(raw) as Record<string, boolean>
+      if (raw) return asCheckedMap(JSON.parse(raw))
     } catch (_) {}
     return {}
   }
 
   function writeLocal(value: Record<string, boolean>) {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(value)) } catch (_) {}
+  }
+
+  function applyParsedStats(parsed: ReturnType<typeof parseStatsData>) {
+    stats.value = {
+      participants: parsed.participants,
+      counts: { ...parsed.counts }
+    }
   }
 
   async function fetchNiyams() {
@@ -89,14 +139,86 @@ export function useNiyamTracker() {
     }
     try {
       const snap = await getDoc(doc(db, 'niyamStats', STATS_ID))
-      const data = snap.data()
-      stats.value = {
-        participants: Number(data?.participants) || 0,
-        counts: (data?.counts && typeof data.counts === 'object') ? { ...data.counts } : {}
-      }
+      applyParsedStats(parseStatsData(snap.data() as Record<string, unknown> | undefined))
     } catch {
       stats.value = emptyStats()
     }
+  }
+
+  let persistLock = Promise.resolve()
+
+  async function persistAccountState(
+    db: Firestore,
+    uid: string,
+    desired: Record<string, boolean>,
+    mode: 'replace' | 'merge'
+  ) {
+    const run = async () => {
+      const progressRef = doc(db, 'niyamProgress', uid)
+      const statsRef = doc(db, 'niyamStats', STATS_ID)
+
+      const result = await runTransaction(db, async (tx) => {
+        const progressSnap = await tx.get(progressRef)
+        const statsSnap = await tx.get(statsRef)
+        const remote = asCheckedMap(progressSnap.data()?.checked)
+        const parsed = parseStatsData(statsSnap.data() as Record<string, unknown> | undefined)
+
+        const nextChecked = { ...remote }
+        for (const [id, on] of Object.entries(desired)) {
+          if (mode === 'merge') {
+            if (on) nextChecked[id] = true
+          } else {
+            nextChecked[id] = !!on
+          }
+        }
+
+        const countDeltas: Record<string, number> = {}
+        const ids = new Set([...Object.keys(remote), ...Object.keys(nextChecked)])
+        for (const id of ids) {
+          const wasOn = !!remote[id]
+          const nowOn = !!nextChecked[id]
+          if (wasOn === nowOn) continue
+          countDeltas[id] = nowOn ? 1 : -1
+          parsed.counts[id] = Math.max(0, (parsed.counts[id] || 0) + countDeltas[id])
+        }
+
+        const prevDone = countDone(remote)
+        const nextDone = countDone(nextChecked)
+        if (prevDone === 0 && nextDone > 0) parsed.participants += 1
+        else if (prevDone > 0 && nextDone === 0) parsed.participants = Math.max(0, parsed.participants - 1)
+
+        const progressChanged = JSON.stringify(remote) !== JSON.stringify(nextChecked)
+        const statsChanged = Object.keys(countDeltas).length > 0 || parsed.dottedKeys.length > 0
+        if (!progressChanged && !statsChanged) return { nextChecked, parsed }
+
+        if (progressChanged) {
+          tx.set(progressRef, {
+            userId: uid,
+            checked: nextChecked,
+            updatedAt: serverTimestamp()
+          }, { merge: true })
+        }
+
+        if (statsChanged) {
+          const payload: Record<string, unknown> = {
+            participants: parsed.participants,
+            counts: parsed.counts
+          }
+          for (const key of parsed.dottedKeys) payload[key] = deleteField()
+          tx.set(statsRef, payload, { merge: true })
+        }
+
+        return { nextChecked, parsed }
+      })
+
+      checked.value = result.nextChecked
+      writeLocal(result.nextChecked)
+      applyParsedStats(result.parsed)
+    }
+
+    const wait = persistLock.then(run, run)
+    persistLock = wait.then(() => undefined, () => undefined)
+    await wait
   }
 
   async function loadProgress() {
@@ -110,37 +232,7 @@ export function useNiyamTracker() {
     }
 
     try {
-      const ref = doc(db, 'niyamProgress', uid)
-      const snap = await getDoc(ref)
-      const remote = snap.exists() && snap.data().checked && typeof snap.data().checked === 'object'
-        ? { ...snap.data().checked as Record<string, boolean> }
-        : {}
-
-      if (countDone(remote) > 0) {
-        checked.value = remote
-        writeLocal(remote)
-        return
-      }
-
-      if (countDone(local) > 0) {
-        await setDoc(ref, {
-          userId: uid,
-          checked: local,
-          updatedAt: serverTimestamp()
-        })
-        const delta: Record<string, unknown> = {
-          participants: increment(1)
-        }
-        for (const [id, on] of Object.entries(local)) {
-          if (on) delta[`counts.${id}`] = increment(1)
-        }
-        await setDoc(doc(db, 'niyamStats', STATS_ID), delta, { merge: true })
-        checked.value = local
-        await fetchStats()
-        return
-      }
-
-      checked.value = {}
+      await persistAccountState(db, uid, local, 'merge')
     } catch (e) {
       error.value = (e as Error).message
       checked.value = local
@@ -150,9 +242,8 @@ export function useNiyamTracker() {
   async function toggle(id: string) {
     if (savingId.value) return
     const nextOn = !checked.value[id]
-    const prevDone = doneCount.value
     const nextChecked = { ...checked.value, [id]: nextOn }
-    const nextDone = countDone(nextChecked)
+    const previous = { ...checked.value }
     checked.value = nextChecked
     writeLocal(nextChecked)
 
@@ -164,30 +255,11 @@ export function useNiyamTracker() {
     savingId.value = id
     error.value = ''
     try {
-      await setDoc(doc(db, 'niyamProgress', user.value.uid), {
-        userId: user.value.uid,
-        checked: nextChecked,
-        updatedAt: serverTimestamp()
-      }, { merge: true })
-
-      const participantDelta = prevDone === 0 && nextDone > 0 ? 1 : prevDone > 0 && nextDone === 0 ? -1 : 0
-      const delta: Record<string, unknown> = {
-        [`counts.${id}`]: increment(nextOn ? 1 : -1)
-      }
-      if (participantDelta) delta.participants = increment(participantDelta)
-      await setDoc(doc(db, 'niyamStats', STATS_ID), delta, { merge: true })
-
-      stats.value = {
-        participants: Math.max(0, stats.value.participants + participantDelta),
-        counts: {
-          ...stats.value.counts,
-          [id]: Math.max(0, (Number(stats.value.counts[id]) || 0) + (nextOn ? 1 : -1))
-        }
-      }
+      await persistAccountState(db, user.value.uid, nextChecked, 'replace')
     } catch (e) {
       error.value = (e as Error).message
-      checked.value = { ...checked.value, [id]: !nextOn }
-      writeLocal(checked.value)
+      checked.value = previous
+      writeLocal(previous)
     } finally {
       savingId.value = null
     }
@@ -195,11 +267,13 @@ export function useNiyamTracker() {
 
   onMounted(async () => {
     loading.value = true
-    await Promise.all([fetchNiyams(), fetchStats(), loadProgress()])
+    await Promise.all([fetchNiyams(), fetchStats()])
+    await loadProgress()
     loading.value = false
   })
 
-  watch(() => user.value?.uid, async () => {
+  watch(() => user.value?.uid, async (uid, prev) => {
+    if (uid === prev) return
     await loadProgress()
   })
 
