@@ -10,18 +10,30 @@
       @create="openNew"
     >
       <template #list>
-        <button
-          v-for="item in sorted"
-          :key="item.id"
-          type="button"
-          class="admin-row"
-          :class="isEditing && editingId === item.id ? 'admin-row-active' : ''"
-          @click="openEdit(item)"
-        >
-          <p class="text-xs font-semibold uppercase tracking-wider text-[hsl(var(--accent))]">{{ item.date || item.year }}</p>
-          <p class="font-semibold text-[hsl(var(--primary))]">{{ item.title }}</p>
-          <p class="mt-1 line-clamp-2 text-sm text-[hsl(var(--muted-foreground))]">{{ item.description }}</p>
-        </button>
+        <div class="space-y-5">
+          <section v-for="group in grouped" :key="group.year" class="space-y-2">
+            <h2 class="text-xs font-semibold uppercase tracking-[0.18em] text-[hsl(var(--accent))]">
+              {{ group.year }}
+              <span class="font-normal tracking-normal text-[hsl(var(--muted-foreground))]">
+                · {{ group.items.length }} moment{{ group.items.length === 1 ? '' : 's' }}
+              </span>
+            </h2>
+            <button
+              v-for="item in group.items"
+              :key="item.id"
+              type="button"
+              class="admin-row"
+              :class="isEditing && editingId === item.id ? 'admin-row-active' : ''"
+              @click="openEdit(item)"
+            >
+              <p v-if="item.date && item.date !== item.year" class="text-xs font-semibold uppercase tracking-wider text-[hsl(var(--muted-foreground))]">
+                {{ item.date }}
+              </p>
+              <p class="font-semibold text-[hsl(var(--primary))]">{{ item.title }}</p>
+              <p class="mt-1 line-clamp-2 text-sm text-[hsl(var(--muted-foreground))]">{{ item.description }}</p>
+            </button>
+          </section>
+        </div>
       </template>
       <template #form>
         <form v-if="showForm" class="space-y-4" @submit.prevent="save">
@@ -82,9 +94,33 @@ const isEditing = ref(false)
 const editingId = ref<string | null>(null)
 const form = reactive({ year: '', date: '', title: '', description: '', imageUrl: '', videoUrl: '' })
 
+function yearKey(item: TimelineItem) {
+  return String(item.year || '').trim() || 'Undated'
+}
+
+function yearSortValue(year: string) {
+  const n = Number(year)
+  return Number.isFinite(n) ? n : Number.POSITIVE_INFINITY
+}
+
 const sorted = computed(() =>
-  [...items.value].sort((a, b) => String(a.year).localeCompare(String(b.year)))
+  [...items.value].sort((a, b) => {
+    const yearDiff = yearSortValue(yearKey(a)) - yearSortValue(yearKey(b))
+    if (yearDiff) return yearDiff
+    return String(a.date || a.title).localeCompare(String(b.date || b.title), undefined, { numeric: true })
+  })
 )
+
+const grouped = computed(() => {
+  const byYear = new Map<string, TimelineItem[]>()
+  for (const item of sorted.value) {
+    const year = yearKey(item)
+    const list = byYear.get(year)
+    if (list) list.push(item)
+    else byYear.set(year, [item])
+  }
+  return [...byYear.entries()].map(([year, yearItems]) => ({ year, items: yearItems }))
+})
 
 onMounted(async () => {
   await fetchAll()
