@@ -47,13 +47,16 @@
 
     <div
       v-if="drawerOpen && !isGamePage"
-      class="fixed inset-0 z-[60] overflow-hidden overscroll-none md:hidden"
+      class="fixed inset-0 z-[60] overflow-hidden overscroll-none touch-none md:hidden"
+      @touchmove.prevent
+      @wheel.prevent
     >
-      <div class="absolute inset-0 bg-black/30 touch-none" @click="closeDrawer" @touchmove.prevent />
+      <div class="absolute inset-0 bg-black/30" @click="closeDrawer" />
       <div
-        class="absolute inset-x-0 bottom-0 touch-none rounded-t-[28px] border-t border-[hsl(var(--border))] bg-[hsl(var(--card))]/98 px-4 pb-6 pt-1 shadow-2xl backdrop-blur-xl"
+        class="absolute inset-x-0 bottom-0 rounded-t-[28px] border-t border-[hsl(var(--border))] bg-[hsl(var(--card))]/98 px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-1 shadow-2xl backdrop-blur-xl"
         :style="sheetOffset ? { transform: `translateY(${sheetOffset}px)` } : undefined"
         @pointerdown="onDrawerHandleDown"
+        @touchmove.prevent
       >
         <button
           type="button"
@@ -190,31 +193,46 @@ function closeDrawer() {
   sheetOffset.value = 0
 }
 
+const SCROLL_LOCK_CLASS = 'drawer-scroll-lock'
+let scrollLocked = false
 let lockedScrollY = 0
 
+function preventBackgroundScroll(event: Event) {
+  event.preventDefault()
+}
+
 function lockBackgroundScroll() {
-  if (import.meta.server) return
+  if (import.meta.server || scrollLocked) return
+  scrollLocked = true
   lockedScrollY = window.scrollY
+  const html = document.documentElement
   const body = document.body
+  html.classList.add(SCROLL_LOCK_CLASS)
+  body.classList.add(SCROLL_LOCK_CLASS)
   body.style.position = 'fixed'
   body.style.top = `-${lockedScrollY}px`
   body.style.left = '0'
   body.style.right = '0'
   body.style.width = '100%'
-  body.style.overflow = 'hidden'
-  document.documentElement.style.overflow = 'hidden'
+  // iOS home-screen apps ignore overflow:hidden; this is what actually stops the pan.
+  window.addEventListener('touchmove', preventBackgroundScroll, { passive: false, capture: true })
+  window.addEventListener('wheel', preventBackgroundScroll, { passive: false, capture: true })
 }
 
 function unlockBackgroundScroll() {
-  if (import.meta.server) return
+  if (import.meta.server || !scrollLocked) return
+  scrollLocked = false
+  const html = document.documentElement
   const body = document.body
+  html.classList.remove(SCROLL_LOCK_CLASS)
+  body.classList.remove(SCROLL_LOCK_CLASS)
   body.style.position = ''
   body.style.top = ''
   body.style.left = ''
   body.style.right = ''
   body.style.width = ''
-  body.style.overflow = ''
-  document.documentElement.style.overflow = ''
+  window.removeEventListener('touchmove', preventBackgroundScroll, { capture: true })
+  window.removeEventListener('wheel', preventBackgroundScroll, { capture: true })
   window.scrollTo(0, lockedScrollY)
 }
 

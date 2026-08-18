@@ -48,6 +48,13 @@
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
   }
+  html.drawer-scroll-lock,
+  html.drawer-scroll-lock body {
+    overflow: hidden !important;
+    overscroll-behavior: none;
+    touch-action: none;
+    height: 100%;
+  }
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-display);
     @apply font-semibold tracking-tight text-[hsl(var(--foreground))];
