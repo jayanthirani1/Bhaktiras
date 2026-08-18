@@ -10,7 +10,7 @@
 
       <PageHeader
         title="Achievements"
-        subtitle="Permanent unlocks for your account, plus the current all-time crowns."
+        subtitle="Permanent unlocks for your account, plus all-time crowns that never reset with the daily boards."
       />
 
       <div v-if="!auth.user.value" class="card-surface p-8 text-center">
@@ -22,7 +22,7 @@
         <section class="card-surface mt-8 p-5 sm:p-6">
           <div class="flex items-center gap-2">
             <IconCrown class="h-5 w-5 text-[hsl(var(--accent))]" />
-            <h2 class="font-display text-xl font-semibold text-[hsl(var(--primary))]">Current crowns</h2>
+            <h2 class="font-display text-xl font-semibold text-[hsl(var(--primary))]">All-time crowns</h2>
           </div>
           <div v-if="achievements.loading.value" class="mt-4 text-sm text-[hsl(var(--muted-foreground))]">Loading crowns…</div>
           <div v-else class="mt-4 grid gap-3 md:grid-cols-2">

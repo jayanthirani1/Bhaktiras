@@ -47,11 +47,6 @@
           Words: {{ foundWords.length }}
           <span v-if="totalScore > 0" class="text-[hsl(var(--muted-foreground))]/80">· {{ totalScore }} pts this hive</span>
         </p>
-        <p v-if="highScoreCrown" class="mb-3 text-xs text-[hsl(var(--muted-foreground))]">
-          <span class="font-semibold text-[hsl(var(--primary))]">High-score crown:</span>
-          {{ highScoreCrown.holderName }} · {{ highScoreCrown.score || highScoreCrown.value }} pts
-          <span v-if="highScoreCrown.holderUserId === auth.user.value?.uid" class="font-semibold text-amber-700"> · You hold the crown</span>
-        </p>
         <input
           v-model="currentWord"
           type="text"
@@ -119,6 +114,8 @@
         <p v-if="submitError" class="text-sm text-red-600">{{ submitError }}</p>
       </div>
 
+      <GameCrowns :ids="['spelling-bee-high-score']" />
+
       <GameLeaderboard
         :entries="leaderboardEntries"
         :loading="leaderboardLoading"
@@ -177,7 +174,6 @@ const myBest = computed(() => {
   return leaderboardEntries.value.find(e => e.userId === uid)?.score || 0
 })
 const canSubmitBest = computed(() => foundWords.value.length > myBest.value)
-const highScoreCrown = computed(() => achievements.crowns.value.find(crown => crown.id === 'spelling-bee-high-score') || null)
 
 function puzzleIdentity(item: typeof puzzle.value) {
   return `${item.middleLetter.toUpperCase()}:${item.availableLetters.toUpperCase().split('').sort().join('')}`

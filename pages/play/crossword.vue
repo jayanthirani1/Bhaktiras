@@ -101,17 +101,6 @@
 
           <div v-if="solved" class="mt-4 space-y-3 text-center">
             <p class="text-sm font-semibold text-emerald-700">Finished in {{ timerDisplay }}</p>
-            <div v-if="fastestCrown" class="mx-auto max-w-sm rounded-xl bg-[hsl(var(--background))] p-4 text-left">
-              <p class="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-[hsl(var(--accent))]">
-                <IconCrown class="h-4 w-4" />
-                Current crown
-              </p>
-              <p class="mt-2 text-sm text-[hsl(var(--muted-foreground))]">
-                <span class="font-semibold text-[hsl(var(--primary))]">Fastest Crossword:</span>
-                {{ fastestCrown.holderName }} · {{ formatElapsed(fastestCrown.timeMs || fastestCrown.value) }}
-                <span v-if="fastestCrown.holderUserId === auth.user.value?.uid" class="font-semibold text-amber-700"> · You hold the crown</span>
-              </p>
-            </div>
             <button
               v-if="isLoggedIn && !scoreSubmitted"
               type="button"
@@ -201,6 +190,7 @@
       </div>
 
       <div class="mt-10">
+        <GameCrowns :ids="['crossword-fastest']" />
         <GameLeaderboard
           :entries="entries"
           :loading="boardLoading"
@@ -264,7 +254,7 @@
 </template>
 
 <script setup lang="ts">
-import { IconCrown, IconEye, IconHelp } from '@tabler/icons-vue'
+import { IconEye, IconHelp } from '@tabler/icons-vue'
 import { cellKey, layoutCrossword, type LaidWord } from '~/utils/crosswordLayout'
 import { ukDateId } from '~/utils/gameDay'
 import { formatElapsed } from '~/composables/useGameTimer'
@@ -275,7 +265,6 @@ const { puzzles, loading } = useMiniCrosswordPuzzles()
 const auth = useAuth()
 const achievements = useAchievements()
 const isLoggedIn = computed(() => !!auth.user.value)
-const fastestCrown = computed(() => achievements.crowns.value.find(crown => crown.id === 'crossword-fastest') || null)
 const {
   entries,
   loading: boardLoading,

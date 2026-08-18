@@ -129,11 +129,11 @@ export function crownValue(crown: AchievementCrownRecord) {
 
 export function useAchievements() {
   const auth = useAuth()
-  const userAchievements = ref<UserAchievementsRecord | null>(null)
-  const crowns = ref<AchievementCrownRecord[]>([])
-  const streak = ref<PlayStreakRecord | null>(null)
-  const loading = ref(false)
-  const error = ref('')
+  const userAchievements = useState<UserAchievementsRecord | null>('user-achievements', () => null)
+  const crowns = useState<AchievementCrownRecord[]>('achievement-crowns', () => [])
+  const streak = useState<PlayStreakRecord | null>('achievement-streak', () => null)
+  const loading = useState<boolean>('achievement-loading', () => false)
+  const error = useState<string>('achievement-error', () => '')
 
   const unlockedIds = computed(() => {
     const ids = new Set<string>(Object.keys(userAchievements.value?.achievements || {}))
@@ -156,23 +156,13 @@ export function useAchievements() {
   )
 
   async function fetchAll() {
-    const uid = auth.user.value?.uid
     const db = getDb()
-    if (!uid || !db) return
+    if (!db) return
+    const uid = auth.user.value?.uid
     loading.value = true
     error.value = ''
     try {
-      const [achSnap, streakSnap, crownSnap] = await Promise.all([
-        getDoc(doc(db, 'userAchievements', uid)),
-        getDoc(doc(db, 'playStreaks', uid)),
-        getDocs(collection(db, 'achievementCrowns'))
-      ])
-      userAchievements.value = achSnap.exists()
-        ? { id: achSnap.id, ...(achSnap.data() as Omit<UserAchievementsRecord, 'id'>) }
-        : { id: uid, userId: uid, achievements: {} }
-      streak.value = streakSnap.exists()
-        ? { id: streakSnap.id, ...(streakSnap.data() as Omit<PlayStreakRecord, 'id'>) }
-        : null
+      const crownSnap = await getDocs(collection(db, 'achievementCrowns'))
       crowns.value = crownSnap.docs
         .map(item => ({
           id: item.id,
@@ -182,6 +172,23 @@ export function useAchievements() {
           const order = CROWN_DEFINITIONS.map(item => item.id)
           return order.indexOf(a.id as typeof CROWN_DEFINITIONS[number]['id']) - order.indexOf(b.id as typeof CROWN_DEFINITIONS[number]['id'])
         })
+
+      if (!uid) {
+        userAchievements.value = null
+        streak.value = null
+        return
+      }
+
+      const [achSnap, streakSnap] = await Promise.all([
+        getDoc(doc(db, 'userAchievements', uid)),
+        getDoc(doc(db, 'playStreaks', uid))
+      ])
+      userAchievements.value = achSnap.exists()
+        ? { id: achSnap.id, ...(achSnap.data() as Omit<UserAchievementsRecord, 'id'>) }
+        : { id: uid, userId: uid, achievements: {} }
+      streak.value = streakSnap.exists()
+        ? { id: streakSnap.id, ...(streakSnap.data() as Omit<PlayStreakRecord, 'id'>) }
+        : null
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Could not load achievements.'
     } finally {
@@ -201,6 +208,7 @@ export function useAchievements() {
   }
 
   onMounted(() => { void fetchAll() })
+  watch(() => auth.user.value?.uid, () => { void fetchAll() })
 
   return {
     achievements,

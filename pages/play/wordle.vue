@@ -52,7 +52,7 @@
         <div v-if="fastestCrown || fewestCrown" class="mt-4 rounded-xl bg-[hsl(var(--background))] p-4 text-left">
           <p class="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-[hsl(var(--accent))]">
             <IconCrown class="h-4 w-4" />
-            Current crowns
+            All-time crowns
           </p>
           <div class="mt-3 space-y-2 text-sm text-[hsl(var(--muted-foreground))]">
             <p v-if="fastestCrown">
@@ -201,6 +201,8 @@
           </button>
         </div>
       </div>
+
+      <GameCrowns :ids="['wordle-fastest', 'wordle-fewest-guesses']" />
 
       <GameLeaderboard
         :entries="leaderboardEntries"

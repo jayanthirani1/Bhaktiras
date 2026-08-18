@@ -337,6 +337,7 @@ async function handleGameAchievements(request) {
         holderName: userName,
         game,
         metric: spec.metric,
+        scope: 'all-time',
         value: spec.value,
         ...spec.extra,
         updatedAt: FieldValue.serverTimestamp()
