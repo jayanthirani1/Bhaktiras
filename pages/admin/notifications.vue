@@ -52,12 +52,17 @@
       <button type="submit" class="admin-btn w-full" :disabled="sending">
         {{ sending ? 'Sending…' : 'Send notification' }}
       </button>
-      <p v-if="result" class="text-sm font-medium" :class="result.failureCount ? 'text-amber-700' : 'text-emerald-700'">
-        Sent to {{ result.successCount }} device{{ result.successCount === 1 ? '' : 's' }}.
-        <span v-if="result.failureCount">
-          {{ result.failureCount }} of {{ result.recipientCount }} failed<span v-if="result.errorCodes?.length">: {{ result.errorCodes.join(', ') }}</span>.
-        </span>
-      </p>
+      <div v-if="result" class="space-y-1">
+        <p class="text-sm font-medium" :class="result.failureCount ? 'text-amber-700' : 'text-emerald-700'">
+          Sent to {{ result.successCount }} device{{ result.successCount === 1 ? '' : 's' }}.
+          <span v-if="result.failureCount">
+            {{ result.failureCount }} of {{ result.recipientCount }} failed.
+          </span>
+        </p>
+        <p v-if="staleTokenFailures" class="text-sm text-[hsl(var(--muted-foreground))]">
+          Those failures are usually old subscriptions — for example someone deleted the Home Screen app, cleared site data, or turned notifications off. They are removed automatically after a send, so they should not appear on the next one.
+        </p>
+      </div>
       <p v-if="error" role="alert" class="text-sm text-red-600">{{ error }}</p>
     </form>
 
@@ -129,6 +134,13 @@ const loading = ref(false)
 const error = ref('')
 const result = ref<SendResult | null>(null)
 const messages = ref<MessageRow[]>([])
+const staleTokenFailures = computed(() => {
+  const codes = result.value?.errorCodes || []
+  return codes.some(code =>
+    code === 'messaging/registration-token-not-registered'
+    || code === 'messaging/invalid-registration-token'
+  )
+})
 
 async function send() {
   sending.value = true

@@ -47,19 +47,19 @@
 
     <div
       v-if="drawerOpen && !isGamePage"
-      class="fixed inset-0 z-[60] md:hidden"
+      class="fixed inset-0 z-[60] overflow-hidden overscroll-none md:hidden"
     >
-      <div class="absolute inset-0 bg-black/30" @click="closeDrawer" />
+      <div class="absolute inset-0 bg-black/30 touch-none" @click="closeDrawer" @touchmove.prevent />
       <div
-        class="absolute inset-x-0 bottom-0 rounded-t-[28px] border-t border-[hsl(var(--border))] bg-[hsl(var(--card))]/98 px-4 pb-6 pt-1 shadow-2xl backdrop-blur-xl"
+        class="absolute inset-x-0 bottom-0 touch-none rounded-t-[28px] border-t border-[hsl(var(--border))] bg-[hsl(var(--card))]/98 px-4 pb-6 pt-1 shadow-2xl backdrop-blur-xl"
         :style="sheetOffset ? { transform: `translateY(${sheetOffset}px)` } : undefined"
+        @pointerdown="onDrawerHandleDown"
       >
         <button
           type="button"
           class="flex w-full flex-col items-center py-3"
           aria-label="Close menu"
           @click="onDrawerHandleClick"
-          @pointerdown="onDrawerHandleDown"
         >
           <span class="h-1.5 w-12 rounded-full bg-[hsl(var(--border))]" />
         </button>
@@ -190,6 +190,34 @@ function closeDrawer() {
   sheetOffset.value = 0
 }
 
+let lockedScrollY = 0
+
+function lockBackgroundScroll() {
+  if (import.meta.server) return
+  lockedScrollY = window.scrollY
+  const body = document.body
+  body.style.position = 'fixed'
+  body.style.top = `-${lockedScrollY}px`
+  body.style.left = '0'
+  body.style.right = '0'
+  body.style.width = '100%'
+  body.style.overflow = 'hidden'
+  document.documentElement.style.overflow = 'hidden'
+}
+
+function unlockBackgroundScroll() {
+  if (import.meta.server) return
+  const body = document.body
+  body.style.position = ''
+  body.style.top = ''
+  body.style.left = ''
+  body.style.right = ''
+  body.style.width = ''
+  body.style.overflow = ''
+  document.documentElement.style.overflow = ''
+  window.scrollTo(0, lockedScrollY)
+}
+
 let handleStartY = 0
 let draggingHandle = false
 let swipedHandle = false
@@ -204,15 +232,17 @@ function onDrawerHandleClick() {
 
 function onDrawerHandleDown(event: PointerEvent) {
   if (event.button != null && event.button !== 0) return
+  const target = event.target as HTMLElement | null
+  if (target?.closest('a, button:not([aria-label="Close menu"])')) return
   draggingHandle = true
   swipedHandle = false
   handleStartY = event.clientY
   sheetOffset.value = 0
-  const target = event.currentTarget as HTMLElement
-  target.setPointerCapture?.(event.pointerId)
+  ;(event.currentTarget as HTMLElement).setPointerCapture?.(event.pointerId)
 
   function onMove(moveEvent: PointerEvent) {
     if (!draggingHandle) return
+    moveEvent.preventDefault()
     const dy = Math.max(0, moveEvent.clientY - handleStartY)
     if (dy > 10) swipedHandle = true
     sheetOffset.value = dy
@@ -228,11 +258,20 @@ function onDrawerHandleDown(event: PointerEvent) {
     else sheetOffset.value = 0
   }
 
-  window.addEventListener('pointermove', onMove)
+  window.addEventListener('pointermove', onMove, { passive: false })
   window.addEventListener('pointerup', onUp)
   window.addEventListener('pointercancel', onUp)
 }
 
+watch(drawerOpen, (open) => {
+  if (open) lockBackgroundScroll()
+  else unlockBackgroundScroll()
+})
+
 watch(() => route.path, closeDrawer)
+
+onUnmounted(() => {
+  if (drawerOpen.value) unlockBackgroundScroll()
+})
 
 </script>

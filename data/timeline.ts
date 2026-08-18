@@ -3,7 +3,7 @@ import { SITE } from '~/data/site'
 
 /**
  * Local journey milestones. Firestore `timeline` docs overlay/add to this.
- * Year picker is the last 10 years including 2027 (Patotsav).
+ * Year picker is 2017 through 2027 (Patotsav).
  */
 export const JOURNEY_MILESTONES: TimelineItem[] = [
   { id: '1987', year: '1987', date: '1987', title: 'The first steps', description: 'The Woolwich satsang mandal begins gathering — small sabhas, big hearts. This is year one of a 39-year journey.' },

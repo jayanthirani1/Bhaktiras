@@ -7,7 +7,7 @@ export const SITE = {
   patotsavStart: '2027-08-14T00:00:00+01:00',
   patotsavEnd: '2027-08-22T23:59:59+01:00',
   patotsavDateLabel: 'Saturday 14th August – Sunday 22nd August',
-  journeyStartYear: 2018,
+  journeyStartYear: 2017,
   journeyEndYear: 2027,
   whatsappInviteUrl: 'https://chat.whatsapp.com/JDfg56sbFGpCoPcUGecK39',
   whatsappLabel: 'Join our WhatsApp community',
