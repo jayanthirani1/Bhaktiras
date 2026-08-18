@@ -62,7 +62,6 @@ async function cleanseOldScores(
   // Clean up yesterday's rows for games whose leaderboards reset each UK day.
   const dailyGames: GameLeaderboardId[] = [
     'wordle',
-    'crossword',
     'one-percent',
     'mini-crossword',
     'connections',

@@ -13,6 +13,25 @@
         subtitle="Play any game each day to keep your flame alive."
       />
 
+      <div v-if="longestCrown" class="mb-6 rounded-2xl border border-orange-200 bg-orange-50/80 p-4">
+        <p class="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-orange-700">
+          <IconCrown class="h-4 w-4" />
+          Longest streak crown
+        </p>
+        <p class="mt-2 text-sm text-[hsl(var(--muted-foreground))]">
+          <span class="font-semibold text-[hsl(var(--primary))]">{{ longestCrown.holderName }}</span>
+          · {{ longestCrown.longestStreak || longestCrown.value }} day{{ (longestCrown.longestStreak || longestCrown.value) === 1 ? '' : 's' }}
+          <span v-if="longestCrown.holderUserId === auth.user.value?.uid" class="font-semibold text-amber-700"> · You hold the crown</span>
+        </p>
+      </div>
+
+      <NuxtLink
+        to="/play/achievements"
+        class="mb-6 inline-flex items-center gap-2 rounded-full bg-[hsl(var(--muted))] px-4 py-2 text-sm font-semibold text-[hsl(var(--primary))] hover:bg-[hsl(var(--border))]"
+      >
+        View achievements →
+      </NuxtLink>
+
       <div v-if="loading" class="card-surface p-8 text-center text-sm text-[hsl(var(--muted-foreground))]">
         Loading streaks…
       </div>
@@ -57,8 +76,12 @@
 </template>
 
 <script setup lang="ts">
+import { IconCrown } from '@tabler/icons-vue'
+
 const auth = useAuth()
 const { entries, loading, error } = usePlayStreakLeaderboard()
+const achievements = useAchievements()
+const longestCrown = computed(() => achievements.crowns.value.find(crown => crown.id === 'streak-longest') || null)
 
-useHead({ title: 'Play Streaks · Bhaktiras' })
+useHead({ title: 'Games Streaks · Bhaktiras' })
 </script>

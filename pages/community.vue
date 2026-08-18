@@ -117,15 +117,15 @@
 
 <script setup lang="ts">
 import { IconCamera, IconExternalLink } from '@tabler/icons-vue'
-import { COMMUNITY_PROMPTS } from '~/data/communityPrompts'
 import { SITE } from '~/data/site'
 
 const { messages, isLoading, refetch } = useGratitudeMessages()
 const createMessage = useCreateGratitudeMessage()
 const { userName, isLoggedIn } = useAuth()
-const prompts = COMMUNITY_PROMPTS
+const { communityPrompts } = useSiteContent()
+const prompts = communityPrompts
 const isFormOpen = ref(false)
-const form = reactive({ prompt: COMMUNITY_PROMPTS[0] || '', message: '', name: '' })
+const form = reactive({ prompt: '', message: '', name: '' })
 const errors = reactive<{ message?: string }>({})
 const pending = computed(() => createMessage.isPending.value)
 
@@ -136,6 +136,14 @@ watch(
   },
   { immediate: true }
 )
+
+watch(prompts, (value) => {
+  if (!value.length) {
+    form.prompt = ''
+    return
+  }
+  if (!value.includes(form.prompt)) form.prompt = value[0]
+}, { immediate: true })
 
 async function onSubmit() {
   errors.message = undefined

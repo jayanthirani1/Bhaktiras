@@ -1,6 +1,6 @@
 import rawWordBank from '~/data/satsangWordBank.json'
 import type { SpellingBeePuzzle } from '~/data/spellingBeePuzzles'
-import type { CrosswordClue, CrosswordPuzzle, GameWordEntry, GameWordTarget } from '~/types'
+import type { CrosswordPuzzle, GameWordEntry, GameWordTarget } from '~/types'
 
 export const SATSANG_WORD_BANK = rawWordBank as GameWordEntry[]
 
@@ -59,50 +59,7 @@ function seededOrder<T>(items: T[], seed: string): T[] {
 }
 
 /**
- * Builds a deterministic crossword from clue-bearing entries. Firestore
- * puzzles still take priority; this is the always-available shared-bank puzzle.
- */
-export function createWordBankCrossword(
-  dateId: string,
-  size = 10,
-  entries: GameWordEntry[] = SATSANG_WORD_BANK
-): CrosswordPuzzle {
-  const candidates = seededOrder(
-    gameWordsFor('crossword', entries).filter(entry =>
-      entry.answer.length >= 4
-      && entry.answer.length <= 10
-      && (entry.source === 'Custom' || !entry.category.endsWith('-name'))
-    ),
-    `crossword:${dateId}`
-  ).sort((a, b) => Number(b.source === 'Custom') - Number(a.source === 'Custom'))
-
-  const selected: GameWordEntry[] = []
-  for (const candidate of candidates) {
-    if (!selected.length || selected.some(entry =>
-      [...candidate.answer].some(letter => entry.answer.includes(letter))
-    )) {
-      selected.push(candidate)
-    }
-    if (selected.length === size) break
-  }
-
-  const clues: CrosswordClue[] = selected.map((entry, index) => ({
-    number: index + 1,
-    direction: index % 2 === 0 ? 'across' : 'down',
-    clue: entry.clue,
-    answer: entry.answer
-  }))
-
-  return {
-    id: `word-bank-${dateId}`,
-    title: 'Daily Satsang Crossword',
-    clues,
-    published: true
-  }
-}
-
-/**
- * Builds a compact deterministic puzzle for the UK calendar day.
+ * Builds a compact deterministic crossword for the UK calendar day.
  * Short answers keep the grid suitable for phones; changing the date changes
  * both the selected words and their order.
  */
@@ -130,7 +87,7 @@ export function createWordBankMiniCrossword(
 
   return {
     id: `daily-mini-${dateId}`,
-    title: 'Today’s Mini',
+    title: 'Today’s Crossword',
     published: true,
     clues: selected.map((entry, index) => ({
       number: index + 1,

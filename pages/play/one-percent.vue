@@ -125,6 +125,7 @@ const RUN_KEY = `one-percent-run:${ukDateId()}`
 
 const { questions, loading } = useOnePercentQuestions()
 const auth = useAuth()
+const achievements = useAchievements()
 const isLoggedIn = computed(() => !!auth.user.value)
 const {
   entries,
@@ -265,6 +266,14 @@ async function submitToLeaderboard() {
       userEmail: auth.userEmail.value || undefined,
       detail: failPercent.value != null ? `fell@${failPercent.value}%` : '1% club'
     })
+    try {
+      await achievements.processResult('one-percent', {
+        score: cleared.value,
+        timeMs: timer.elapsedMs.value,
+        clearedAll: reachedOnePercent.value,
+        userName: auth.userName.value || auth.userEmail.value || 'Player'
+      })
+    } catch {}
     scoreSubmitted.value = entries.value.some(e => e.userId === auth.user.value?.uid)
     if (!scoreSubmitted.value) await refetch()
     scoreSubmitted.value = entries.value.some(e => e.userId === auth.user.value?.uid)

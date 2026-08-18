@@ -13,7 +13,7 @@
       to="/play"
       class="inline-block rounded-xl bg-[hsl(var(--primary))] px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
     >
-      Back to Play
+      Back to Games
     </NuxtLink>
   </div>
 </template>

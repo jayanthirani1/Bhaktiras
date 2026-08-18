@@ -47,6 +47,11 @@
           Words: {{ foundWords.length }}
           <span v-if="totalScore > 0" class="text-[hsl(var(--muted-foreground))]/80">· {{ totalScore }} pts this hive</span>
         </p>
+        <p v-if="highScoreCrown" class="mb-3 text-xs text-[hsl(var(--muted-foreground))]">
+          <span class="font-semibold text-[hsl(var(--primary))]">High-score crown:</span>
+          {{ highScoreCrown.holderName }} · {{ highScoreCrown.score || highScoreCrown.value }} pts
+          <span v-if="highScoreCrown.holderUserId === auth.user.value?.uid" class="font-semibold text-amber-700"> · You hold the crown</span>
+        </p>
         <input
           v-model="currentWord"
           type="text"
@@ -137,6 +142,7 @@ import { IconArrowLeft } from '@tabler/icons-vue'
 import {
   getHiveLetters,
   getMiddleLetter,
+  isPangram,
   isValidSpellingBeeWord,
   matchesSpellingBeeLetters,
   spellingBeePoints,
@@ -146,6 +152,7 @@ import { ukDateId } from '~/utils/gameDay'
 
 const { puzzles, loading: puzzlesLoading } = useSpellingBeePuzzles()
 const auth = useAuth()
+const achievements = useAchievements()
 const isLoggedIn = computed(() => !!auth.user.value)
 const {
   entries: leaderboardEntries,
@@ -170,6 +177,7 @@ const myBest = computed(() => {
   return leaderboardEntries.value.find(e => e.userId === uid)?.score || 0
 })
 const canSubmitBest = computed(() => foundWords.value.length > myBest.value)
+const highScoreCrown = computed(() => achievements.crowns.value.find(crown => crown.id === 'spelling-bee-high-score') || null)
 
 function puzzleIdentity(item: typeof puzzle.value) {
   return `${item.middleLetter.toUpperCase()}:${item.availableLetters.toUpperCase().split('').sort().join('')}`
@@ -286,6 +294,20 @@ watch(
   { deep: true }
 )
 
+async function processBeeAchievements() {
+  if (!auth.user.value || foundWords.value.length <= 0) return
+  try {
+    await achievements.processResult('spelling-bee', {
+      score: totalScore.value,
+      words: foundWords.value.length,
+      pangram: foundWords.value.some(word => isPangram(word, puzzle.value)),
+      userName: auth.userName.value || auth.userEmail.value || 'Player'
+    })
+  } catch {
+    // Achievements are best-effort; the hive score still counts locally.
+  }
+}
+
 async function submitToLeaderboard() {
   const wordCount = foundWords.value.length
   if (!auth.user.value || wordCount <= 0 || !canSubmitBest.value || submittingScore.value) return
@@ -299,6 +321,7 @@ async function submitToLeaderboard() {
       userEmail: auth.userEmail.value || undefined,
       detail: `${totalScore.value} pts this hive`
     })
+    await processBeeAchievements()
   } catch (e: unknown) {
     submitError.value = e instanceof Error ? e.message : 'Could not submit score.'
   } finally {
@@ -316,6 +339,7 @@ function queueAutoSubmit() {
       return
     }
     if (canSubmitBest.value) void submitToLeaderboard()
+    else void processBeeAchievements()
   }, 500)
 }
 

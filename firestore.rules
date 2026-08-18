@@ -225,11 +225,6 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    match /crosswordPuzzles/{id} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
     match /spellingBeePuzzles/{id} {
       allow read: if true;
       allow write: if isAdmin();
@@ -265,6 +260,18 @@ service cloud.firestore {
         && request.resource.data.lastVisitDate is string
         && request.resource.data.lastVisitDate.size() == 10;
       allow delete: if isAdmin() || (isSignedIn() && request.auth.uid == uid);
+    }
+
+    // Personal achievement unlocks are private to the signed-in user; only Cloud Functions writes them.
+    match /userAchievements/{uid} {
+      allow read: if isSignedIn() && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    // Current all-time crown holders are public; only Cloud Functions writes them.
+    match /achievementCrowns/{id} {
+      allow read: if true;
+      allow write: if false;
     }
 
     // Which games a user finished on a given day, so results follow them across devices.
@@ -304,6 +311,12 @@ service cloud.firestore {
 
     // Privacy / policy pages. Public read; admin write.
     match /sitePages/{id} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Admin-managed homepage tiles, navigation, and community prompts. Public read.
+    match /siteContent/{id} {
       allow read: if true;
       allow create, update, delete: if isAdmin();
     }

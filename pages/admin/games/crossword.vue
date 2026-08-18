@@ -7,10 +7,15 @@
       :overridden="!!todayOverride"
       @edit="openToday"
     />
+    <div v-if="!loading && !items.length" class="mb-4">
+      <button type="button" class="admin-btn-secondary" :disabled="importing || saving" @click="importDefault">
+        {{ importing ? 'Importing…' : 'Import default crossword' }}
+      </button>
+    </div>
     <AdminEditorLayout
-      :count-label="`${items.length} puzzle${items.length === 1 ? '' : 's'}`"
-      create-label="Add puzzle"
-      empty-label="No crossword puzzles yet."
+      :count-label="`${items.length} crossword${items.length === 1 ? '' : 's'}`"
+      create-label="Add crossword"
+      empty-label="No crosswords yet."
       :loading="loading"
       :empty="!items.length"
       @create="openNew"
@@ -32,7 +37,7 @@
         <form v-if="showForm" class="space-y-4" @submit.prevent="save">
           <div class="flex items-center justify-between gap-3">
             <h2 class="font-display text-xl font-semibold text-[hsl(var(--primary))]">
-              {{ editingToday ? 'Today’s crossword override' : isEditing ? 'Edit puzzle' : 'New puzzle' }}
+              {{ editingToday ? 'Today’s crossword override' : isEditing ? 'Edit crossword' : 'New crossword' }}
             </h2>
             <button v-if="isEditing && editingId && (!editingToday || todayOverride)" type="button" class="admin-btn-danger" @click="onDelete(editingId)">
               {{ editingToday ? 'Remove override' : 'Delete' }}
@@ -44,22 +49,25 @@
           </div>
           <div class="space-y-2">
             <div v-for="(c, i) in form.clues" :key="i" class="grid gap-2 rounded-lg border border-[hsl(var(--border))] p-3 sm:grid-cols-12">
-              <input v-model.number="c.number" type="number" min="1" class="admin-input sm:col-span-2" placeholder="#">
+              <input v-model.number="c.number" type="number" min="1" class="admin-input sm:col-span-1" placeholder="#">
               <select v-model="c.direction" class="admin-input sm:col-span-2">
                 <option value="across">Across</option>
                 <option value="down">Down</option>
               </select>
-              <input v-model="c.clue" class="admin-input sm:col-span-5" placeholder="Clue" required>
+              <input v-model="c.clue" class="admin-input sm:col-span-4" placeholder="Clue" required>
               <input v-model="c.answer" class="admin-input uppercase sm:col-span-3" placeholder="ANSWER" required>
+              <input v-model.number="c.row" type="number" min="0" class="admin-input sm:col-span-1" placeholder="R">
+              <input v-model.number="c.col" type="number" min="0" class="admin-input sm:col-span-1" placeholder="C">
             </div>
           </div>
+          <p class="text-xs text-[hsl(var(--muted-foreground))]">Optional R/C = fixed start row/col for a compact grid.</p>
           <button type="button" class="text-sm font-semibold text-[hsl(var(--primary))]" @click="addClue">+ Add clue</button>
           <div class="flex gap-2">
             <button type="submit" class="admin-btn" :disabled="saving">{{ saving ? 'Saving…' : 'Save' }}</button>
             <button type="button" class="admin-btn-secondary" @click="showForm = false">Cancel</button>
           </div>
         </form>
-        <p v-else class="text-sm text-[hsl(var(--muted-foreground))]">Select a puzzle to edit, or add a new one.</p>
+        <p v-else class="text-sm text-[hsl(var(--muted-foreground))]">Select a crossword to edit, or add a new one.</p>
       </template>
     </AdminEditorLayout>
   </div>
@@ -67,22 +75,24 @@
 
 <script setup lang="ts">
 import type { CrosswordClue, CrosswordPuzzle } from '~/types'
-import { createWordBankCrossword } from '~/utils/gameWordBank'
+import { DEFAULT_MINI_CROSSWORD } from '~/data/miniCrossword'
+import { createWordBankMiniCrossword } from '~/utils/gameWordBank'
 import { formatUkDateLabel, ukDateId } from '~/utils/gameDay'
 
 definePageMeta({ layout: 'admin', middleware: 'admin' })
 
-const { items, loading, saving, error, fetchAll, create, setItem, updateItem, remove } = useAdminCrossword()
+const { items, loading, saving, error, fetchAll, create, setItem, updateItem, remove } = useAdminMiniCrossword()
 const todayId = ukDateId()
 const todayOverrideId = `daily-${todayId}`
 const todayDateLabel = formatUkDateLabel(todayId)
-const generatedToday = ref<CrosswordPuzzle>(createWordBankCrossword(todayId))
+const generatedToday = ref<CrosswordPuzzle>(createWordBankMiniCrossword(todayId))
 const todayOverride = computed(() => items.value.find(p => p.id === todayOverrideId))
 const todayPuzzle = computed(() => todayOverride.value || generatedToday.value)
 const showForm = ref(false)
 const isEditing = ref(false)
 const editingToday = ref(false)
 const editingId = ref<string | null>(null)
+const importing = ref(false)
 const form = reactive({ title: '', clues: [] as CrosswordClue[] })
 
 onMounted(async () => {
@@ -90,12 +100,12 @@ onMounted(async () => {
     fetchMergedGameWords().catch(() => null),
     fetchAll()
   ])
-  if (entries) generatedToday.value = createWordBankCrossword(todayId, 10, entries)
+  if (entries) generatedToday.value = createWordBankMiniCrossword(todayId, entries)
   if (!items.value.length) openNew()
 })
 
 function addClue() {
-  form.clues.push({ number: form.clues.length + 1, direction: 'across', clue: '', answer: '' })
+  form.clues.push({ number: form.clues.length + 1, direction: 'across', clue: '', answer: '', row: undefined, col: undefined })
 }
 
 function openNew() {
@@ -117,7 +127,14 @@ function openEdit(p: CrosswordPuzzle) {
   editingToday.value = id === todayOverrideId
   editingId.value = id
   form.title = p.title
-  form.clues = (p.clues || []).map(c => ({ ...c }))
+  form.clues = (p.clues || []).map(c => ({
+    number: c.number,
+    direction: c.direction,
+    clue: c.clue,
+    answer: c.answer,
+    row: c.row,
+    col: c.col
+  }))
   if (!form.clues.length) addClue()
   showForm.value = true
 }
@@ -137,9 +154,11 @@ async function save() {
   const clues = form.clues
     .map(c => ({
       number: Number(c.number) || 1,
-      direction: c.direction === 'down' ? 'down' : 'across',
+      direction: c.direction === 'down' ? 'down' as const : 'across' as const,
       clue: c.clue.trim(),
-      answer: c.answer.trim().toUpperCase()
+      answer: c.answer.trim().toUpperCase(),
+      ...(c.row != null && c.row !== ('' as unknown) && Number.isFinite(Number(c.row)) ? { row: Number(c.row) } : {}),
+      ...(c.col != null && c.col !== ('' as unknown) && Number.isFinite(Number(c.col)) ? { col: Number(c.col) } : {})
     }))
     .filter(c => c.clue && c.answer)
   if (!clues.length) {
@@ -175,6 +194,23 @@ async function onDelete(id: string) {
   isEditing.value = false
   editingToday.value = false
   editingId.value = null
+}
+
+async function importDefault() {
+  if (importing.value || saving.value || items.value.length) return
+  importing.value = true
+  error.value = ''
+  try {
+    await create({
+      title: DEFAULT_MINI_CROSSWORD.title,
+      clues: DEFAULT_MINI_CROSSWORD.clues,
+      published: true
+    })
+  } catch {
+    /* error already set */
+  } finally {
+    importing.value = false
+  }
 }
 
 useHead({ title: 'Crossword · Admin' })

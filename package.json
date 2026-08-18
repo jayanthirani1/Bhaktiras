@@ -12,6 +12,7 @@
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "deploy": "nuxt generate && npm ci --prefix functions && npx --yes firebase-tools deploy --only hosting,functions,firestore:rules",
+    "icons": "node scripts/generate-app-icons.mjs",
     "typecheck": "nuxt typecheck"
   },
   "dependencies": {
@@ -22,6 +23,7 @@
     "vue": "^3.5.12"
   },
   "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
     "@nuxtjs/tailwindcss": "^6.12.2",
     "typescript": "^5.9.3",
     "vue-tsc": "^3.3.10"

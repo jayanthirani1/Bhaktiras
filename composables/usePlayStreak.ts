@@ -8,6 +8,7 @@ import {
 } from 'firebase/firestore'
 import type { PlayStreakRecord } from '~/types'
 import { addUkDays, ukDateId } from '~/utils/gameDay'
+import { callGameAchievements } from '~/composables/useAchievements'
 
 function getDb(): Firestore | null {
   if (import.meta.server) return null
@@ -68,6 +69,7 @@ export function usePlayStreak() {
 
       record.value = next
       recordedKey.value = key
+      void callGameAchievements('streak', { userName: next.userName }).catch(() => {})
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Could not update your streak.'
     } finally {

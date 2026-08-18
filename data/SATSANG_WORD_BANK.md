@@ -26,7 +26,7 @@ merge on top of this built-in list at runtime.
 
 After regenerating this file, bump `WORD_BANK_VERSION` in
 `utils/gameStorageReset.ts` so browsers clear cached daily game progress
-(Wordle guesses, Mini Crossword fills, 1% Club runs, and related timers).
+(Wordle guesses, Crossword fills, 1% Club runs, and related timers).
 
 The normalised ASCII answer is intentionally separate from the display name.
 For example, spaces and diacritics can be retained for readers without

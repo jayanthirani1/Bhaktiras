@@ -8,7 +8,7 @@ The generated JSON is committed so the games do not need network access.
 Run this script only when intentionally refreshing the bank.
 
 After regenerating, bump WORD_BANK_VERSION in utils/gameStorageReset.ts so
-browsers clear cached daily Wordle / Mini Crossword / 1% Club progress.
+browsers clear cached daily Wordle / Crossword / 1% Club progress.
 """
 
 from __future__ import annotations

@@ -23,6 +23,10 @@ export const ADMIN_MENU_GROUPS: AdminMenuGroup[] = [
     id: 'content',
     label: 'Site content',
     items: [
+      { label: 'Content settings', to: '/admin/content', subtitle: 'Jump to homepage, nav and community editors' },
+      { label: 'Homepage tiles', to: '/admin/content/homepage', subtitle: 'Cards shown on the homepage grid' },
+      { label: 'Navigation', to: '/admin/content/navigation', subtitle: 'Desktop nav, mobile tabs and More drawer' },
+      { label: 'Community questions', to: '/admin/content/community', subtitle: 'Prompt chips above the wall form' },
       { label: 'Timeline', to: '/admin/timeline', subtitle: 'Journey moments on Our Journey' },
       { label: 'Events', to: '/admin/events', subtitle: 'Title, date, description and poster' },
       { label: 'Yajman opportunities', to: '/admin/yajman', subtitle: 'Utsav Yajman opportunities shown on the site' },
@@ -36,10 +40,9 @@ export const ADMIN_MENU_GROUPS: AdminMenuGroup[] = [
     items: [
       { label: 'Game Word Bank', to: '/admin/games/word-bank', subtitle: 'Swaminarayan, Gujarati & basic Hindu words' },
       { label: 'Wordle', to: '/admin/games/wordle', subtitle: 'Plan daily words for the week or month' },
-      { label: 'Crossword', to: '/admin/games/crossword', subtitle: 'Puzzle titles and clues' },
+      { label: 'Crossword', to: '/admin/games/crossword', subtitle: 'Quick timed crossword' },
       { label: 'Spelling Bee', to: '/admin/games/spelling-bee', subtitle: 'Hive letters and answers' },
       { label: '1% Club', to: '/admin/games/one-percent', subtitle: 'Ladder questions from 90% to 1%' },
-      { label: 'Mini Crossword', to: '/admin/games/mini-crossword', subtitle: 'Quick timed crossword' },
       { label: 'Connections', to: '/admin/games/connections', subtitle: 'Four groups of four satsang words' }
     ]
   }

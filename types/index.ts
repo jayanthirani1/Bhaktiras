@@ -137,6 +137,56 @@ export interface SitePage {
   updatedAt?: { seconds: number; nanoseconds: number } | Date
 }
 
+export type SiteIconKey =
+  | 'journey'
+  | 'events'
+  | 'community'
+  | 'seva'
+  | 'niyams'
+  | 'games'
+  | 'yajman'
+  | 'donate'
+  | 'home'
+
+export interface HomeTileContent {
+  id: string
+  title: string
+  desc: string
+  href: string
+  icon: SiteIconKey
+  external?: boolean
+  active?: boolean
+  order?: number
+}
+
+export interface NavItemContent {
+  id: string
+  label: string
+  href: string
+  icon: SiteIconKey
+  external?: boolean
+  active?: boolean
+  order?: number
+  showInDesktopNav?: boolean
+  showInMobileNav?: boolean
+  mobilePrimary?: boolean
+}
+
+export interface CommunityPromptContent {
+  id: string
+  text: string
+  active?: boolean
+  order?: number
+}
+
+export interface SiteContentSettings {
+  id: string
+  homeTiles: HomeTileContent[]
+  navItems: NavItemContent[]
+  communityPrompts: CommunityPromptContent[]
+  updatedAt?: { seconds?: number; nanoseconds?: number } | Date
+}
+
 export interface VolunteerRole {
   id: string
   role: string
@@ -152,7 +202,6 @@ export interface TimeCapsuleMessage {
 
 export type GameLeaderboardId =
   | 'wordle'
-  | 'crossword'
   | 'spelling-bee'
   | 'one-percent'
   | 'mini-crossword'
@@ -166,7 +215,7 @@ export interface GameScoreEntry {
   userName: string
   userEmail?: string
   score: number
-  /** Elapsed time in milliseconds when relevant (Wordle, Mini Crossword, 1% Club). */
+  /** Elapsed time in milliseconds when relevant (Wordle, Crossword, 1% Club). */
   timeMs?: number
   detail?: string
   completedAt?: { seconds?: number; nanoseconds?: number } | Date
@@ -204,5 +253,37 @@ export interface PlayStreakRecord {
   currentStreak: number
   longestStreak: number
   lastVisitDate: string
+  updatedAt?: { seconds?: number; nanoseconds?: number } | Date
+}
+
+export interface UserAchievementUnlock {
+  unlockedAt?: { seconds?: number; nanoseconds?: number } | Date
+  guesses?: number
+  timeMs?: number
+  score?: number
+  words?: number
+  mistakes?: number
+  longestStreak?: number
+}
+
+export interface UserAchievementsRecord {
+  id: string
+  userId: string
+  achievements: Record<string, UserAchievementUnlock>
+  updatedAt?: { seconds?: number; nanoseconds?: number } | Date
+}
+
+export interface AchievementCrownRecord {
+  id: string
+  holderUserId: string
+  holderName: string
+  game: GameLeaderboardId | string
+  metric: string
+  value: number
+  guesses?: number
+  timeMs?: number
+  score?: number
+  words?: number
+  longestStreak?: number
   updatedAt?: { seconds?: number; nanoseconds?: number } | Date
 }

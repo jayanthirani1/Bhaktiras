@@ -88,22 +88,14 @@
 </template>
 
 <script setup lang="ts">
-import {
-  IconMapPin,
-  IconUsers,
-  IconHandGrab,
-  IconFlame,
-  IconDeviceGamepad2,
-  IconCalendarEvent,
-  IconGift,
-  IconHeartHandshake
-} from '@tabler/icons-vue'
 import { SITE } from '~/data/site'
+import { SITE_ICON_COMPONENTS } from '~/data/siteContent'
 import { getQuoteOfTheWeek } from '~/utils/quotes'
 
 const { greeting } = useAuth()
 const countdown = useCountdown()
 const weeklyQuote = getQuoteOfTheWeek()
+const { homeTiles } = useSiteContent()
 
 const countdownUnits = computed(() => [
   { label: 'Days', value: countdown.parts.value.days },
@@ -112,14 +104,8 @@ const countdownUnits = computed(() => [
   { label: 'Secs', value: countdown.parts.value.seconds }
 ])
 
-const menuItems = [
-  { id: 'journey', title: 'Our Journey', desc: '10 years to Patotsav', icon: IconMapPin, href: '/journey' },
-  { id: 'events', title: 'Our Events', desc: 'Sabhas & mahotsav dates', icon: IconCalendarEvent, href: '/events' },
-  { id: 'community', title: 'Our Community', desc: 'What mandir means to you', icon: IconUsers, href: '/community' },
-  { id: 'seva', title: 'Seva', desc: 'Teams & WhatsApp community', icon: IconHandGrab, href: '/seva' },
-  { id: 'niyams', title: 'Our Niyams', desc: 'Utsav niyams & tracker', icon: IconFlame, href: '/niyams' },
-  { id: 'yajman', title: 'Yajman Opportunities', desc: 'Take part in the Utsav', icon: IconHeartHandshake, href: '/yajman' },
-  { id: 'donate', title: 'Donate', desc: 'Support Shree KS Swaminarayan Temple Woolwich', icon: IconGift, href: 'https://www.sksswoolwich.org/donate', external: true },
-  { id: 'play', title: 'Games', desc: 'Wordle, crosswords & daily streaks', icon: IconDeviceGamepad2, href: '/play' }
-]
+const menuItems = computed(() => homeTiles.value.map(item => ({
+  ...item,
+  icon: SITE_ICON_COMPONENTS[item.icon]
+})))
 </script>

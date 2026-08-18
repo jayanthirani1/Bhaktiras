@@ -3,6 +3,7 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDoc,
   getDocs,
   serverTimestamp,
   setDoc,
@@ -10,8 +11,18 @@ import {
   type DocumentData,
   type Firestore
 } from 'firebase/firestore'
-import type { ConnectionsPuzzle, CrosswordPuzzle, Event, GameWordEntry, Niyam, OnePercentQuestion, SitePage, TimelineItem, WordleWordDoc, YajmanOpportunity } from '~/types'
+import type { ConnectionsPuzzle, CrosswordPuzzle, Event, GameWordEntry, Niyam, OnePercentQuestion, SiteContentSettings, SitePage, TimelineItem, WordleWordDoc, YajmanOpportunity } from '~/types'
 import type { SpellingBeePuzzle } from '~/data/spellingBeePuzzles'
+import {
+  communityPromptsFromSource,
+  homeTilesFromSource,
+  navItemsFromSource,
+  parseCommunityPrompts,
+  parseHomeTiles,
+  parseNavItems,
+  SITE_CONTENT_DOC_ID,
+  siteContentWritePayload
+} from '~/data/siteContent'
 
 function getDb(): Firestore | null {
   if (import.meta.server) return null
@@ -137,9 +148,6 @@ export function useAdminWordleWords() {
 export function useAdminGameWords() {
   return useAdminCollection<GameWordEntry>('gameWords')
 }
-export function useAdminCrossword() {
-  return useAdminCollection<CrosswordPuzzle>('crosswordPuzzles')
-}
 export function useAdminSpellingBee() {
   return useAdminCollection<SpellingBeePuzzle & { id: string }>('spellingBeePuzzles')
 }
@@ -197,4 +205,74 @@ export function useAdminSitePages() {
   }
 
   return { items, loading, saving, error, fetchAll, save }
+}
+
+export function useAdminSiteContent() {
+  const item = ref<SiteContentSettings>({
+    id: SITE_CONTENT_DOC_ID,
+    homeTiles: homeTilesFromSource(undefined),
+    navItems: navItemsFromSource(undefined),
+    communityPrompts: communityPromptsFromSource(undefined)
+  })
+  const loading = ref(false)
+  const saving = ref(false)
+  const error = ref('')
+
+  async function load() {
+    loading.value = true
+    error.value = ''
+    try {
+      const db = requireDb()
+      const ref = doc(db, 'siteContent', SITE_CONTENT_DOC_ID)
+      const snap = await getDoc(ref)
+      const data = snap.exists() ? snap.data() : {}
+      const next = {
+        homeTiles: homeTilesFromSource(data.homeTiles),
+        navItems: navItemsFromSource(data.navItems),
+        communityPrompts: communityPromptsFromSource(data.communityPrompts)
+      }
+      const needsSeed = !snap.exists()
+        || !Array.isArray(data.homeTiles)
+        || !data.homeTiles.length
+        || !Array.isArray(data.navItems)
+        || !data.navItems.length
+        || !Array.isArray(data.communityPrompts)
+        || !data.communityPrompts.length
+      if (needsSeed) {
+        await setDoc(ref, { ...siteContentWritePayload(next), updatedAt: serverTimestamp() }, { merge: true })
+      }
+      item.value = { id: SITE_CONTENT_DOC_ID, ...next, updatedAt: data.updatedAt }
+    } catch (e) {
+      error.value = (e as Error).message
+      item.value = {
+        id: SITE_CONTENT_DOC_ID,
+        homeTiles: homeTilesFromSource(undefined),
+        navItems: navItemsFromSource(undefined),
+        communityPrompts: communityPromptsFromSource(undefined)
+      }
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function save(data: Partial<Pick<SiteContentSettings, 'homeTiles' | 'navItems' | 'communityPrompts'>>) {
+    saving.value = true
+    error.value = ''
+    try {
+      const db = requireDb()
+      const payload: Record<string, unknown> = { updatedAt: serverTimestamp() }
+      if (data.homeTiles !== undefined) payload.homeTiles = parseHomeTiles(data.homeTiles)
+      if (data.navItems !== undefined) payload.navItems = parseNavItems(data.navItems)
+      if (data.communityPrompts !== undefined) payload.communityPrompts = parseCommunityPrompts(data.communityPrompts)
+      await setDoc(doc(db, 'siteContent', SITE_CONTENT_DOC_ID), payload, { merge: true })
+      await load()
+    } catch (e) {
+      error.value = (e as Error).message
+      throw e
+    } finally {
+      saving.value = false
+    }
+  }
+
+  return { item, loading, saving, error, load, save }
 }

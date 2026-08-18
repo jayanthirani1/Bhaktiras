@@ -49,6 +49,25 @@
           <p class="mt-1 text-sm text-[hsl(var(--muted-foreground))]">{{ solutionMeaning }}</p>
         </div>
         <p class="mt-2 text-xs text-[hsl(var(--muted-foreground))]">{{ nextPuzzleIn }}</p>
+        <div v-if="fastestCrown || fewestCrown" class="mt-4 rounded-xl bg-[hsl(var(--background))] p-4 text-left">
+          <p class="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-[hsl(var(--accent))]">
+            <IconCrown class="h-4 w-4" />
+            Current crowns
+          </p>
+          <div class="mt-3 space-y-2 text-sm text-[hsl(var(--muted-foreground))]">
+            <p v-if="fastestCrown">
+              <span class="font-semibold text-[hsl(var(--primary))]">Fastest Wordle:</span>
+              {{ fastestCrown.holderName }} · {{ formatElapsed(fastestCrown.timeMs || fastestCrown.value) }}
+              <span v-if="fastestCrown.holderUserId === auth.user.value?.uid" class="font-semibold text-amber-700"> · You hold the crown</span>
+            </p>
+            <p v-if="fewestCrown">
+              <span class="font-semibold text-[hsl(var(--primary))]">Fewest guesses:</span>
+              {{ fewestCrown.holderName }} · {{ fewestCrown.guesses || fewestCrown.value }}/6
+              <span v-if="fewestCrown.timeMs"> · {{ formatElapsed(fewestCrown.timeMs) }}</span>
+              <span v-if="fewestCrown.holderUserId === auth.user.value?.uid" class="font-semibold text-amber-700"> · You hold the crown</span>
+            </p>
+          </div>
+        </div>
         <div class="mt-4 flex flex-col items-center gap-2">
           <button
             v-if="isWin && isLoggedIn && !scoreSubmitted"
@@ -333,7 +352,7 @@
 </template>
 
 <script setup lang="ts">
-import { IconArrowLeft } from '@tabler/icons-vue'
+import { IconArrowLeft, IconCrown } from '@tabler/icons-vue'
 import { getWordForDate, wordleDateId } from '~/utils/wordleDaily'
 import { getFeedback } from '~/utils/wordle'
 import { findGameWord } from '~/utils/gameWordBank'
@@ -418,6 +437,7 @@ const wordleStats = useWordleStats()
 const displayStats = wordleStats.stats
 const displayWinRate = wordleStats.winRate
 const auth = useAuth()
+const achievements = useAchievements()
 const {
   entries: leaderboardEntries,
   loading: leaderboardLoading,
@@ -426,6 +446,8 @@ const {
   refetch: refetchLeaderboard
 } = useWordleLeaderboard()
 const isLoggedIn = computed(() => !!auth.user.value)
+const fastestCrown = computed(() => achievements.crowns.value.find(crown => crown.id === 'wordle-fastest') || null)
+const fewestCrown = computed(() => achievements.crowns.value.find(crown => crown.id === 'wordle-fewest-guesses') || null)
 const timer = useGameTimer(`wordle-timer:${getTodayId()}`)
 const {
   playedElsewhere,
@@ -702,6 +724,11 @@ async function submitToLeaderboard() {
       auth.userEmail.value || undefined,
       timer.elapsedMs.value
     )
+    await achievements.processWordleResult({
+      guesses: guesses.value.length,
+      timeMs: timer.elapsedMs.value,
+      userName: auth.userName.value || auth.userEmail.value || 'Player'
+    })
     const uid = auth.user.value.uid
     const onBoard = leaderboardEntries.value.some(e => e.userId === uid)
     if (!onBoard) await refetchLeaderboard()

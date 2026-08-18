@@ -10,7 +10,7 @@ import type { CrosswordPuzzle } from '~/types'
  */
 export const DEFAULT_MINI_CROSSWORD: CrosswordPuzzle = {
   id: 'default-mini',
-  title: 'Today’s Mini',
+  title: 'Today’s Crossword',
   published: true,
   clues: [
     { number: 1, direction: 'across', clue: 'Spiritual teacher / devotee title', answer: 'SWAMI', row: 0, col: 0 },

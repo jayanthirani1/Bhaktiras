@@ -9,7 +9,6 @@ import { ukDateId } from '~/utils/gameDay'
 import { wordleDateId } from '~/utils/wordleDaily'
 import {
   buildWordBankSpellingBeePuzzles,
-  createWordBankCrossword,
   createWordBankMiniCrossword,
   gameTargetsForAnswer,
   mergeGameWords,
@@ -70,34 +69,6 @@ export function useSpellingBeePuzzles() {
   return { puzzles, loading }
 }
 
-export function useCrosswordPuzzles() {
-  const today = wordleDateId()
-  const dailyPuzzle = createWordBankCrossword(today)
-  const puzzles = ref<CrosswordPuzzle[]>([dailyPuzzle])
-  const loading = ref(true)
-
-  onMounted(async () => {
-    try {
-      const db = getDb()
-      if (!db) return
-      const [snap, wordSnap] = await Promise.all([
-        getDocs(collection(db, 'crosswordPuzzles')),
-        getDocs(collection(db, 'gameWords'))
-      ])
-      const remote = snap.docs.map(d => ({ id: d.id, ...d.data() } as CrosswordPuzzle))
-        .filter(p => p.title && p.clues?.length)
-      const customDaily = createWordBankCrossword(today, 10, mergeGameWords(mapCustomGameWords(wordSnap)))
-      const overrideId = `daily-${today}`
-      const override = remote.find(p => p.id === overrideId)
-      puzzles.value = [override || customDaily, ...remote.filter(p => p.id !== overrideId)]
-    } finally {
-      loading.value = false
-    }
-  })
-
-  return { puzzles, loading }
-}
-
 export function useMiniCrosswordPuzzles() {
   const today = wordleDateId()
   const dailyPuzzle = createWordBankMiniCrossword(today)
@@ -120,9 +91,8 @@ export function useMiniCrosswordPuzzles() {
       )
       const overrideId = `daily-${today}`
       const override = remote.find(p => p.id === overrideId)
-      // The generated puzzle is the only player-facing mini. Admin-authored
-      // puzzles and the built-in mini remain safe fallbacks if generation
-      // ever has too few usable words.
+      // The generated puzzle is the only player-facing crossword. Admin-authored
+      // puzzles and the built-in fallback remain if generation has too few words.
       puzzles.value = override
         ? [override]
         : customDaily.clues.length >= 4

@@ -112,6 +112,7 @@ const STORAGE_KEY = `connections:${ukDateId()}`
 const { puzzle, loading } = useConnectionsPuzzle()
 const timer = useGameTimer(`connections-timer:${ukDateId()}`)
 const auth = useAuth()
+const achievements = useAchievements()
 const isLoggedIn = computed(() => !!auth.user.value)
 const { playedElsewhere, result: elsewhereResult, markDone } = useDailyGameCompletion('connections')
 const { entries, loading: boardLoading, dateId, submitScore } = useGameLeaderboard('connections', { sort: 'asc' })
@@ -281,6 +282,14 @@ async function submitToLeaderboard() {
       userName: auth.user.value.displayName || auth.user.value.email?.split('@')[0] || 'Player',
       userEmail: auth.user.value.email || undefined
     })
+    try {
+      await achievements.processResult('connections', {
+        won: won.value,
+        mistakes: mistakes.value,
+        timeMs: timer.elapsedMs.value,
+        userName: auth.user.value.displayName || auth.user.value.email?.split('@')[0] || 'Player'
+      })
+    } catch {}
     scoreSubmitted.value = true
     saveState()
   } catch (error) {

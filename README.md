@@ -171,5 +171,5 @@ Without **Cloud Datastore User**, deploy fails with `403` on `firestore.googleap
 - **Stack:** Nuxt 3 (Vue) + Firebase Firestore instead of React + Express + PostgreSQL.
 - **Hosting:** Can be deployed as a static site; no backend or Docker required.
 - **Data:** All persistence is in Firestore. Create the collections and indexes above for full functionality.
-- **Play games:** Daily and all-time games include Wordle, crosswords, Connections, 1% Club, and Spelling Bee.
+- **Play games:** Daily games include Wordle, Crossword, Connections, 1% Club, and Spelling Bee.
 
