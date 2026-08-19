@@ -25,13 +25,6 @@
         </p>
       </div>
 
-      <NuxtLink
-        to="/play/achievements"
-        class="mb-6 inline-flex items-center gap-2 rounded-full bg-[hsl(var(--muted))] px-4 py-2 text-sm font-semibold text-[hsl(var(--primary))] hover:bg-[hsl(var(--border))]"
-      >
-        View achievements →
-      </NuxtLink>
-
       <div v-if="loading" class="card-surface p-8 text-center text-sm text-[hsl(var(--muted-foreground))]">
         Loading streaks…
       </div>

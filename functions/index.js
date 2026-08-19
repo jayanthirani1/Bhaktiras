@@ -15,34 +15,52 @@ const INVALID_TOKEN_CODES = new Set([
 ])
 const GAME_ACHIEVEMENTS = {
   wordle: [
-    { id: 'wordle-first-win', when: ({ guesses }) => guesses >= 1 && guesses <= 6 },
-    { id: 'wordle-sub-60s', when: ({ timeMs }) => timeMs < 60_000 },
-    { id: 'wordle-sub-30s', when: ({ timeMs }) => timeMs < 30_000 },
-    { id: 'wordle-sub-10s', when: ({ timeMs }) => timeMs < 10_000 },
-    { id: 'wordle-sub-5s', when: ({ timeMs }) => timeMs < 5_000 },
-    { id: 'wordle-three-guesses', when: ({ guesses }) => guesses <= 3 },
-    { id: 'wordle-two-guesses', when: ({ guesses }) => guesses <= 2 },
+    { id: 'wordle-first-win', when: ({ wordleWins }) => wordleWins >= 1 },
+    { id: 'wordle-wins-7', when: ({ wordleWins }) => wordleWins >= 7 },
+    { id: 'wordle-wins-30', when: ({ wordleWins }) => wordleWins >= 30 },
+    { id: 'wordle-wins-100', when: ({ wordleWins }) => wordleWins >= 100 },
+    { id: 'wordle-wins-200', when: ({ wordleWins }) => wordleWins >= 200 },
+    { id: 'wordle-wins-300', when: ({ wordleWins }) => wordleWins >= 300 },
+    { id: 'wordle-three-guesses-10', when: ({ wordleThreeGuesses }) => wordleThreeGuesses >= 10 },
     { id: 'wordle-one-guess', when: ({ guesses }) => guesses <= 1 }
   ],
   crossword: [
-    { id: 'crossword-first-win', when: ({ timeMs }) => timeMs >= 0 },
-    { id: 'crossword-sub-60s', when: ({ timeMs }) => timeMs < 60_000 },
+    { id: 'crossword-first-win', when: ({ crosswordWins }) => crosswordWins >= 1 },
+    { id: 'crossword-wins-7', when: ({ crosswordWins }) => crosswordWins >= 7 },
+    { id: 'crossword-wins-30', when: ({ crosswordWins }) => crosswordWins >= 30 },
+    { id: 'crossword-wins-100', when: ({ crosswordWins }) => crosswordWins >= 100 },
+    { id: 'crossword-wins-200', when: ({ crosswordWins }) => crosswordWins >= 200 },
+    { id: 'crossword-wins-300', when: ({ crosswordWins }) => crosswordWins >= 300 },
     { id: 'crossword-sub-30s', when: ({ timeMs }) => timeMs < 30_000 },
     { id: 'crossword-sub-15s', when: ({ timeMs }) => timeMs < 15_000 }
   ],
   connections: [
-    { id: 'connections-first-win', when: ({ won }) => won === true },
-    { id: 'connections-perfect', when: ({ won, mistakes }) => won === true && mistakes === 0 }
+    { id: 'connections-first-win', when: ({ connectionsWins }) => connectionsWins >= 1 },
+    { id: 'connections-wins-15', when: ({ connectionsWins }) => connectionsWins >= 15 },
+    { id: 'connections-wins-100', when: ({ connectionsWins }) => connectionsWins >= 100 },
+    { id: 'connections-wins-200', when: ({ connectionsWins }) => connectionsWins >= 200 },
+    { id: 'connections-wins-300', when: ({ connectionsWins }) => connectionsWins >= 300 },
+    { id: 'connections-perfect', when: ({ won, mistakes }) => won === true && mistakes === 0 },
+    { id: 'connections-perfect-10', when: ({ connectionsPerfect }) => connectionsPerfect >= 10 }
   ],
   'one-percent': [
-    { id: 'one-percent-first-play', when: () => true },
-    { id: 'one-percent-five-cleared', when: ({ score }) => score >= 5 },
-    { id: 'one-percent-club', when: ({ clearedAll }) => clearedAll === true }
+    { id: 'one-percent-first-play', when: ({ onePercentRuns }) => onePercentRuns >= 1 },
+    { id: 'one-percent-club', when: ({ onePercentClubClears }) => onePercentClubClears >= 1 },
+    { id: 'one-percent-club-clears-10', when: ({ onePercentClubClears }) => onePercentClubClears >= 10 },
+    { id: 'one-percent-days-100', when: ({ onePercentRuns }) => onePercentRuns >= 100 },
+    { id: 'one-percent-days-200', when: ({ onePercentRuns }) => onePercentRuns >= 200 },
+    { id: 'one-percent-days-300', when: ({ onePercentRuns }) => onePercentRuns >= 300 },
+    { id: 'one-percent-club-3-days', when: ({ clubStreak, onePercentClubLongestStreak }) => Math.max(clubStreak || 0, onePercentClubLongestStreak || 0) >= 3 },
+    { id: 'one-percent-club-7-days', when: ({ clubStreak, onePercentClubLongestStreak }) => Math.max(clubStreak || 0, onePercentClubLongestStreak || 0) >= 7 },
+    { id: 'one-percent-club-14-days', when: ({ clubStreak, onePercentClubLongestStreak }) => Math.max(clubStreak || 0, onePercentClubLongestStreak || 0) >= 14 },
+    { id: 'one-percent-club-30-days', when: ({ clubStreak, onePercentClubLongestStreak }) => Math.max(clubStreak || 0, onePercentClubLongestStreak || 0) >= 30 }
   ],
   streak: [
-    { id: 'streak-3', when: ({ longestStreak }) => longestStreak >= 3 },
     { id: 'streak-7', when: ({ longestStreak }) => longestStreak >= 7 },
-    { id: 'streak-30', when: ({ longestStreak }) => longestStreak >= 30 }
+    { id: 'streak-30', when: ({ longestStreak }) => longestStreak >= 30 },
+    { id: 'streak-100', when: ({ longestStreak }) => longestStreak >= 100 },
+    { id: 'streak-200', when: ({ longestStreak }) => longestStreak >= 200 },
+    { id: 'streak-300', when: ({ longestStreak }) => longestStreak >= 300 }
   ]
 }
 
@@ -99,6 +117,85 @@ function isBetterHighScore(current, candidate) {
   if (candidate.score !== Number(current.score || current.value)) return candidate.score > Number(current.score || current.value)
   if (candidate.words !== Number(current.words || 0)) return candidate.words > Number(current.words || 0)
   return false
+}
+
+function ukDateIdNow() {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/London',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).format(new Date())
+}
+
+function previousUkDate(id) {
+  const [year, month, day] = String(id || '').split('-').map(Number)
+  if (!year || !month || !day) return ''
+  const date = new Date(Date.UTC(year, month - 1, day))
+  date.setUTCDate(date.getUTCDate() - 1)
+  return date.toISOString().slice(0, 10)
+}
+
+function readStats(data) {
+  const stats = { ...(data?.stats || {}) }
+  if (stats.onePercentClubCurrentStreak == null && data?.onePercentClubCurrentStreak != null) {
+    stats.onePercentClubCurrentStreak = data.onePercentClubCurrentStreak
+    stats.onePercentClubLongestStreak = data.onePercentClubLongestStreak
+    stats.onePercentClubLastDate = data.onePercentClubLastDate
+  }
+  return stats
+}
+
+function bumpOncePerDay(stats, countKey, dateKey, today) {
+  if (stats[dateKey] === today) return
+  stats[countKey] = (Number(stats[countKey]) || 0) + 1
+  stats[dateKey] = today
+}
+
+function applyGameStats(game, candidate, stats, today) {
+  if (game === 'wordle') {
+    bumpOncePerDay(stats, 'wordleWins', 'wordleWinsDate', today)
+    if (candidate.guesses <= 3) bumpOncePerDay(stats, 'wordleThreeGuesses', 'wordleThreeGuessesDate', today)
+  } else if (game === 'crossword') {
+    bumpOncePerDay(stats, 'crosswordWins', 'crosswordWinsDate', today)
+  } else if (game === 'connections' && candidate.won) {
+    bumpOncePerDay(stats, 'connectionsWins', 'connectionsWinsDate', today)
+    if (candidate.mistakes === 0) bumpOncePerDay(stats, 'connectionsPerfect', 'connectionsPerfectDate', today)
+  } else if (game === 'one-percent') {
+    bumpOncePerDay(stats, 'onePercentRuns', 'onePercentRunsDate', today)
+    const streak = nextOnePercentClubStreak(stats, candidate.clearedAll === true)
+    stats.onePercentClubCurrentStreak = streak.current
+    stats.onePercentClubLongestStreak = streak.longest
+    stats.onePercentClubLastDate = streak.last
+    candidate.clubStreak = streak.current
+    if (candidate.clearedAll) bumpOncePerDay(stats, 'onePercentClubClears', 'onePercentClubClearsDate', today)
+  }
+  Object.assign(candidate, stats)
+}
+
+function nextOnePercentClubStreak(data, clearedAll) {
+  const today = ukDateIdNow()
+  const last = String(data?.onePercentClubLastDate || '')
+  let current = Math.max(0, Number(data?.onePercentClubCurrentStreak) || 0)
+  const longest = Math.max(0, Number(data?.onePercentClubLongestStreak) || 0)
+  if (clearedAll) {
+    if (last === today) {
+      return { current, longest: Math.max(longest, current), last: today, changed: false }
+    }
+    current = last && last === previousUkDate(today) ? current + 1 : 1
+    return { current, longest: Math.max(longest, current), last: today, changed: true }
+  }
+  if (last === today) {
+    return { current, longest, last, changed: false }
+  }
+  return { current: 0, longest, last: today, changed: current !== 0 || last !== today }
+}
+
+function isBetterOnePercentScore(current, candidate) {
+  if (!current) return true
+  const currentScore = Number(current.score || current.value)
+  if (candidate.score !== currentScore) return candidate.score > currentScore
+  return candidate.timeMs < Number(current.timeMs || Infinity)
 }
 
 function isBetterLongestStreak(current, candidate) {
@@ -264,7 +361,24 @@ async function handleGameAchievements(request) {
     const timeMs = intInRange(request.data?.timeMs ?? 0, 0, 86_400_000)
     if (score == null) throw new HttpsError('invalid-argument', 'Invalid 1% Club score.')
     if (timeMs == null) throw new HttpsError('invalid-argument', 'Invalid 1% Club time.')
-    Object.assign(candidate, { score, timeMs, clearedAll: request.data?.clearedAll === true })
+    const clearedAll = request.data?.clearedAll === true
+    Object.assign(candidate, { score, timeMs, clearedAll })
+    crownSpecs.push({
+      id: 'one-percent-highest',
+      metric: 'high-score',
+      value: score,
+      better: isBetterOnePercentScore,
+      extra: { score, timeMs }
+    })
+    if (clearedAll) {
+      crownSpecs.push({
+        id: 'one-percent-fastest',
+        metric: 'fastest-time',
+        value: timeMs,
+        better: isBetterFastestTime,
+        extra: { score, timeMs }
+      })
+    }
   } else if (game === 'streak') {
     const streakSnap = await db.doc(`playStreaks/${uid}`).get()
     if (!streakSnap.exists) return { unlockedIds: [], crowns: [] }
@@ -282,6 +396,7 @@ async function handleGameAchievements(request) {
 
   const crownRefs = crownSpecs.map(spec => db.doc(`achievementCrowns/${spec.id}`))
   const unlockedIds = []
+  const claimedCrownIds = []
 
   await db.runTransaction(async (transaction) => {
     const snaps = await Promise.all([
@@ -289,8 +404,12 @@ async function handleGameAchievements(request) {
       ...crownRefs.map(ref => transaction.get(ref))
     ])
     const userSnap = snaps[0]
-    const existingAchievements = userSnap.exists ? (userSnap.data().achievements || {}) : {}
+    const existingData = userSnap.exists ? userSnap.data() : {}
+    const existingAchievements = existingData.achievements || {}
     const nextAchievements = { ...existingAchievements }
+    const stats = readStats(existingData)
+    applyGameStats(game, candidate, stats, ukDateIdNow())
+
     for (const achievement of GAME_ACHIEVEMENTS[game]) {
       if (!achievement.when(candidate) || nextAchievements[achievement.id]) continue
       unlockedIds.push(achievement.id)
@@ -300,17 +419,20 @@ async function handleGameAchievements(request) {
       }
     }
 
-    if (unlockedIds.length || !userSnap.exists) {
-      transaction.set(userRef, {
-        userId: uid,
-        achievements: nextAchievements,
-        updatedAt: FieldValue.serverTimestamp()
-      }, { merge: true })
-    }
+    transaction.set(userRef, {
+      userId: uid,
+      achievements: nextAchievements,
+      stats,
+      onePercentClubCurrentStreak: stats.onePercentClubCurrentStreak || 0,
+      onePercentClubLongestStreak: stats.onePercentClubLongestStreak || 0,
+      onePercentClubLastDate: stats.onePercentClubLastDate || '',
+      updatedAt: FieldValue.serverTimestamp()
+    }, { merge: true })
 
     crownSpecs.forEach((spec, index) => {
       const current = snaps[index + 1].exists ? snaps[index + 1].data() : null
       if (!spec.better(current, candidate)) return
+      claimedCrownIds.push(spec.id)
       transaction.set(crownRefs[index], {
         holderUserId: uid,
         holderName: userName,
@@ -329,7 +451,7 @@ async function handleGameAchievements(request) {
     .filter(snap => snap.exists)
     .map((snap) => ({ id: snap.id, ...snap.data() }))
 
-  return { unlockedIds, crowns }
+  return { unlockedIds, claimedCrownIds, crowns }
 }
 
 exports.processGameAchievements = onCall(

@@ -39,7 +39,7 @@ const cards = [
   { key: 'legal', title: 'Privacy & Policy', desc: 'Footer legal pages anyone can read.', to: '/admin/legal' },
   { key: 'wordle', title: 'Wordle', desc: 'Solution words and today’s override.', to: '/admin/games/wordle' },
   { key: 'crossword', title: 'Crossword', desc: 'Quick timed crossword puzzles.', to: '/admin/games/crossword' },
-  { key: 'onePercent', title: '1% Club', desc: 'Ladder questions from 90% to 1%.', to: '/admin/games/one-percent' },
+  { key: 'onePercent', title: '1% Club', desc: 'Daily Vachanamrut ladders from the Bhuj edition.', to: '/admin/games/one-percent' },
   { key: 'connections', title: 'Connections', desc: 'Four groups of four satsang words.', to: '/admin/games/connections' }
 ]
 
@@ -54,7 +54,6 @@ const counts = reactive<Record<string, number | null>>({
   legal: null,
   wordle: null,
   crossword: null,
-  spelling: null,
   onePercent: null,
   connections: null
 })

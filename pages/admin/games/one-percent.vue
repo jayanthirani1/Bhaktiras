@@ -1,32 +1,46 @@
 <template>
   <div>
     <p v-if="error" class="mb-3 text-sm text-red-600">{{ error }}</p>
-    <div v-if="!loading && !sorted.length" class="mb-4">
+    <p class="mb-4 text-sm text-[hsl(var(--muted-foreground))]">
+      The live game is Vachanamrut-based (Bhuj edition) and picks a new prakaran ladder each UK day.
+      Import the default packs below, or add a dated override with today’s date id.
+    </p>
+    <div class="mb-4">
       <button type="button" class="admin-btn-secondary" :disabled="importing || saving" @click="importDefaults">
-        {{ importing ? 'Importing…' : 'Import default ladder' }}
+        {{ importing ? 'Importing…' : 'Import Vachanamrut ladders' }}
       </button>
     </div>
     <AdminEditorLayout
       :count-label="`${sorted.length} question${sorted.length === 1 ? '' : 's'}`"
       create-label="Add question"
-      empty-label="No 1% Club questions yet. Import the default ladder or add your own."
+      empty-label="No 1% Club questions in Firestore yet. The site still uses the built-in daily Vachanamrut ladders."
       :loading="loading"
       :empty="!sorted.length"
       @create="openNew"
     >
       <template #list>
-        <button
-          v-for="q in sorted"
-          :key="q.id"
-          type="button"
-          class="admin-row"
-          :class="isEditing && editingId === q.id ? 'admin-row-active' : ''"
-          @click="openEdit(q)"
-        >
-          <p class="text-xs font-semibold text-[hsl(var(--accent))]">{{ q.percent }}%</p>
-          <p class="font-semibold text-[hsl(var(--primary))]">{{ q.question }}</p>
-          <p class="mt-1 text-sm text-[hsl(var(--muted-foreground))]">Answer: {{ q.correctAnswer }}</p>
-        </button>
+        <div class="space-y-5">
+          <section v-for="group in grouped" :key="group.section" class="space-y-2">
+            <h2 class="text-xs font-semibold uppercase tracking-[0.18em] text-[hsl(var(--accent))]">
+              {{ group.label }}
+              <span class="font-normal tracking-normal text-[hsl(var(--muted-foreground))]">
+                · {{ group.items.length }}
+              </span>
+            </h2>
+            <button
+              v-for="q in group.items"
+              :key="q.id"
+              type="button"
+              class="admin-row"
+              :class="isEditing && editingId === q.id ? 'admin-row-active' : ''"
+              @click="openEdit(q)"
+            >
+              <p class="text-xs font-semibold text-[hsl(var(--accent))]">{{ q.percent }}% · {{ q.source || q.packId || 'Vachanamrut' }}</p>
+              <p class="font-semibold text-[hsl(var(--primary))]">{{ q.question }}</p>
+              <p class="mt-1 text-sm text-[hsl(var(--muted-foreground))]">Answer: {{ q.correctAnswer }}</p>
+            </button>
+          </section>
+        </div>
       </template>
       <template #form>
         <form v-if="showForm" class="space-y-4" @submit.prevent="save">
@@ -43,6 +57,16 @@
           <div>
             <label class="admin-label">Question</label>
             <textarea v-model="form.question" required rows="3" class="admin-input" />
+          </div>
+          <div class="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label class="admin-label">Prakaran / section</label>
+              <input v-model="form.section" class="admin-input" placeholder="gadhada-i">
+            </div>
+            <div>
+              <label class="admin-label">Source</label>
+              <input v-model="form.source" class="admin-input" placeholder="Gadhada I – 1">
+            </div>
           </div>
           <div v-for="(_, i) in form.options" :key="i">
             <label class="admin-label">Option {{ i + 1 }}</label>
@@ -69,20 +93,49 @@
 
 <script setup lang="ts">
 import type { OnePercentQuestion } from '~/types'
-import { DEFAULT_ONE_PERCENT } from '~/data/onePercentClub'
+import { DEFAULT_ONE_PERCENT, VACHANAMRUT_ONE_PERCENT_PACKS } from '~/data/onePercentClub'
 
 definePageMeta({ layout: 'admin', middleware: 'admin' })
 
-const { items, loading, saving, error, fetchAll, create, updateItem, remove } = useAdminOnePercent()
+const { items, loading, saving, error, fetchAll, create, setItem, updateItem, remove } = useAdminOnePercent()
 const showForm = ref(false)
 const isEditing = ref(false)
 const editingId = ref<string | null>(null)
 const importing = ref(false)
-const form = reactive({ percent: 90, question: '', options: ['', '', '', ''], correctAnswer: '', order: 0 })
+const form = reactive({
+  percent: 90,
+  question: '',
+  options: ['', '', '', ''],
+  correctAnswer: '',
+  order: 0,
+  section: '',
+  source: '',
+  packId: ''
+})
 
 const sorted = computed(() =>
-  [...items.value].sort((a, b) => (b.percent - a.percent) || (a.order ?? 0) - (b.order ?? 0))
+  [...items.value].sort((a, b) => {
+    const section = String(a.section || '').localeCompare(String(b.section || ''))
+    if (section) return section
+    return (b.percent - a.percent) || (a.order ?? 0) - (b.order ?? 0)
+  })
 )
+
+const grouped = computed(() => {
+  const labels = new Map(VACHANAMRUT_ONE_PERCENT_PACKS.map(p => [p.section, p.sectionLabel]))
+  const bySection = new Map<string, OnePercentQuestion[]>()
+  for (const q of sorted.value) {
+    const key = String(q.section || '').trim() || 'other'
+    const list = bySection.get(key)
+    if (list) list.push(q)
+    else bySection.set(key, [q])
+  }
+  return [...bySection.entries()].map(([section, sectionItems]) => ({
+    section,
+    label: labels.get(section) || (section === 'other' ? 'Other' : section),
+    items: sectionItems
+  }))
+})
 
 onMounted(async () => {
   await fetchAll()
@@ -97,7 +150,10 @@ function openNew() {
     question: '',
     options: ['', '', '', ''],
     correctAnswer: '',
-    order: items.value.length + 1
+    order: items.value.length + 1,
+    section: '',
+    source: '',
+    packId: ''
   })
   showForm.value = true
 }
@@ -117,7 +173,10 @@ function openEdit(q: OnePercentQuestion) {
     question: q.question,
     options: options.slice(0, 4),
     correctAnswer: q.correctAnswer,
-    order: q.order ?? 0
+    order: q.order ?? 0,
+    section: q.section || '',
+    source: q.source || '',
+    packId: q.packId || ''
   })
   showForm.value = true
 }
@@ -138,7 +197,10 @@ async function save() {
     question: form.question.trim(),
     options,
     correctAnswer: form.correctAnswer.trim(),
-    order: Number(form.order) || 0
+    order: Number(form.order) || 0,
+    section: form.section.trim() || null,
+    source: form.source.trim() || null,
+    packId: form.packId.trim() || null
   }
   try {
     if (isEditing.value) {
@@ -164,17 +226,20 @@ async function onDelete(id: string) {
 }
 
 async function importDefaults() {
-  if (importing.value || saving.value || items.value.length) return
+  if (importing.value || saving.value) return
   importing.value = true
   error.value = ''
   try {
     for (const q of DEFAULT_ONE_PERCENT) {
-      await create({
+      await setItem(q.id, {
         percent: q.percent,
         question: q.question,
         options: q.options,
         correctAnswer: q.correctAnswer,
-        order: q.order ?? 0
+        order: q.order ?? 0,
+        section: q.section || null,
+        source: q.source || null,
+        packId: q.packId || null
       })
     }
   } catch {
