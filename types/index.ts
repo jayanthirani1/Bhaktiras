@@ -229,6 +229,13 @@ export interface OnePercentQuestion {
   options: string[]
   correctAnswer: string
   order?: number
+  /** Vachanamrut prakaran, e.g. gadhada-i. */
+  section?: string
+  /** Daily pack id, e.g. sarangpur-a. */
+  packId?: string
+  /** Reference such as “Gadhada I – 1”. */
+  source?: string
+  dateId?: string | null
 }
 
 export interface ConnectionsGroup {
@@ -264,12 +271,17 @@ export interface UserAchievementUnlock {
   words?: number
   mistakes?: number
   longestStreak?: number
+  clubStreak?: number
 }
 
 export interface UserAchievementsRecord {
   id: string
   userId: string
   achievements: Record<string, UserAchievementUnlock>
+  onePercentClubCurrentStreak?: number
+  onePercentClubLongestStreak?: number
+  onePercentClubLastDate?: string
+  stats?: Record<string, number | string>
   updatedAt?: { seconds?: number; nanoseconds?: number } | Date
 }
 

@@ -40,7 +40,7 @@ const cards = [
   { key: 'wordle', title: 'Wordle', desc: 'Solution words and today’s override.', to: '/admin/games/wordle' },
   { key: 'crossword', title: 'Crossword', desc: 'Quick timed crossword puzzles.', to: '/admin/games/crossword' },
   { key: 'spelling', title: 'Spelling Bee', desc: 'Hive letters and accepted words.', to: '/admin/games/spelling-bee' },
-  { key: 'onePercent', title: '1% Club', desc: 'Ladder questions from 90% to 1%.', to: '/admin/games/one-percent' },
+  { key: 'onePercent', title: '1% Club', desc: 'Daily Vachanamrut ladders from the Bhuj edition.', to: '/admin/games/one-percent' },
   { key: 'connections', title: 'Connections', desc: 'Four groups of four satsang words.', to: '/admin/games/connections' }
 ]
 

@@ -2,9 +2,13 @@ import { collection, doc, getDoc, getDocs, type Firestore } from 'firebase/fires
 import type { ConnectionsPuzzle, CrosswordPuzzle, GameWordEntry, OnePercentQuestion, WordleWordDoc } from '~/types'
 import type { SpellingBeePuzzle } from '~/data/spellingBeePuzzles'
 import { SPELLING_BEE_PUZZLES } from '~/data/spellingBeePuzzles'
-import { DEFAULT_ONE_PERCENT } from '~/data/onePercentClub'
 import { DEFAULT_MINI_CROSSWORD } from '~/data/miniCrossword'
 import { DEFAULT_CONNECTIONS_PUZZLES } from '~/data/connectionsPuzzles'
+import {
+  onePercentPackForDate,
+  withShuffledOptions,
+  type OnePercentPack
+} from '~/data/onePercentClub'
 import { ukDateId } from '~/utils/gameDay'
 import { wordleDateId } from '~/utils/wordleDaily'
 import {
@@ -107,7 +111,10 @@ export function useMiniCrosswordPuzzles() {
 }
 
 export function useOnePercentQuestions() {
-  const questions = ref<OnePercentQuestion[]>([...DEFAULT_ONE_PERCENT])
+  const dateId = ukDateId()
+  const fallback = onePercentPackForDate(dateId)
+  const pack = ref<OnePercentPack>(fallback)
+  const questions = ref<OnePercentQuestion[]>(fallback.questions.map(q => withShuffledOptions(q, dateId)))
   const loading = ref(true)
 
   onMounted(async () => {
@@ -117,14 +124,28 @@ export function useOnePercentQuestions() {
       const snap = await getDocs(collection(db, 'onePercentQuestions'))
       const remote = snap.docs.map(d => ({ id: d.id, ...d.data() } as OnePercentQuestion))
         .filter(q => q.question && q.options?.length && q.correctAnswer && q.percent != null)
+      const todayExact = remote
+        .filter(q => q.dateId === dateId || q.packId === `daily-${dateId}`)
         .sort((a, b) => (b.percent - a.percent) || (a.order ?? 0) - (b.order ?? 0))
-      if (remote.length) questions.value = remote
+      const packOverride = remote
+        .filter(q => q.packId === fallback.id)
+        .sort((a, b) => (b.percent - a.percent) || (a.order ?? 0) - (b.order ?? 0))
+      const chosen = todayExact.length >= 4 ? todayExact : packOverride.length >= 4 ? packOverride : fallback.questions
+      if (todayExact.length >= 4) {
+        pack.value = {
+          ...fallback,
+          id: `daily-${dateId}`,
+          title: 'Today’s Vachanamrut ladder',
+          questions: todayExact
+        }
+      }
+      questions.value = chosen.map(q => withShuffledOptions(q, dateId))
     } finally {
       loading.value = false
     }
   })
 
-  return { questions, loading }
+  return { questions, pack, dateId, loading }
 }
 
 export function useConnectionsPuzzle() {

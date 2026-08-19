@@ -2,15 +2,15 @@
   <div class="min-h-screen bg-[hsl(var(--background))] px-4 pb-24 pt-8 md:pt-12">
     <div class="mx-auto max-w-3xl">
       <NuxtLink
-        to="/play/streaks"
+        to="/play"
         class="mb-6 inline-flex items-center gap-2 text-sm font-medium text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]"
       >
-        ← Back to streaks
+        ← Back games
       </NuxtLink>
 
       <PageHeader
         title="Achievements"
-        subtitle="Permanent unlocks for your account, plus all-time crowns that never reset with the daily boards."
+        subtitle="Long-term medals you work toward, plus a few rare one-shots. Progress saves to your account."
       />
 
       <div v-if="!auth.user.value" class="card-surface p-8 text-center">
@@ -31,10 +31,17 @@
               :key="crown.id"
               class="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--background))] p-4"
             >
-              <p class="text-sm font-semibold text-[hsl(var(--primary))]">{{ crownTitle(crown.id) }}</p>
-              <p class="mt-1 text-sm text-[hsl(var(--muted-foreground))]">{{ crown.holderName }}</p>
-              <p class="mt-2 text-xs font-semibold uppercase tracking-wide text-[hsl(var(--accent))]">{{ crownValue(crown) }}</p>
-              <p v-if="crown.holderUserId === auth.user.value?.uid" class="mt-2 text-xs font-semibold text-amber-700">You currently hold this crown.</p>
+              <div class="flex items-start gap-3">
+                <span class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-b from-yellow-300 to-amber-500 text-amber-900">
+                  <IconCrown class="h-5 w-5" />
+                </span>
+                <div>
+                  <p class="text-sm font-semibold text-[hsl(var(--primary))]">{{ crownTitle(crown.id) }}</p>
+                  <p class="mt-1 text-sm text-[hsl(var(--muted-foreground))]">{{ crown.holderName }}</p>
+                  <p class="mt-2 text-xs font-semibold uppercase tracking-wide text-[hsl(var(--accent))]">{{ crownValue(crown) }}</p>
+                  <p v-if="crown.holderUserId === auth.user.value?.uid" class="mt-2 text-xs font-semibold text-amber-700">You currently hold this crown.</p>
+                </div>
+              </div>
             </div>
             <p v-if="!achievements.crowns.value.length" class="text-sm text-[hsl(var(--muted-foreground))]">No crowns claimed yet.</p>
           </div>
@@ -53,14 +60,30 @@
               class="rounded-2xl border p-4"
               :class="item.unlocked ? 'border-emerald-200 bg-emerald-50/70' : 'border-[hsl(var(--border))] bg-[hsl(var(--background))]'"
             >
-              <div class="flex items-start justify-between gap-3">
-                <div>
-                  <p class="text-sm font-semibold text-[hsl(var(--primary))]">{{ item.title }}</p>
+              <div class="flex items-start gap-3">
+                <AchievementMedal :medal="item.medal" :unlocked="item.unlocked" />
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-start justify-between gap-3">
+                    <p class="text-sm font-semibold text-[hsl(var(--primary))]">{{ item.title }}</p>
+                    <span class="shrink-0 rounded-full px-2.5 py-1 text-xs font-bold" :class="item.unlocked ? 'bg-emerald-600 text-white' : 'bg-[hsl(var(--muted))] text-[hsl(var(--muted-foreground))]'">
+                      {{ item.unlocked ? 'Unlocked' : 'Locked' }}
+                    </span>
+                  </div>
                   <p class="mt-1 text-sm text-[hsl(var(--muted-foreground))]">{{ item.description }}</p>
+                  <div v-if="item.progressBar" class="mt-3">
+                    <div class="flex items-center justify-between text-[11px] font-semibold text-[hsl(var(--muted-foreground))]">
+                      <span>{{ item.progressBar.label }}</span>
+                      <span>{{ item.unlocked ? 'Done' : `${item.progressBar.percent}%` }}</span>
+                    </div>
+                    <div class="mt-1 h-1.5 overflow-hidden rounded-full bg-[hsl(var(--muted))]">
+                      <div
+                        class="h-full rounded-full transition-all duration-500"
+                        :class="item.unlocked ? 'bg-emerald-600' : 'bg-[hsl(var(--primary))]'"
+                        :style="{ width: `${item.unlocked ? 100 : item.progressBar.percent}%` }"
+                      />
+                    </div>
+                  </div>
                 </div>
-                <span class="rounded-full px-2.5 py-1 text-xs font-bold" :class="item.unlocked ? 'bg-emerald-600 text-white' : 'bg-[hsl(var(--muted))] text-[hsl(var(--muted-foreground))]'">
-                  {{ item.unlocked ? 'Unlocked' : 'Locked' }}
-                </span>
               </div>
             </div>
           </div>

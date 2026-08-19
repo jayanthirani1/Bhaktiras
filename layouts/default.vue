@@ -7,6 +7,7 @@
     <SiteFooter />
     <ClientOnly>
       <PushNotificationPrompt />
+      <AchievementUnlockToast />
     </ClientOnly>
   </div>
 </template>

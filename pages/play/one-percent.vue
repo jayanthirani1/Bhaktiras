@@ -18,7 +18,7 @@
       </div>
       <PageHeader
         title="1% Club"
-        subtitle="Climb the ladder from 90% to 1%. One wrong answer ends your run."
+        :subtitle="headerSubtitle"
       />
 
       <GamePlayedElsewhere
@@ -36,8 +36,12 @@
       </div>
 
       <div v-else-if="!started" class="card-surface space-y-4 p-6 text-center">
+        <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-[hsl(var(--accent))]">
+          {{ pack.sectionLabel }}
+        </p>
+        <p class="font-display text-xl font-semibold text-[hsl(var(--primary))]">{{ pack.title }}</p>
         <p class="text-sm text-[hsl(var(--muted-foreground))]">
-          Answer each question before the clock beats you to the bottom. The timer keeps running even if you leave.
+          Answer each Vachanamrut question before the clock beats you to the bottom. A new prakaran ladder arrives each day. The timer keeps running even if you leave.
         </p>
         <button type="button" class="btn-primary" @click="startRun">Start today’s climb</button>
         <p v-if="finished" class="text-sm text-emerald-700">
@@ -76,13 +80,14 @@
       <div v-else-if="current" class="card-surface space-y-5 p-5 sm:p-6">
         <div class="flex items-center justify-between gap-3">
           <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-[hsl(var(--accent))]">
-            {{ current.percent }}% question
+            {{ current.percent }}% · Vachanamrut
           </p>
           <p class="text-xs text-[hsl(var(--muted-foreground))]">
             {{ index + 1 }} / {{ ladder.length }}
           </p>
         </div>
         <h2 class="font-display text-xl font-semibold text-[hsl(var(--foreground))]">{{ current.question }}</h2>
+        <p v-if="current.source" class="text-xs text-[hsl(var(--muted-foreground))]">{{ current.source }}</p>
         <div class="grid gap-2">
           <button
             v-for="opt in current.options"
@@ -113,17 +118,18 @@
           to submit yours.
         </template>
       </GameLeaderboard>
+      <GameCrowns :ids="['one-percent-highest', 'one-percent-fastest']" />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ukDateId } from '~/utils/gameDay'
+import { ukDateId, formatUkDateLabel } from '~/utils/gameDay'
 import { formatElapsed } from '~/composables/useGameTimer'
 
 const RUN_KEY = `one-percent-run:${ukDateId()}`
 
-const { questions, loading } = useOnePercentQuestions()
+const { questions, pack, loading } = useOnePercentQuestions()
 const auth = useAuth()
 const achievements = useAchievements()
 const isLoggedIn = computed(() => !!auth.user.value)
@@ -167,6 +173,10 @@ const ladder = computed(() =>
 )
 const current = computed(() => ladder.value[index.value] || null)
 const reachedOnePercent = computed(() => cleared.value >= ladder.value.length && ladder.value.some(q => q.percent === 1))
+const headerSubtitle = computed(() => {
+  const section = pack.value?.sectionLabel || 'the Vachanamrut'
+  return `Vachanamrut-based. Today’s climb is ${section}. One wrong answer ends your run.`
+})
 
 function optionClass(opt: string) {
   if (!feedback.value) {
@@ -308,5 +318,5 @@ onMounted(() => {
   else if (started.value && !finished.value) timer.ensureStarted()
 })
 
-useHead({ title: '1% Club · Bhaktiras' })
+useHead({ title: '1% Club · Vachanamrut · Bhaktiras' })
 </script>
