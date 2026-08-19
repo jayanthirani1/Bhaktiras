@@ -68,7 +68,6 @@
         <option value="">All games</option>
         <option value="wordle">Wordle</option>
         <option value="crossword">Crossword</option>
-        <option value="spelling-bee">Spelling Bee</option>
       </select>
       <select v-model="category" class="admin-input">
         <option value="">All categories</option>
@@ -153,7 +152,6 @@ const stats = computed(() => [
   { label: 'Custom words', value: customEntries.value.length },
   { label: 'Wordle words', value: gameWordsFor('wordle', allEntries.value).length },
   { label: 'Crossword words', value: gameWordsFor('crossword', allEntries.value).length },
-  { label: 'Spelling Bee words', value: gameWordsFor('spelling-bee', allEntries.value).length }
 ])
 const previewAnswer = computed(() => normalizeGameWord(form.display))
 const previewGames = computed(() => gameTargetsForAnswer(previewAnswer.value))
@@ -171,7 +169,7 @@ const filtered = computed(() => {
 const visibleEntries = computed(() => filtered.value.slice(0, DISPLAY_LIMIT))
 
 function gameLabel(target: GameWordTarget) {
-  return target === 'spelling-bee' ? 'Spelling Bee' : target[0].toUpperCase() + target.slice(1)
+  return target[0].toUpperCase() + target.slice(1)
 }
 
 function resetForm() {

@@ -7,7 +7,6 @@ import { formatElapsed } from '~/composables/useGameTimer'
 export type AchievementGroup =
   | 'wordle'
   | 'crossword'
-  | 'spelling-bee'
   | 'connections'
   | 'one-percent'
   | 'streak'
@@ -46,11 +45,6 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
   { id: 'crossword-sub-60s', title: 'Crossword Under a Minute', description: 'Finish the Crossword in under 60 seconds.', group: 'crossword' },
   { id: 'crossword-sub-30s', title: 'Crossword Sprinter', description: 'Finish the Crossword in under 30 seconds.', group: 'crossword' },
   { id: 'crossword-sub-15s', title: 'Crossword Flash', description: 'Finish the Crossword in under 15 seconds.', group: 'crossword' },
-  { id: 'spelling-bee-first-word', title: 'First Hive Word', description: 'Find your first Spelling Bee word.', group: 'spelling-bee' },
-  { id: 'spelling-bee-five-words', title: 'Hive Explorer', description: 'Find 5 words in a single Spelling Bee hive.', group: 'spelling-bee' },
-  { id: 'spelling-bee-pangram', title: 'Pangram', description: 'Find a word that uses every hive letter.', group: 'spelling-bee' },
-  { id: 'spelling-bee-score-50', title: 'Busy Bee', description: 'Score 50 points in a single Spelling Bee hive.', group: 'spelling-bee' },
-  { id: 'spelling-bee-score-100', title: 'Queen Bee', description: 'Score 100 points in a single Spelling Bee hive.', group: 'spelling-bee' },
   { id: 'connections-first-win', title: 'First Connections Win', description: 'Solve a Connections puzzle.', group: 'connections' },
   { id: 'connections-perfect', title: 'Perfect Connections', description: 'Solve Connections with no mistakes.', group: 'connections' },
   { id: 'one-percent-first-play', title: 'Ladder Climber', description: 'Finish a 1% Club run.', group: 'one-percent' },
@@ -64,7 +58,6 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 export const ACHIEVEMENT_GROUP_TITLES: Record<AchievementGroup, string> = {
   wordle: 'Wordle',
   crossword: 'Crossword',
-  'spelling-bee': 'Spelling Bee',
   connections: 'Connections',
   'one-percent': '1% Club',
   streak: 'Streaks'
@@ -74,7 +67,6 @@ export const CROWN_DEFINITIONS = [
   { id: 'wordle-fastest', title: 'Fastest Wordle', description: 'Current all-time fastest winning Wordle.', game: 'wordle' },
   { id: 'wordle-fewest-guesses', title: 'Fewest Guesses Wordle', description: 'Current all-time fewest-guesses winning Wordle.', game: 'wordle' },
   { id: 'crossword-fastest', title: 'Fastest Crossword', description: 'Current all-time fastest Crossword finish.', game: 'crossword' },
-  { id: 'spelling-bee-high-score', title: 'Spelling Bee High Score', description: 'Current all-time highest Spelling Bee score.', game: 'spelling-bee' },
   { id: 'streak-longest', title: 'Longest Streak', description: 'Current all-time longest games streak.', game: 'streak' }
 ] as const
 
@@ -114,11 +106,6 @@ export function crownValue(crown: AchievementCrownRecord) {
   }
   if (crown.id === 'wordle-fewest-guesses') {
     return `${crown.guesses || crown.value}/6${crown.timeMs ? ` · ${formatElapsed(crown.timeMs)}` : ''}`
-  }
-  if (crown.id === 'spelling-bee-high-score') {
-    const points = crown.score || crown.value
-    const words = crown.words ? ` · ${crown.words} word${crown.words === 1 ? '' : 's'}` : ''
-    return `${points} pts${words}`
   }
   if (crown.id === 'streak-longest') {
     const days = crown.longestStreak || crown.value

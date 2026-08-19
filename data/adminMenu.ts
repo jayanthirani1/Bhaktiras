@@ -41,7 +41,6 @@ export const ADMIN_MENU_GROUPS: AdminMenuGroup[] = [
       { label: 'Game Word Bank', to: '/admin/games/word-bank', subtitle: 'Swaminarayan, Gujarati & basic Hindu words' },
       { label: 'Wordle', to: '/admin/games/wordle', subtitle: 'Plan daily words for the week or month' },
       { label: 'Crossword', to: '/admin/games/crossword', subtitle: 'Quick timed crossword' },
-      { label: 'Spelling Bee', to: '/admin/games/spelling-bee', subtitle: 'Hive letters and answers' },
       { label: '1% Club', to: '/admin/games/one-percent', subtitle: 'Ladder questions from 90% to 1%' },
       { label: 'Connections', to: '/admin/games/connections', subtitle: 'Four groups of four satsang words' }
     ]

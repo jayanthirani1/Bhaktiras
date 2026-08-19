@@ -12,7 +12,6 @@ import {
   type Firestore
 } from 'firebase/firestore'
 import type { ConnectionsPuzzle, CrosswordPuzzle, Event, GameWordEntry, Niyam, OnePercentQuestion, SiteContentSettings, SitePage, TimelineItem, WordleWordDoc, YajmanOpportunity } from '~/types'
-import type { SpellingBeePuzzle } from '~/data/spellingBeePuzzles'
 import {
   communityPromptsFromSource,
   homeTilesFromSource,
@@ -147,9 +146,6 @@ export function useAdminWordleWords() {
 }
 export function useAdminGameWords() {
   return useAdminCollection<GameWordEntry>('gameWords')
-}
-export function useAdminSpellingBee() {
-  return useAdminCollection<SpellingBeePuzzle & { id: string }>('spellingBeePuzzles')
 }
 export function useAdminNiyams() {
   return useAdminCollection<Niyam>('niyams')

@@ -1,7 +1,7 @@
 # Satsang game word bank
 
-`satsangWordBank.json` is a curated, offline vocabulary used by Wordle,
-Crossword and Spelling Bee.
+`satsangWordBank.json` is a curated, offline vocabulary used by Wordle and
+Crossword.
 
 Each entry contains:
 

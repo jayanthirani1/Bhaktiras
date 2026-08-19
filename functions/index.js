@@ -30,13 +30,6 @@ const GAME_ACHIEVEMENTS = {
     { id: 'crossword-sub-30s', when: ({ timeMs }) => timeMs < 30_000 },
     { id: 'crossword-sub-15s', when: ({ timeMs }) => timeMs < 15_000 }
   ],
-  'spelling-bee': [
-    { id: 'spelling-bee-first-word', when: ({ words }) => words >= 1 },
-    { id: 'spelling-bee-five-words', when: ({ words }) => words >= 5 },
-    { id: 'spelling-bee-pangram', when: ({ pangram }) => pangram === true },
-    { id: 'spelling-bee-score-50', when: ({ score }) => score >= 50 },
-    { id: 'spelling-bee-score-100', when: ({ score }) => score >= 100 }
-  ],
   connections: [
     { id: 'connections-first-win', when: ({ won }) => won === true },
     { id: 'connections-perfect', when: ({ won, mistakes }) => won === true && mistakes === 0 }
@@ -259,20 +252,6 @@ async function handleGameAchievements(request) {
       value: timeMs,
       better: isBetterFastestTime,
       extra: { timeMs }
-    })
-  } else if (game === 'spelling-bee') {
-    const score = intInRange(request.data?.score, 1, 5_000)
-    const words = intInRange(request.data?.words, 1, 500)
-    if (score == null) throw new HttpsError('invalid-argument', 'Invalid Spelling Bee score.')
-    if (words == null) throw new HttpsError('invalid-argument', 'Invalid Spelling Bee word count.')
-    const pangram = request.data?.pangram === true
-    Object.assign(candidate, { score, words, pangram })
-    crownSpecs.push({
-      id: 'spelling-bee-high-score',
-      metric: 'high-score',
-      value: score,
-      better: isBetterHighScore,
-      extra: { score, words }
     })
   } else if (game === 'connections') {
     const mistakes = intInRange(request.data?.mistakes, 0, 4)

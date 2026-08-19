@@ -390,8 +390,6 @@ def game_flags(answer: str) -> list[str]:
         games.append("wordle")
     if 3 <= len(answer) <= 15:
         games.append("crossword")
-    if len(answer) >= 4 and len(set(answer)) <= 7:
-        games.append("spelling-bee")
     return games
 
 
@@ -438,7 +436,7 @@ def main() -> None:
     unique_answers = len({row["answer"] for row in rows})
     by_game = {
         game: sum(1 for row in rows if game in row["games"])
-        for game in ("wordle", "crossword", "spelling-bee")
+        for game in ("wordle", "crossword")
     }
     print(f"Wrote {len(rows)} entries ({unique_answers} unique answers) to {OUTPUT}")
     print(f"Game coverage: {by_game}")

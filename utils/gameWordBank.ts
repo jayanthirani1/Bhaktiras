@@ -1,5 +1,4 @@
 import rawWordBank from '~/data/satsangWordBank.json'
-import type { SpellingBeePuzzle } from '~/data/spellingBeePuzzles'
 import type { CrosswordPuzzle, GameWordEntry, GameWordTarget } from '~/types'
 
 export const SATSANG_WORD_BANK = rawWordBank as GameWordEntry[]
@@ -22,7 +21,6 @@ export function gameTargetsForAnswer(answer: string): GameWordTarget[] {
   const games: GameWordTarget[] = []
   if (clean.length === 5) games.push('wordle')
   if (clean.length >= 3 && clean.length <= 15) games.push('crossword')
-  if (clean.length >= 4 && new Set(clean).size <= 7) games.push('spelling-bee')
   return games
 }
 
@@ -97,46 +95,4 @@ export function createWordBankMiniCrossword(
     }))
   }
 }
-
-function letterSet(word: string): string {
-  return [...new Set(word)].sort().join('')
-}
-
-export function buildWordBankSpellingBeePuzzles(
-  entries: GameWordEntry[] = SATSANG_WORD_BANK,
-  limit = 18
-): SpellingBeePuzzle[] {
-  const words = gameWordsFor('spelling-bee', entries)
-    .map(entry => entry.answer)
-    .filter(answer => answer.length <= 14)
-  const seeds = [...new Set(words.map(letterSet).filter(letters => letters.length === 7))]
-  const puzzles: SpellingBeePuzzle[] = []
-
-  for (const availableLetters of seeds) {
-    const allowed = new Set(availableLetters)
-    const matching = words.filter(word => [...word].every(letter => allowed.has(letter)))
-    if (matching.length < 7) continue
-
-    const rankedCentres = [...availableLetters]
-      .map(letter => ({
-        letter,
-        answers: matching.filter(word => word.includes(letter))
-      }))
-      .filter(option => option.answers.length >= 7)
-      .sort((a, b) => b.answers.length - a.answers.length)
-
-    const best = rankedCentres[0]
-    if (!best) continue
-    puzzles.push({
-      middleLetter: best.letter,
-      availableLetters,
-      answers: [...new Set(best.answers)].sort()
-    })
-    if (puzzles.length === limit) break
-  }
-
-  return puzzles
-}
-
-export const WORD_BANK_SPELLING_BEE_PUZZLES = buildWordBankSpellingBeePuzzles()
 

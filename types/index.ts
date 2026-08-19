@@ -83,7 +83,7 @@ export interface WordleDailyDoc {
   word: string
 }
 
-export type GameWordTarget = 'wordle' | 'crossword' | 'spelling-bee'
+export type GameWordTarget = 'wordle' | 'crossword'
 
 export interface GameWordEntry {
   id: string
@@ -202,7 +202,6 @@ export interface TimeCapsuleMessage {
 
 export type GameLeaderboardId =
   | 'wordle'
-  | 'spelling-bee'
   | 'one-percent'
   | 'mini-crossword'
   | 'connections'

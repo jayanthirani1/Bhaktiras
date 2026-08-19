@@ -125,7 +125,7 @@ service cloud.firestore {
             && request.resource.data.timeMs <= 86400000
           )
         );
-      // Own score updates: spelling-bee scores can only improve during the current daily hive.
+      // Own score updates.
       allow update: if isSignedIn()
         && resource.data.userId == request.auth.uid
         && request.resource.data.userId == request.auth.uid
@@ -136,10 +136,6 @@ service cloud.firestore {
         && request.resource.data.score == int(request.resource.data.score)
         && request.resource.data.score >= 0
         && request.resource.data.score <= 9999999
-        && (
-          resource.data.game != 'spelling-bee'
-          || request.resource.data.score >= resource.data.score
-        )
         && (
           !('timeMs' in request.resource.data)
           || (
@@ -225,10 +221,6 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    match /spellingBeePuzzles/{id} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
 
     match /onePercentQuestions/{id} {
       allow read: if true;

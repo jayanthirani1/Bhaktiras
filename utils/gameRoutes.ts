@@ -6,7 +6,6 @@ export const GAME_PAGE_PATHS = [
   '/play/wordle',
   '/play/crossword',
   '/play/mini-crossword',
-  '/play/spelling-bee',
   '/play/one-percent',
   '/play/connections'
 ]

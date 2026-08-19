@@ -1,19 +1,15 @@
 import { collection, doc, getDoc, getDocs, type Firestore } from 'firebase/firestore'
 import type { ConnectionsPuzzle, CrosswordPuzzle, GameWordEntry, OnePercentQuestion, WordleWordDoc } from '~/types'
-import type { SpellingBeePuzzle } from '~/data/spellingBeePuzzles'
-import { SPELLING_BEE_PUZZLES } from '~/data/spellingBeePuzzles'
 import { DEFAULT_ONE_PERCENT } from '~/data/onePercentClub'
 import { DEFAULT_MINI_CROSSWORD } from '~/data/miniCrossword'
 import { DEFAULT_CONNECTIONS_PUZZLES } from '~/data/connectionsPuzzles'
 import { ukDateId } from '~/utils/gameDay'
 import { wordleDateId } from '~/utils/wordleDaily'
 import {
-  buildWordBankSpellingBeePuzzles,
   createWordBankMiniCrossword,
   gameTargetsForAnswer,
   mergeGameWords,
-  normalizeGameWord,
-  WORD_BANK_SPELLING_BEE_PUZZLES
+  normalizeGameWord
 } from '~/utils/gameWordBank'
 
 function getDb(): Firestore | null {
@@ -42,31 +38,6 @@ export async function fetchMergedGameWords(): Promise<GameWordEntry[]> {
   if (!db) return mergeGameWords()
   const snap = await getDocs(collection(db, 'gameWords'))
   return mergeGameWords(mapCustomGameWords(snap))
-}
-
-export function useSpellingBeePuzzles() {
-  const fallback = [...SPELLING_BEE_PUZZLES, ...WORD_BANK_SPELLING_BEE_PUZZLES]
-  const puzzles = ref<(SpellingBeePuzzle & { id?: string })[]>(fallback)
-  const loading = ref(true)
-
-  onMounted(async () => {
-    try {
-      const db = getDb()
-      if (!db) return
-      const [snap, wordSnap] = await Promise.all([
-        getDocs(collection(db, 'spellingBeePuzzles')),
-        getDocs(collection(db, 'gameWords'))
-      ])
-      const remote = snap.docs.map(d => ({ id: d.id, ...d.data() } as SpellingBeePuzzle & { id: string }))
-        .filter(p => p.middleLetter && p.availableLetters && p.answers?.length)
-      const generated = buildWordBankSpellingBeePuzzles(mergeGameWords(mapCustomGameWords(wordSnap)))
-      puzzles.value = [...remote, ...SPELLING_BEE_PUZZLES, ...generated]
-    } finally {
-      loading.value = false
-    }
-  })
-
-  return { puzzles, loading }
 }
 
 export function useMiniCrosswordPuzzles() {

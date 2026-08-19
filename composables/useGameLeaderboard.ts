@@ -65,7 +65,6 @@ async function cleanseOldScores(
     'one-percent',
     'mini-crossword',
     'connections',
-    'spelling-bee'
   ]
   if (!dailyGames.includes(game)) return
 

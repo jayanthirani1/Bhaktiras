@@ -4,7 +4,6 @@ export type PlayGameSlug =
   | 'wordle'
   | 'mini-crossword'
   | 'one-percent'
-  | 'spelling-bee'
   | 'connections'
 
 export interface PlayCompletionEntry {

@@ -39,7 +39,6 @@ const cards = [
   { key: 'legal', title: 'Privacy & Policy', desc: 'Footer legal pages anyone can read.', to: '/admin/legal' },
   { key: 'wordle', title: 'Wordle', desc: 'Solution words and today’s override.', to: '/admin/games/wordle' },
   { key: 'crossword', title: 'Crossword', desc: 'Quick timed crossword puzzles.', to: '/admin/games/crossword' },
-  { key: 'spelling', title: 'Spelling Bee', desc: 'Hive letters and accepted words.', to: '/admin/games/spelling-bee' },
   { key: 'onePercent', title: '1% Club', desc: 'Ladder questions from 90% to 1%.', to: '/admin/games/one-percent' },
   { key: 'connections', title: 'Connections', desc: 'Four groups of four satsang words.', to: '/admin/games/connections' }
 ]
@@ -71,7 +70,6 @@ const collectionNames: Record<string, string> = {
   legal: 'sitePages',
   wordle: 'wordleWords',
   crossword: 'miniCrosswordPuzzles',
-  spelling: 'spellingBeePuzzles',
   onePercent: 'onePercentQuestions',
   connections: 'connectionsPuzzles'
 }
