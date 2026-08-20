@@ -10,7 +10,7 @@ import {
 import { ukDateId } from '~/utils/gameDay'
 import { wordleDateId } from '~/utils/wordleDaily'
 import {
-  createWordBankMiniCrossword,
+  createFittedDailyCrossword,
   gameTargetsForAnswer,
   mergeGameWords,
   normalizeGameWord
@@ -46,7 +46,8 @@ export async function fetchMergedGameWords(): Promise<GameWordEntry[]> {
 
 export function useMiniCrosswordPuzzles() {
   const today = wordleDateId()
-  const dailyPuzzle = createWordBankMiniCrossword(today)
+  // Falls back to the curated puzzle if no roll fits, so a broken grid never ships.
+  const dailyPuzzle = createFittedDailyCrossword(today) || { ...DEFAULT_MINI_CROSSWORD }
   const puzzles = ref<CrosswordPuzzle[]>([dailyPuzzle])
   const loading = ref(true)
 
@@ -60,7 +61,7 @@ export function useMiniCrosswordPuzzles() {
       ])
       const remote = snap.docs.map(d => ({ id: d.id, ...d.data() } as CrosswordPuzzle))
         .filter(p => p.title && p.clues?.length)
-      const customDaily = createWordBankMiniCrossword(
+      const customDaily = createFittedDailyCrossword(
         today,
         mergeGameWords(mapCustomGameWords(wordSnap))
       )
@@ -68,11 +69,12 @@ export function useMiniCrosswordPuzzles() {
       const override = remote.find(p => p.id === overrideId)
       // The generated puzzle is the only player-facing crossword. Admin-authored
       // puzzles and the built-in fallback remain if generation has too few words.
-      puzzles.value = override
-        ? [override]
-        : customDaily.clues.length >= 4
-          ? [customDaily]
-        : [remote[0] || { ...DEFAULT_MINI_CROSSWORD }]
+      puzzles.value = [
+        override
+        || customDaily
+        || remote[0]
+        || { ...DEFAULT_MINI_CROSSWORD }
+      ]
     } finally {
       loading.value = false
     }

@@ -76,7 +76,7 @@
 <script setup lang="ts">
 import type { CrosswordClue, CrosswordPuzzle } from '~/types'
 import { DEFAULT_MINI_CROSSWORD } from '~/data/miniCrossword'
-import { createWordBankMiniCrossword } from '~/utils/gameWordBank'
+import { createFittedDailyCrossword } from '~/utils/gameWordBank'
 import { formatUkDateLabel, ukDateId } from '~/utils/gameDay'
 
 definePageMeta({ layout: 'admin', middleware: 'admin' })
@@ -85,7 +85,8 @@ const { items, loading, saving, error, fetchAll, create, setItem, updateItem, re
 const todayId = ukDateId()
 const todayOverrideId = `daily-${todayId}`
 const todayDateLabel = formatUkDateLabel(todayId)
-const generatedToday = ref<CrosswordPuzzle>(createWordBankMiniCrossword(todayId))
+// Same call the player page makes, so this preview is what the sangat sees.
+const generatedToday = ref<CrosswordPuzzle>(createFittedDailyCrossword(todayId) || { ...DEFAULT_MINI_CROSSWORD })
 const todayOverride = computed(() => items.value.find(p => p.id === todayOverrideId))
 const todayPuzzle = computed(() => todayOverride.value || generatedToday.value)
 const showForm = ref(false)
@@ -100,7 +101,9 @@ onMounted(async () => {
     fetchMergedGameWords().catch(() => null),
     fetchAll()
   ])
-  if (entries) generatedToday.value = createWordBankMiniCrossword(todayId, entries)
+  if (entries) {
+    generatedToday.value = createFittedDailyCrossword(todayId, entries) || generatedToday.value
+  }
   if (!items.value.length) openNew()
 })
 
