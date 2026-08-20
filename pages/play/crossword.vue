@@ -62,21 +62,25 @@
         <div class="rounded-2xl border border-[hsl(var(--border))] bg-white p-3 sm:p-5">
           <div class="flex justify-center overflow-x-auto">
             <div
-              class="grid gap-px rounded-lg bg-[hsl(var(--primary))] p-px"
-              :style="{ gridTemplateColumns: `repeat(${layout.cols}, minmax(2.15rem, 2.6rem))` }"
+              class="xw-grid grid gap-px rounded-lg bg-[hsl(var(--primary))] p-px"
+              :style="{
+                gridTemplateColumns: `repeat(${layout.cols}, var(--xw-cell))`,
+                '--xw-cols': layout.cols,
+                '--xw-rows': layout.rows
+              }"
             >
               <button
                 v-for="cell in flatCells"
                 :key="cell.id"
                 type="button"
-                class="relative aspect-square select-none text-base font-bold uppercase sm:text-lg"
+                class="relative aspect-square select-none font-bold uppercase"
                 :class="cellClass(cell)"
                 :disabled="!cell.open || solved"
                 @click="onCellClick(cell.row, cell.col)"
               >
                 <span
                   v-if="cell.number"
-                  class="absolute left-0.5 top-0.5 text-[0.55rem] font-bold leading-none text-[hsl(var(--primary))]"
+                  class="xw-num absolute left-0.5 top-0.5 font-bold leading-none text-[hsl(var(--primary))]"
                 >{{ cell.number }}</span>
                 <span>{{ guesses[cell.id] || '' }}</span>
               </button>
@@ -689,6 +693,51 @@ useHead({ title: 'Crossword · Bhaktiras' })
 </script>
 
 <style scoped>
+/*
+ * Cell size is driven by whichever runs out first: the viewport width or the
+ * height left over after the page chrome.
+ *
+ * It used to be `minmax(2.15rem, 2.6rem)` — a fixed minimum width and no height
+ * constraint at all. Wide grids therefore overflowed sideways, and tall ones
+ * pushed the clue bar off the bottom of the screen behind the fixed keyboard.
+ *
+ * --xw-reserve is everything that is not the grid: the sticky top bar, the
+ * title, the clue navigator, card padding, and on mobile the 16.5rem fixed
+ * keyboard the page already reserves via its bottom padding.
+ */
+.xw-grid {
+  --xw-reserve: 28rem;
+  --xw-vh: 100vh;
+  /* Floor keeps cells tappable; overflow-x on the wrapper catches the rest. */
+  --xw-cell: clamp(
+    1.45rem,
+    min(
+      calc((100vw - 3.25rem) / var(--xw-cols)),
+      calc((var(--xw-vh) - var(--xw-reserve)) / var(--xw-rows))
+    ),
+    2.6rem
+  );
+  font-size: calc(var(--xw-cell) * 0.48);
+}
+
+@supports (height: 100svh) {
+  .xw-grid { --xw-vh: 100svh; }
+}
+
+/* No fixed keyboard from md up, so the grid gets far more height back. */
+@media (min-width: 768px) {
+  .xw-grid { --xw-reserve: 17rem; }
+}
+
+/* Buttons do not inherit font-size by default. */
+.xw-grid button {
+  font-size: inherit;
+}
+
+.xw-num {
+  font-size: calc(var(--xw-cell) * 0.3);
+}
+
 .xw-cell-word {
   background: hsl(var(--golden-100));
 }
