@@ -280,7 +280,7 @@ export function usePushNotifications() {
           void registration.showNotification(title, {
             body,
             icon: '/notification-icon.png',
-            badge: '/notification-icon.png',
+            badge: '/notification-badge.png',
             data: { url },
             tag: data.tag || 'bhaktiras-update'
           })

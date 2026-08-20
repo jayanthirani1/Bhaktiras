@@ -28,7 +28,7 @@ messaging.onBackgroundMessage((payload) => {
   const options = {
     body: notification.body || data.body || '',
     icon: '/notification-icon.png',
-    badge: '/notification-icon.png',
+    badge: '/notification-badge.png',
     data: { url: absoluteUrl(data.url) },
     tag: data.tag || 'bhaktiras-update',
     renotify: true
