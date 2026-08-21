@@ -99,18 +99,18 @@
                 <ul class="divide-y divide-[hsl(var(--border))]">
                   <li v-for="message in group.items" :key="message.id" class="relative overflow-hidden">
                     <div class="absolute inset-0 flex items-center justify-between bg-[hsl(var(--muted))] px-5 text-[11px] font-bold uppercase tracking-wide text-[hsl(var(--muted-foreground))]">
-                      <span>Dismiss</span>
-                      <span>Dismiss</span>
+                      <span>Clear</span>
+                      <span>Clear</span>
                     </div>
                     <div
-                      class="group relative flex bg-[hsl(var(--card))]"
+                      class="group relative flex flex-col bg-[hsl(var(--card))]"
                       style="touch-action: pan-y"
                       :style="rowStyle(message.id)"
                       @pointerdown="onPointerDown($event, message.id)"
                     >
                       <NuxtLink
                         :to="message.url"
-                        class="flex min-w-0 flex-1 gap-3 px-4 py-3 transition-colors hover:bg-[hsl(var(--muted))]"
+                        class="flex min-w-0 flex-1 gap-3 px-4 pt-3 transition-colors hover:bg-[hsl(var(--muted))]"
                         @click="onRowClick"
                       >
                         <span
@@ -130,16 +130,16 @@
                           <span class="mt-1 block text-[11px] text-[hsl(var(--muted-foreground))]">{{ relativeTime(message.createdAt) }}</span>
                         </span>
                       </NuxtLink>
-                      <!-- Swipe is invisible and unreachable by keyboard, so the
-                           same action is always available as a real button. -->
-                      <button
-                        type="button"
-                        class="grid w-11 shrink-0 place-items-center text-[hsl(var(--muted-foreground))] opacity-0 transition-opacity hover:text-[hsl(var(--primary))] focus-visible:opacity-100 group-hover:opacity-100 md:w-9"
-                        :aria-label="`Dismiss ${message.title}`"
-                        @click="onDismiss(message)"
-                      >
-                        <IconX class="h-4 w-4" />
-                      </button>
+                      <div class="flex px-4 pb-3 pl-[2.25rem]">
+                        <button
+                          type="button"
+                          class="text-xs font-semibold text-[hsl(var(--accent))] hover:text-[hsl(var(--primary))]"
+                          :aria-label="`Clear notification: ${message.title}`"
+                          @click="onDismiss(message)"
+                        >
+                          Clear notification
+                        </button>
+                      </div>
                     </div>
                   </li>
                 </ul>
@@ -152,7 +152,7 @@
             class="flex shrink-0 items-center justify-between gap-3 border-t border-[hsl(var(--border))] bg-[hsl(var(--card))] px-4 py-2.5"
           >
             <span class="min-w-0 truncate text-xs text-[hsl(var(--muted-foreground))]">
-              Dismissed {{ undoQueue.length }} notification{{ undoQueue.length === 1 ? '' : 's' }}
+              Cleared {{ undoQueue.length }} notification{{ undoQueue.length === 1 ? '' : 's' }}
             </span>
             <button type="button" class="shrink-0 text-xs font-bold uppercase tracking-wide text-[hsl(var(--accent))]" @click="undo">
               Undo
@@ -165,7 +165,7 @@
 </template>
 
 <script setup lang="ts">
-import { IconBell, IconX } from '@tabler/icons-vue'
+import { IconBell } from '@tabler/icons-vue'
 import type { InboxMessage } from '~/composables/useNotificationInbox'
 
 const { isLoggedIn } = useAuth()
@@ -248,14 +248,14 @@ function undo() {
 
 function onDismiss(message: InboxMessage) {
   dismiss(message.id)
-  liveMessage.value = `Dismissed ${message.title}`
+  liveMessage.value = `Cleared ${message.title}`
   queueUndo(message.id)
 }
 
 function dismissAll() {
   const ids = messages.value.map(item => item.id)
   ids.forEach(dismiss)
-  liveMessage.value = `Dismissed ${ids.length} notifications`
+  liveMessage.value = `Cleared ${ids.length} notifications`
   ids.forEach(queueUndo)
 }
 
