@@ -104,7 +104,8 @@ import {
   IconChartBar,
   IconArrowRight,
   IconCheck,
-  IconCirclesRelation
+  IconCirclesRelation,
+  IconBrackets
 } from '@tabler/icons-vue'
 
 import type { PlayGameSlug } from '~/utils/playCompletion'
@@ -127,6 +128,7 @@ const games: Array<{
   { slug: 'mini-crossword', title: 'Crossword', description: 'A quick Telegraph-style grid. Beat the clock.', icon: IconGrid3x3, href: '/play/crossword', tile: 'bg-sky-100 text-sky-700', button: 'bg-sky-600 text-white' },
   { slug: 'one-percent', title: '1% Club', description: 'Daily Vachnamrut climb from 90% to 1%. One wrong answer ends your run.', icon: IconChartBar, href: '/play/one-percent', tile: 'bg-orange-100 text-orange-700', button: 'bg-orange-500 text-white' },
   { slug: 'connections', title: 'Connections', description: 'Find four groups of four satsang-related words.', icon: IconCirclesRelation, href: '/play/connections', tile: 'bg-fuchsia-100 text-fuchsia-700', button: 'bg-fuchsia-600 text-white' },
+  { slug: 'bracket-city', title: 'Bracket City', description: 'Clues nested inside clues. Solve the innermost one first.', icon: IconBrackets, href: '/play/bracket-city', tile: 'bg-indigo-100 text-indigo-700', button: 'bg-indigo-600 text-white' },
 ]
 
 const { done, results } = usePlayCompletion(games.map(g => g.slug))

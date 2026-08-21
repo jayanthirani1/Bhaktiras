@@ -41,7 +41,8 @@ const cards = [
   { key: 'wordle', title: 'Wordle', desc: 'Solution words and today’s override.', to: '/admin/games/wordle' },
   { key: 'crossword', title: 'Crossword', desc: 'Quick timed crossword puzzles.', to: '/admin/games/crossword' },
   { key: 'onePercent', title: '1% Club', desc: 'Daily Vachnamrut ladders from the Bhuj edition.', to: '/admin/games/one-percent' },
-  { key: 'connections', title: 'Connections', desc: 'Four groups of four satsang words.', to: '/admin/games/connections' }
+  { key: 'connections', title: 'Connections', desc: 'Four groups of four satsang words.', to: '/admin/games/connections' },
+  { key: 'bracketCity', title: 'Bracket City', desc: 'Overrides for the generated nested-clue puzzle.', to: '/admin/games/bracket-city' }
 ]
 
 const counts = reactive<Record<string, number | null>>({
@@ -56,7 +57,8 @@ const counts = reactive<Record<string, number | null>>({
   wordle: null,
   crossword: null,
   onePercent: null,
-  connections: null
+  connections: null,
+  bracketCity: null
 })
 
 const collectionNames: Record<string, string> = {
@@ -71,7 +73,8 @@ const collectionNames: Record<string, string> = {
   wordle: 'wordleWords',
   crossword: 'miniCrosswordPuzzles',
   onePercent: 'onePercentQuestions',
-  connections: 'connectionsPuzzles'
+  connections: 'connectionsPuzzles',
+  bracketCity: 'bracketCityPuzzles'
 }
 
 onMounted(async () => {

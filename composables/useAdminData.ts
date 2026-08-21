@@ -11,7 +11,7 @@ import {
   type DocumentData,
   type Firestore
 } from 'firebase/firestore'
-import type { ConnectionsPuzzle, CrosswordPuzzle, Event, GameWordEntry, Niyam, OnePercentQuestion, SiteContentSettings, SitePage, TimelineItem, WordleWordDoc, YajmanOpportunity } from '~/types'
+import type { BracketCityPuzzle, ConnectionsPuzzle, CrosswordPuzzle, Event, GameWordEntry, Niyam, OnePercentQuestion, SiteContentSettings, SitePage, TimelineItem, WordleWordDoc, YajmanOpportunity } from '~/types'
 import {
   communityPromptsFromSource,
   homeTilesFromSource,
@@ -165,6 +165,10 @@ export function useAdminMiniCrossword() {
 }
 export function useAdminConnections() {
   return useAdminCollection<ConnectionsPuzzle>('connectionsPuzzles')
+}
+
+export function useAdminBracketCity() {
+  return useAdminCollection<BracketCityPuzzle>('bracketCityPuzzles')
 }
 
 export function useAdminSitePages() {

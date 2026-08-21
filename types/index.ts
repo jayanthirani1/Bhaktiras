@@ -223,6 +223,7 @@ export type GameLeaderboardId =
   | 'one-percent'
   | 'mini-crossword'
   | 'connections'
+  | 'bracket-city'
 
 export interface GameScoreEntry {
   id: string
@@ -268,6 +269,15 @@ export interface ConnectionsPuzzle {
   dateId?: string | null
   groups: ConnectionsGroup[]
   published?: boolean
+}
+
+export interface BracketCityPuzzle {
+  id: string
+  title: string
+  dateId?: string | null
+  published?: boolean
+  /** Inline nested source, e.g. "[outer clue [inner clue::murti]::aarti]". */
+  source: string
 }
 
 export interface PlayStreakRecord {

@@ -1,7 +1,10 @@
 import { collection, doc, getDoc, getDocs, type Firestore } from 'firebase/firestore'
-import type { ConnectionsPuzzle, CrosswordPuzzle, GameWordEntry, OnePercentQuestion, WordleWordDoc } from '~/types'
+import type { BracketCityPuzzle, ConnectionsPuzzle, CrosswordPuzzle, GameWordEntry, OnePercentQuestion, WordleWordDoc } from '~/types'
 import { DEFAULT_MINI_CROSSWORD } from '~/data/miniCrossword'
 import { DEFAULT_CONNECTIONS_PUZZLES } from '~/data/connectionsPuzzles'
+import { DEFAULT_BRACKET_CITY_PUZZLES } from '~/data/bracketCityPuzzles'
+import { buildDailyBracketCity } from '~/utils/bracketCityGenerator'
+import { parseBracketSource } from '~/utils/bracketCity'
 import {
   onePercentPackForDate,
   withShuffledOptions,
@@ -151,6 +154,56 @@ export function useConnectionsPuzzle() {
   })
 
   return { puzzle, loading }
+}
+
+/** Falls back to a curated puzzle when a source will not parse, so the day is never unplayable. */
+function playableBracketCity(candidates: Array<BracketCityPuzzle | null>, dateSeed: number): BracketCityPuzzle {
+  for (const candidate of candidates) {
+    if (!candidate?.source) continue
+    try {
+      parseBracketSource(candidate.source)
+      return candidate
+    } catch {
+      // Try the next candidate.
+    }
+  }
+  return DEFAULT_BRACKET_CITY_PUZZLES[dateSeed % DEFAULT_BRACKET_CITY_PUZZLES.length]
+}
+
+export function useBracketCityPuzzle() {
+  const dateId = ukDateId()
+  const dateSeed = [...dateId].reduce((hash, char) => (hash * 31 + char.charCodeAt(0)) >>> 0, 2166136261)
+  // Generated locally first so the board renders before Firestore answers.
+  const puzzle = ref<BracketCityPuzzle>(playableBracketCity([buildDailyBracketCity(dateId)], dateSeed))
+  const loading = ref(true)
+
+  onMounted(async () => {
+    try {
+      const db = getDb()
+      if (!db) return
+      const [snap, wordSnap] = await Promise.all([
+        getDocs(collection(db, 'bracketCityPuzzles')),
+        getDocs(collection(db, 'gameWords'))
+      ])
+      const remote = snap.docs
+        .map(d => ({ id: d.id, ...d.data() } as BracketCityPuzzle))
+        .filter(item => item.published !== false && item.source)
+      // An admin puzzle for today wins; otherwise regenerate including any
+      // custom words an admin has added to the bank since the page loaded.
+      const override = remote.find(item => item.id === `daily-${dateId}` || item.dateId === dateId)
+      const generated = buildDailyBracketCity(dateId, mergeGameWords(mapCustomGameWords(wordSnap)))
+      const rotating = remote.filter(item => !item.dateId)
+      puzzle.value = playableBracketCity([
+        override || null,
+        generated,
+        rotating.length ? rotating[dateSeed % rotating.length] : null
+      ], dateSeed)
+    } finally {
+      loading.value = false
+    }
+  })
+
+  return { puzzle, dateId, loading }
 }
 
 export async function fetchWordleRemote(date = new Date()) {

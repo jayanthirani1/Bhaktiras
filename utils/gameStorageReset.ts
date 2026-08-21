@@ -2,7 +2,7 @@
  * When the shared word bank changes, bump WORD_BANK_VERSION so browsers
  * drop cached daily progress that still points at old answers/puzzles.
  */
-export const WORD_BANK_VERSION = 3
+export const WORD_BANK_VERSION = 4
 
 const VERSION_KEY = 'bhaktiras-word-bank-version'
 
@@ -16,6 +16,8 @@ const GAME_STORAGE_PREFIXES = [
   'mini-crossword-timer:',
   'one-percent-run:',
   'one-percent-timer:',
+  'bracket-city:',
+  'bracket-city-timer:',
   'leaderboard-submitted:',
   'play-done:',
 ] as const

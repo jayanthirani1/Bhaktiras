@@ -266,6 +266,11 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    match /bracketCityPuzzles/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     // A signed-in user's daily Play visit streak. Public read powers the leaderboard.
     match /playStreaks/{uid} {
       allow read: if true;

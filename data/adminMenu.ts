@@ -43,7 +43,8 @@ export const ADMIN_MENU_GROUPS: AdminMenuGroup[] = [
       { label: 'Wordle', to: '/admin/games/wordle', subtitle: 'Plan daily words for the week or month' },
       { label: 'Crossword', to: '/admin/games/crossword', subtitle: 'Quick timed crossword' },
       { label: '1% Club', to: '/admin/games/one-percent', subtitle: 'Daily Vachnamrut ladders (Bhuj edition)' },
-      { label: 'Connections', to: '/admin/games/connections', subtitle: 'Four groups of four satsang words' }
+      { label: 'Connections', to: '/admin/games/connections', subtitle: 'Four groups of four satsang words' },
+      { label: 'Bracket City', to: '/admin/games/bracket-city', subtitle: 'Override the generated nested-clue puzzle' }
     ]
   }
 ]
