@@ -9,9 +9,13 @@
         <NuxtLink to="/" class="flex min-w-0 shrink-0 items-center overflow-visible">
           <BhaktirasLogo size="sm" animate />
         </NuxtLink>
-        <ClientOnly>
-          <NotificationInbox class="absolute right-2 top-1/2 -translate-y-1/2" />
-        </ClientOnly>
+        <!-- Positioned by a wrapper: the component's own root is `relative`, which
+             would win over an `absolute` merged onto the same element. -->
+        <div class="absolute right-2 top-1/2 -translate-y-1/2">
+          <ClientOnly>
+            <NotificationInbox />
+          </ClientOnly>
+        </div>
       </div>
     </div>
 
