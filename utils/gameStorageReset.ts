@@ -2,7 +2,7 @@
  * When the shared word bank changes, bump WORD_BANK_VERSION so browsers
  * drop cached daily progress that still points at old answers/puzzles.
  */
-export const WORD_BANK_VERSION = 2
+export const WORD_BANK_VERSION = 3
 
 const VERSION_KEY = 'bhaktiras-word-bank-version'
 
@@ -10,6 +10,8 @@ const GAME_STORAGE_EXACT = ['wordle-daily'] as const
 
 const GAME_STORAGE_PREFIXES = [
   'wordle-timer:',
+  'connections:',
+  'connections-timer:',
   'mini-crossword:',
   'mini-crossword-timer:',
   'one-percent-run:',

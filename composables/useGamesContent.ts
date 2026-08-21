@@ -108,7 +108,7 @@ export function useOnePercentQuestions() {
         pack.value = {
           ...fallback,
           id: `daily-${dateId}`,
-          title: 'Today’s Vachanamrut ladder',
+          title: 'Today’s Vachnamrut ladder',
           questions: todayExact
         }
       }

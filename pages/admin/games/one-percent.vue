@@ -2,18 +2,18 @@
   <div>
     <p v-if="error" class="mb-3 text-sm text-red-600">{{ error }}</p>
     <p class="mb-4 text-sm text-[hsl(var(--muted-foreground))]">
-      The live game is Vachanamrut-based (Bhuj edition) and picks a new prakaran ladder each UK day.
+      The live game is Vachnamrut-based (Bhuj edition) and picks a new prakaran ladder each UK day.
       Import the default packs below, or add a dated override with today’s date id.
     </p>
     <div class="mb-4">
       <button type="button" class="admin-btn-secondary" :disabled="importing || saving" @click="importDefaults">
-        {{ importing ? 'Importing…' : 'Import Vachanamrut ladders' }}
+        {{ importing ? 'Importing…' : 'Import Vachnamrut ladders' }}
       </button>
     </div>
     <AdminEditorLayout
       :count-label="`${sorted.length} question${sorted.length === 1 ? '' : 's'}`"
       create-label="Add question"
-      empty-label="No 1% Club questions in Firestore yet. The site still uses the built-in daily Vachanamrut ladders."
+      empty-label="No 1% Club questions in Firestore yet. The site still uses the built-in daily Vachnamrut ladders."
       :loading="loading"
       :empty="!sorted.length"
       @create="openNew"
@@ -35,7 +35,7 @@
               :class="isEditing && editingId === q.id ? 'admin-row-active' : ''"
               @click="openEdit(q)"
             >
-              <p class="text-xs font-semibold text-[hsl(var(--accent))]">{{ q.percent }}% · {{ q.source || q.packId || 'Vachanamrut' }}</p>
+              <p class="text-xs font-semibold text-[hsl(var(--accent))]">{{ q.percent }}% · {{ q.source || q.packId || 'Vachnamrut' }}</p>
               <p class="font-semibold text-[hsl(var(--primary))]">{{ q.question }}</p>
               <p class="mt-1 text-sm text-[hsl(var(--muted-foreground))]">Answer: {{ q.correctAnswer }}</p>
             </button>

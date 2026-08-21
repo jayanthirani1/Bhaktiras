@@ -7,7 +7,7 @@ export const USTAV_NIYAMS: Niyam[] = [
   { id: 'puja', title: 'Nitya puja', detail: 'Complete daily puja with tilak-chandlo before leaving home.', order: 1 },
   { id: 'arti', title: 'Aarti', detail: 'Attend or do aarti at home if you cannot come to mandir.', order: 2 },
   { id: 'thal', title: 'Thal', detail: 'Offer thal / remember Maharaj before meals.', order: 3 },
-  { id: 'vanchan', title: 'Vanchan', detail: 'Read or listen to a short vanchan / Vachanamrut each day.', order: 4 },
+  { id: 'vanchan', title: 'Vanchan', detail: 'Read or listen to a short vanchan / Vachnamrut each day.', order: 4 },
   { id: 'chesta', title: 'Chesta / dhun', detail: 'Sing chesta or dhun with the family at least once daily.', order: 5 },
   { id: 'mala', title: 'Extra mala', detail: 'Offer an extra mala dedicated to Patotsav.', order: 6 },
   { id: 'sabha', title: 'Sabha', detail: 'Attend weekly sabha; arrive before dhun starts.', order: 7 },

@@ -41,7 +41,7 @@
         </p>
         <p class="font-display text-xl font-semibold text-[hsl(var(--primary))]">{{ pack.title }}</p>
         <p class="text-sm text-[hsl(var(--muted-foreground))]">
-          Answer each Vachanamrut question before the clock beats you to the bottom. A new prakaran ladder arrives each day. The timer keeps running even if you leave.
+          Answer each Vachnamrut question before the clock beats you to the bottom. A new prakaran ladder arrives each day. The timer keeps running even if you leave.
         </p>
         <button type="button" class="btn-primary" @click="startRun">Start today’s climb</button>
         <p v-if="finished" class="text-sm text-emerald-700">
@@ -80,7 +80,7 @@
       <div v-else-if="current" class="card-surface space-y-5 p-5 sm:p-6">
         <div class="flex items-center justify-between gap-3">
           <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-[hsl(var(--accent))]">
-            {{ current.percent }}% · Vachanamrut
+            {{ current.percent }}% · Vachnamrut
           </p>
           <p class="text-xs text-[hsl(var(--muted-foreground))]">
             {{ index + 1 }} / {{ ladder.length }}
@@ -174,8 +174,8 @@ const ladder = computed(() =>
 const current = computed(() => ladder.value[index.value] || null)
 const reachedOnePercent = computed(() => cleared.value >= ladder.value.length && ladder.value.some(q => q.percent === 1))
 const headerSubtitle = computed(() => {
-  const section = pack.value?.sectionLabel || 'the Vachanamrut'
-  return `Vachanamrut-based. Today’s climb is ${section}. One wrong answer ends your run.`
+  const section = pack.value?.sectionLabel || 'the Vachnamrut'
+  return `Vachnamrut-based. Today’s climb is ${section}. One wrong answer ends your run.`
 })
 
 function optionClass(opt: string) {
@@ -328,5 +328,5 @@ onMounted(() => {
 
 watch([loading, playedElsewhere], () => { syncPlayTimer() })
 
-useHead({ title: '1% Club · Vachanamrut · Bhaktiras' })
+useHead({ title: '1% Club · Vachnamrut · Bhaktiras' })
 </script>

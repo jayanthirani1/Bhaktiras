@@ -246,7 +246,7 @@ export interface OnePercentQuestion {
   options: string[]
   correctAnswer: string
   order?: number
-  /** Vachanamrut prakaran, e.g. gadhada-i. */
+  /** Vachnamrut prakaran, e.g. gadhada-i. */
   section?: string
   /** Daily pack id, e.g. sarangpur-a. */
   packId?: string

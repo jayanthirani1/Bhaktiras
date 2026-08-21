@@ -42,7 +42,7 @@ export const ADMIN_MENU_GROUPS: AdminMenuGroup[] = [
       { label: 'Game Word Bank', to: '/admin/games/word-bank', subtitle: 'Swaminarayan, Gujarati & basic Hindu words' },
       { label: 'Wordle', to: '/admin/games/wordle', subtitle: 'Plan daily words for the week or month' },
       { label: 'Crossword', to: '/admin/games/crossword', subtitle: 'Quick timed crossword' },
-      { label: '1% Club', to: '/admin/games/one-percent', subtitle: 'Daily Vachanamrut ladders (Bhuj edition)' },
+      { label: '1% Club', to: '/admin/games/one-percent', subtitle: 'Daily Vachnamrut ladders (Bhuj edition)' },
       { label: 'Connections', to: '/admin/games/connections', subtitle: 'Four groups of four satsang words' }
     ]
   }
