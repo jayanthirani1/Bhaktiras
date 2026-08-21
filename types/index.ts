@@ -278,6 +278,8 @@ export interface BracketCityPuzzle {
   published?: boolean
   /** Inline nested source, e.g. "[outer clue [inner clue::murti]::aarti]". */
   source: string
+  /** Where the episode comes from, shown once the puzzle is solved. */
+  credit?: string
 }
 
 export interface PlayStreakRecord {

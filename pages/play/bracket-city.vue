@@ -107,6 +107,9 @@
           <p class="text-sm text-[hsl(var(--muted-foreground))]">
             {{ resultSummary }}
           </p>
+          <p v-if="puzzle.credit" class="text-xs font-semibold uppercase tracking-wide text-[hsl(var(--accent))]">
+            {{ puzzle.credit }}
+          </p>
           <div class="flex flex-wrap justify-center gap-2">
             <button
               type="button"

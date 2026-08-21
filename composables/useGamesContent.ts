@@ -3,6 +3,8 @@ import type { BracketCityPuzzle, ConnectionsPuzzle, CrosswordPuzzle, GameWordEnt
 import { DEFAULT_MINI_CROSSWORD } from '~/data/miniCrossword'
 import { DEFAULT_CONNECTIONS_PUZZLES } from '~/data/connectionsPuzzles'
 import { DEFAULT_BRACKET_CITY_PUZZLES } from '~/data/bracketCityPuzzles'
+import { CHARITRA_BRACKET_CITY_PUZZLES } from '~/data/bracketCityCharitra'
+import { rngForSeed, shuffle } from '~/utils/seededRandom'
 import { buildDailyBracketCity } from '~/utils/bracketCityGenerator'
 import { parseBracketSource } from '~/utils/bracketCity'
 import {
@@ -156,8 +158,8 @@ export function useConnectionsPuzzle() {
   return { puzzle, loading }
 }
 
-/** Falls back to a curated puzzle when a source will not parse, so the day is never unplayable. */
-function playableBracketCity(candidates: Array<BracketCityPuzzle | null>, dateSeed: number): BracketCityPuzzle {
+/** Falls back to the next candidate when a source will not parse, so the day is never unplayable. */
+function playableBracketCity(candidates: Array<BracketCityPuzzle | null>): BracketCityPuzzle | null {
   for (const candidate of candidates) {
     if (!candidate?.source) continue
     try {
@@ -167,14 +169,39 @@ function playableBracketCity(candidates: Array<BracketCityPuzzle | null>, dateSe
       // Try the next candidate.
     }
   }
-  return DEFAULT_BRACKET_CITY_PUZZLES[dateSeed % DEFAULT_BRACKET_CITY_PUZZLES.length]
+  return null
+}
+
+function dayNumber(dateId: string): number {
+  const [year, month, day] = dateId.split('-').map(Number)
+  return Math.floor(Date.UTC(year, month - 1, day) / 86400000)
+}
+
+/**
+ * One puzzle from the authored pool per day.
+ *
+ * Every puzzle is used once before any repeats, and the order is reshuffled
+ * each time the pool has been worked through, so the cycle is as long as the
+ * pool is deep — adding puzzles is what pushes a repeat further away.
+ */
+function pooledPuzzleFor(pool: BracketCityPuzzle[], dateId: string): BracketCityPuzzle | null {
+  if (!pool.length) return null
+  const day = dayNumber(dateId)
+  const size = pool.length
+  const cycle = Math.floor(day / size)
+  const order = shuffle(pool, rngForSeed(`bracket-city-pool:${size}:${cycle}`))
+  return order[((day % size) + size) % size] ?? null
 }
 
 export function useBracketCityPuzzle() {
   const dateId = ukDateId()
-  const dateSeed = [...dateId].reduce((hash, char) => (hash * 31 + char.charCodeAt(0)) >>> 0, 2166136261)
-  // Generated locally first so the board renders before Firestore answers.
-  const puzzle = ref<BracketCityPuzzle>(playableBracketCity([buildDailyBracketCity(dateId)], dateSeed))
+  // Authored episodes first: a generated puzzle can only ever finish on a list
+  // of words, where these finish on a sentence that tells a story.
+  const authored = [...CHARITRA_BRACKET_CITY_PUZZLES, ...DEFAULT_BRACKET_CITY_PUZZLES]
+  const puzzle = ref<BracketCityPuzzle>(
+    playableBracketCity([pooledPuzzleFor(authored, dateId), buildDailyBracketCity(dateId)])
+      ?? DEFAULT_BRACKET_CITY_PUZZLES[0]
+  )
   const loading = ref(true)
 
   onMounted(async () => {
@@ -188,16 +215,16 @@ export function useBracketCityPuzzle() {
       const remote = snap.docs
         .map(d => ({ id: d.id, ...d.data() } as BracketCityPuzzle))
         .filter(item => item.published !== false && item.source)
-      // An admin puzzle for today wins; otherwise regenerate including any
-      // custom words an admin has added to the bank since the page loaded.
+      // A puzzle scheduled for today wins outright; undated admin puzzles join
+      // the rotating pool; the word-bank generator is the last resort.
       const override = remote.find(item => item.id === `daily-${dateId}` || item.dateId === dateId)
+      const pool = [...authored, ...remote.filter(item => !item.dateId)]
       const generated = buildDailyBracketCity(dateId, mergeGameWords(mapCustomGameWords(wordSnap)))
-      const rotating = remote.filter(item => !item.dateId)
       puzzle.value = playableBracketCity([
         override || null,
-        generated,
-        rotating.length ? rotating[dateSeed % rotating.length] : null
-      ], dateSeed)
+        pooledPuzzleFor(pool, dateId),
+        generated
+      ]) ?? puzzle.value
     } finally {
       loading.value = false
     }
