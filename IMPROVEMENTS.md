@@ -203,6 +203,38 @@ Spelling Bee case mismatch (that game has since been removed from the app).
 
 ---
 
+## Content — the crossword word bank
+
+### 14. Crossword variety is capped by vocabulary, not by the algorithm
+
+`data/satsangWordBank.json` holds 353 entries, 347 of which the generator can use
+(`MIN_ANSWER_LENGTH = 4`). The distribution is thin exactly where an interlocking grid
+needs it most:
+
+```
+ 4 letters: 43     7 letters: 70    10 letters: 15
+ 5 letters: 61     8 letters: 24    11+ letters: 33
+ 6 letters: 69     9 letters: 32
+```
+
+An earlier 5-column generator was measured over 1000 simulated days and produced only 42
+distinct answers and 109 distinct puzzles, because just 42 of the 104 four- and five-letter
+words could satisfy an interlocking grid at all. Two attempted fixes did not move it — a
+deterministic per-day subset of the bank, and a looser template with 6 crossings instead
+of 9 — and a 6x6 template was tried and removed, since it needs eight mutually consistent
+6-letter answers.
+
+**That generator has since been replaced** by the fixed 10x10 sparse skeleton in
+`utils/crosswordGenerator.ts`, which draws on all 347 usable words and already samples a
+per-day pool (`DAILY_POOL_FRACTION`, `MIN_POOL_PER_LENGTH`). So the 42/109 figures no
+longer describe what ships — **variety on the current generator has not been measured.**
+
+**Fix.** Measure distinct answers and puzzles over ~1000 simulated days against the
+current generator before acting. If variety is still short, the remedy is a content task,
+not a code one: grow the bank at lengths 4 and 5, where it is thinnest.
+
+---
+
 ## Suggested order
 
 1. **Wall rules** (#1) — one rules edit, removes impersonation and flooding
