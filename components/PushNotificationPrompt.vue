@@ -61,7 +61,7 @@ const copy = computed(() => {
   if (moment.value === 'game-complete') {
     return {
       title: 'Remind me tomorrow’s game?',
-      body: 'Get one gentle reminder when the next daily challenge is ready.',
+      body: 'Get a nudge when the next daily challenge is ready, and when someone beats a record.',
       action: 'Remind me'
     }
   }

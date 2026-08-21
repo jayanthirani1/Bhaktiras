@@ -214,6 +214,22 @@ const TOPIC_ALIASES = {
 /** At most one automatic new-event push per window, so a bulk import cannot storm. */
 const NEW_EVENT_THROTTLE_MS = 15 * 60 * 1000
 
+/**
+ * Record-break pushes are the most frequent automatic send, so the window is
+ * wider. One an hour keeps them feeling like news rather than noise.
+ */
+const RECORD_THROTTLE_MS = 60 * 60 * 1000
+
+/** How each crown reads in a notification. */
+const CROWN_LABELS = {
+  'wordle-fastest': 'fastest Wordle',
+  'wordle-fewest-guesses': 'fewest-guess Wordle',
+  'crossword-fastest': 'fastest Crossword',
+  'one-percent-highest': 'highest 1% Club score',
+  'one-percent-fastest': 'fastest 1% Club clear',
+  'streak-longest': 'longest play streak'
+}
+
 async function requireAdmin(request) {
   if (!request.auth?.uid) throw new HttpsError('unauthenticated', 'Sign in as an admin.')
   const db = getFirestore()
@@ -226,7 +242,7 @@ async function requireAdmin(request) {
 
 function toRecipient(doc) {
   const data = doc.data()
-  return { ref: doc.ref, token: data.token, updatedAt: data.updatedAt }
+  return { ref: doc.ref, token: data.token, updatedAt: data.updatedAt, userId: data.userId }
 }
 
 function hasToken(item) {
@@ -348,9 +364,11 @@ async function pruneStaleSubscriptions(db, staleRefs) {
  * Sends to a topic, records the delivery audit, and — unless `inbox` is false —
  * keeps a copy readable in the app so a missed OS notification is not lost.
  */
-async function deliverNotification({ title, body, topic, url, sentBy, inbox = topic !== 'games' }) {
+async function deliverNotification({ title, body, topic, url, sentBy, inbox = topic !== 'games', excludeUserId = null }) {
   const db = getFirestore()
-  const recipients = await loadRecipients(db, topic)
+  const all = await loadRecipients(db, topic)
+  // Someone who just did the thing does not need telling about it.
+  const recipients = excludeUserId ? all.filter(item => item.userId !== excludeUserId) : all
   const outcome = await pushToRecipients({ recipients, title, body, topic, url })
   await pruneStaleSubscriptions(db, outcome.staleRefs)
 
@@ -473,6 +491,51 @@ exports.getPushAudience = onCall(
   }
 )
 
+/**
+ * Tells everyone when a record actually changes hands.
+ *
+ * Deliberately narrow. A crown claimed on an empty board is not a record being
+ * broken, and beating your own time is not news to anyone — including the
+ * player, who already sees the achievement toast in the app. So this fires only
+ * when a crown is taken from a different person, skips the breaker's own
+ * devices, and takes at most one slot per hour however many crowns changed.
+ */
+async function announceRecords({ db, name, uid, claimedCrowns }) {
+  const broken = claimedCrowns.filter(crown =>
+    crown.previousHolderId && crown.previousHolderId !== uid)
+  if (!broken.length) return
+
+  logger.info('Record broken', {
+    uid,
+    crowns: broken.map(crown => ({ id: crown.id, from: crown.previousHolderId }))
+  })
+  if (!await claimNotificationSlot(db, 'recordNotifications', RECORD_THROTTLE_MS)) {
+    logger.info('Skipped record push', {
+      reason: 'throttled',
+      crowns: broken.map(crown => crown.id)
+    })
+    return
+  }
+
+  const [first] = broken
+  const label = CROWN_LABELS[first.id] || 'record'
+  // The previous holder is named only in the log. Their stored name came from
+  // client input on an earlier claim, and this text goes to the whole community.
+  const body = broken.length > 1
+    ? `${name} just took ${broken.length} Bhaktiras records, including the ${label}.`
+    : `${name} just beat the ${label} record.`
+
+  await deliverNotification({
+    title: 'New Bhaktiras record',
+    body,
+    topic: 'games',
+    url: '/play/achievements',
+    inbox: true,
+    excludeUserId: uid,
+    sentBy: 'system:record-broken'
+  })
+}
+
 async function handleGameAchievements(request) {
   if (!request.auth?.uid) throw new HttpsError('unauthenticated', 'Sign in to unlock achievements.')
 
@@ -554,8 +617,14 @@ async function handleGameAchievements(request) {
   const crownRefs = crownSpecs.map(spec => db.doc(`achievementCrowns/${spec.id}`))
   const unlockedIds = []
   const claimedCrownIds = []
+  const claimedCrowns = []
 
   await db.runTransaction(async (transaction) => {
+    // A contended transaction runs its callback more than once, so anything
+    // collected here has to start empty on every attempt or it double-counts.
+    unlockedIds.length = 0
+    claimedCrownIds.length = 0
+    claimedCrowns.length = 0
     const snaps = await Promise.all([
       transaction.get(userRef),
       ...crownRefs.map(ref => transaction.get(ref))
@@ -590,6 +659,12 @@ async function handleGameAchievements(request) {
       const current = snaps[index + 1].exists ? snaps[index + 1].data() : null
       if (!spec.better(current, candidate)) return
       claimedCrownIds.push(spec.id)
+      // Captured here because the write below is about to overwrite it.
+      claimedCrowns.push({
+        id: spec.id,
+        previousHolderId: current?.holderUserId || null,
+        previousHolderName: current?.holderName || null
+      })
       transaction.set(crownRefs[index], {
         holderUserId: uid,
         holderName: userName,
@@ -607,6 +682,22 @@ async function handleGameAchievements(request) {
   const crowns = crownsSnap
     .filter(snap => snap.exists)
     .map((snap) => ({ id: snap.id, ...snap.data() }))
+
+  try {
+    // Not request.data.userName: that is client-supplied, and this text is
+    // broadcast to everyone. The signed-in identity is the only trustworthy
+    // source for a name that leaves the account it belongs to.
+    await announceRecords({
+      db,
+      uid,
+      claimedCrowns,
+      name: cleanText(request.auth?.token?.name, 32) || 'A player'
+    })
+  } catch (error) {
+    // The player's result is already saved; a failed announcement must not
+    // turn a completed game into an error on their screen.
+    logger.error('Record announcement failed', { message: error?.message, uid })
+  }
 
   return { unlockedIds, claimedCrownIds, crowns }
 }
@@ -641,16 +732,17 @@ exports.sendDailyGameReminder = onSchedule(
 )
 
 /**
- * Claims the right to send an automatic new-event push, at most once per
- * window. A seed or bulk import creates many event documents at once; without
- * this every one of them would become its own notification.
+ * Claims the right to send one automatic push of a given kind, at most once per
+ * window. Automatic sends are triggered by data changes that can arrive in
+ * bursts — a bulk event import, a player taking several records in one game —
+ * and without this each one would become its own notification.
  */
-async function claimNewEventSlot(db) {
-  const ref = db.doc('systemState/eventNotifications')
+async function claimNotificationSlot(db, key, windowMs) {
+  const ref = db.doc(`systemState/${key}`)
   return db.runTransaction(async (transaction) => {
     const snap = await transaction.get(ref)
     const last = snap.exists ? snap.data().lastNotifiedAt?.toMillis?.() ?? 0 : 0
-    if (Date.now() - last < NEW_EVENT_THROTTLE_MS) return false
+    if (Date.now() - last < windowMs) return false
     transaction.set(ref, { lastNotifiedAt: FieldValue.serverTimestamp() }, { merge: true })
     return true
   })
@@ -662,7 +754,7 @@ exports.notifyNewEvent = onDocumentCreated(
   async (event) => {
     const data = event.data?.data() || {}
     if (data.notifyOnPublish === false) return
-    if (!await claimNewEventSlot(getFirestore())) {
+    if (!await claimNotificationSlot(getFirestore(), 'eventNotifications', NEW_EVENT_THROTTLE_MS)) {
       logger.info('Skipped new-event push', {
         reason: 'throttled',
         eventId: event.params.eventId

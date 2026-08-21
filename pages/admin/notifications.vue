@@ -31,7 +31,7 @@
         <select id="push-audience" v-model="form.topic" class="admin-input" @change="resetConfirm">
           <option value="all">All subscribers</option>
           <option value="announcements">Announcements</option>
-          <option value="games">Daily game reminders</option>
+          <option value="games">Daily games and records</option>
         </select>
         <p class="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
           <span v-if="audienceCount == null">Counting devices…</span>

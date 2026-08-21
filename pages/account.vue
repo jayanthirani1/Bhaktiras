@@ -342,8 +342,8 @@ const pushCategories: Array<{ topic: PushTopic; label: string; description: stri
   },
   {
     topic: 'games',
-    label: 'Daily game reminders',
-    description: 'A reminder when the next daily challenge is ready.'
+    label: 'Daily games and records',
+    description: 'A reminder when the next daily challenge is ready, and when someone beats a record.'
   }
 ]
 
