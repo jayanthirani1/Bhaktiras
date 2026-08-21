@@ -1,7 +1,7 @@
 import type { BracketCityPuzzle, GameWordEntry } from '~/types'
 import { SATSANG_WORD_BANK, normalizeGameWord } from '~/utils/gameWordBank'
 import { rngForSeed, shuffle } from '~/utils/seededRandom'
-import { BRACKET_CITY_FRAMES } from '~/data/bracketCityFrames'
+import { BRACKET_CITY_FRAMES, type BracketCityFrame } from '~/data/bracketCityFrames'
 import { parseBracketSource, flattenNodes } from '~/utils/bracketCity'
 
 /**
@@ -110,6 +110,32 @@ function pickCandidate(candidates: NestCandidate[], index: NestIndex, rnd: () =>
 }
 
 /**
+ * Picks the day's frame, and with it the day's theme.
+ *
+ * Weighting by the square root of how many entries a category has keeps a thin
+ * category like food (8 usable words) in the rotation without letting it repeat
+ * its handful of answers every other week, while stopping the two big
+ * categories from crowding everything else out.
+ */
+function pickFrame(pool: GameWordEntry[], rnd: () => number): BracketCityFrame | null {
+  const sizes = new Map<string, number>()
+  for (const entry of pool) sizes.set(entry.category, (sizes.get(entry.category) ?? 0) + 1)
+
+  const usableFrames = BRACKET_CITY_FRAMES
+    .filter(frame => (sizes.get(frame.category) ?? 0) >= frame.slots + 1)
+  if (!usableFrames.length) return null
+
+  const weights = usableFrames.map(frame => Math.sqrt(sizes.get(frame.category) ?? 0) / frame.slots)
+  const total = weights.reduce((sum, weight) => sum + weight, 0)
+  let roll = rnd() * total
+  for (let i = 0; i < usableFrames.length; i++) {
+    roll -= weights[i]
+    if (roll <= 0) return usableFrames[i]
+  }
+  return usableFrames[usableFrames.length - 1]
+}
+
+/**
  * Places in `clue` that name another bank entry. Longer displays are checked
  * first so "Shreeji Maharaj" wins over "Maharaj".
  */
@@ -188,8 +214,9 @@ export function buildDailyBracketCitySource(
 
   for (let attempt = 0; attempt < FRAME_ATTEMPTS; attempt++) {
     const rnd = rngForSeed(`bracket-city:${dateId}#${attempt}`)
-    const frame = BRACKET_CITY_FRAMES[Math.floor(rnd() * BRACKET_CITY_FRAMES.length)]
-    const shuffled = shuffle(pool, rnd)
+    const frame = pickFrame(pool, rnd)
+    if (!frame) return null
+    const shuffled = shuffle(pool.filter(entry => entry.category === frame.category), rnd)
     const used = new Set<string>()
     const budget = { left: MAX_CLUES - frame.slots }
     const slots: string[] = []
