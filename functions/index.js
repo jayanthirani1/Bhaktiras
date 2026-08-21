@@ -309,6 +309,33 @@ async function pushToRecipients({ recipients, title, body, topic, url }) {
   return { successCount, failureCount, errorCodes, staleRefs }
 }
 
+/** How many test sends are kept per admin before the oldest are dropped. */
+const TEST_INBOX_KEEP = 10
+
+/**
+ * Keeps a private copy of a test send so the sender can see the inbox row.
+ *
+ * These cannot go in `notifications`: every signed-in user reads that, so a
+ * test would surface in the whole community's bell. This subcollection is
+ * readable only by the admin who triggered it.
+ */
+async function recordTestNotification(db, uid, { title, body, topic, url }) {
+  const messages = db.collection('testNotifications').doc(uid).collection('messages')
+  await messages.add({
+    title,
+    body,
+    topic,
+    url: url || '/',
+    test: true,
+    createdAt: FieldValue.serverTimestamp()
+  })
+  const stale = await messages.orderBy('createdAt', 'desc').offset(TEST_INBOX_KEEP).get()
+  if (stale.empty) return
+  const write = db.batch()
+  stale.docs.forEach(doc => write.delete(doc.ref))
+  await write.commit()
+}
+
 async function pruneStaleSubscriptions(db, staleRefs) {
   for (const staleBatch of chunks(staleRefs, 400)) {
     const write = db.batch()
@@ -412,11 +439,17 @@ exports.sendTestPushNotification = onCall(
     }
     const outcome = await pushToRecipients({ recipients, ...input })
     await pruneStaleSubscriptions(db, outcome.staleRefs)
+    // Mirror the real send's inbox decision, so the test reflects what will happen.
+    const inbox = request.data?.inbox == null
+      ? input.topic !== 'games'
+      : request.data.inbox === true
+    if (inbox) await recordTestNotification(db, uid, input)
     return {
       recipientCount: recipients.length,
       successCount: outcome.successCount,
       failureCount: outcome.failureCount,
-      errorCodes: Array.from(new Set(outcome.errorCodes))
+      errorCodes: Array.from(new Set(outcome.errorCodes)),
+      inbox
     }
   }
 )

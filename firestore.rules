@@ -105,6 +105,13 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Admin test sends. Private to the admin who triggered them, so a test is
+    // never visible in the shared inbox. Only Cloud Functions writes these.
+    match /testNotifications/{uid}/messages/{messageId} {
+      allow read: if isSignedIn() && request.auth.uid == uid;
+      allow write: if false;
+    }
+
     // Daily leaderboards (all games). Read public; submit requires login; old days can be deleted.
     match /gameScores/{scoreId} {
       allow read: if true;

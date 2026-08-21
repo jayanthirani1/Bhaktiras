@@ -4,6 +4,7 @@ import {
   limit,
   orderBy,
   query,
+  type DocumentData,
   type Firestore,
   type Timestamp
 } from 'firebase/firestore'
@@ -14,15 +15,33 @@ export type InboxMessage = {
   body: string
   url: string
   topic: string
+  test: boolean
   createdAt: Date | null
 }
 
 const LAST_READ_KEY = 'bhaktiras-inbox-last-read'
 const INBOX_LIMIT = 30
+const TEST_LIMIT = 10
 
 function toDate(value?: Timestamp | Date | null) {
   if (!value) return null
   return value instanceof Date ? value : value.toDate()
+}
+
+function toMessage(id: string, data: DocumentData, test: boolean): InboxMessage {
+  return {
+    id,
+    title: String(data.title || 'Bhaktiras'),
+    body: String(data.body || ''),
+    url: String(data.url || '/'),
+    topic: String(data.topic || 'announcements'),
+    test,
+    createdAt: toDate(data.createdAt as Timestamp | undefined)
+  }
+}
+
+function newestFirst(a: InboxMessage, b: InboxMessage) {
+  return (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0)
 }
 
 /**
@@ -61,7 +80,8 @@ export function useNotificationInbox() {
   async function load(force = false) {
     if (import.meta.server || loading.value) return
     if (loaded.value && !force) return
-    if (!auth.user.value?.uid) {
+    const uid = auth.user.value?.uid
+    if (!uid) {
       messages.value = []
       loaded.value = false
       return
@@ -72,22 +92,24 @@ export function useNotificationInbox() {
     loading.value = true
     error.value = ''
     try {
-      const snap = await getDocs(query(
-        collection(db, 'notifications'),
-        orderBy('createdAt', 'desc'),
-        limit(INBOX_LIMIT)
-      ))
-      messages.value = snap.docs.map((item) => {
-        const data = item.data()
-        return {
-          id: item.id,
-          title: String(data.title || 'Bhaktiras'),
-          body: String(data.body || ''),
-          url: String(data.url || '/'),
-          topic: String(data.topic || 'announcements'),
-          createdAt: toDate(data.createdAt as Timestamp | undefined)
-        }
-      })
+      // Admins also see their own test sends. Everyone else's subcollection is
+      // simply empty, so this costs one read and needs no role check.
+      const [announcements, tests] = await Promise.all([
+        getDocs(query(
+          collection(db, 'notifications'),
+          orderBy('createdAt', 'desc'),
+          limit(INBOX_LIMIT)
+        )),
+        getDocs(query(
+          collection(db, 'testNotifications', uid, 'messages'),
+          orderBy('createdAt', 'desc'),
+          limit(TEST_LIMIT)
+        )).catch(() => null)
+      ])
+      messages.value = [
+        ...announcements.docs.map(item => toMessage(item.id, item.data(), false)),
+        ...(tests?.docs.map(item => toMessage(item.id, item.data(), true)) ?? [])
+      ].sort(newestFirst).slice(0, INBOX_LIMIT)
       loaded.value = true
     } catch {
       error.value = 'Could not load your notifications just now.'

@@ -64,7 +64,13 @@
               aria-hidden="true"
             />
             <span class="min-w-0 flex-1">
-              <span class="block text-sm font-semibold text-[hsl(var(--foreground))]">{{ message.title }}</span>
+              <span class="flex items-center gap-2">
+                <span class="min-w-0 flex-1 text-sm font-semibold text-[hsl(var(--foreground))]">{{ message.title }}</span>
+                <span
+                  v-if="message.test"
+                  class="shrink-0 rounded-full bg-[hsl(var(--muted))] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[hsl(var(--muted-foreground))]"
+                >Test</span>
+              </span>
               <span class="mt-0.5 block text-sm leading-relaxed text-[hsl(var(--muted-foreground))]">{{ message.body }}</span>
               <span class="mt-1 block text-[11px] text-[hsl(var(--muted-foreground))]">{{ relativeTime(message.createdAt) }}</span>
             </span>

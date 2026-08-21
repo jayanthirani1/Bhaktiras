@@ -123,7 +123,7 @@
 
       <div class="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
         Push messages cannot be recalled. Send yourself a test first, then check the title, message and audience.
-        A test reaches only your own devices — it is never added to the inbox, because everyone signed in reads the same one.
+        A test reaches only your own devices, and its inbox copy is private to you — the community's inbox is untouched.
       </div>
 
       <div class="grid gap-2 sm:grid-cols-2">
@@ -152,7 +152,7 @@
 
       <p v-if="testResult" class="text-sm text-[hsl(var(--muted-foreground))]">
         Test delivered to {{ testResult.successCount }} of your {{ testResult.recipientCount }} device{{ testResult.recipientCount === 1 ? '' : 's' }}.
-        Nothing was added to the inbox — use the inbox preview above to check that.
+        <span v-if="testResult.inbox">Check your own bell to see the inbox row — only you can see it.</span>
       </p>
       <div v-if="result" class="space-y-1">
         <p class="text-sm font-medium" :class="result.failureCount ? 'text-amber-700' : 'text-emerald-700'">
@@ -215,6 +215,7 @@ type SendResult = {
   successCount: number
   failureCount: number
   errorCodes?: string[]
+  inbox?: boolean
 }
 type AudienceCounts = { all: number; announcements: number; games: number }
 type MessageRow = {
