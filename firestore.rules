@@ -112,6 +112,21 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Per-device-independent inbox state: what has been read and what has been
+    // dismissed. Notifications themselves are shared and read-only, so this is
+    // where anything user-specific has to live. Doc ID = Auth UID.
+    match /notificationState/{uid} {
+      allow read, delete: if isSignedIn() && request.auth.uid == uid;
+      allow create, update: if isSignedIn()
+        && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['userId', 'lastReadAt', 'dismissedIds', 'updatedAt'])
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.lastReadAt is number
+        && request.resource.data.dismissedIds is list
+        && request.resource.data.dismissedIds.size() <= 200
+        && request.resource.data.updatedAt == request.time;
+    }
+
     // Daily leaderboards (all games). Read public; submit requires login; old days can be deleted.
     match /gameScores/{scoreId} {
       allow read: if true;
