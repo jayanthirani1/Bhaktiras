@@ -38,13 +38,13 @@
             v-for="word in remainingWords"
             :key="word"
             type="button"
-            class="flex aspect-[1.25/1] min-w-0 items-center justify-center rounded-lg px-1 text-center text-[10px] font-bold uppercase leading-tight transition-all sm:aspect-[1.55/1] sm:px-2 sm:text-sm"
+            class="flex aspect-[1.25/1] min-w-0 items-center justify-center rounded-lg px-1 py-0.5 text-center text-[10px] font-bold uppercase leading-tight transition-all sm:aspect-[1.55/1] sm:px-2 sm:text-sm"
             :class="selected.includes(word)
               ? 'scale-[0.96] bg-[hsl(var(--primary))] text-white'
               : 'bg-[hsl(var(--muted))] text-[hsl(var(--foreground))] hover:bg-[hsl(var(--border))]'"
             @click="toggleWord(word)"
           >
-            {{ word }}
+            <span class="w-full min-w-0 whitespace-normal break-words [overflow-wrap:anywhere]">{{ word }}</span>
           </button>
         </div>
 
@@ -305,10 +305,23 @@ watch([finished, () => auth.user.value?.uid], ([done, uid]) => {
   }
 }, { immediate: true })
 
+function syncPlayTimer() {
+  if (loading.value || playedElsewhere.value) return
+  if (finished.value) {
+    timer.read()
+    if (timer.startedAt.value && !timer.finishedAt.value) timer.stop()
+    return
+  }
+  timer.loadOrStart()
+}
+
 watch(loading, value => {
   if (value) return
   if (!loadState()) remainingWords.value = seededWords()
+  syncPlayTimer()
 }, { immediate: true })
+
+watch(playedElsewhere, () => { syncPlayTimer() })
 
 useHead({ title: 'Connections · Bhaktiras' })
 </script>

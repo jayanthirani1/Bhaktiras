@@ -185,11 +185,23 @@ export interface CommunityPromptContent {
   order?: number
 }
 
+export interface SevaTeamContent {
+  id: string
+  name: string
+  summary: string
+  description: string
+  active?: boolean
+  order?: number
+}
+
 export interface SiteContentSettings {
   id: string
   homeTiles: HomeTileContent[]
   navItems: NavItemContent[]
   communityPrompts: CommunityPromptContent[]
+  sevaHeading: string
+  sevaIntro: string
+  sevaTeams: SevaTeamContent[]
   updatedAt?: { seconds?: number; nanoseconds?: number } | Date
 }
 

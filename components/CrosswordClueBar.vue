@@ -1,5 +1,5 @@
 <template>
-  <div class="flex items-stretch gap-2 rounded-2xl border border-[hsl(var(--border))] bg-white px-2 py-2 shadow-sm">
+  <div class="flex items-center gap-2 rounded-2xl border border-[hsl(var(--border))] bg-white px-2 py-2 shadow-sm">
     <button
       type="button"
       class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[hsl(var(--border))] text-lg font-semibold text-[hsl(var(--primary))] disabled:opacity-40"
@@ -18,7 +18,7 @@
       <p class="text-[10px] font-semibold uppercase tracking-[0.16em] text-[hsl(var(--accent))]">
         {{ number }} {{ directionLabel }}
       </p>
-      <p class="mt-0.5 line-clamp-2 text-sm font-semibold leading-snug text-[hsl(var(--foreground))]">
+      <p class="mt-0.5 max-h-[6.5rem] overflow-y-auto overscroll-contain break-words text-sm font-semibold leading-snug text-[hsl(var(--foreground))] [touch-action:pan-y]">
         {{ clue || 'Select a square' }}
       </p>
     </button>

@@ -15,12 +15,12 @@
         {{ SITE.whatsappLabel }}
       </a>
 
-      <h2 class="mb-4 font-display text-xl font-semibold">Bhaktiras Volunteer Teams</h2>
+      <h2 class="mb-4 font-display text-xl font-semibold">{{ sevaHeading }}</h2>
       <p class="mb-6 text-sm text-[hsl(var(--muted-foreground))]">
-        Once you’re in WhatsApp, pick a team that fits. Ask the seva desk if you’re unsure.
+        {{ sevaIntro }}
       </p>
       <div class="grid gap-4 sm:grid-cols-2">
-        <article v-for="team in teams" :key="team.id" class="card-surface p-5 sm:p-6">
+        <article v-for="team in sevaTeams" :key="team.id" class="card-surface p-5 sm:p-6">
           <h3 class="font-display text-lg font-semibold text-[hsl(var(--primary))]">{{ team.name }}</h3>
           <p v-if="team.summary" class="mt-1 text-sm font-medium text-[hsl(var(--accent))]">{{ team.summary }}</p>
           <p class="mt-2 text-sm leading-relaxed text-[hsl(var(--foreground))]/80">{{ team.description }}</p>
@@ -32,7 +32,6 @@
 
 <script setup lang="ts">
 import { SITE } from '~/data/site'
-import { SEVA_TEAMS } from '~/data/sevaTeams'
 
-const teams = SEVA_TEAMS
+const { sevaHeading, sevaIntro, sevaTeams } = useSiteContent()
 </script>

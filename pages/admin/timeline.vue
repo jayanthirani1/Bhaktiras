@@ -4,7 +4,7 @@
     <AdminEditorLayout
       :count-label="`${sorted.length} moment${sorted.length === 1 ? '' : 's'}`"
       create-label="Add moment"
-      empty-label="No Firestore moments yet. Local journey still shows on the site."
+      empty-label="No timeline moments yet. Add one to show it on Our Journey."
       :loading="loading"
       :empty="!sorted.length"
       @create="openNew"

@@ -336,7 +336,7 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
 
-    // Admin-managed homepage tiles, navigation, and community prompts. Public read.
+    // Admin-managed homepage tiles, navigation, community prompts, and seva teams. Public read.
     match /siteContent/{id} {
       allow read: if true;
       allow create, update, delete: if isAdmin();

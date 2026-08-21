@@ -23,10 +23,11 @@ export const ADMIN_MENU_GROUPS: AdminMenuGroup[] = [
     id: 'content',
     label: 'Site content',
     items: [
-      { label: 'Content settings', to: '/admin/content', subtitle: 'Jump to homepage, nav and community editors' },
+      { label: 'Content settings', to: '/admin/content', subtitle: 'Jump to homepage, nav, community and seva editors' },
       { label: 'Homepage tiles', to: '/admin/content/homepage', subtitle: 'Cards shown on the homepage grid' },
       { label: 'Navigation', to: '/admin/content/navigation', subtitle: 'Desktop nav, mobile tabs and More drawer' },
       { label: 'Community questions', to: '/admin/content/community', subtitle: 'Prompt chips above the wall form' },
+      { label: 'Seva teams', to: '/admin/content/seva', subtitle: 'Volunteer teams shown on the Seva page' },
       { label: 'Timeline', to: '/admin/timeline', subtitle: 'Journey moments on Our Journey' },
       { label: 'Events', to: '/admin/events', subtitle: 'Title, date, description and poster' },
       { label: 'Yajman opportunities', to: '/admin/yajman', subtitle: 'Utsav Yajman opportunities shown on the site' },

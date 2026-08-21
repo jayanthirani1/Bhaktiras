@@ -803,12 +803,11 @@ onMounted(async () => {
   solution.value = state.solution
   guesses.value = state.guesses
   isComplete.value = state.isComplete
-  timer.read()
   if (state.isComplete) {
+    timer.read()
     if (timer.startedAt.value && !timer.finishedAt.value) timer.stop()
-  } else if (state.guesses.length || timer.startedAt.value) {
-    // Continue wall-clock timer from earlier session
-    if (!timer.startedAt.value) timer.ensureStarted()
+  } else if (!playedElsewhere.value) {
+    timer.loadOrStart()
   }
   try {
     const remote = await fetchWordleRemote(new Date())

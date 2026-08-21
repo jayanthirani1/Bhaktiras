@@ -52,8 +52,7 @@
           <div v-if="yearMoments.length === 0" class="card-surface p-8 text-center">
             <p class="font-display text-3xl text-[hsl(var(--primary))]">{{ selectedYear }}</p>
             <p class="mt-3 text-sm text-[hsl(var(--muted-foreground))]">
-              No photos or stories for this year yet. Add a Firestore <code>timeline</code> document with
-              <code>year</code>, <code>title</code>, <code>description</code>, and <code>media</code> (images/videos).
+              No photos or stories for this year yet.
             </p>
           </div>
 

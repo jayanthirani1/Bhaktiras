@@ -9,7 +9,12 @@ import {
   IconMapPin,
   IconUsers
 } from '@tabler/icons-vue'
-import type { CommunityPromptContent, HomeTileContent, NavItemContent, SiteContentSettings, SiteIconKey } from '~/types'
+import type { CommunityPromptContent, HomeTileContent, NavItemContent, SevaTeamContent, SiteContentSettings, SiteIconKey } from '~/types'
+import {
+  DEFAULT_SEVA_HEADING,
+  DEFAULT_SEVA_INTRO,
+  DEFAULT_SEVA_TEAMS
+} from '~/data/sevaTeams'
 
 export const SITE_CONTENT_DOC_ID = 'main'
 
@@ -75,7 +80,10 @@ export const DEFAULT_SITE_CONTENT: SiteContentSettings = {
   id: SITE_CONTENT_DOC_ID,
   homeTiles: DEFAULT_HOME_TILES,
   navItems: DEFAULT_NAV_ITEMS,
-  communityPrompts: DEFAULT_COMMUNITY_PROMPTS
+  communityPrompts: DEFAULT_COMMUNITY_PROMPTS,
+  sevaHeading: DEFAULT_SEVA_HEADING,
+  sevaIntro: DEFAULT_SEVA_INTRO,
+  sevaTeams: DEFAULT_SEVA_TEAMS
 }
 
 function sortByOrder<T extends { order?: number }>(items: T[]) {
@@ -134,6 +142,32 @@ export function parseCommunityPrompts(raw: unknown): CommunityPromptContent[] {
   }).filter(Boolean) as CommunityPromptContent[])
 }
 
+export function parseSevaTeams(raw: unknown): SevaTeamContent[] {
+  if (!Array.isArray(raw)) return []
+  return sortByOrder(raw.map((item, index) => {
+    const value = item as Partial<SevaTeamContent>
+    if (!value?.id || !value?.name || !value?.description) return null
+    return {
+      id: String(value.id),
+      name: String(value.name),
+      summary: String(value.summary || ''),
+      description: String(value.description),
+      active: value.active !== false,
+      order: Number(value.order ?? index + 1) || index + 1
+    }
+  }).filter(Boolean) as SevaTeamContent[])
+}
+
+export function parseSevaHeading(raw: unknown): string {
+  const value = String(raw || '').trim()
+  return value || DEFAULT_SEVA_HEADING
+}
+
+export function parseSevaIntro(raw: unknown): string {
+  const value = String(raw || '').trim()
+  return value || DEFAULT_SEVA_INTRO
+}
+
 export function cloneList<T extends object>(items: T[]): T[] {
   return items.map(item => ({ ...item }))
 }
@@ -153,14 +187,25 @@ export function communityPromptsFromSource(raw: unknown): CommunityPromptContent
   return parsed.length ? parsed : cloneList(DEFAULT_COMMUNITY_PROMPTS)
 }
 
+export function sevaTeamsFromSource(raw: unknown): SevaTeamContent[] {
+  const parsed = parseSevaTeams(raw)
+  return parsed.length ? parsed : cloneList(DEFAULT_SEVA_TEAMS)
+}
+
 export function siteContentWritePayload(data: {
   homeTiles: HomeTileContent[]
   navItems: NavItemContent[]
   communityPrompts: CommunityPromptContent[]
+  sevaHeading?: string
+  sevaIntro?: string
+  sevaTeams: SevaTeamContent[]
 }) {
   return {
     homeTiles: parseHomeTiles(data.homeTiles.length ? data.homeTiles : DEFAULT_HOME_TILES),
     navItems: parseNavItems(data.navItems.length ? data.navItems : DEFAULT_NAV_ITEMS),
-    communityPrompts: parseCommunityPrompts(data.communityPrompts.length ? data.communityPrompts : DEFAULT_COMMUNITY_PROMPTS)
+    communityPrompts: parseCommunityPrompts(data.communityPrompts.length ? data.communityPrompts : DEFAULT_COMMUNITY_PROMPTS),
+    sevaHeading: parseSevaHeading(data.sevaHeading),
+    sevaIntro: parseSevaIntro(data.sevaIntro),
+    sevaTeams: parseSevaTeams(data.sevaTeams.length ? data.sevaTeams : DEFAULT_SEVA_TEAMS)
   }
 }

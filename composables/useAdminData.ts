@@ -19,6 +19,10 @@ import {
   parseCommunityPrompts,
   parseHomeTiles,
   parseNavItems,
+  parseSevaHeading,
+  parseSevaIntro,
+  parseSevaTeams,
+  sevaTeamsFromSource,
   SITE_CONTENT_DOC_ID,
   siteContentWritePayload
 } from '~/data/siteContent'
@@ -208,7 +212,10 @@ export function useAdminSiteContent() {
     id: SITE_CONTENT_DOC_ID,
     homeTiles: homeTilesFromSource(undefined),
     navItems: navItemsFromSource(undefined),
-    communityPrompts: communityPromptsFromSource(undefined)
+    communityPrompts: communityPromptsFromSource(undefined),
+    sevaHeading: parseSevaHeading(undefined),
+    sevaIntro: parseSevaIntro(undefined),
+    sevaTeams: sevaTeamsFromSource(undefined)
   })
   const loading = ref(false)
   const saving = ref(false)
@@ -225,7 +232,10 @@ export function useAdminSiteContent() {
       const next = {
         homeTiles: homeTilesFromSource(data.homeTiles),
         navItems: navItemsFromSource(data.navItems),
-        communityPrompts: communityPromptsFromSource(data.communityPrompts)
+        communityPrompts: communityPromptsFromSource(data.communityPrompts),
+        sevaHeading: parseSevaHeading(data.sevaHeading),
+        sevaIntro: parseSevaIntro(data.sevaIntro),
+        sevaTeams: sevaTeamsFromSource(data.sevaTeams)
       }
       const needsSeed = !snap.exists()
         || !Array.isArray(data.homeTiles)
@@ -234,6 +244,8 @@ export function useAdminSiteContent() {
         || !data.navItems.length
         || !Array.isArray(data.communityPrompts)
         || !data.communityPrompts.length
+        || !Array.isArray(data.sevaTeams)
+        || !data.sevaTeams.length
       if (needsSeed) {
         await setDoc(ref, { ...siteContentWritePayload(next), updatedAt: serverTimestamp() }, { merge: true })
       }
@@ -244,14 +256,17 @@ export function useAdminSiteContent() {
         id: SITE_CONTENT_DOC_ID,
         homeTiles: homeTilesFromSource(undefined),
         navItems: navItemsFromSource(undefined),
-        communityPrompts: communityPromptsFromSource(undefined)
+        communityPrompts: communityPromptsFromSource(undefined),
+        sevaHeading: parseSevaHeading(undefined),
+        sevaIntro: parseSevaIntro(undefined),
+        sevaTeams: sevaTeamsFromSource(undefined)
       }
     } finally {
       loading.value = false
     }
   }
 
-  async function save(data: Partial<Pick<SiteContentSettings, 'homeTiles' | 'navItems' | 'communityPrompts'>>) {
+  async function save(data: Partial<Pick<SiteContentSettings, 'homeTiles' | 'navItems' | 'communityPrompts' | 'sevaHeading' | 'sevaIntro' | 'sevaTeams'>>) {
     saving.value = true
     error.value = ''
     try {
@@ -260,6 +275,9 @@ export function useAdminSiteContent() {
       if (data.homeTiles !== undefined) payload.homeTiles = parseHomeTiles(data.homeTiles)
       if (data.navItems !== undefined) payload.navItems = parseNavItems(data.navItems)
       if (data.communityPrompts !== undefined) payload.communityPrompts = parseCommunityPrompts(data.communityPrompts)
+      if (data.sevaHeading !== undefined) payload.sevaHeading = parseSevaHeading(data.sevaHeading)
+      if (data.sevaIntro !== undefined) payload.sevaIntro = parseSevaIntro(data.sevaIntro)
+      if (data.sevaTeams !== undefined) payload.sevaTeams = parseSevaTeams(data.sevaTeams)
       await setDoc(doc(db, 'siteContent', SITE_CONTENT_DOC_ID), payload, { merge: true })
       await load()
     } catch (e) {

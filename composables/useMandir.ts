@@ -9,7 +9,6 @@ import {
   type Firestore
 } from 'firebase/firestore'
 import type { TimelineItem, TimelineMedia, Event, GratitudeMessage, VolunteerRole, TimeCapsuleMessage } from '~/types'
-import { JOURNEY_MILESTONES } from '~/data/timeline'
 
 /** Max length for time capsule message (chars). */
 export const TIME_CAPSULE_MESSAGE_MAX_LENGTH = 1000
@@ -43,12 +42,12 @@ export function useTimeline() {
     try {
       const db = getDb()
       if (!db) {
-        items.value = [...JOURNEY_MILESTONES].sort((a, b) => a.year.localeCompare(b.year))
+        items.value = []
         error.value = null
         return
       }
       const snap = await getDocs(collection(db, 'timeline'))
-      const remote = snap.docs.map((d) => {
+      items.value = snap.docs.map((d) => {
         const data = d.data()
         const media = Array.isArray(data.media) ? (data.media as TimelineMedia[]) : []
         if (data.imageUrl && !media.some(m => m.url === data.imageUrl)) {
@@ -59,22 +58,19 @@ export function useTimeline() {
         }
         return mapDoc<TimelineItem>(d.id, {
           ...data,
+          year: String(data.year ?? ''),
           imageUrl: data.imageUrl ?? null,
           videoUrl: data.videoUrl ?? null,
           media
         })
-      })
-      const byId = new Map<string, TimelineItem>()
-      for (const m of JOURNEY_MILESTONES) byId.set(m.id, { ...m, media: m.media ?? [] })
-      for (const r of remote) byId.set(r.id, r)
-      items.value = Array.from(byId.values()).sort((a, b) => {
-        const y = a.year.localeCompare(b.year)
+      }).sort((a, b) => {
+        const y = String(a.year).localeCompare(String(b.year))
         if (y !== 0) return y
         return (a.date || '').localeCompare(b.date || '')
       })
     } catch (e) {
       error.value = e as Error
-      items.value = [...JOURNEY_MILESTONES].sort((a, b) => a.year.localeCompare(b.year))
+      items.value = []
     } finally {
       loading.value = false
     }

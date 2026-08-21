@@ -5,6 +5,9 @@ import {
   communityPromptsFromSource,
   homeTilesFromSource,
   navItemsFromSource,
+  parseSevaHeading,
+  parseSevaIntro,
+  sevaTeamsFromSource,
   SITE_CONTENT_DOC_ID
 } from '~/data/siteContent'
 
@@ -40,6 +43,9 @@ export function useSiteContent() {
         homeTiles: homeTilesFromSource(data.homeTiles),
         navItems: navItemsFromSource(data.navItems),
         communityPrompts: communityPromptsFromSource(data.communityPrompts),
+        sevaHeading: parseSevaHeading(data.sevaHeading),
+        sevaIntro: parseSevaIntro(data.sevaIntro),
+        sevaTeams: sevaTeamsFromSource(data.sevaTeams),
         updatedAt: data.updatedAt
       }
       fromCms.value = true
@@ -54,8 +60,11 @@ export function useSiteContent() {
   const homeTiles = computed(() => content.value.homeTiles.filter(item => item.active !== false))
   const navItems = computed(() => content.value.navItems.filter(item => item.active !== false))
   const communityPrompts = computed(() => content.value.communityPrompts.filter(item => item.active !== false).map(item => item.text))
+  const sevaHeading = computed(() => content.value.sevaHeading)
+  const sevaIntro = computed(() => content.value.sevaIntro)
+  const sevaTeams = computed(() => content.value.sevaTeams.filter(item => item.active !== false))
 
   onMounted(() => { void fetchContent() })
 
-  return { content, homeTiles, navItems, communityPrompts, loading, fromCms, fetchContent }
+  return { content, homeTiles, navItems, communityPrompts, sevaHeading, sevaIntro, sevaTeams, loading, fromCms, fetchContent }
 }

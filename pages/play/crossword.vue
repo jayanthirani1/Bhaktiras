@@ -87,8 +87,11 @@
             </div>
           </div>
 
-          <!-- Clue navigator (mobile-first, also useful on desktop) -->
-          <div v-if="!solved" class="mt-4">
+          <!-- Clue navigator — sticky above the mobile keyboard so it stays readable. -->
+          <div
+            v-if="!solved"
+            class="sticky bottom-[calc(16.5rem+env(safe-area-inset-bottom))] z-30 mt-4 bg-white md:static md:bottom-auto"
+          >
             <CrosswordClueBar
               :number="activeWord?.number"
               :direction="activeWord?.direction || activeDir"
@@ -629,6 +632,16 @@ async function submitToLeaderboard() {
   }
 }
 
+function syncPlayTimer() {
+  if (loading.value || !layout.value || playedElsewhere.value) return
+  if (solved.value) {
+    timer.read()
+    if (timer.startedAt.value && !timer.finishedAt.value) timer.stop()
+    return
+  }
+  timer.loadOrStart()
+}
+
 watch(puzzles, (list) => {
   if (!list.length) return
   restore()
@@ -636,7 +649,10 @@ watch(puzzles, (list) => {
     activeId.value = list[0].id
   }
   if (!activeWord.value && layout.value?.words[0]) focusWordStart(layout.value.words[0])
+  syncPlayTimer()
 }, { immediate: true })
+
+watch([loading, solved, playedElsewhere], () => { syncPlayTimer() })
 
 watch([entries, () => auth.user.value?.uid], ([list, uid]) => {
   if (uid && list.some(e => e.userId === uid)) scoreSubmitted.value = true
@@ -651,10 +667,6 @@ watch([solved, () => auth.user.value?.uid], ([done, uid]) => {
 backfill(() => ({ timeMs: timer.elapsedMs.value, detail: 'Solved' }))
 
 onMounted(() => {
-  timer.read()
-  if (solved.value && timer.startedAt.value && !timer.finishedAt.value) timer.stop()
-  else if (Object.keys(guesses).length && !solved.value) timer.ensureStarted()
-
   const onKey = (e: KeyboardEvent) => {
     if (e.metaKey || e.ctrlKey || e.altKey || e.repeat) return
     const tag = (e.target as HTMLElement | null)?.tagName
@@ -702,11 +714,12 @@ useHead({ title: 'Crossword · Bhaktiras' })
  * pushed the clue bar off the bottom of the screen behind the fixed keyboard.
  *
  * --xw-reserve is everything that is not the grid: the sticky top bar, the
- * title, the clue navigator, card padding, and on mobile the 16.5rem fixed
- * keyboard the page already reserves via its bottom padding.
+ * title, the wrapping clue navigator (up to ~6.5rem of clue text), card
+ * padding, and on mobile the 16.5rem fixed keyboard the page already
+ * reserves via its bottom padding.
  */
 .xw-grid {
-  --xw-reserve: 28rem;
+  --xw-reserve: 30rem;
   --xw-vh: 100vh;
   /*
    * The grid sizes itself, and the cells divide whatever it gets (1fr columns

@@ -311,12 +311,22 @@ backfill(() => ({
   detail: `${cleared.value}/${ladder.value.length} cleared`
 }))
 
+function syncPlayTimer() {
+  if (loading.value || playedElsewhere.value) return
+  if (finished.value) {
+    timer.read()
+    if (timer.startedAt.value && !timer.finishedAt.value) timer.stop()
+    return
+  }
+  if (started.value) timer.loadOrStart()
+}
+
 onMounted(() => {
   loadRun()
-  timer.read()
-  if (finished.value && timer.startedAt.value && !timer.finishedAt.value) timer.stop()
-  else if (started.value && !finished.value) timer.ensureStarted()
+  syncPlayTimer()
 })
+
+watch([loading, playedElsewhere], () => { syncPlayTimer() })
 
 useHead({ title: '1% Club · Vachanamrut · Bhaktiras' })
 </script>

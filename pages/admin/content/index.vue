@@ -21,7 +21,8 @@ definePageMeta({ layout: 'admin', middleware: 'admin' })
 const cards = [
   { title: 'Homepage tiles', desc: 'Edit the homepage grid cards and links.', to: '/admin/content/homepage' },
   { title: 'Navigation', desc: 'Manage desktop nav, mobile tabs and the More drawer.', to: '/admin/content/navigation' },
-  { title: 'Community questions', desc: 'Edit the prompt chips shown above the wall form.', to: '/admin/content/community' }
+  { title: 'Community questions', desc: 'Edit the prompt chips shown above the wall form.', to: '/admin/content/community' },
+  { title: 'Seva teams', desc: 'Edit volunteer team names, gold captions and descriptions.', to: '/admin/content/seva' }
 ]
 
 useHead({ title: 'Content settings · Admin' })

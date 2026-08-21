@@ -88,6 +88,7 @@ export function useGameTimer(storageKey: string) {
 
   function loadOrStart() {
     read()
+    if (finishedAt.value) return
     if (!startedAt.value) {
       startedAt.value = Date.now()
       write()
