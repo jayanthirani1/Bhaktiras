@@ -24,6 +24,14 @@
         { "fieldPath": "guesses", "order": "ASCENDING" },
         { "fieldPath": "completedAt", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "pushSubscriptions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "enabled", "order": "ASCENDING" },
+        { "fieldPath": "topics", "arrayConfig": "CONTAINS" }
+      ]
     }
   ],
   "fieldOverrides": []

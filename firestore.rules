@@ -98,6 +98,13 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // In-app copy of every announcement, so a missed OS notification is not lost.
+    // Written only by Cloud Functions; read state is kept on the device.
+    match /notifications/{notificationId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+
     // Daily leaderboards (all games). Read public; submit requires login; old days can be deleted.
     match /gameScores/{scoreId} {
       allow read: if true;

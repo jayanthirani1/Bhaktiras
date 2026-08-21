@@ -205,23 +205,64 @@ function isBetterLongestStreak(current, candidate) {
 
 const SITE_ORIGIN = process.env.BHAKTRAS_SITE_ORIGIN || 'https://skssw-bhaktiras.web.app'
 
-async function deliverNotification({ title, body, topic, url, sentBy }) {
-  const db = getFirestore()
-  const subscriptions = await db.collection('pushSubscriptions')
-    .where('enabled', '==', true)
-    .get()
-  const recipients = subscriptions.docs
-    .filter(item => subscriptionMatches(item.data().topics, topic))
-    .map(item => ({ ref: item.ref, token: item.data().token, updatedAt: item.data().updatedAt }))
-    .filter(item => typeof item.token === 'string' && item.token)
+// Older builds saved `patotsav` / `events`; both mean announcements today.
+const TOPIC_ALIASES = {
+  announcements: ['announcements', 'patotsav', 'events'],
+  games: ['games']
+}
 
+/** At most one automatic new-event push per window, so a bulk import cannot storm. */
+const NEW_EVENT_THROTTLE_MS = 15 * 60 * 1000
+
+async function requireAdmin(request) {
+  if (!request.auth?.uid) throw new HttpsError('unauthenticated', 'Sign in as an admin.')
+  const db = getFirestore()
+  const admin = await db.doc(`admins/${request.auth.uid}`).get()
+  if (!admin.exists || admin.data().active === false) {
+    throw new HttpsError('permission-denied', 'Admin access required.')
+  }
+  return request.auth.uid
+}
+
+function toRecipient(doc) {
+  const data = doc.data()
+  return { ref: doc.ref, token: data.token, updatedAt: data.updatedAt }
+}
+
+function hasToken(item) {
+  return typeof item.token === 'string' && item.token.length > 0
+}
+
+/**
+ * Subscriptions for one audience. Narrowed in the query rather than by reading
+ * the whole collection, so cost stays proportional to the audience.
+ */
+async function loadRecipients(db, topic) {
+  const enabled = db.collection('pushSubscriptions').where('enabled', '==', true)
+  const query = topic === 'all'
+    ? enabled
+    : enabled.where('topics', 'array-contains-any', TOPIC_ALIASES[topic] || [topic])
+  const snap = await query.get()
+  return snap.docs.map(toRecipient).filter(hasToken)
+}
+
+/** Every enabled subscription belonging to one account, for test sends. */
+async function loadOwnRecipients(db, uid) {
+  const snap = await db.collection('pushSubscriptions').where('userId', '==', uid).get()
+  return snap.docs.filter(doc => doc.data().enabled === true).map(toRecipient).filter(hasToken)
+}
+
+/**
+ * Fans a message out to already-resolved recipients.
+ * Data-only so the client SW / foreground listener always owns display.
+ * A notification payload would auto-show in background and skip onMessage while focused.
+ */
+async function pushToRecipients({ recipients, title, body, topic, url }) {
+  const link = new URL(url || '/', SITE_ORIGIN).href
   let successCount = 0
   let failureCount = 0
   const staleRefs = []
   const errorCodes = []
-  // Data-only so the client SW / foreground listener always owns display.
-  // A notification payload would auto-show in background and skip onMessage while focused.
-  const link = new URL(url || '/', SITE_ORIGIN).href
 
   for (const batch of chunks(recipients, 500)) {
     const response = await getMessaging().sendEachForMulticast({
@@ -258,61 +299,137 @@ async function deliverNotification({ title, body, topic, url, sentBy }) {
     })
   }
 
+  return { successCount, failureCount, errorCodes, staleRefs }
+}
+
+async function pruneStaleSubscriptions(db, staleRefs) {
   for (const staleBatch of chunks(staleRefs, 400)) {
     const write = db.batch()
     staleBatch.forEach(ref => write.delete(ref))
     await write.commit()
   }
+}
 
-  const uniqueErrorCodes = Array.from(new Set(errorCodes))
+/**
+ * Sends to a topic, records the delivery audit, and — unless `inbox` is false —
+ * keeps a copy readable in the app so a missed OS notification is not lost.
+ */
+async function deliverNotification({ title, body, topic, url, sentBy, inbox = topic !== 'games' }) {
+  const db = getFirestore()
+  const recipients = await loadRecipients(db, topic)
+  const outcome = await pushToRecipients({ recipients, title, body, topic, url })
+  await pruneStaleSubscriptions(db, outcome.staleRefs)
 
-  await db.collection('pushMessages').add({
-    title,
-    body,
-    topic,
-    url,
-    sentBy,
-    recipientCount: recipients.length,
-    successCount,
-    failureCount,
-    errorCodes: uniqueErrorCodes,
-    createdAt: FieldValue.serverTimestamp()
-  })
+  const uniqueErrorCodes = Array.from(new Set(outcome.errorCodes))
+  const writes = [
+    db.collection('pushMessages').add({
+      title,
+      body,
+      topic,
+      url,
+      sentBy,
+      inbox,
+      recipientCount: recipients.length,
+      successCount: outcome.successCount,
+      failureCount: outcome.failureCount,
+      errorCodes: uniqueErrorCodes,
+      createdAt: FieldValue.serverTimestamp()
+    })
+  ]
+  if (inbox) {
+    writes.push(db.collection('notifications').add({
+      title,
+      body,
+      topic,
+      url: url || '/',
+      createdAt: FieldValue.serverTimestamp()
+    }))
+  }
+  await Promise.all(writes)
 
   return {
     recipientCount: recipients.length,
-    successCount,
-    failureCount,
+    successCount: outcome.successCount,
+    failureCount: outcome.failureCount,
     errorCodes: uniqueErrorCodes
   }
+}
+
+/** Shared validation for both the live send and the admin-only test send. */
+function readNotificationInput(data) {
+  const title = cleanText(data?.title, 80)
+  const body = cleanText(data?.body, 240)
+  const topic = cleanText(data?.topic, 20) || 'all'
+  const url = String(data?.url || '/').trim().slice(0, 300)
+  if (title.length < 3 || body.length < 3) {
+    throw new HttpsError('invalid-argument', 'Add a title and message.')
+  }
+  if (!ALLOWED_TOPICS.has(topic)) {
+    throw new HttpsError('invalid-argument', 'Unknown audience.')
+  }
+  if (!url.startsWith('/')) {
+    throw new HttpsError('invalid-argument', 'Notification links must start with /.')
+  }
+  return { title, body, topic, url }
 }
 
 exports.sendPushNotification = onCall(
   { region: 'europe-west2', timeoutSeconds: 120 },
   async (request) => {
-    if (!request.auth?.uid) throw new HttpsError('unauthenticated', 'Sign in as an admin.')
+    const uid = await requireAdmin(request)
+    const input = readNotificationInput(request.data)
+    const inbox = request.data?.inbox == null
+      ? input.topic !== 'games'
+      : request.data.inbox === true
+    return deliverNotification({ ...input, inbox, sentBy: uid })
+  }
+)
 
+/**
+ * Sends the drafted notification to the admin's own devices only. Nothing is
+ * logged and nothing reaches the inbox, so a draft can be checked for real
+ * before it goes out to everyone.
+ */
+exports.sendTestPushNotification = onCall(
+  { region: 'europe-west2', timeoutSeconds: 60 },
+  async (request) => {
+    const uid = await requireAdmin(request)
+    const input = readNotificationInput(request.data)
     const db = getFirestore()
-    const admin = await db.doc(`admins/${request.auth.uid}`).get()
-    if (!admin.exists || admin.data().active === false) {
-      throw new HttpsError('permission-denied', 'Admin access required.')
+    const recipients = await loadOwnRecipients(db, uid)
+    if (!recipients.length) {
+      throw new HttpsError(
+        'failed-precondition',
+        'Turn notifications on for this account first, then send yourself a test.'
+      )
     }
+    const outcome = await pushToRecipients({ recipients, ...input })
+    await pruneStaleSubscriptions(db, outcome.staleRefs)
+    return {
+      recipientCount: recipients.length,
+      successCount: outcome.successCount,
+      failureCount: outcome.failureCount,
+      errorCodes: Array.from(new Set(outcome.errorCodes))
+    }
+  }
+)
 
-    const title = cleanText(request.data?.title, 80)
-    const body = cleanText(request.data?.body, 240)
-    const topic = cleanText(request.data?.topic, 20) || 'all'
-    const url = String(request.data?.url || '/').trim().slice(0, 300)
-    if (title.length < 3 || body.length < 3) {
-      throw new HttpsError('invalid-argument', 'Add a title and message.')
-    }
-    if (!ALLOWED_TOPICS.has(topic)) {
-      throw new HttpsError('invalid-argument', 'Unknown audience.')
-    }
-    if (!url.startsWith('/')) {
-      throw new HttpsError('invalid-argument', 'Notification links must start with /.')
-    }
-
-    return deliverNotification({ title, body, topic, url, sentBy: request.auth.uid })
+/** How many devices each audience currently reaches, shown before sending. */
+exports.getPushAudience = onCall(
+  { region: 'europe-west2', timeoutSeconds: 60 },
+  async (request) => {
+    await requireAdmin(request)
+    const db = getFirestore()
+    const snap = await db.collection('pushSubscriptions').where('enabled', '==', true).get()
+    const counts = { all: 0, announcements: 0, games: 0 }
+    snap.docs.forEach((doc) => {
+      const data = doc.data()
+      if (typeof data.token !== 'string' || !data.token) return
+      counts.all += 1
+      if (subscriptionMatches(data.topics, 'announcements')) counts.announcements += 1
+      if (subscriptionMatches(data.topics, 'games')) counts.games += 1
+    })
+    return counts
   }
 )
 
@@ -467,7 +584,10 @@ exports.processWordleAchievements = onCall(
   })
 )
 
-/** A gentle daily reminder for users who opted in after completing a game. */
+/**
+ * A gentle daily reminder for users who opted in after completing a game.
+ * Kept out of the inbox — a daily nudge would bury real announcements.
+ */
 exports.sendDailyGameReminder = onSchedule(
   { region: 'europe-west2', schedule: '30 8 * * *', timeZone: 'Europe/London' },
   () => deliverNotification({
@@ -475,15 +595,40 @@ exports.sendDailyGameReminder = onSchedule(
     body: 'Keep your streak going with today’s satsang challenges.',
     topic: 'games',
     url: '/play',
+    inbox: false,
     sentBy: 'system:daily-games'
   })
 )
 
+/**
+ * Claims the right to send an automatic new-event push, at most once per
+ * window. A seed or bulk import creates many event documents at once; without
+ * this every one of them would become its own notification.
+ */
+async function claimNewEventSlot(db) {
+  const ref = db.doc('systemState/eventNotifications')
+  return db.runTransaction(async (transaction) => {
+    const snap = await transaction.get(ref)
+    const last = snap.exists ? snap.data().lastNotifiedAt?.toMillis?.() ?? 0 : 0
+    if (Date.now() - last < NEW_EVENT_THROTTLE_MS) return false
+    transaction.set(ref, { lastNotifiedAt: FieldValue.serverTimestamp() }, { merge: true })
+    return true
+  })
+}
+
 /** Creating an event in Admin publishes it immediately, so notify event subscribers. */
 exports.notifyNewEvent = onDocumentCreated(
   { document: 'events/{eventId}', region: 'europe-west2' },
-  (event) => {
+  async (event) => {
     const data = event.data?.data() || {}
+    if (data.notifyOnPublish === false) return
+    if (!await claimNewEventSlot(getFirestore())) {
+      logger.info('Skipped new-event push', {
+        reason: 'throttled',
+        eventId: event.params.eventId
+      })
+      return
+    }
     const eventTitle = cleanText(data.title, 80) || 'A new event'
     const date = cleanText(data.date, 40)
     return deliverNotification({

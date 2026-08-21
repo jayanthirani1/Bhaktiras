@@ -162,6 +162,9 @@ on the site itself.
 **Fix.** Add `public/firebase-messaging-sw.js` to `.gitignore` and generate it at deploy
 time, or make the script fail loudly when the config is empty rather than writing blanks.
 
+**Fixed.** The script now refuses to write blanks: it keeps the committed file and warns
+locally, and throws in CI where a missing config is always a mistake.
+
 ### 10. The countdown is not CMS-driven
 
 `composables/useCountdown.ts:3` binds to `SITE.patotsavStart` in `data/site.ts`. Everything

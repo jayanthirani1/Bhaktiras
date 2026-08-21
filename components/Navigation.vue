@@ -5,10 +5,13 @@
       class="left-0 right-0 z-50 md:hidden overflow-visible bg-[hsl(var(--background))]/90 backdrop-blur-md border-b border-[hsl(var(--border))]"
       :class="isGamePage ? 'relative' : 'fixed top-0'"
     >
-      <div class="h-14 px-3 flex items-center justify-center overflow-visible">
+      <div class="relative h-14 px-3 flex items-center justify-center overflow-visible">
         <NuxtLink to="/" class="flex min-w-0 shrink-0 items-center overflow-visible">
           <BhaktirasLogo size="sm" animate />
         </NuxtLink>
+        <ClientOnly>
+          <NotificationInbox class="absolute right-2 top-1/2 -translate-y-1/2" />
+        </ClientOnly>
       </div>
     </div>
 
@@ -124,6 +127,9 @@
           >
             {{ item.label }}
           </NuxtLink>
+          <ClientOnly>
+            <NotificationInbox class="ml-1" />
+          </ClientOnly>
           <span :key="isLoggedIn ? 'in' : 'out'" class="inline-flex items-center gap-2">
             <NuxtLink
               v-if="!isLoggedIn"

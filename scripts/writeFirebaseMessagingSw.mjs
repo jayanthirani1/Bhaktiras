@@ -78,5 +78,19 @@ self.addEventListener('notificationclick', (event) => {
 })
 `
 
+  // The generated file is committed, so writing blanks is how a build without
+  // .env used to silently ship a service worker that can never receive a push,
+  // with no build error and nothing visibly wrong on the site.
+  const missing = Object.entries(config).filter(([, value]) => !value).map(([key]) => key)
+  if (missing.length) {
+    const detail = `missing Firebase config (${missing.join(', ')}); `
+      + 'populate .env or the NUXT_PUBLIC_FIREBASE_* environment variables'
+    if (process.env.CI) {
+      throw new Error(`Refusing to write public/firebase-messaging-sw.js: ${detail}.`)
+    }
+    console.warn(`[push] Kept the existing public/firebase-messaging-sw.js: ${detail}.`)
+    return
+  }
+
   writeFileSync(resolve(rootDir, 'public/firebase-messaging-sw.js'), source)
 }
