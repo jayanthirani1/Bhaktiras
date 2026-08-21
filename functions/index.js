@@ -236,14 +236,21 @@ function hasToken(item) {
 /**
  * Subscriptions for one audience. Narrowed in the query rather than by reading
  * the whole collection, so cost stays proportional to the audience.
+ *
+ * A topic query filters `enabled` in memory on purpose: pairing it with
+ * array-contains-any would need a composite index, and the deploy service
+ * account cannot create those. Turning notifications off deletes the document,
+ * so the flag only ever excludes a handful of legacy records.
  */
 async function loadRecipients(db, topic) {
-  const enabled = db.collection('pushSubscriptions').where('enabled', '==', true)
-  const query = topic === 'all'
-    ? enabled
-    : enabled.where('topics', 'array-contains-any', TOPIC_ALIASES[topic] || [topic])
-  const snap = await query.get()
-  return snap.docs.map(toRecipient).filter(hasToken)
+  const collection = db.collection('pushSubscriptions')
+  const snap = topic === 'all'
+    ? await collection.where('enabled', '==', true).get()
+    : await collection.where('topics', 'array-contains-any', TOPIC_ALIASES[topic] || [topic]).get()
+  return snap.docs
+    .filter(doc => doc.data().enabled === true)
+    .map(toRecipient)
+    .filter(hasToken)
 }
 
 /** Every enabled subscription belonging to one account, for test sends. */
