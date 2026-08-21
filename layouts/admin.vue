@@ -42,7 +42,7 @@ const sidebarOpen = ref(false)
 
 function isActive(to: string) {
   if (to === '/admin') return route.path === '/admin' || route.path === '/admin/'
-  return route.path === to || route.path.startsWith(`${to}/`)
+  return route.path === to
 }
 
 const activeItem = computed(() => ADMIN_MENU.find(i => isActive(i.to)) || ADMIN_MENU[0])

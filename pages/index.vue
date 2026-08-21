@@ -51,11 +51,11 @@
 
     <section class="mx-auto max-w-2xl px-4">
       <div class="card-surface p-6 sm:p-8 text-center">
-        <p class="text-[11px] font-semibold uppercase tracking-[0.22em] text-[hsl(var(--accent))]">Bhakti quote of the week</p>
+        <p class="text-[11px] font-semibold uppercase tracking-[0.22em] text-[hsl(var(--accent))]">Daily satsang quote</p>
         <blockquote class="mt-4 font-display text-xl italic leading-relaxed text-[hsl(var(--primary))] sm:text-2xl">
-          “{{ weeklyQuote.quote }}”
+          “{{ dailyQuote.quote }}”
         </blockquote>
-        <p class="mt-3 text-sm text-[hsl(var(--muted-foreground))]">— {{ weeklyQuote.source }}</p>
+        <p class="mt-3 text-sm text-[hsl(var(--muted-foreground))]">— {{ dailyQuote.source }}</p>
       </div>
     </section>
 
@@ -90,11 +90,11 @@
 <script setup lang="ts">
 import { SITE } from '~/data/site'
 import { SITE_ICON_COMPONENTS } from '~/data/siteContent'
-import { getQuoteOfTheWeek } from '~/utils/quotes'
+import { getDailyQuote } from '~/utils/quotes'
 
 const { greeting } = useAuth()
 const countdown = useCountdown()
-const weeklyQuote = getQuoteOfTheWeek()
+const dailyQuote = getDailyQuote()
 const { homeTiles } = useSiteContent()
 
 const countdownUnits = computed(() => [

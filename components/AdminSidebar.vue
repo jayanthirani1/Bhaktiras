@@ -84,11 +84,11 @@ defineEmits<{ navigate: []; close: []; logout: [] }>()
 const route = useRoute()
 const { adminRecord } = useAdminAccess()
 const openBugCount = useState<number | null>('admin-open-bug-count', () => null)
-const openGroups = useState<Record<string, boolean>>('admin-nav-open-groups', () => ({}))
+const openGroups = useState<Record<string, boolean>>('admin-nav-open-groups', () => ({ content: true }))
 
 function isActive(to: string) {
   if (to === '/admin') return route.path === '/admin' || route.path === '/admin/'
-  return route.path === to || route.path.startsWith(`${to}/`)
+  return route.path === to
 }
 
 function linkClass(to: string) {

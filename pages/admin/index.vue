@@ -32,6 +32,7 @@ const cards = [
   { key: 'bugs', title: 'Bug reports', desc: 'Review, resolve and close reports from the footer.', to: '/admin/bugs' },
   { key: 'notifications', title: 'Push notifications', desc: 'Send updates to opted-in devices.', to: '/admin/notifications' },
   { key: 'content', title: 'Content settings', desc: 'Jump to homepage tiles, nav, community questions and seva teams.', to: '/admin/content' },
+  { key: 'seva', title: 'Seva teams', desc: 'Volunteer team names, gold captions and descriptions.', to: '/admin/content/seva' },
   { key: 'timeline', title: 'Timeline', desc: 'Journey years, stories, photos and videos.', to: '/admin/timeline' },
   { key: 'events', title: 'Events', desc: 'Title, date, description and poster.', to: '/admin/events' },
   { key: 'yajman', title: 'Yajman opportunities', desc: 'Add and publish Utsav Yajman opportunities.', to: '/admin/yajman' },
