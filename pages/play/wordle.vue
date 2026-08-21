@@ -777,12 +777,15 @@ function shareResult() {
   const lines = rows.value
     .filter((_, i) => i < guesses.value.length)
     .map((row) => row.map((c) => statusEmoji[c.status]).join(''))
+  const shareUrl = typeof window !== 'undefined' ? `${window.location.origin}/play/wordle` : ''
   const text = [
     `Bhaktiras Wordle ${guesses.value.length}/${ROWS}`,
     timer.display.value,
     '',
-    ...lines
-  ].join('\n')
+    ...lines,
+    '',
+    shareUrl ? `Play today's puzzle: ${shareUrl}` : ''
+  ].join('\n').trimEnd()
   if (navigator.clipboard?.writeText) {
     navigator.clipboard.writeText(text).then(() => {
       shareCopied.value = true
