@@ -64,8 +64,25 @@
       </label>
 
       <div>
-        <p class="admin-label">Preview</p>
-        <div class="flex gap-3 rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--muted))]/40 p-3">
+        <div class="mb-1 flex items-center justify-between gap-2">
+          <p class="admin-label mb-0">Preview</p>
+          <div class="flex gap-1">
+            <button
+              v-for="mode in previewModes"
+              :key="mode.id"
+              type="button"
+              class="rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors"
+              :class="preview === mode.id
+                ? 'bg-[hsl(var(--primary))] text-white'
+                : 'text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--muted))]'"
+              @click="preview = mode.id"
+            >
+              {{ mode.label }}
+            </button>
+          </div>
+        </div>
+
+        <div v-if="preview === 'device'" class="flex gap-3 rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--muted))]/40 p-3">
           <img src="/notification-icon.png" alt="" class="h-10 w-10 shrink-0 rounded-lg">
           <div class="min-w-0 flex-1">
             <p class="truncate text-sm font-semibold text-[hsl(var(--foreground))]">
@@ -79,10 +96,34 @@
             </p>
           </div>
         </div>
+
+        <!-- Mirrors NotificationInbox so the inbox row can be checked without
+             writing a test message into the collection everyone reads. -->
+        <div v-else class="rounded-xl border border-[hsl(var(--border))] bg-white p-0">
+          <div class="border-b border-[hsl(var(--border))] px-4 py-3">
+            <p class="font-display text-sm font-semibold text-[hsl(var(--primary))]">Notifications</p>
+          </div>
+          <div v-if="form.inbox" class="flex gap-3 px-4 py-3">
+            <span class="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[hsl(var(--accent))]" aria-hidden="true" />
+            <div class="min-w-0 flex-1">
+              <p class="text-sm font-semibold text-[hsl(var(--foreground))]">
+                {{ form.title || 'Notification title' }}
+              </p>
+              <p class="mt-0.5 text-sm leading-relaxed text-[hsl(var(--muted-foreground))]">
+                {{ form.body || 'The message people will receive appears here.' }}
+              </p>
+              <p class="mt-1 text-[11px] text-[hsl(var(--muted-foreground))]">Just now</p>
+            </div>
+          </div>
+          <p v-else class="px-4 py-6 text-center text-sm text-[hsl(var(--muted-foreground))]">
+            This message will not be kept in the inbox.
+          </p>
+        </div>
       </div>
 
       <div class="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
         Push messages cannot be recalled. Send yourself a test first, then check the title, message and audience.
+        A test reaches only your own devices — it is never added to the inbox, because everyone signed in reads the same one.
       </div>
 
       <div class="grid gap-2 sm:grid-cols-2">
@@ -111,6 +152,7 @@
 
       <p v-if="testResult" class="text-sm text-[hsl(var(--muted-foreground))]">
         Test delivered to {{ testResult.successCount }} of your {{ testResult.recipientCount }} device{{ testResult.recipientCount === 1 ? '' : 's' }}.
+        Nothing was added to the inbox — use the inbox preview above to check that.
       </p>
       <div v-if="result" class="space-y-1">
         <p class="text-sm font-medium" :class="result.failureCount ? 'text-amber-700' : 'text-emerald-700'">
@@ -200,6 +242,11 @@ const result = ref<SendResult | null>(null)
 const testResult = ref<SendResult | null>(null)
 const messages = ref<MessageRow[]>([])
 const audience = ref<AudienceCounts | null>(null)
+const preview = ref<'device' | 'inbox'>('device')
+const previewModes = [
+  { id: 'device' as const, label: 'On the device' },
+  { id: 'inbox' as const, label: 'In the inbox' }
+]
 
 const audienceCount = computed(() => audience.value?.[form.topic] ?? null)
 const canSend = computed(() => form.title.trim().length >= 3
