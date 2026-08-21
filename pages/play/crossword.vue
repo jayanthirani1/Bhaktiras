@@ -259,7 +259,7 @@
 
 <script setup lang="ts">
 import { IconEye, IconHelp } from '@tabler/icons-vue'
-import { cellKey, layoutCrossword, type LaidWord } from '~/utils/crosswordLayout'
+import { cellKey, layoutAnyCrossword, type LaidWord } from '~/utils/crosswordLayout'
 import { ukDateId } from '~/utils/gameDay'
 import { formatElapsed } from '~/composables/useGameTimer'
 
@@ -303,7 +303,7 @@ const submitError = ref('')
 const pendingHint = ref<'letter' | 'word' | null>(null)
 
 const active = computed(() => puzzles.value.find(p => p.id === activeId.value) || puzzles.value[0] || null)
-const layout = computed(() => active.value ? layoutCrossword(active.value.clues) : null)
+const layout = computed(() => active.value ? layoutAnyCrossword(active.value) : null)
 const acrossWords = computed(() => layout.value?.words.filter(w => w.direction === 'across') || [])
 const downWords = computed(() => layout.value?.words.filter(w => w.direction === 'down') || [])
 const orderedWords = computed(() => {
@@ -592,7 +592,7 @@ function select(id: string) {
   solved.value = false
   scoreSubmitted.value = false
   activeDir.value = 'across'
-  const l = layoutCrossword(puzzles.value.find(p => p.id === id)?.clues || [])
+  const l = layoutAnyCrossword(puzzles.value.find(p => p.id === id))
   const first = l?.words[0]
   if (first) focusWordStart(first)
   persist()
@@ -708,14 +708,19 @@ useHead({ title: 'Crossword · Bhaktiras' })
 .xw-grid {
   --xw-reserve: 28rem;
   --xw-vh: 100vh;
-  /* Floor keeps cells tappable; overflow-x on the wrapper catches the rest. */
-  --xw-cell: clamp(
-    1.45rem,
+  /*
+   * The generated grid is always 10 wide, so the width term never drops below
+   * about 2rem on any phone and the floor never engages -- there is no
+   * horizontal overflow to catch. The floor only exists for admin free-form
+   * puzzles, which still lay out to their own bounding box.
+   */
+  --xw-cell: max(
+    1.1rem,
     min(
       calc((100vw - 3.25rem) / var(--xw-cols)),
-      calc((var(--xw-vh) - var(--xw-reserve)) / var(--xw-rows))
-    ),
-    2.6rem
+      calc((var(--xw-vh) - var(--xw-reserve)) / var(--xw-rows)),
+      2.6rem
+    )
   );
   font-size: calc(var(--xw-cell) * 0.48);
 }
@@ -735,7 +740,7 @@ useHead({ title: 'Crossword · Bhaktiras' })
 }
 
 .xw-num {
-  font-size: calc(var(--xw-cell) * 0.3);
+  font-size: calc(var(--xw-cell) * 0.32);
 }
 
 .xw-cell-word {

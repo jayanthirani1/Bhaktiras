@@ -71,6 +71,12 @@ export interface CrosswordPuzzle {
   title: string
   clues: CrosswordClue[]
   published?: boolean
+  /**
+   * Fixed grid size, in cells, for generated puzzles. Set only when every clue
+   * carries a position and the board is meant to render at that exact size.
+   * Absent for admin-authored puzzles, which crop to their own bounding box.
+   */
+  size?: number
 }
 
 export interface WordleWordDoc {
