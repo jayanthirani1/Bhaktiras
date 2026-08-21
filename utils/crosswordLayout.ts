@@ -225,3 +225,97 @@ export function layoutCrossword(clues: CrosswordClue[]): CrosswordLayout | null 
 export function cellKey(row: number, col: number) {
   return `${row}-${col}`
 }
+
+/** Every generated grid is this many cells square. */
+export const CROSSWORD_SIZE = 10
+
+function isPlaced(clue: CrosswordClue) {
+  return Number.isFinite(Number(clue.row)) && Number.isFinite(Number(clue.col))
+}
+
+/**
+ * Builds a layout for clues that already carry their grid position, on a grid of
+ * a fixed size. Nothing is searched for and nothing is cropped, so the board is
+ * always the same shape.
+ *
+ * Numbering is derived from the finished grid rather than trusted from the clue:
+ * scan row by row and give the next number to each cell that starts an answer.
+ */
+export function layoutFixedCrossword(
+  clues: CrosswordClue[],
+  size = CROSSWORD_SIZE
+): CrosswordLayout | null {
+  const usable = (clues || [])
+    .filter(isPlaced)
+    .map(c => ({
+      direction: (c.direction === 'down' ? 'down' : 'across') as 'across' | 'down',
+      clue: (c.clue || '').trim(),
+      answer: cleanAnswer(c.answer),
+      row: Number(c.row),
+      col: Number(c.col)
+    }))
+    .filter(c => c.answer && c.clue
+      && c.row >= 0 && c.col >= 0
+      && (c.direction === 'across' ? c.col + c.answer.length : c.row + c.answer.length) <= size)
+
+  if (!usable.length) return null
+
+  const letters: (string | null)[][] = Array.from({ length: size }, () => Array.from({ length: size }, () => null))
+  const numbers: (number | null)[][] = Array.from({ length: size }, () => Array.from({ length: size }, () => null))
+
+  for (const c of usable) {
+    for (let i = 0; i < c.answer.length; i++) {
+      const row = c.direction === 'down' ? c.row + i : c.row
+      const col = c.direction === 'across' ? c.col + i : c.col
+      letters[row][col] = c.answer[i]
+    }
+  }
+
+  const startKeys = new Set(usable.map(c => keyRC(c.row, c.col)))
+  const numberByStart = new Map<string, number>()
+  let next = 1
+  for (let row = 0; row < size; row++) {
+    for (let col = 0; col < size; col++) {
+      const key = keyRC(row, col)
+      if (!startKeys.has(key)) continue
+      numberByStart.set(key, next)
+      numbers[row][col] = next
+      next++
+    }
+  }
+
+  const words: LaidWord[] = usable.map((c) => {
+    const number = numberByStart.get(keyRC(c.row, c.col)) || 1
+    return {
+      key: `${c.direction}-${number}`,
+      number,
+      direction: c.direction,
+      clue: c.clue,
+      answer: c.answer,
+      row: c.row,
+      col: c.col,
+      cells: c.answer.split('').map((_, i) => ({
+        row: c.direction === 'down' ? c.row + i : c.row,
+        col: c.direction === 'across' ? c.col + i : c.col
+      }))
+    }
+  }).sort((a, b) => (a.number - b.number) || (a.direction === 'across' ? -1 : 1))
+
+  return { rows: size, cols: size, letters, numbers, words }
+}
+
+/**
+ * Uses the fixed grid only for a puzzle that declares a size and positions every
+ * clue -- that is, one from the generator. Everything else, including the
+ * curated fallback and admin-authored puzzles, crops to its own bounding box.
+ */
+export function layoutAnyCrossword(
+  puzzle: { clues?: CrosswordClue[]; size?: number } | null | undefined
+): CrosswordLayout | null {
+  const clues = puzzle?.clues || []
+  if (puzzle?.size && clues.length && clues.every(isPlaced)) {
+    const fixed = layoutFixedCrossword(clues, puzzle.size)
+    if (fixed) return fixed
+  }
+  return layoutCrossword(clues)
+}
