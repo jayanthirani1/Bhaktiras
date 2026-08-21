@@ -1,25 +1,29 @@
 <template>
-  <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-    <NuxtLink
-      v-for="card in cards"
-      :key="card.to"
-      :to="card.to"
-      class="admin-panel group flex flex-col justify-between hover:border-[hsl(var(--primary))]/30"
-    >
-      <div class="flex items-start justify-between gap-3">
-        <div>
-          <h2 class="font-display text-lg font-semibold text-[hsl(var(--primary))]">{{ card.title }}</h2>
-          <p class="mt-1 text-sm text-[hsl(var(--muted-foreground))]">{{ card.desc }}</p>
+  <div class="space-y-6">
+    <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      <NuxtLink
+        v-for="card in cards"
+        :key="card.to"
+        :to="card.to"
+        class="admin-panel group flex flex-col justify-between hover:border-[hsl(var(--primary))]/30"
+      >
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <h2 class="font-display text-lg font-semibold text-[hsl(var(--primary))]">{{ card.title }}</h2>
+            <p class="mt-1 text-sm text-[hsl(var(--muted-foreground))]">{{ card.desc }}</p>
+          </div>
+          <span
+            v-if="counts[card.key] != null"
+            class="shrink-0 rounded-full bg-[hsl(var(--muted))] px-2 py-0.5 text-xs font-semibold text-[hsl(var(--primary))]"
+          >
+            {{ counts[card.key] }}
+          </span>
         </div>
-        <span
-          v-if="counts[card.key] != null"
-          class="shrink-0 rounded-full bg-[hsl(var(--muted))] px-2 py-0.5 text-xs font-semibold text-[hsl(var(--primary))]"
-        >
-          {{ counts[card.key] }}
-        </span>
-      </div>
-      <p class="mt-4 text-sm font-semibold text-[hsl(var(--accent))] group-hover:underline">Edit →</p>
-    </NuxtLink>
+        <p class="mt-4 text-sm font-semibold text-[hsl(var(--accent))] group-hover:underline">Edit →</p>
+      </NuxtLink>
+    </div>
+
+    <AdminGameReset />
   </div>
 </template>
 

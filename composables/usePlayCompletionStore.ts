@@ -1,5 +1,6 @@
-import { doc, getDoc, setDoc, serverTimestamp, type Firestore } from 'firebase/firestore'
+import { deleteField, doc, getDoc, setDoc, updateDoc, serverTimestamp, type Firestore } from 'firebase/firestore'
 import { ukDateId } from '~/utils/gameDay'
+import { resetGameDayLocally } from '~/utils/gameStorageReset'
 import {
   isPlayDoneLocally,
   markPlayDoneLocally,
@@ -82,12 +83,37 @@ export function usePlayCompletionStore() {
     }
   }
 
+  /**
+   * Undoes today's completion for one game, on this device and in the synced
+   * record. Without the remote half the player is locked out entirely: a
+   * completion that exists remotely but not locally reads as "played on
+   * another device".
+   */
+  async function clearGame(slug: PlayGameSlug, dateId = ukDateId()) {
+    resetGameDayLocally(slug, dateId)
+    const next = { ...remote.value }
+    delete next[slug]
+    remote.value = next
+
+    const uid = auth.user.value?.uid
+    const db = getDb()
+    if (!uid || !db) return
+    try {
+      await updateDoc(doc(db, 'playCompletions', uid, 'days', dateId), {
+        [`games.${slug}`]: deleteField(),
+        updatedAt: serverTimestamp()
+      })
+    } catch {
+      // No document for the day yet, or offline — the local clear still stands.
+    }
+  }
+
   onMounted(() => {
     void load()
     watch(() => auth.user.value?.uid, () => { void load(true) })
   })
 
-  return { remote, loaded, load, markDone }
+  return { remote, loaded, load, markDone, clearGame }
 }
 
 /** Per-game guard so a game finished on another device cannot be replayed. */
