@@ -60,11 +60,11 @@
 
         <!-- Grid -->
         <div class="rounded-2xl border border-[hsl(var(--border))] bg-white p-3 sm:p-5">
-          <div class="flex justify-center overflow-x-auto">
+          <div class="flex justify-center">
             <div
               class="xw-grid grid gap-px rounded-lg bg-[hsl(var(--primary))] p-px"
               :style="{
-                gridTemplateColumns: `repeat(${layout.cols}, var(--xw-cell))`,
+                gridTemplateColumns: `repeat(${layout.cols}, minmax(0, 1fr))`,
                 '--xw-cols': layout.cols,
                 '--xw-rows': layout.rows
               }"
@@ -709,20 +709,44 @@ useHead({ title: 'Crossword · Bhaktiras' })
   --xw-reserve: 28rem;
   --xw-vh: 100vh;
   /*
-   * The generated grid is always 10 wide, so the width term never drops below
-   * about 2rem on any phone and the floor never engages -- there is no
-   * horizontal overflow to catch. The floor only exists for admin free-form
-   * puzzles, which still lay out to their own bounding box.
+   * The grid sizes itself, and the cells divide whatever it gets (1fr columns
+   * plus aspect-square cells). Because the columns are fractional the track
+   * total can never exceed the element, so the grid cannot overflow its card
+   * and needs no scroll container.
+   *
+   * Width is capped three ways: the card it sits in, the height still free
+   * below the page chrome, and a ceiling so it does not balloon on desktop.
+   * The grid is square, so capping width by the free height is what keeps the
+   * whole board on screen.
+   *
+   * The 17rem floor stops a short screen from shrinking cells to something
+   * untappable -- on a 568px-tall phone the height term alone leaves 120px for
+   * ten columns. Below that floor the page simply scrolls vertically, which is
+   * normal; what must never happen is the grid outgrowing its card sideways,
+   * and width:100% guarantees it cannot.
    */
-  --xw-cell: max(
-    1.1rem,
+  width: 100%;
+  max-width: max(
+    17rem,
     min(
-      calc((100vw - 3.25rem) / var(--xw-cols)),
-      calc((var(--xw-vh) - var(--xw-reserve)) / var(--xw-rows)),
-      2.6rem
+      calc(var(--xw-vh) - var(--xw-reserve)),
+      32rem
     )
   );
-  font-size: calc(var(--xw-cell) * 0.48);
+  /* Text scales with the grid, so a cell's contents always match its size. */
+  container-type: inline-size;
+  font-size: calc(var(--xw-cell-size) * 0.48);
+  --xw-cell-size: calc(100cqw / var(--xw-cols));
+}
+
+/* Before container queries, fall back to sizing from the viewport. */
+@supports not (container-type: inline-size) {
+  .xw-grid {
+    --xw-cell-size: min(
+      calc((100vw - 3.25rem) / var(--xw-cols)),
+      calc((var(--xw-vh) - var(--xw-reserve)) / var(--xw-rows))
+    );
+  }
 }
 
 @supports (height: 100svh) {
@@ -737,10 +761,11 @@ useHead({ title: 'Crossword · Bhaktiras' })
 /* Buttons do not inherit font-size by default. */
 .xw-grid button {
   font-size: inherit;
+  min-width: 0;
 }
 
 .xw-num {
-  font-size: calc(var(--xw-cell) * 0.32);
+  font-size: calc(var(--xw-cell-size) * 0.32);
 }
 
 .xw-cell-word {
