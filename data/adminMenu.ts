@@ -13,6 +13,7 @@ export type AdminMenuGroup = {
 /** Top-level links shown above grouped sections. */
 export const ADMIN_MENU_TOP: AdminMenuItem[] = [
   { label: 'Dashboard', to: '/admin', subtitle: 'Jump in and edit live content' },
+  { label: 'Insights', to: '/admin/insights', subtitle: 'Members, activity and notification reach' },
   { label: 'Push notifications', to: '/admin/notifications', subtitle: 'Send updates to opted-in devices' },
   { label: 'Bug reports', to: '/admin/bugs', subtitle: 'Review, resolve and close submitted bugs' }
 ]

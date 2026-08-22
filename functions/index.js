@@ -5,6 +5,7 @@ const { onDocumentCreated } = require('firebase-functions/v2/firestore')
 const { initializeApp } = require('firebase-admin/app')
 const { getFirestore, FieldValue } = require('firebase-admin/firestore')
 const { getMessaging } = require('firebase-admin/messaging')
+const { getAuth } = require('firebase-admin/auth')
 
 initializeApp()
 
@@ -574,6 +575,179 @@ async function announceRecords({ db, name, uid, claimedCrowns }) {
     sentBy: 'system:record-broken'
   })
 }
+
+/**
+ * Aggregate figures for the admin Insights page.
+ *
+ * Everything here is a count. No per-person record is returned, and no
+ * third-party analytics is involved — the privacy policy promises both.
+ * niyamProgress is deliberately untouched: the policy states niyams are a
+ * personal tracker, "not to compare individuals".
+ */
+
+const OVERVIEW_CACHE_MS = 60 * 1000
+let overviewCache = null
+
+function daysAgo(days) {
+  return Date.now() - days * 86_400_000
+}
+
+function ukDateId(date) {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/London',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).format(date)
+}
+
+function recentDateIds(days) {
+  const ids = []
+  for (let index = 0; index < days; index += 1) {
+    ids.push(ukDateId(new Date(Date.now() - index * 86_400_000)))
+  }
+  return ids
+}
+
+function platformOf(userAgent) {
+  const value = String(userAgent || '')
+  if (/iPhone|iPad|iPod/i.test(value)) return 'iOS'
+  if (/Android/i.test(value)) return 'Android'
+  if (/Macintosh|Windows|Linux|CrOS/i.test(value)) return 'Desktop'
+  return 'Other'
+}
+
+/**
+ * Activity comes from lastRefreshTime, not lastSignInTime. A Firebase session
+ * persists for months, so lastSignInTime only moves when somebody is signed out
+ * and signs back in — counting it would report almost nobody as active.
+ */
+async function collectAccountStats() {
+  const day1 = daysAgo(1)
+  const day7 = daysAgo(7)
+  const day30 = daysAgo(30)
+  const stats = {
+    total: 0,
+    newLast7: 0,
+    newLast30: 0,
+    activeLast1: 0,
+    activeLast7: 0,
+    activeLast30: 0,
+    neverActive: 0,
+    google: 0,
+    password: 0
+  }
+
+  let pageToken
+  do {
+    const page = await getAuth().listUsers(1000, pageToken)
+    for (const user of page.users) {
+      stats.total += 1
+      const created = Date.parse(user.metadata?.creationTime || '') || 0
+      if (created >= day7) stats.newLast7 += 1
+      if (created >= day30) stats.newLast30 += 1
+
+      const seen = Date.parse(user.metadata?.lastRefreshTime || '')
+        || Date.parse(user.metadata?.lastSignInTime || '')
+        || 0
+      if (!seen) stats.neverActive += 1
+      if (seen >= day1) stats.activeLast1 += 1
+      if (seen >= day7) stats.activeLast7 += 1
+      if (seen >= day30) stats.activeLast30 += 1
+
+      const providers = (user.providerData || []).map(item => item.providerId)
+      if (providers.includes('google.com')) stats.google += 1
+      else if (providers.includes('password')) stats.password += 1
+    }
+    pageToken = page.pageToken
+  } while (pageToken)
+
+  return stats
+}
+
+async function collectPushStats(db) {
+  const snap = await db.collection('pushSubscriptions').where('enabled', '==', true).get()
+  const accounts = new Set()
+  const platforms = { iOS: 0, Android: 0, Desktop: 0, Other: 0 }
+  let devices = 0
+  let announcements = 0
+  let games = 0
+
+  snap.docs.forEach((docSnap) => {
+    const data = docSnap.data()
+    if (typeof data.token !== 'string' || !data.token) return
+    devices += 1
+    if (data.userId) accounts.add(data.userId)
+    platforms[platformOf(data.platform)] += 1
+    if (subscriptionMatches(data.topics, 'announcements')) announcements += 1
+    if (subscriptionMatches(data.topics, 'games')) games += 1
+  })
+
+  return { devices, accounts: accounts.size, announcements, games, platforms }
+}
+
+async function collectGameStats(db) {
+  const today = ukDateId(new Date())
+  const week = recentDateIds(7)
+  const snap = await db.collection('gameScores').where('dateId', 'in', week).get()
+
+  const todayPlayers = new Set()
+  const weekPlayers = new Set()
+  const playsPerGame = {}
+
+  snap.docs.forEach((docSnap) => {
+    const data = docSnap.data()
+    if (data.userId) weekPlayers.add(data.userId)
+    if (data.dateId !== today) return
+    if (data.userId) todayPlayers.add(data.userId)
+    const game = String(data.game || 'other')
+    playsPerGame[game] = (playsPerGame[game] || 0) + 1
+  })
+
+  return {
+    playersToday: todayPlayers.size,
+    playersThisWeek: weekPlayers.size,
+    playsThisWeek: snap.size,
+    playsPerGame
+  }
+}
+
+/**
+ * Returns the spread of accepted policy versions rather than a single "current"
+ * count, so the page can compare against its own PRIVACY_POLICY_VERSION and the
+ * version string never has to be duplicated here.
+ */
+async function collectPolicyStats(db) {
+  const snap = await db.collection('users').get()
+  const versions = {}
+  snap.docs.forEach((docSnap) => {
+    const version = String(docSnap.data().privacyPolicyVersion || 'unknown')
+    versions[version] = (versions[version] || 0) + 1
+  })
+  return { profiles: snap.size, versions }
+}
+
+exports.getAdminOverview = onCall(
+  { region: 'europe-west2', timeoutSeconds: 120 },
+  async (request) => {
+    await requireAdmin(request)
+    const fresh = request.data?.refresh === true
+    if (!fresh && overviewCache && Date.now() - overviewCache.computedAt < OVERVIEW_CACHE_MS) {
+      return { ...overviewCache, cached: true }
+    }
+
+    const db = getFirestore()
+    const [accounts, push, games, policy] = await Promise.all([
+      collectAccountStats(),
+      collectPushStats(db),
+      collectGameStats(db),
+      collectPolicyStats(db)
+    ])
+
+    overviewCache = { accounts, push, games, policy, computedAt: Date.now() }
+    return { ...overviewCache, cached: false }
+  }
+)
 
 async function handleGameAchievements(request) {
   if (!request.auth?.uid) throw new HttpsError('unauthenticated', 'Sign in to unlock achievements.')
