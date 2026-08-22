@@ -101,6 +101,13 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Nightly activity snapshots for the admin Insights trend. Aggregate counts
+    // only, never per-person. Written by a scheduled Cloud Function.
+    match /dailyStats/{dateId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
     // Per-device-independent inbox state: what has been read and what has been
     // dismissed. Notifications themselves are shared and read-only, so this is
     // where anything user-specific has to live. Doc ID = Auth UID.

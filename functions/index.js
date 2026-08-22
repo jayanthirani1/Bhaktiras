@@ -3,7 +3,7 @@ const logger = require('firebase-functions/logger')
 const { onSchedule } = require('firebase-functions/v2/scheduler')
 const { onDocumentCreated } = require('firebase-functions/v2/firestore')
 const { initializeApp } = require('firebase-admin/app')
-const { getFirestore, FieldValue } = require('firebase-admin/firestore')
+const { getFirestore, FieldValue, FieldPath } = require('firebase-admin/firestore')
 const { getMessaging } = require('firebase-admin/messaging')
 const { getAuth } = require('firebase-admin/auth')
 
@@ -586,6 +586,7 @@ async function announceRecords({ db, name, uid, claimedCrowns }) {
  */
 
 const OVERVIEW_CACHE_MS = 60 * 1000
+const HISTORY_DAYS = 30
 let overviewCache = null
 
 function daysAgo(days) {
@@ -686,20 +687,35 @@ async function collectPushStats(db) {
   return { devices, accounts: accounts.size, announcements, games, platforms }
 }
 
-async function collectGameStats(db) {
-  const today = ukDateId(new Date())
-  const week = recentDateIds(7)
-  const snap = await db.collection('gameScores').where('dateId', 'in', week).get()
+/**
+ * A single 30-day range read serves today's figures, the week's, and the trend.
+ * dateId is a sortable YYYY-MM-DD string, so a >= range needs only the automatic
+ * single-field index.
+ */
+async function collectGameStats(db, days) {
+  const ids = recentDateIds(days)
+  const today = ids[0]
+  const earliest = ids[ids.length - 1]
+  const week = new Set(recentDateIds(7))
+  const snap = await db.collection('gameScores').where('dateId', '>=', earliest).get()
 
   const todayPlayers = new Set()
   const weekPlayers = new Set()
   const playsPerGame = {}
+  const playersByDay = new Map(ids.map(id => [id, new Set()]))
+  let playsThisWeek = 0
 
   snap.docs.forEach((docSnap) => {
     const data = docSnap.data()
-    if (data.userId) weekPlayers.add(data.userId)
-    if (data.dateId !== today) return
-    if (data.userId) todayPlayers.add(data.userId)
+    const dateId = String(data.dateId || '')
+    const userId = data.userId ? String(data.userId) : null
+    if (userId) playersByDay.get(dateId)?.add(userId)
+    if (week.has(dateId)) {
+      playsThisWeek += 1
+      if (userId) weekPlayers.add(userId)
+    }
+    if (dateId !== today) return
+    if (userId) todayPlayers.add(userId)
     const game = String(data.game || 'other')
     playsPerGame[game] = (playsPerGame[game] || 0) + 1
   })
@@ -707,9 +723,38 @@ async function collectGameStats(db) {
   return {
     playersToday: todayPlayers.size,
     playersThisWeek: weekPlayers.size,
-    playsThisWeek: snap.size,
-    playsPerGame
+    playsThisWeek,
+    playsPerGame,
+    playersByDay
   }
+}
+
+/**
+ * The 30-day trend.
+ *
+ * Site-wide active members cannot be reconstructed from auth records: each one
+ * carries a single lastRefreshTime, so bucketing them by day would show "last
+ * seen", not who was active on each day. recordDailyStats snapshots the real
+ * figure nightly; until enough nights have accrued, the chart falls back to
+ * daily unique players, which gameScores does record historically.
+ */
+async function collectHistory(db, days, playersByDay) {
+  const ids = recentDateIds(days).reverse()
+  const snap = await db.collection('dailyStats')
+    .orderBy(FieldPath.documentId(), 'desc')
+    .limit(days)
+    .get()
+  const snapshots = new Map(snap.docs.map(docSnap => [docSnap.id, docSnap.data()]))
+
+  const points = ids.map(dateId => ({
+    dateId,
+    players: playersByDay.get(dateId)?.size ?? 0,
+    activeMembers: snapshots.has(dateId)
+      ? Number(snapshots.get(dateId).activeMembers) || 0
+      : null
+  }))
+  const measured = points.filter(point => point.activeMembers != null).length
+  return { points, measured }
 }
 
 /**
@@ -740,11 +785,13 @@ exports.getAdminOverview = onCall(
     const [accounts, push, games, policy] = await Promise.all([
       collectAccountStats(),
       collectPushStats(db),
-      collectGameStats(db),
+      collectGameStats(db, HISTORY_DAYS),
       collectPolicyStats(db)
     ])
 
-    overviewCache = { accounts, push, games, policy, computedAt: Date.now() }
+    const history = await collectHistory(db, HISTORY_DAYS, games.playersByDay)
+    delete games.playersByDay
+    overviewCache = { accounts, push, games, policy, history, computedAt: Date.now() }
     return { ...overviewCache, cached: false }
   }
 )
@@ -1050,6 +1097,28 @@ exports.sendDailyGameReminder = onSchedule(
     inbox: false,
     sentBy: 'system:daily-games'
   })
+)
+
+/**
+ * Snapshots how many members were active today, because the figure is
+ * unrecoverable afterwards — an auth record keeps only the most recent
+ * lastRefreshTime, so yesterday's active count cannot be derived tomorrow.
+ * Runs late in the UK evening so the day is essentially complete.
+ */
+exports.recordDailyStats = onSchedule(
+  { region: 'europe-west2', schedule: '50 23 * * *', timeZone: 'Europe/London' },
+  async () => {
+    const db = getFirestore()
+    const accounts = await collectAccountStats()
+    const dateId = ukDateId(new Date())
+    await db.doc(`dailyStats/${dateId}`).set({
+      dateId,
+      activeMembers: accounts.activeLast1,
+      totalMembers: accounts.total,
+      recordedAt: FieldValue.serverTimestamp()
+    }, { merge: true })
+    logger.info('Recorded daily stats', { dateId, activeMembers: accounts.activeLast1 })
+  }
 )
 
 /**
