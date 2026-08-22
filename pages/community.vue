@@ -42,19 +42,33 @@
           :class="form.prompt === p
             ? 'bg-[hsl(var(--primary))] text-white'
             : 'bg-[hsl(var(--muted))] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--primary))]'"
-          @click="form.prompt = p; isFormOpen = true"
+          @click="form.prompt = p; isFormOpen = isLoggedIn"
         >
           {{ p }}
         </button>
       </div>
 
       <div class="text-center mb-10">
-        <button type="button" class="btn-primary text-sm" @click="isFormOpen = !isFormOpen">
+        <button
+          v-if="isLoggedIn"
+          type="button"
+          class="btn-primary text-sm"
+          @click="isFormOpen = !isFormOpen"
+        >
           Leave a message
         </button>
+        <div v-else class="card-surface mx-auto max-w-md p-6">
+          <p class="text-sm leading-relaxed text-[hsl(var(--muted-foreground))]">
+            Sign in to add your message to the wall. You can still choose to post
+            it anonymously — signing in only keeps anyone from posting as someone else.
+          </p>
+          <NuxtLink to="/login?redirect=/community" class="btn-primary mt-4 inline-flex text-sm">
+            Sign in to post
+          </NuxtLink>
+        </div>
       </div>
 
-      <div v-show="isFormOpen" class="mb-12">
+      <div v-show="isFormOpen && isLoggedIn" class="mb-12">
         <div class="card-surface mx-auto max-w-lg p-6 sm:p-8">
           <h3 class="text-center font-display text-xl font-semibold">{{ form.prompt || 'Your message' }}</h3>
           <p class="mt-1 text-center text-xs text-[hsl(var(--muted-foreground))]">

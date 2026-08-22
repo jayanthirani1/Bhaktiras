@@ -4,11 +4,9 @@ import {
   getDoc,
   getDocs,
   setDoc,
-  deleteDoc,
   query,
   where,
   limit,
-  writeBatch,
   serverTimestamp
 } from 'firebase/firestore'
 import type { GameLeaderboardId, GameScoreEntry } from '~/types'
@@ -16,8 +14,6 @@ import { ukDateId } from '~/utils/gameDay'
 
 const USERNAME_MAX_LENGTH = 32
 const SCORES_COLLECTION = 'gameScores'
-const LEGACY_WORDLE_COLLECTION = 'wordleScores'
-const MAX_CLEANSE = 400
 /** Max score value (covers time in seconds or ms-scale rankings). */
 const SCORE_MAX = 9_999_999
 
@@ -41,68 +37,21 @@ function timestampSeconds(value: GameScoreEntry['completedAt']): number {
   return value.seconds ?? 0
 }
 
-async function deleteOwnDuplicates(
-  db: import('firebase/firestore').Firestore,
-  extraIds: string[]
-) {
-  for (const id of extraIds.slice(0, 50)) {
-    try {
-      await deleteDoc(doc(db, SCORES_COLLECTION, id))
-    } catch {
-      // Other users' leftover rows stay in the DB; the list is already deduped.
-    }
-  }
-}
-
-async function cleanseOldScores(
-  db: import('firebase/firestore').Firestore,
-  today: string,
-  game: GameLeaderboardId
-) {
-  // Clean up yesterday's rows for games whose leaderboards reset each UK day.
-  const dailyGames: GameLeaderboardId[] = [
-    'wordle',
-    'one-percent',
-    'mini-crossword',
-    'connections',
-    'bracket-city',
-    'bhakti-marg',
-    'ras-rani',
-  ]
-  if (!dailyGames.includes(game)) return
-
-  try {
-    const oldSnap = await getDocs(query(
-      collection(db, SCORES_COLLECTION),
-      where('game', '==', game),
-      where('dateId', '<', today),
-      limit(MAX_CLEANSE)
-    ))
-    if (!oldSnap.empty) {
-      const batch = writeBatch(db)
-      oldSnap.docs.forEach(d => batch.delete(d.ref))
-      await batch.commit()
-    }
-  } catch {
-    // Rules or index may not be deployed yet; leaderboard still works for today.
-  }
-
-  if (game === 'wordle') {
-    try {
-      const legacy = await getDocs(query(collection(db, LEGACY_WORDLE_COLLECTION), limit(MAX_CLEANSE)))
-      if (!legacy.empty) {
-        const batch = writeBatch(db)
-        legacy.docs.forEach((d) => {
-          const dateId = d.data().dateId
-          if (!dateId || dateId < today) batch.delete(d.ref)
-        })
-        await batch.commit()
-      }
-    } catch {
-      // Legacy collection optional.
-    }
-  }
-}
+/**
+ * `deleteOwnDuplicates` and `cleanseOldScores` used to live here.
+ *
+ * Both deleted Firestore documents from the browser on every leaderboard
+ * fetch — the sweep alone was a 400-document query plus a 400-document batch
+ * delete, run again by every visitor. It also forced `gameScores` to allow
+ * unauthenticated deletes, because the rule had to permit whatever the client
+ * was doing.
+ *
+ * Yesterday's rows are now cleared by `pruneOldGameScores`, a scheduled
+ * function running at 03:10 UK. Duplicates cannot accumulate any more either:
+ * the document id is `{game}_{dateId}_{uid}` and the rules pin it, so a player
+ * has exactly one row per game per day by construction. The board still dedups
+ * in memory below to stay correct against rows written before that rule.
+ */
 
 function mapScoreDoc(
   id: string,
@@ -155,20 +104,10 @@ export function useGameLeaderboard(
 
   function sortEntries(list: GameScoreEntry[]) {
     const bestByUser = new Map<string, GameScoreEntry>()
-    const extraIds: string[] = []
     for (const e of list) {
       if (!e.userId) continue
       const prev = bestByUser.get(e.userId)
-      if (!prev) {
-        bestByUser.set(e.userId, e)
-        continue
-      }
-      if (isBetter(e, prev, sortDir)) {
-        extraIds.push(prev.id)
-        bestByUser.set(e.userId, e)
-      } else {
-        extraIds.push(e.id)
-      }
+      if (!prev || isBetter(e, prev, sortDir)) bestByUser.set(e.userId, e)
     }
     const deduped = [...bestByUser.values()]
     deduped.sort((a, b) => {
@@ -178,12 +117,11 @@ export function useGameLeaderboard(
       if (at !== bt) return at - bt
       return timestampSeconds(b.completedAt) - timestampSeconds(a.completedAt)
     })
-    return { deduped, extraIds }
+    return deduped
   }
 
   function upsertLocal(entry: GameScoreEntry) {
-    const { deduped } = sortEntries([...entries.value.filter(e => e.id !== entry.id), entry])
-    entries.value = deduped
+    entries.value = sortEntries([...entries.value.filter(e => e.id !== entry.id), entry])
   }
 
   async function fetchLeaderboard() {
@@ -242,10 +180,7 @@ export function useGameLeaderboard(
         }
       }
 
-      const { deduped, extraIds } = sortEntries(mapped)
-      entries.value = deduped
-      if (!allTime) void cleanseOldScores(db, today, game)
-      if (extraIds.length) void deleteOwnDuplicates(db, extraIds)
+      entries.value = sortEntries(mapped)
     } catch {
       entries.value = []
     } finally {
@@ -284,7 +219,6 @@ export function useGameLeaderboard(
       }
       if (!isBetter(next, prev, sortDir)) {
         upsertLocal(prev)
-        await fetchLeaderboard()
         return
       }
     }
@@ -303,10 +237,10 @@ export function useGameLeaderboard(
     }
 
     await setDoc(scoreRef, data)
-    const written = await getDoc(scoreRef)
-    if (!written.exists()) throw new Error('Score did not save. Please try again.')
-    upsertLocal(mapScoreDoc(written.id, written.data() as Record<string, unknown>, game))
-    await fetchLeaderboard()
+    // Merge locally rather than refetching: the write has already succeeded, and
+    // `completedAt` is the only field the server fills in — it matters for tie
+    // breaks, so use the moment of writing until the next natural refresh.
+    upsertLocal(mapScoreDoc(scoreId, { ...data, completedAt: new Date() }, game))
   }
 
   function onVisible() {

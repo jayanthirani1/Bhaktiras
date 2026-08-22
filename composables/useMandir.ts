@@ -4,11 +4,17 @@ import {
   addDoc,
   doc,
   updateDoc,
+  query,
+  orderBy,
+  limit,
   serverTimestamp,
   type DocumentData,
   type Firestore
 } from 'firebase/firestore'
 import type { TimelineItem, TimelineMedia, Event, GratitudeMessage, VolunteerRole, TimeCapsuleMessage } from '~/types'
+
+/** Newest notes shown on the community wall in one page. */
+const GRATITUDE_PAGE_SIZE = 60
 
 /** Max length for time capsule message (chars). */
 export const TIME_CAPSULE_MESSAGE_MAX_LENGTH = 1000
@@ -124,7 +130,11 @@ export function useGratitudeMessages() {
     try {
       const db = getDb()
       if (!db) { items.value = []; return }
-      const snap = await getDocs(collection(db, 'gratitude'))
+      const snap = await getDocs(query(
+        collection(db, 'gratitude'),
+        orderBy('createdAt', 'desc'),
+        limit(GRATITUDE_PAGE_SIZE)
+      ))
       items.value = snap.docs.map((d) => {
         const data = d.data()
         return mapDoc<GratitudeMessage>(d.id, {
@@ -159,13 +169,21 @@ export function useCreateGratitudeMessage() {
     try {
       const db = getDb()
       if (!db) throw new Error('Firebase is not configured, so the wall cannot save yet. Check .env and restart the dev server.')
-      const nameTrim = data.name?.trim() || ''
+      // Posting is signed-in only. The wall used to accept writes from anyone,
+      // which meant a note could be signed with any name at all. Storing the
+      // uid keeps `anonymous` doing what people want — hiding the name on the
+      // wall — while making it impossible to post as someone else.
+      const auth = useNuxtApp().$firebaseAuth as import('firebase/auth').Auth | null
+      const uid = auth?.currentUser?.uid
+      if (!uid) throw new Error('Please sign in to add your message to the wall.')
+      const nameTrim = data.name?.trim().slice(0, 50) || ''
       const anonymous = data.anonymous === true || !nameTrim
       const name = anonymous ? 'Anonymous' : nameTrim
       const payload = {
+        userId: uid,
         name,
         message: data.message.trim(),
-        prompt: data.prompt?.trim() || null,
+        prompt: data.prompt?.trim().slice(0, 120) || null,
         anonymous,
         createdAt: serverTimestamp()
       }
