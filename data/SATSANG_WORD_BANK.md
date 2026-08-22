@@ -70,8 +70,28 @@ Three notes where a source varies internally:
   "Vachanamrut eBook", "Pooja", "Yoga"). The scripture text and its chapter
   index are the authority, not the nav.
 
-Admins can still add custom words from **Admin → Game Word Bank**; those
-merge on top of this built-in list at runtime.
+## Editing from the admin section
+
+**Admin → Game Word Bank** edits the vocabulary without a redeploy. It never
+writes to this generated file; every change is a document in the `gameWords`
+Firebase collection that merges on top of the built-in list at runtime.
+
+- **Add** a custom word — a new entry, as before.
+- **Edit** any word, built-in ones included. Correcting a built-in saves an
+  override carrying `replaces`, the original built-in `answer`. The merge then
+  drops that built-in, so a spelling fix that changes the letters (Bhagwan to
+  Bhagvan) swaps the word rather than leaving both spellings in the games.
+- **Reset** removes an override so the generated word applies again.
+
+`replaces` holds the original answer rather than its id, because regenerating
+this file renumbers ids but keeps answers stable. If a later regeneration drops
+the word an override targeted, that override simply becomes an ordinary custom
+word and the admin table offers Delete instead of Reset.
+
+Corrections made here apply immediately and survive a redeploy, but they do not
+flow back into `generate_word_bank.py`. Fold anything long-lived into the
+`CURATED` / `VACHNAMRUT` / `SATSANGI_JEEVAN` blocks so the generated bank stays
+the source of truth.
 
 After regenerating this file, bump `WORD_BANK_VERSION` in
 `utils/gameStorageReset.ts` so browsers clear cached daily game progress

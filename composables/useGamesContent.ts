@@ -30,14 +30,16 @@ function mapCustomGameWords(snap: Awaited<ReturnType<typeof getDocs>>): GameWord
   return snap.docs.map((item) => {
     const data = item.data() as Record<string, unknown>
     const answer = normalizeGameWord(String(data.answer || data.display || ''))
+    const replaces = normalizeGameWord(String(data.replaces || ''))
     return {
       id: item.id,
       answer,
       display: String(data.display || answer).trim(),
       clue: String(data.clue || '').trim(),
       category: String(data.category || 'custom').trim() || 'custom',
-      source: 'Custom',
-      games: gameTargetsForAnswer(answer)
+      source: replaces ? 'Edited' : 'Custom',
+      games: gameTargetsForAnswer(answer),
+      ...(replaces ? { replaces } : {})
     }
   }).filter(entry => entry.answer.length >= 3 && entry.answer.length <= 24 && entry.clue)
 }

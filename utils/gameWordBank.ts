@@ -25,8 +25,31 @@ export function gameTargetsForAnswer(answer: string): GameWordTarget[] {
   return games
 }
 
+/**
+ * Built-in words overlaid with the admin-managed ones.
+ *
+ * A custom entry wins over a built-in with the same answer. An entry that also
+ * carries `replaces` supersedes the built-in of that answer even when its own
+ * answer differs, which is what lets an admin correct a spelling (Bhagwan to
+ * Bhagvan) without the old spelling lingering in the games alongside it.
+ */
 export function mergeGameWords(customEntries: GameWordEntry[] = []): GameWordEntry[] {
-  return uniqueByAnswer([...customEntries, ...SATSANG_WORD_BANK])
+  const replaced = new Set(
+    customEntries
+      .map(entry => normalizeGameWord(entry.replaces || ''))
+      .filter(Boolean)
+  )
+  const builtIn = replaced.size
+    ? SATSANG_WORD_BANK.filter(entry => !replaced.has(entry.answer))
+    : SATSANG_WORD_BANK
+  return uniqueByAnswer([...customEntries, ...builtIn])
+}
+
+/** The built-in entry an admin edit supersedes, if it is still in the bank. */
+export function replacedBuiltIn(entry: GameWordEntry): GameWordEntry | undefined {
+  if (!entry.replaces) return undefined
+  const answer = normalizeGameWord(entry.replaces)
+  return SATSANG_WORD_BANK.find(item => item.answer === answer)
 }
 
 function uniqueByAnswer(entries: GameWordEntry[]): GameWordEntry[] {
