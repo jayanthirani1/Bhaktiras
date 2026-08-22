@@ -3,8 +3,8 @@
     class="mb-8 text-center"
     :class="className"
   >
-    <h1 class="text-3xl md:text-4xl font-bold text-[hsl(var(--foreground))] mb-2">
-      {{ title }}
+    <h1 class="mb-2 text-3xl font-bold text-[hsl(var(--foreground))] md:text-4xl">
+      <slot>{{ title }}</slot>
     </h1>
     <p v-if="subtitle" class="text-[hsl(var(--muted-foreground))] max-w-lg mx-auto leading-relaxed">
       {{ subtitle }}

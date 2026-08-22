@@ -45,13 +45,13 @@ function makePack(
 export const VACHANAMRUT_ONE_PERCENT_PACKS: OnePercentPack[] = [
   makePack('partharo', 'partharo', 'Partharo', 'Before the sabhas', [
     ['What does the word “Vachnamrut” mean?', ['A festival calendar', 'Nectar in the form of words', 'A type of aarti', 'A mandir rulebook'], 'Nectar in the form of words', 'Introduction'],
-    ['The Bhuj edition says the Vachnamrut gathers how many sabhas?', ['108', '151', '273', '501'], '273', 'Introduction'],
+    ['How many sabhas does the Vachnamrut gather?', ['108', '151', '273', '501'], '273', 'Introduction'],
     ['The talks were delivered in Vikram Samvat years…', ['1876 to 1886', '1900 to 1910', '1760 to 1770', '2000 to 2010'], '1876 to 1886', 'Introduction'],
     ['The Vachnamrut is described as a shastra of…', ['Agna only', 'Upasana', 'Cooking', 'Temple accounts'], 'Upasana', 'Introduction'],
     ['Which shastra is called the shastra of agna alongside it?', ['Geeta only', 'Ramayan only', 'Shikshapatri', 'Panchatantra'], 'Shikshapatri', 'Introduction'],
     ['Partharo, which comes before the numbered sabhas, mainly describes…', ['Temple building costs', 'Maharaj’s daily life, appearance and association with bhaktas', 'Only the Shikshapatri vows', 'A list of mandir towns in England'], 'Maharaj’s daily life, appearance and association with bhaktas', 'Partharo'],
     ['In Partharo, Akshardham is also called…', ['Kutch only', 'Brahmpur / Parampad', 'Vadtal sabha hall', 'A kitchen store'], 'Brahmpur / Parampad', 'Partharo'],
-    ['The English translation used here is from the authenticated edition published by…', ['A London newspaper', 'Shree Swaminarayan Mandir, Bhuj', 'A school textbook board', 'An anonymous blog'], 'Shree Swaminarayan Mandir, Bhuj', 'English preface']
+    ['The talks of the Vachnamrut were spoken by…', ['Swaminarayan Bhagvan', 'A later printer', 'A British officer', 'An anonymous poet'], 'Swaminarayan Bhagvan', 'Preface']
   ]),
 
   makePack('gadhada-i-a', 'gadhada-i', 'Gadhada Pratham', 'Gadhada I · early sabhas', [
@@ -93,19 +93,19 @@ export const VACHANAMRUT_ONE_PERCENT_PACKS: OnePercentPack[] = [
     ['Sarangpur – 7 mentions which kshetra?', ['Naimisharanya', 'Kutch only', 'London', 'Ayodhya market'], 'Naimisharanya', 'Sarangpur – 7'],
     ['Sarangpur – 10 is titled around dharma and…', ['Adharma', 'Agriculture', 'Astronomy only', 'Arithmetic'], 'Adharma', 'Sarangpur – 10'],
     ['Sarangpur – 11 emphasises…', ['Personal effort', 'Giving up all effort', 'Temple shopping', 'A holiday'], 'Personal effort', 'Sarangpur – 11'],
-    ['Sarangpur – 16 recalls Nar-Narayan Dev’s tap in…', ['Badrikashram', 'Bhuj fort', 'Vadtal kitchen', 'A London park'], 'Badrikashram', 'Sarangpur – 16'],
+    ['Sarangpur – 16 recalls Nar-Narayan Dev’s tap in…', ['Badrikashram', 'A fortress kitchen', 'Vadtal kitchen', 'A London park'], 'Badrikashram', 'Sarangpur – 16'],
     ['Sarangpur – 17 discusses differences among…', ['Muktas', 'Mangoes', 'Months of the year', 'Temple bricks'], 'Muktas', 'Sarangpur – 17'],
     ['The last Sarangpur Vachnamrut is titled…', ['Saline land', 'Golden land', 'Empty land', 'Forest land'], 'Saline land', 'Sarangpur – 18']
   ]),
 
   makePack('kariyani', 'kariyani', 'Kariyani', 'Kariyani prakaran', [
     ['How many Vachnamruts are in Kariyani?', ['6', '12', '18', '39'], '12', 'Kariyani'],
-    ['Kariyani is one of the village prakarans because Maharaj delivered sabhas…', ['In Kariyani', 'Only in London', 'Only in Bhuj fort', 'Only after 1900'], 'In Kariyani', 'Introduction'],
+    ['Kariyani is one of the village prakarans because Maharaj delivered sabhas…', ['In Kariyani', 'Only in London', 'Only in a fort', 'Only after 1900'], 'In Kariyani', 'Introduction'],
     ['The Vachnamrut sections are arranged mainly by…', ['The village where the talk was delivered', 'Alphabetical English titles', 'Word count', 'The printer’s whim'], 'The village where the talk was delivered', 'Introduction'],
     ['Within a prakaran, individual Vachnamruts are numbered…', ['Chronologically', 'At random', 'By difficulty', 'By the number of pages'], 'Chronologically', 'Introduction'],
     ['Maharaj often taught in the form of a…', ['Question-and-answer sabha', 'Silent march only', 'Written exam only', 'Temple invoice'], 'Question-and-answer sabha', 'Introduction'],
     ['The five compiler sants include Muktanand Swami, Gopalanand Swami, Nityanand Swami, Brahmanand Swami and…', ['Shukanand Swami', 'A British officer', 'A village potter', 'A London editor'], 'Shukanand Swami', 'Introduction'],
-    ['Kariyani sits in the Bhuj edition between Sarangpur and…', ['Loya', 'Partharo', 'Bhugol-Khugol', 'The glossary only'], 'Loya', 'Contents'],
+    ['Kariyani sits between Sarangpur and…', ['Loya', 'Partharo', 'Bhugol-Khugol', 'The glossary only'], 'Loya', 'Contents'],
     ['A person studying Kariyani should keep the mind on…', ['Swaminarayan Bhagvan Himself', 'Only the village map', 'Temple fundraising', 'English poetry'], 'Swaminarayan Bhagvan Himself', 'Preface']
   ]),
 
@@ -128,17 +128,17 @@ export const VACHANAMRUT_ONE_PERCENT_PACKS: OnePercentPack[] = [
     ['Loya – 14 records a personal preference of…', ['Shreeji Maharaj', 'A British collector', 'A village potter', 'A London editor'], 'Shreeji Maharaj', 'Loya – 14'],
     ['Loya – 15 is titled…', ['Atma-darshan', 'Temple-darshan only', 'River-darshan', 'Market-darshan'], 'Atma-darshan', 'Loya – 15'],
     ['Loya – 17 teaches not perceiving…', ['Avgun', 'Aarti', 'Akshar', 'Amrut'], 'Avgun', 'Loya – 17'],
-    ['Loya – 18, the last of the prakaran, is about nishchay in…', ['Bhagvan', 'Bhuj fort only', 'A census', 'A ship'], 'Bhagvan', 'Loya – 18']
+    ['Loya – 18, the last of the prakaran, is about nishchay in…', ['Bhagvan', 'A shipyard', 'A census', 'A ship'], 'Bhagvan', 'Loya – 18']
   ]),
 
   makePack('panchala', 'panchala', 'Panchala', 'Panchala prakaran', [
-    ['In the Bhuj edition, Panchala follows which prakaran?', ['Loya', 'Partharo', 'Gadhada Antya', 'Jetalpur'], 'Loya', 'Contents'],
+    ['Panchala follows which prakaran?', ['Loya', 'Partharo', 'Gadhada Antya', 'Jetalpur'], 'Loya', 'Contents'],
     ['Panchala – 1 is titled the happiness of…', ['Akshardham', 'A marketplace', 'A fortress', 'A library'], 'Akshardham', 'Panchala – 1'],
     ['Panchala – 2 discusses Sankhya and…', ['Yog', 'Yoga mats only', 'A tax', 'A river'], 'Yog', 'Panchala – 2'],
     ['Panchala – 3 says intelligence is instrumental in attaining kalyan, and that love is…', ['Maya', 'Mukti', 'Mala', 'Mandir'], 'Maya', 'Panchala – 3'],
     ['Panchala – 4 is about perceiving divinity in the human traits of…', ['Bhagvan', 'A merchant', 'A soldier', 'A printer'], 'Bhagvan', 'Panchala – 4'],
     ['Panchala – 5 contrasts pride and…', ['Humility', 'Hunger', 'Height', 'Harvest'], 'Humility', 'Panchala – 5'],
-    ['In the Bhuj edition, Panchala contains how many Vachnamruts?', ['6', '7', '12', '18'], '6', 'Contents'],
+    ['How many Vachnamruts are in Panchala?', ['6', '7', '12', '18'], '6', 'Contents'],
     ['Panchala – 6 uses the example of the “maya” of a…', ['Magician', 'Mason', 'Miller', 'Miner'], 'Magician', 'Panchala – 6']
   ]),
 
@@ -165,7 +165,7 @@ export const VACHANAMRUT_ONE_PERCENT_PACKS: OnePercentPack[] = [
   ]),
 
   makePack('vadtal', 'vadtal', 'Vadtal', 'Vadtal prakaran', [
-    ['How many Vachnamruts are in Vadtal in the Bhuj edition?', ['8', '12', '20', '67'], '20', 'Vadtal'],
+    ['How many Vachnamruts are in Vadtal?', ['8', '12', '20', '67'], '20', 'Vadtal'],
     ['Vadtal is included because Maharaj delivered sabhas there, just as in Gadhada and…', ['Sarangpur', 'Paris', 'Delhi only', 'Ayodhya market'], 'Sarangpur', 'Introduction'],
     ['The Shikshapatri is the companion shastra of agna; many associate its giving with…', ['Vadtal', 'London', 'Kashi only', 'A printing house in 2010'], 'Vadtal', 'Tradition / Vadtal'],
     ['Serving a bhakta as a way of pleasing Bhagvan is taught in…', ['Gadhada II – 28', 'A cricket rulebook', 'A census form', 'A train timetable'], 'Gadhada II – 28', 'Gadhada II – 28'],
@@ -177,7 +177,7 @@ export const VACHANAMRUT_ONE_PERCENT_PACKS: OnePercentPack[] = [
 
   makePack('gadhada-iii', 'gadhada-iii', 'Gadhada Antya', 'Gadhada III (Antya)', [
     ['How many Vachnamruts are in Gadhada Antya (Gadhada III)?', ['18', '20', '39', '78'], '39', 'Gadhada Antya'],
-    ['Gadhada Antya is the last Gadhada prakaran in the Bhuj edition contents, listed as…', ['Antya', 'Pratham only', 'Madhyam only', 'Partharo'], 'Antya', 'Contents'],
+    ['Gadhada Antya is the last Gadhada prakaran, listed as…', ['Antya', 'Pratham only', 'Madhyam only', 'Partharo'], 'Antya', 'Contents'],
     ['In Gadhada III – 39 Maharaj says He has delivered these talks not from imagination, nor to display skill, but because He has…', ['Experienced all that He has spoken about', 'Copied a newspaper', 'Guessed the answers', 'Asked a printer to invent them'], 'Experienced all that He has spoken about', 'Gadhada III – 39'],
     ['He adds that He speaks in accordance to what He…', ['Practices', 'Postpones', 'Forgets', 'Sells'], 'Practices', 'Gadhada III – 39'],
     ['The Vachnamrut is not meant to be read once like fiction, but…', ['Lived with and read over and over', 'Used only as a doorstop', 'Kept unopened', 'Read only on Diwali'], 'Lived with and read over and over', 'Preface'],
@@ -186,15 +186,15 @@ export const VACHANAMRUT_ONE_PERCENT_PACKS: OnePercentPack[] = [
     ['The last numbered Gadhada I Vachnamrut is number…', ['18', '39', '67', '78'], '78', 'Gadhada I colophon']
   ]),
 
-  makePack('ahmedabad-jetalpur', 'ahmedabad', 'Ahmedabad · Ashlali · Jetalpur', 'Bhuj edition extra prakarans', [
-    ['The Bhuj edition contents include an Ahmedabad prakaran of how many Vachnamruts?', ['1', '5', '8', '78'], '8', 'Contents'],
-    ['Ashlali appears in the Bhuj edition with how many Vachnamruts?', ['1', '12', '18', '39'], '1', 'Contents'],
-    ['Jetalpur appears in the Bhuj edition with how many Vachnamruts?', ['1', '5', '20', '67'], '5', 'Contents'],
-    ['These extra prakarans are part of the authenticated edition published from…', ['Bhuj', 'Paris', 'New York', 'Ayodhya market'], 'Bhuj', 'Title page'],
+  makePack('ahmedabad-jetalpur', 'ahmedabad', 'Ahmedabad · Ashlali · Jetalpur', 'Ahmedabad, Ashlali and Jetalpur', [
+    ['How many Vachnamruts are in the Ahmedabad prakaran?', ['1', '5', '8', '78'], '8', 'Contents'],
+    ['How many Vachnamruts are in Ashlali?', ['1', '12', '18', '39'], '1', 'Contents'],
+    ['How many Vachnamruts are in Jetalpur?', ['1', '5', '20', '67'], '5', 'Contents'],
+    ['These smaller prakarans sit alongside Gadhada, Sarangpur and…', ['Vadtal', 'Paris', 'New York', 'Ayodhya market'], 'Vadtal', 'Contents'],
     ['Gadhada II – 22 recalls Maharaj installing Nar-Narayan Dev in…', ['Amdavad (Ahmedabad)', 'London', 'Kashi only', 'A forest without a mandir'], 'Amdavad (Ahmedabad)', 'Gadhada II – 22'],
-    ['After that installation, Maharaj spent a night in…', ['Jetalpur', 'Paris', 'Bhuj fort only', 'A London hotel'], 'Jetalpur', 'Gadhada II – 22'],
-    ['Bhugol-Khugol appears in the Bhuj edition contents as how many items?', ['1', '12', '78', '273'], '1', 'Contents'],
-    ['Together, the Bhuj edition arranges the talks into sections based on…', ['Villages where they were delivered', 'The printer’s favourite colours', 'English alphabetical order only', 'Modern train lines'], 'Villages where they were delivered', 'Introduction']
+    ['After that installation, Maharaj spent a night in…', ['Jetalpur', 'Paris', 'A shipyard', 'A London hotel'], 'Jetalpur', 'Gadhada II – 22'],
+    ['Bhugol-Khugol appears in the contents as how many items?', ['1', '12', '78', '273'], '1', 'Contents'],
+    ['The Vachnamrut arranges the talks into sections based on…', ['Villages where they were delivered', 'The printer’s favourite colours', 'English alphabetical order only', 'Modern train lines'], 'Villages where they were delivered', 'Introduction']
   ])
 ]
 
@@ -228,8 +228,36 @@ function seededShuffle<T>(items: T[], seed: number): T[] {
 }
 
 export function withShuffledOptions(question: OnePercentQuestion, dateId: string): OnePercentQuestion {
+  const cleaned = forPlayerOnePercent(question)
+  return {
+    ...cleaned,
+    options: seededShuffle(cleaned.options, hashDateId(`${dateId}:${cleaned.id}`))
+  }
+}
+
+/** Strip edition labels from text players see. Source stays in admin data only. */
+export function forPlayerOnePercent(question: OnePercentQuestion): OnePercentQuestion {
   return {
     ...question,
-    options: seededShuffle(question.options, hashDateId(`${dateId}:${question.id}`))
+    question: stripBhujEditionLabel(question.question),
+    options: question.options.map(stripBhujEditionLabel),
+    correctAnswer: stripBhujEditionLabel(question.correctAnswer)
   }
+}
+
+function stripBhujEditionLabel(text: string): string {
+  return text
+    .replace(/\s+in the Bhuj edition/gi, '')
+    .replace(/^In the Bhuj edition,\s*/i, '')
+    .replace(/^The Bhuj edition says\s+/i, '')
+    .replace(/The Bhuj edition contents include an\s+/i, '')
+    .replace(/\s+appears in the Bhuj edition with/gi, ' has')
+    .replace(/\s+in the Bhuj edition contents/gi, '')
+    .replace(/Together, the Bhuj edition arranges/gi, 'The Vachnamrut arranges')
+    .replace(/\bthe Bhuj edition\b/gi, '')
+    .replace(/\bBhuj edition\b/gi, '')
+    .replace(/\s{2,}/g, ' ')
+    .replace(/\s+\?/g, '?')
+    .replace(/\s+,/g, ',')
+    .trim()
 }

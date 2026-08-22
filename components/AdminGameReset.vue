@@ -59,6 +59,11 @@ const games: Array<{ slug: PlayGameSlug; title: string; href: string }> = [
   { slug: 'ras-rani', title: 'Ras Rani', href: '/play/ras-rani' }
 ]
 
+function legacyScoreIds(slug: PlayGameSlug, dateId: string, uid: string): string[] {
+  if (slug !== 'bhakti-marg') return []
+  return [`surya-chandra_${dateId}_${uid}`, `surya-chandra_${uid}`]
+}
+
 const auth = useAuth()
 const isLoggedIn = computed(() => !!auth.user.value)
 const dateId = ukDateId()
@@ -85,13 +90,14 @@ async function clearOwnScore(slug: PlayGameSlug) {
   const uid = auth.user.value?.uid
   const db = useNuxtApp().$firebaseDb as Firestore | null
   if (!uid || !db) return
-  await Promise.all([`${slug}_${dateId}_${uid}`, `${slug}_${uid}`].map(async (id) => {
-    try {
-      await deleteDoc(doc(db, 'gameScores', id))
-    } catch {
-      // Never submitted, or the rules refused — the local reset still stands.
-    }
-  }))
+  await Promise.all(
+    [`${slug}_${dateId}_${uid}`, `${slug}_${uid}`, ...legacyScoreIds(slug, dateId, uid)].map(async (id) => {
+      try {
+        await deleteDoc(doc(db, 'gameScores', id))
+      } catch {
+        // Never submitted, or the rules refused — the local reset still stands.
+      }
+    }))
 }
 
 async function reset(slug: PlayGameSlug) {

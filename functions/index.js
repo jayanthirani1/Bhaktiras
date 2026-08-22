@@ -44,6 +44,18 @@ const GAME_ACHIEVEMENTS = {
     { id: 'connections-perfect', when: ({ won, mistakes }) => won === true && mistakes === 0 },
     { id: 'connections-perfect-10', when: ({ connectionsPerfect }) => connectionsPerfect >= 10 }
   ],
+  'bracket-city': [
+    { id: 'bracket-city-first-win', when: ({ bracketCityWins }) => bracketCityWins >= 1 },
+    { id: 'bracket-city-wins-7', when: ({ bracketCityWins }) => bracketCityWins >= 7 },
+    { id: 'bracket-city-wins-30', when: ({ bracketCityWins }) => bracketCityWins >= 30 },
+    { id: 'bracket-city-wins-100', when: ({ bracketCityWins }) => bracketCityWins >= 100 },
+    { id: 'bracket-city-wins-200', when: ({ bracketCityWins }) => bracketCityWins >= 200 },
+    { id: 'bracket-city-wins-300', when: ({ bracketCityWins }) => bracketCityWins >= 300 },
+    { id: 'bracket-city-no-hints', when: ({ hintsUsed }) => hintsUsed === 0 },
+    { id: 'bracket-city-no-hints-10', when: ({ bracketCityNoHints }) => bracketCityNoHints >= 10 },
+    { id: 'bracket-city-perfect', when: ({ hintsUsed, mistakes }) => hintsUsed === 0 && mistakes === 0 },
+    { id: 'bracket-city-sub-60s', when: ({ timeMs }) => timeMs < 60_000 }
+  ],
   'one-percent': [
     { id: 'one-percent-first-play', when: ({ onePercentRuns }) => onePercentRuns >= 1 },
     { id: 'one-percent-club', when: ({ onePercentClubClears }) => onePercentClubClears >= 1 },
@@ -135,13 +147,6 @@ function isBetterFastestTime(current, candidate) {
   return candidate.timeMs < Number(current.timeMs)
 }
 
-function isBetterHighScore(current, candidate) {
-  if (!current) return true
-  if (candidate.score !== Number(current.score || current.value)) return candidate.score > Number(current.score || current.value)
-  if (candidate.words !== Number(current.words || 0)) return candidate.words > Number(current.words || 0)
-  return false
-}
-
 function ukDateIdNow() {
   return new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Europe/London',
@@ -184,6 +189,9 @@ function applyGameStats(game, candidate, stats, today) {
   } else if (game === 'connections' && candidate.won) {
     bumpOncePerDay(stats, 'connectionsWins', 'connectionsWinsDate', today)
     if (candidate.mistakes === 0) bumpOncePerDay(stats, 'connectionsPerfect', 'connectionsPerfectDate', today)
+  } else if (game === 'bracket-city') {
+    bumpOncePerDay(stats, 'bracketCityWins', 'bracketCityWinsDate', today)
+    if (candidate.hintsUsed === 0) bumpOncePerDay(stats, 'bracketCityNoHints', 'bracketCityNoHintsDate', today)
   } else if (game === 'one-percent') {
     bumpOncePerDay(stats, 'onePercentRuns', 'onePercentRunsDate', today)
     const streak = nextOnePercentClubStreak(stats, candidate.clearedAll === true)
@@ -234,6 +242,13 @@ function isBetterFewestMoves(current, candidate) {
   return candidate.timeMs < Number(current.timeMs || Infinity)
 }
 
+function isBetterFewestPeeks(current, candidate) {
+  if (!current) return true
+  const currentPeeks = Number(current.score || current.value)
+  if (candidate.score !== currentPeeks) return candidate.score < currentPeeks
+  return candidate.timeMs < Number(current.timeMs || Infinity)
+}
+
 function isBetterLongestStreak(current, candidate) {
   if (!current) return true
   return candidate.longestStreak > Number(current.longestStreak || current.value)
@@ -261,6 +276,8 @@ const CROWN_LABELS = {
   'wordle-fastest': 'fastest Wordle',
   'wordle-fewest-guesses': 'fewest-guess Wordle',
   'crossword-fastest': 'fastest Crossword',
+  'bracket-city-fastest': 'fastest Bracket City',
+  'bracket-city-fewest-peeks': 'fewest-peek Bracket City',
   'one-percent-highest': 'highest 1% Club score',
   'one-percent-fastest': 'fastest 1% Club clear',
   'bhakti-marg-fastest': 'fastest Surya Chandra',
@@ -700,7 +717,7 @@ async function collectGameStats(db) {
     if (data.userId) weekPlayers.add(data.userId)
     if (data.dateId !== today) return
     if (data.userId) todayPlayers.add(data.userId)
-    const game = String(data.game || 'other')
+    const game = String(data.game || 'other') === 'bhakti-marg' ? 'surya-chandra' : String(data.game || 'other')
     playsPerGame[game] = (playsPerGame[game] || 0) + 1
   })
 
@@ -789,6 +806,18 @@ async function handleGameAchievements(request) {
     if (mistakes == null) throw new HttpsError('invalid-argument', 'Invalid Connections mistakes.')
     if (timeMs == null) throw new HttpsError('invalid-argument', 'Invalid Connections time.')
     Object.assign(candidate, { won: request.data?.won === true, mistakes, timeMs })
+  } else if (game === 'bracket-city') {
+    const timeMs = intInRange(request.data?.timeMs, 0, 86_400_000)
+    const peeks = intInRange(request.data?.hintsUsed ?? request.data?.score ?? 0, 0, 200)
+    const mistakes = intInRange(request.data?.mistakes ?? 0, 0, 1000)
+    if (timeMs == null) throw new HttpsError('invalid-argument', 'Invalid Bracket City time.')
+    if (peeks == null) throw new HttpsError('invalid-argument', 'Invalid Bracket City peeks.')
+    if (mistakes == null) throw new HttpsError('invalid-argument', 'Invalid Bracket City mistakes.')
+    Object.assign(candidate, { timeMs, hintsUsed: peeks, mistakes, score: peeks })
+    crownSpecs.push(
+      { id: 'bracket-city-fastest', metric: 'fastest-time', value: timeMs, better: isBetterFastestTime, extra: { timeMs, score: peeks } },
+      { id: 'bracket-city-fewest-peeks', metric: 'fewest-peeks', value: peeks, better: isBetterFewestPeeks, extra: { score: peeks, timeMs } }
+    )
   } else if (game === 'one-percent') {
     const score = intInRange(request.data?.score, 0, 20)
     const timeMs = intInRange(request.data?.timeMs ?? 0, 0, 86_400_000)
@@ -959,6 +988,7 @@ const DAILY_LEADERBOARD_GAMES = [
   'mini-crossword',
   'connections',
   'bracket-city',
+  'surya-chandra',
   'bhakti-marg',
   'ras-rani'
 ]
@@ -997,6 +1027,72 @@ async function deleteMatchingInBatches(db, buildQuery, shouldDelete) {
   return deleted
 }
 
+const SPELLING_BEE_GAMES = new Set(['spelling-bee', 'spellingBee'])
+const SPELLING_BEE_COLLECTIONS = ['spellingBeeScores', 'spellingBeePuzzles', 'spellingBeeWords']
+const SPELLING_BEE_CROWN_IDS = [
+  'spelling-bee-fastest',
+  'spelling-bee-most-words',
+  'spelling-bee-pangram',
+  'spelling-bee-highest'
+]
+
+/** Drops leftover Spelling Bee scores, puzzles and crowns. The game is gone. */
+async function deleteSpellingBeeLeftovers(db) {
+  const removed = {}
+  for (const name of SPELLING_BEE_COLLECTIONS) {
+    removed[name] = await deleteMatchingInBatches(db, () => db.collection(name), () => true)
+  }
+  for (const game of SPELLING_BEE_GAMES) {
+    removed[`gameScores:${game}`] = await deleteMatchingInBatches(
+      db,
+      () => db.collection('gameScores').where('game', '==', game),
+      () => true
+    )
+  }
+  removed.crownsByGame = await deleteMatchingInBatches(
+    db,
+    () => db.collection('achievementCrowns').where('game', '==', 'spelling-bee'),
+    () => true
+  )
+  let crownsById = 0
+  for (const id of SPELLING_BEE_CROWN_IDS) {
+    const ref = db.doc(`achievementCrowns/${id}`)
+    const snap = await ref.get()
+    if (!snap.exists) continue
+    await ref.delete()
+    crownsById += 1
+  }
+  removed.crownsById = crownsById
+  return removed
+}
+
+/** Rewrite leftover Bhakti Marg score rows to Surya Chandra. */
+async function migrateBhaktiMargScores(db) {
+  let moved = 0
+  for (let pass = 0; pass < PRUNE_MAX_BATCHES; pass += 1) {
+    const snap = await db.collection('gameScores').where('game', '==', 'bhakti-marg').limit(200).get()
+    if (snap.empty) break
+    const batch = db.batch()
+    for (const item of snap.docs) {
+      const data = item.data() || {}
+      const uid = data.userId
+      const dateId = data.dateId
+      if (uid && dateId) {
+        const nextRef = db.collection('gameScores').doc(`surya-chandra_${dateId}_${uid}`)
+        const existing = await nextRef.get()
+        if (!existing.exists) {
+          batch.set(nextRef, { ...data, game: 'surya-chandra' })
+        }
+      }
+      batch.delete(item.ref)
+      moved += 1
+    }
+    await batch.commit()
+    if (snap.size < 200) break
+  }
+  return moved
+}
+
 /**
  * Clears out finished days from the daily leaderboards.
  *
@@ -1030,7 +1126,10 @@ exports.pruneOldGameScores = onSchedule(
       data => !data.dateId || data.dateId < today
     )
 
-    const removed = { gameScores: scores, wordleScores: legacy }
+    const spellingBee = await deleteSpellingBeeLeftovers(db)
+    const suryaChandra = await migrateBhaktiMargScores(db)
+
+    const removed = { gameScores: scores, wordleScores: legacy, spellingBee, suryaChandra }
     logger.info('Pruned old leaderboard scores', { today, removed })
     return removed
   }

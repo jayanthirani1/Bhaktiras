@@ -1,5 +1,6 @@
 import {
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -16,6 +17,15 @@ const USERNAME_MAX_LENGTH = 32
 const SCORES_COLLECTION = 'gameScores'
 /** Max score value (covers time in seconds or ms-scale rankings). */
 const SCORE_MAX = 9_999_999
+
+/** Older Surya Chandra rows were written as Bhakti Marg. Read both; write the new id. */
+const SCORE_GAME_ALIASES: Partial<Record<GameLeaderboardId, GameLeaderboardId[]>> = {
+  'surya-chandra': ['bhakti-marg']
+}
+
+function scoreQueryIds(game: GameLeaderboardId): GameLeaderboardId[] {
+  return [game, ...(SCORE_GAME_ALIASES[game] || [])]
+}
 
 function getDb() {
   if (import.meta.server) return null
@@ -139,40 +149,49 @@ export function useGameLeaderboard(
         return
       }
 
-      let snap
-      try {
-        snap = allTime
-          ? await getDocs(query(
+      const ids = scoreQueryIds(game)
+      const known = new Set(ids)
+
+      async function queryGame(id: GameLeaderboardId) {
+        try {
+          return allTime
+            ? await getDocs(query(
+              collection(db, SCORES_COLLECTION),
+              where('game', '==', id),
+              limit(200)
+            ))
+            : await getDocs(query(
+              collection(db, SCORES_COLLECTION),
+              where('game', '==', id),
+              where('dateId', '==', today),
+              limit(100)
+            ))
+        } catch {
+          return getDocs(query(
             collection(db, SCORES_COLLECTION),
-            where('game', '==', game),
+            where('game', '==', id),
             limit(200)
           ))
-          : await getDocs(query(
-            collection(db, SCORES_COLLECTION),
-            where('game', '==', game),
-            where('dateId', '==', today),
-            limit(100)
-          ))
-      } catch {
-        snap = await getDocs(query(
-          collection(db, SCORES_COLLECTION),
-          where('game', '==', game),
-          limit(200)
-        ))
+        }
       }
 
-      const mapped = snap.docs.map(d => mapScoreDoc(d.id, d.data() as Record<string, unknown>, game))
-        .filter(e => e.game === game && (allTime || e.dateId === today))
+      const snaps = await Promise.all(ids.map(queryGame))
+      const mapped = snaps
+        .flatMap(snap => snap.docs.map(d => mapScoreDoc(d.id, d.data() as Record<string, unknown>, game)))
+        .filter(e => known.has(e.game) && (allTime || e.dateId === today))
 
       const uid = currentUid()
-      if (uid) {
-        const mineId = allTime ? `${game}_${uid}` : `${game}_${today}_${uid}`
-        if (!mapped.some(e => e.id === mineId || e.userId === uid)) {
+      if (uid && !mapped.some(e => e.userId === uid)) {
+        for (const id of ids) {
+          const mineId = allTime ? `${id}_${uid}` : `${id}_${today}_${uid}`
           try {
             const mine = await getDoc(doc(db, SCORES_COLLECTION, mineId))
             if (mine.exists()) {
               const row = mapScoreDoc(mine.id, mine.data() as Record<string, unknown>, game)
-              if (row.game === game && (allTime || row.dateId === today)) mapped.push(row)
+              if (known.has(row.game) && (allTime || row.dateId === today)) {
+                mapped.push(row)
+                break
+              }
             }
           } catch {
             // ignore
@@ -237,6 +256,14 @@ export function useGameLeaderboard(
     }
 
     await setDoc(scoreRef, data)
+    for (const alias of SCORE_GAME_ALIASES[game] || []) {
+      const legacyId = allTime ? `${alias}_${payload.userId}` : `${alias}_${today}_${payload.userId}`
+      try {
+        await deleteDoc(doc(db, SCORES_COLLECTION, legacyId))
+      } catch {
+        // Old Bhakti Marg row may not exist.
+      }
+    }
     // Merge locally rather than refetching: the write has already succeeded, and
     // `completedAt` is the only field the server fills in — it matters for tie
     // breaks, so use the moment of writing until the next natural refresh.

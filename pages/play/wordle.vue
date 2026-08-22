@@ -29,12 +29,30 @@
         class="mb-6"
       />
 
-      <div v-if="!playedElsewhere" class="mb-4 flex items-center justify-center gap-2 text-sm font-semibold text-[hsl(var(--primary))]">
+      <p v-else-if="!howto.ready.value" class="mt-8 text-center text-sm text-[hsl(var(--muted-foreground))]">
+        Loading Wordle…
+      </p>
+
+      <div v-if="!playedElsewhere && howto.ready.value" class="mb-4 flex items-center justify-center gap-2 text-sm font-semibold text-[hsl(var(--primary))]">
         <span class="rounded-full bg-[hsl(var(--muted))] px-3 py-1 tabular-nums">⏱ {{ timer.display.value }}</span>
       </div>
 
+      <GameHowTo
+        v-if="!playedElsewhere && howto.showIntro.value"
+        intro
+        title="Guess the word in six tries."
+        class="mb-6"
+        @start="beginAfterHowTo"
+      >
+        <ol class="list-decimal space-y-2 pl-5">
+          <li>Type a five-letter word and press Enter. The timer starts when you tap <span class="font-semibold text-[hsl(var(--foreground))]">Start game</span>.</li>
+          <li><span class="font-semibold text-[hsl(var(--foreground))]">Green</span> is the right letter in the right spot. <span class="font-semibold text-[hsl(var(--foreground))]">Amber</span> is in the word, but elsewhere. Grey is not in the word.</li>
+          <li>You have six guesses. The clock keeps running if you leave the page.</li>
+        </ol>
+      </GameHowTo>
+
       <div
-        v-if="isComplete && !playedElsewhere"
+        v-if="isComplete && !playedElsewhere && howto.ready.value && !howto.showIntro.value"
         class="mb-6 rounded-2xl border border-[hsl(var(--golden-200))] bg-[hsl(var(--card))] p-5 text-center"
       >
         <p class="font-display text-xl font-semibold text-[hsl(var(--primary))]">Today’s Wordle complete</p>
@@ -108,7 +126,7 @@
       </div>
 
       <!-- Grid -->
-      <div v-if="!playedElsewhere" class="flex flex-col gap-2 mb-8" role="grid" aria-label="Wordle guesses">
+      <div v-if="!playedElsewhere && howto.ready.value && !howto.showIntro.value" class="flex flex-col gap-2 mb-8" role="grid" aria-label="Wordle guesses">
         <div
           v-for="(row, rowIndex) in rows"
           :key="rowIndex"
@@ -139,18 +157,18 @@
       </div>
 
       <!-- Keyboard -->
-      <div v-if="!isComplete && !playedElsewhere" class="flex flex-col gap-1.5 touch-manipulation">
+      <div v-if="!isComplete && !playedElsewhere && howto.ready.value && !howto.showIntro.value" class="flex flex-col gap-1.5 touch-manipulation">
         <div class="flex justify-center gap-1">
           <button
             v-for="k in KEYBOARD_TOP"
             :key="k"
             type="button"
-            class="h-11 sm:h-12 rounded-md font-semibold text-sm uppercase min-w-[1.75rem] px-2 sm:min-w-[2rem] transition-transform duration-75 active:scale-90"
+            class="h-11 sm:h-12 touch-manipulation select-none rounded-md font-semibold text-sm uppercase min-w-[1.75rem] px-2 sm:min-w-[2rem] transition-transform duration-75 active:scale-90"
             :class="[keyBg(k), { 'key-press': pressedKey === k }]"
             :aria-label="`${k}, ${statusLabel(keyStatusMap.get(k) || 'empty')}`"
             :disabled="isComplete"
             @pointerdown="onKeyPointer($event, k)"
-            @click="onKeyClick(k)"
+            @click="onKeyClick($event, k)"
           >
             {{ k }}
           </button>
@@ -160,12 +178,12 @@
             v-for="k in KEYBOARD_MID"
             :key="k"
             type="button"
-            class="h-11 sm:h-12 rounded-md font-semibold text-sm uppercase min-w-[1.75rem] px-2 sm:min-w-[2rem] transition-transform duration-75 active:scale-90"
+            class="h-11 sm:h-12 touch-manipulation select-none rounded-md font-semibold text-sm uppercase min-w-[1.75rem] px-2 sm:min-w-[2rem] transition-transform duration-75 active:scale-90"
             :class="[keyBg(k), { 'key-press': pressedKey === k }]"
             :aria-label="`${k}, ${statusLabel(keyStatusMap.get(k) || 'empty')}`"
             :disabled="isComplete"
             @pointerdown="onKeyPointer($event, k)"
-            @click="onKeyClick(k)"
+            @click="onKeyClick($event, k)"
           >
             {{ k }}
           </button>
@@ -177,7 +195,7 @@
             :class="{ 'key-press': pressedKey === 'ENTER' }"
             :disabled="isComplete"
             @pointerdown="onKeyPointer($event, 'ENTER')"
-            @click="onKeyClick('ENTER')"
+            @click="onKeyClick($event, 'ENTER')"
           >
             ENTER
           </button>
@@ -185,12 +203,12 @@
             v-for="k in KEYBOARD_BOT"
             :key="k"
             type="button"
-            class="h-11 sm:h-12 rounded-md font-semibold text-sm uppercase min-w-[1.75rem] px-2 sm:min-w-[2rem] transition-transform duration-75 active:scale-90"
+            class="h-11 sm:h-12 touch-manipulation select-none rounded-md font-semibold text-sm uppercase min-w-[1.75rem] px-2 sm:min-w-[2rem] transition-transform duration-75 active:scale-90"
             :class="[keyBg(k), { 'key-press': pressedKey === k }]"
             :aria-label="`${k}, ${statusLabel(keyStatusMap.get(k) || 'empty')}`"
             :disabled="isComplete"
             @pointerdown="onKeyPointer($event, k)"
-            @click="onKeyClick(k)"
+            @click="onKeyClick($event, k)"
           >
             {{ k }}
           </button>
@@ -200,12 +218,20 @@
             :class="{ 'key-press': pressedKey === 'BACK' }"
             :disabled="isComplete"
             @pointerdown="onKeyPointer($event, 'BACK')"
-            @click="onKeyClick('BACK')"
+            @click="onKeyClick($event, 'BACK')"
           >
             ⌫
           </button>
         </div>
       </div>
+
+      <GameHowTo v-if="!playedElsewhere && howto.ready.value && !howto.showIntro.value" class="mb-6">
+        <ol class="list-decimal space-y-2 pl-5">
+          <li>Type a five-letter word and press Enter.</li>
+          <li><span class="font-semibold text-[hsl(var(--foreground))]">Green</span> is the right letter in the right spot. <span class="font-semibold text-[hsl(var(--foreground))]">Amber</span> is in the word, but elsewhere. Grey is not in the word.</li>
+          <li>You have six guesses. The clock keeps running if you leave the page.</li>
+        </ol>
+      </GameHowTo>
 
       <GameCrowns :ids="['wordle-fastest', 'wordle-fewest-guesses']" />
 
@@ -375,6 +401,7 @@ const KEYBOARD_MID = ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L']
 const KEYBOARD_BOT = ['Z', 'X', 'C', 'V', 'B', 'N', 'M']
 
 const DAILY_STORAGE_KEY = 'wordle-daily'
+const howto = useHowToPlay('wordle', ['wordle-daily', 'wordle-timer:'])
 
 const remoteExtraWords = ref<string[]>([])
 const remoteWordEntries = ref<GameWordEntry[]>([])
@@ -429,8 +456,7 @@ const pressedKey = ref<string | null>(null)
 const popTile = ref<number | null>(null)
 let pressTimer: ReturnType<typeof setTimeout> | null = null
 let popTimer: ReturnType<typeof setTimeout> | null = null
-/** When true, the next click is a leftover from a touch pointerdown we already handled. */
-let ignoreClickFromTouch = false
+const keyTap = useKeyTapGuard()
 const hasRecordedResult = ref(false)
 const scoreSubmitted = ref(false)
 const submittingScore = ref(false)
@@ -605,6 +631,7 @@ function pressKeyVisual(key: string) {
 
 function runKey(key: string) {
   const k = key.toUpperCase()
+  if (!keyTap.allow(k)) return
   if (k === 'ENTER') {
     pressKeyVisual('ENTER')
     haptic([12, 20, 12])
@@ -624,16 +651,18 @@ function runKey(key: string) {
 
 /** Touch/pen: act immediately and suppress the follow-up click (often lost after re-render). */
 function onKeyPointer(e: PointerEvent, key: string) {
+  if (e.button !== 0 && e.button !== -1) return
   if (e.pointerType === 'mouse') return
   e.preventDefault()
-  ignoreClickFromTouch = true
+  keyTap.markPointerHandled()
   runKey(key)
-  setTimeout(() => { ignoreClickFromTouch = false }, 400)
 }
 
-/** Mouse / keyboard activation of the button. */
-function onKeyClick(key: string) {
-  if (ignoreClickFromTouch) return
+function onKeyClick(e: MouseEvent, key: string) {
+  if (keyTap.clickIsEcho()) {
+    e.preventDefault()
+    return
+  }
   runKey(key)
 }
 
@@ -829,6 +858,11 @@ function closeModal() {
   showResultModal.value = false
 }
 
+function beginAfterHowTo() {
+  howto.markSeen()
+  if (!isComplete.value && !playedElsewhere.value) timer.loadOrStart()
+}
+
 onMounted(async () => {
   const state = loadDailyState()
   hasRecordedResult.value = state.isComplete
@@ -840,7 +874,7 @@ onMounted(async () => {
   if (state.isComplete) {
     timer.read()
     if (timer.startedAt.value && !timer.finishedAt.value) timer.stop()
-  } else if (!playedElsewhere.value) {
+  } else if (!playedElsewhere.value && !howto.showIntro.value) {
     timer.loadOrStart()
   }
   try {

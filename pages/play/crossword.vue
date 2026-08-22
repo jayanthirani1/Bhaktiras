@@ -17,7 +17,7 @@
           v-if="!playedElsewhere"
           type="button"
           class="rounded-full bg-[hsl(var(--primary))] px-4 py-2 text-sm font-bold text-white shadow-lg shadow-[hsl(var(--primary))]/20 disabled:opacity-40"
-          :disabled="!layout || solved"
+          :disabled="!layout || solved || howto.showIntro.value"
           @click="checkAnswers"
         >
           ✓ Check
@@ -40,10 +40,22 @@
         :summary="elsewhereSummary"
       />
 
-      <div v-else-if="loading" class="card-surface p-8 text-center text-sm text-[hsl(var(--muted-foreground))]">Loading crossword…</div>
+      <div v-else-if="loading || !howto.ready.value" class="card-surface p-8 text-center text-sm text-[hsl(var(--muted-foreground))]">Loading crossword…</div>
       <div v-else-if="!active || !layout" class="card-surface p-8 text-center text-[hsl(var(--muted-foreground))]">
         Today’s crossword will appear here once it is added.
       </div>
+      <GameHowTo
+        v-else-if="howto.showIntro.value"
+        intro
+        title="Fill the grid against the clock."
+        @start="beginAfterHowTo"
+      >
+        <ol class="list-decimal space-y-2 pl-5">
+          <li>Tap a square and type letters. The timer starts when you tap <span class="font-semibold text-[hsl(var(--foreground))]">Start game</span>.</li>
+          <li>Use the clues across and down. Check answers when you think you’re done.</li>
+          <li>Hints add time: a letter costs 5 seconds, a whole word costs 20. Leaving the page does not pause the clock.</li>
+        </ol>
+      </GameHowTo>
       <div v-else class="space-y-4 md:space-y-6">
         <div v-if="puzzles.length > 1" class="flex flex-wrap justify-center gap-2">
           <button
@@ -194,6 +206,14 @@
             </ol>
           </section>
         </div>
+
+        <GameHowTo>
+          <ol class="list-decimal space-y-2 pl-5">
+            <li>Tap a square and type letters. The timer keeps running if you leave.</li>
+            <li>Use the clues across and down. Check answers when you think you’re done.</li>
+            <li>Hints add time: a letter costs 5 seconds, a whole word costs 20.</li>
+          </ol>
+        </GameHowTo>
       </div>
 
       <div class="mt-10">
@@ -212,7 +232,7 @@
 
     <!-- Fixed custom keyboard (mobile / tablet play chrome) -->
     <div
-      v-if="layout && !solved && !playedElsewhere"
+      v-if="layout && !solved && !playedElsewhere && !howto.showIntro.value"
       class="fixed inset-x-0 bottom-0 z-40 border-t border-[hsl(var(--border))] bg-[hsl(var(--background))]/95 px-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2 backdrop-blur md:hidden"
     >
       <div class="mx-auto max-w-lg">
@@ -281,6 +301,7 @@ const {
 } = useGameLeaderboard('mini-crossword', { sort: 'asc' })
 
 const timer = useGameTimer(`mini-crossword-timer:${ukDateId()}`)
+const howto = useHowToPlay('mini-crossword', ['mini-crossword:', 'mini-crossword-timer:'])
 const timerDisplay = computed(() => timer.display.value)
 const {
   playedElsewhere,
@@ -632,7 +653,13 @@ async function submitToLeaderboard() {
   }
 }
 
+function beginAfterHowTo() {
+  howto.markSeen()
+  syncPlayTimer()
+}
+
 function syncPlayTimer() {
+  if (!howto.ready.value || howto.showIntro.value) return
   if (loading.value || !layout.value || playedElsewhere.value) return
   if (solved.value) {
     timer.read()
@@ -652,7 +679,7 @@ watch(puzzles, (list) => {
   syncPlayTimer()
 }, { immediate: true })
 
-watch([loading, solved, playedElsewhere], () => { syncPlayTimer() })
+watch([loading, solved, playedElsewhere, () => howto.ready.value, () => howto.showIntro.value], () => { syncPlayTimer() })
 
 watch([entries, () => auth.user.value?.uid], ([list, uid]) => {
   if (uid && list.some(e => e.userId === uid)) scoreSubmitted.value = true

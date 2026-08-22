@@ -17,9 +17,21 @@
         title="Bracket City"
         :summary="elsewhereSummary"
       />
-      <div v-else-if="loading" class="card-surface p-8 text-center text-sm text-[hsl(var(--muted-foreground))]">
+      <div v-else-if="loading || !howto.ready.value" class="card-surface p-8 text-center text-sm text-[hsl(var(--muted-foreground))]">
         Loading today’s puzzle…
       </div>
+      <GameHowTo
+        v-else-if="howto.showIntro.value"
+        intro
+        title="Work from the inside out."
+        @start="beginAfterHowTo"
+      >
+        <ol class="list-decimal space-y-2 pl-5">
+          <li>Solve the <span class="font-semibold text-[hsl(var(--foreground))]">innermost clue</span> first — that answer fills the next clue around it.</li>
+          <li>Tap a highlighted clue, type your guess, and press Enter.</li>
+          <li>Hints add time: a letter costs 5 seconds, revealing the word costs 20.</li>
+        </ol>
+      </GameHowTo>
       <div v-else class="space-y-4">
         <div class="card-surface p-4 text-lg leading-loose text-[hsl(var(--foreground))] sm:p-6 sm:text-xl">
           <template v-for="(part, index) in parts" :key="index">
@@ -134,6 +146,15 @@
           <p v-if="submitError" class="text-sm text-red-600">{{ submitError }}</p>
         </div>
 
+        <GameHowTo>
+          <ol class="list-decimal space-y-2 pl-5">
+            <li>Solve the <span class="font-semibold text-[hsl(var(--foreground))]">innermost clue</span> first — that answer fills the next clue around it.</li>
+            <li>Tap a highlighted clue, type your guess, and press Enter.</li>
+            <li>Hints add time: a letter costs 5 seconds, revealing the word costs 20.</li>
+          </ol>
+        </GameHowTo>
+
+        <GameCrowns :ids="['bracket-city-fastest', 'bracket-city-fewest-peeks']" />
         <GameLeaderboard
           :entries="entries"
           :loading="boardLoading"
@@ -169,10 +190,12 @@ import { formatElapsed } from '~/composables/useGameTimer'
 const STORAGE_KEY = `bracket-city:${ukDateId()}`
 const { puzzle, loading } = useBracketCityPuzzle()
 const timer = useGameTimer(`bracket-city-timer:${ukDateId()}`)
+const howto = useHowToPlay('bracket-city', ['bracket-city:', 'bracket-city-timer:'])
 const auth = useAuth()
 const isLoggedIn = computed(() => !!auth.user.value)
 const { playedElsewhere, result: elsewhereResult, markDone } = useDailyGameCompletion('bracket-city')
 const { entries, loading: boardLoading, dateId, submitScore } = useGameLeaderboard('bracket-city', { sort: 'asc' })
+const achievements = useAchievements()
 
 const solvedIds = ref<string[]>([])
 const peekedIds = ref<string[]>([])
@@ -399,6 +422,15 @@ async function submitToLeaderboard() {
       userName: auth.user.value.displayName || auth.user.value.email?.split('@')[0] || 'Player',
       userEmail: auth.user.value.email || undefined
     })
+    try {
+      await achievements.processResult('bracket-city', {
+        userName: auth.user.value.displayName || auth.user.value.email?.split('@')[0] || 'Player',
+        timeMs: timer.elapsedMs.value,
+        hintsUsed: peekedIds.value.length,
+        mistakes: wrongGuesses.value,
+        score: peekedIds.value.length
+      })
+    } catch {}
     scoreSubmitted.value = true
     saveState()
   } catch (error) {
@@ -418,7 +450,13 @@ watch([finished, () => auth.user.value?.uid], ([done, uid]) => {
   }
 }, { immediate: true })
 
+function beginAfterHowTo() {
+  howto.markSeen()
+  syncPlayTimer()
+}
+
 function syncPlayTimer() {
+  if (!howto.ready.value || howto.showIntro.value) return
   if (loading.value || playedElsewhere.value) return
   if (finished.value) {
     timer.read()
@@ -442,7 +480,7 @@ watch([loading, () => puzzle.value.id], () => {
   syncPlayTimer()
 }, { immediate: true })
 
-watch(playedElsewhere, () => { syncPlayTimer() })
+watch([playedElsewhere, () => howto.ready.value, () => howto.showIntro.value], () => { syncPlayTimer() })
 
 useHead({ title: 'Bracket City · Bhaktiras' })
 </script>

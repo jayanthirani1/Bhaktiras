@@ -1,22 +1,20 @@
 <template>
   <svg
     xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 24 24"
+    viewBox="217.8 304.8 11 16.2"
+    overflow="visible"
     fill="currentColor"
-    :class="class"
+    aria-hidden="true"
     :width="size"
     :height="size"
   >
-    <!-- Nectar droplet shape inspired by the Bhaktiras logo tilak -->
-    <path d="M12 2C12 2 6 10 6 14.5C6 17.5 8.69 20 12 20C15.31 20 18 17.5 18 14.5C18 10 12 2 12 2Z" />
-    <!-- Inner highlight -->
-    <ellipse cx="10" cy="12" rx="2" ry="3" fill="white" opacity="0.3" />
+    <!-- Tilak / nectar droplet from assets/logos/bhaktiras-main.svg (#logo-main-tilak) -->
+    <path d="M226.69,316.91c-1.27,3.25-5.18,3.52-6.97.62-.29-.46-.49-.93-.58-1.37-.85-4.05,2.72-6.24,3.88-10.36.96,4.07,5.16,6.73,3.79,10.74-.04.12-.08.24-.12.36Z" />
   </svg>
 </template>
 
 <script setup lang="ts">
 defineProps<{
   size?: number | string
-  class?: string
 }>()
 </script>

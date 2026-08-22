@@ -230,6 +230,7 @@ export type GameLeaderboardId =
   | 'mini-crossword'
   | 'connections'
   | 'bracket-city'
+  | 'surya-chandra'
   | 'bhakti-marg'
   | 'ras-rani'
 
@@ -340,7 +341,6 @@ export interface UserAchievementUnlock {
   guesses?: number
   timeMs?: number
   score?: number
-  words?: number
   mistakes?: number
   longestStreak?: number
   clubStreak?: number
@@ -367,7 +367,6 @@ export interface AchievementCrownRecord {
   guesses?: number
   timeMs?: number
   score?: number
-  words?: number
   longestStreak?: number
   updatedAt?: { seconds?: number; nanoseconds?: number } | Date
 }

@@ -44,7 +44,11 @@ const GAME_DAY_KEYS: Record<PlayGameSlug, (dateId: string) => string[]> = {
   'one-percent': dateId => [`one-percent-run:${dateId}`, `one-percent-timer:${dateId}`],
   'connections': dateId => [`connections:${dateId}`, `connections-timer:${dateId}`],
   'bracket-city': dateId => [`bracket-city:${dateId}`, `bracket-city-timer:${dateId}`],
-  'bhakti-marg': dateId => [`bhakti-marg:${dateId}`, `bhakti-marg-timer:${dateId}`],
+  'bhakti-marg': dateId => [
+    `bhakti-marg:${dateId}`,
+    `bhakti-marg-timer:${dateId}`,
+    `leaderboard-submitted:surya-chandra:${dateId}`
+  ],
   'ras-rani': dateId => [`ras-rani-v3:${dateId}`, `ras-rani:${dateId}`, `ras-rani-timer:${dateId}`]
 }
 

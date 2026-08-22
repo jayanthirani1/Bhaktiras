@@ -90,6 +90,70 @@ export function hasViolations(
   return v.row.size > 0 || v.col.size > 0 || v.region.size > 0 || v.adjacent.size > 0
 }
 
+/** Every cell inside a constraint that is currently broken — a full row, column, region, or the bounding box of touching drops. */
+export function violationHighlightCells(
+  grid: CellState[][],
+  puzzle: RasRaniPuzzle
+): Set<string> {
+  const v = checkViolations(grid, puzzle)
+  const n = puzzle.gridSize
+  const cells = new Set<string>()
+  const add = (r: number, c: number) => cells.add(`${r},${c}`)
+
+  for (const r of v.row) {
+    for (let c = 0; c < n; c++) add(r, c)
+  }
+  for (const c of v.col) {
+    for (let r = 0; r < n; r++) add(r, c)
+  }
+  if (v.region.size) {
+    for (let r = 0; r < n; r++) {
+      for (let c = 0; c < n; c++) {
+        if (v.region.has(puzzle.regionGrid[r][c])) add(r, c)
+      }
+    }
+  }
+
+  const queens = getQueenPositions(grid)
+  for (let i = 0; i < queens.length; i++) {
+    for (let j = i + 1; j < queens.length; j++) {
+      const [r1, c1] = queens[i]
+      const [r2, c2] = queens[j]
+      if (!isAdjacent(r1, c1, r2, c2)) continue
+      const rMin = Math.min(r1, r2)
+      const rMax = Math.max(r1, r2)
+      const cMin = Math.min(c1, c2)
+      const cMax = Math.max(c1, c2)
+      for (let r = rMin; r <= rMax; r++) {
+        for (let c = cMin; c <= cMax; c++) add(r, c)
+      }
+    }
+  }
+
+  return cells
+}
+
+/** Continuous red box around a highlight group (outer edges only), plus a wash so the whole matching area reads as one error. */
+export function violationHighlightStyle(
+  row: number,
+  col: number,
+  cells: Set<string>,
+  gridSize: number
+): { boxShadow?: string; backgroundImage?: string } {
+  if (!cells.has(`${row},${col}`)) return {}
+  const inside = (r: number, c: number) =>
+    r >= 0 && c >= 0 && r < gridSize && c < gridSize && cells.has(`${r},${c}`)
+  const edges: string[] = []
+  if (!inside(row - 1, col)) edges.push('inset 0 3px 0 0 #ef4444')
+  if (!inside(row + 1, col)) edges.push('inset 0 -3px 0 0 #ef4444')
+  if (!inside(row, col - 1)) edges.push('inset 3px 0 0 0 #ef4444')
+  if (!inside(row, col + 1)) edges.push('inset -3px 0 0 0 #ef4444')
+  return {
+    boxShadow: edges.join(', '),
+    backgroundImage: 'linear-gradient(rgba(239, 68, 68, 0.28), rgba(239, 68, 68, 0.28))'
+  }
+}
+
 export function uniqueRegionIds(puzzle: RasRaniPuzzle): string[] {
   const ids = new Set<string>()
   for (const row of puzzle.regionGrid) {

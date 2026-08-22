@@ -8,7 +8,7 @@
         <span class="rounded-full bg-[hsl(var(--muted))] px-3 py-1 text-sm font-semibold tabular-nums text-[hsl(var(--primary))]">
           ⏱ {{ timer.display.value }}
         </span>
-        <div v-if="!playedElsewhere && !loading && !finished" class="ml-auto flex gap-2">
+        <div v-if="!playedElsewhere && !loading && !finished && !howto.showIntro.value" class="ml-auto flex gap-2">
           <button type="button" class="rounded-full border border-[hsl(var(--border))] px-3 py-1.5 text-sm font-semibold" @click="clearGrid">Clear</button>
           <button type="button" class="rounded-full border border-[hsl(var(--border))] px-3 py-1.5 text-sm font-semibold" @click="useHint">Hint</button>
         </div>
@@ -21,9 +21,22 @@
         title="Surya Chandra"
         :summary="elsewhereSummary"
       />
-      <div v-else-if="loading" class="card-surface p-8 text-center text-sm text-[hsl(var(--muted-foreground))]">
+      <div v-else-if="loading || !howto.ready.value" class="card-surface p-8 text-center text-sm text-[hsl(var(--muted-foreground))]">
         Loading today's puzzle…
       </div>
+      <GameHowTo
+        v-else-if="howto.showIntro.value"
+        intro
+        title="Fill the grid with suns and moons."
+        @start="beginAfterHowTo"
+      >
+        <ol class="list-decimal space-y-2 pl-5">
+          <li>Fill every cell with a <span class="font-semibold text-[hsl(var(--foreground))]">sun</span> or a <span class="font-semibold text-[hsl(var(--foreground))]">moon</span>.</li>
+          <li>Each row and each column must have <span class="font-semibold text-[hsl(var(--foreground))]">three suns and three moons</span>.</li>
+          <li>Never place <span class="font-semibold text-[hsl(var(--foreground))]">three of the same</span> next to each other in a row or column.</li>
+          <li><span class="font-semibold text-[hsl(var(--foreground))]">=</span> means the two cells are the same. <span class="font-semibold text-[hsl(var(--foreground))]">×</span> means they are opposite.</li>
+        </ol>
+      </GameHowTo>
       <div v-else class="space-y-4">
         <div class="mx-auto w-full max-w-[22rem]">
           <div
@@ -108,15 +121,14 @@
           <p v-if="submitError" class="text-sm text-red-600">{{ submitError }}</p>
         </div>
 
-        <details class="card-surface p-4 text-sm leading-relaxed text-[hsl(var(--muted-foreground))]">
-          <summary class="cursor-pointer font-semibold text-[hsl(var(--primary))]">How to play</summary>
-          <ol class="mt-3 list-decimal space-y-2 pl-5">
+        <GameHowTo>
+          <ol class="list-decimal space-y-2 pl-5">
             <li>Fill every cell with a <span class="font-semibold text-[hsl(var(--foreground))]">sun</span> or a <span class="font-semibold text-[hsl(var(--foreground))]">moon</span>.</li>
             <li>Each row and each column must have <span class="font-semibold text-[hsl(var(--foreground))]">three suns and three moons</span>.</li>
             <li>Never place <span class="font-semibold text-[hsl(var(--foreground))]">three of the same</span> next to each other in a row or column.</li>
             <li><span class="font-semibold text-[hsl(var(--foreground))]">=</span> means the two cells are the same. <span class="font-semibold text-[hsl(var(--foreground))]">×</span> means they are opposite.</li>
           </ol>
-        </details>
+        </GameHowTo>
 
         <GameLeaderboard
           :entries="entries"
@@ -146,10 +158,11 @@ import {
 const STORAGE_KEY = `bhakti-marg:${ukDateId()}`
 const { puzzle, loading } = useSuryaChandraPuzzle()
 const timer = useGameTimer(`bhakti-marg-timer:${ukDateId()}`)
+const howto = useHowToPlay('bhakti-marg', ['bhakti-marg:', 'bhakti-marg-timer:'])
 const auth = useAuth()
 const isLoggedIn = computed(() => !!auth.user.value)
 const { playedElsewhere, result: elsewhereResult, markDone } = useDailyGameCompletion('bhakti-marg')
-const { entries, loading: boardLoading, dateId, submitScore } = useGameLeaderboard('bhakti-marg', { sort: 'asc' })
+const { entries, loading: boardLoading, dateId, submitScore } = useGameLeaderboard('surya-chandra', { sort: 'asc' })
 const achievements = useAchievements()
 
 const board = ref<TangoCell[][]>(emptyBoard())
@@ -334,7 +347,13 @@ watch([finished, () => auth.user.value?.uid], ([done, uid]) => {
   if (done && uid && !scoreSubmitted.value && !submitting.value) void submitToLeaderboard()
 }, { immediate: true })
 
+function beginAfterHowTo() {
+  howto.markSeen()
+  syncPlayTimer()
+}
+
 function syncPlayTimer() {
+  if (!howto.ready.value || howto.showIntro.value) return
   if (loading.value || playedElsewhere.value) return
   if (finished.value) {
     timer.read()
@@ -355,7 +374,7 @@ watch([loading, () => puzzle.value.id], () => {
   syncPlayTimer()
 }, { immediate: true })
 
-watch(playedElsewhere, () => { syncPlayTimer() })
+watch([playedElsewhere, () => howto.ready.value, () => howto.showIntro.value], () => { syncPlayTimer() })
 
 useHead({ title: 'Surya Chandra · Bhaktiras' })
 </script>

@@ -163,6 +163,7 @@ const GAME_LABELS: Record<string, string> = {
   'mini-crossword': 'Mini crossword',
   'bracket-city': 'Bracket City',
   'bhakti-marg': 'Surya Chandra',
+  'surya-chandra': 'Surya Chandra',
   'ras-rani': 'Ras Rani'
 }
 

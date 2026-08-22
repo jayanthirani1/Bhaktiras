@@ -17,9 +17,21 @@
         title="Connections"
         :summary="elsewhereSummary"
       />
-      <div v-else-if="loading" class="card-surface p-8 text-center text-sm text-[hsl(var(--muted-foreground))]">
+      <div v-else-if="loading || !howto.ready.value" class="card-surface p-8 text-center text-sm text-[hsl(var(--muted-foreground))]">
         Loading today’s puzzle…
       </div>
+      <GameHowTo
+        v-else-if="howto.showIntro.value"
+        intro
+        title="Find four groups of four words."
+        @start="beginAfterHowTo"
+      >
+        <ol class="list-decimal space-y-2 pl-5">
+          <li>Select <span class="font-semibold text-[hsl(var(--foreground))]">four words</span> that share a satsang theme, then tap Submit.</li>
+          <li>You can make <span class="font-semibold text-[hsl(var(--foreground))]">four mistakes</span>. A fifth wrong group ends the puzzle.</li>
+          <li>Solved groups lock in and leave the board. Shuffle if you need a fresh look.</li>
+        </ol>
+      </GameHowTo>
       <div v-else class="space-y-4">
         <div class="space-y-2">
           <div
@@ -91,6 +103,14 @@
           <p v-if="submitError" class="text-sm text-red-600">{{ submitError }}</p>
         </div>
 
+        <GameHowTo>
+          <ol class="list-decimal space-y-2 pl-5">
+            <li>Select <span class="font-semibold text-[hsl(var(--foreground))]">four words</span> that share a satsang theme, then tap Submit.</li>
+            <li>You can make <span class="font-semibold text-[hsl(var(--foreground))]">four mistakes</span>. A fifth wrong group ends the puzzle.</li>
+            <li>Solved groups lock in and leave the board. Shuffle if you need a fresh look.</li>
+          </ol>
+        </GameHowTo>
+
         <GameLeaderboard
           :entries="entries"
           :loading="boardLoading"
@@ -111,6 +131,7 @@ import { formatElapsed } from '~/composables/useGameTimer'
 const STORAGE_KEY = `connections:${ukDateId()}`
 const { puzzle, loading } = useConnectionsPuzzle()
 const timer = useGameTimer(`connections-timer:${ukDateId()}`)
+const howto = useHowToPlay('connections', ['connections:', 'connections-timer:'])
 const auth = useAuth()
 const achievements = useAchievements()
 const isLoggedIn = computed(() => !!auth.user.value)
@@ -305,7 +326,13 @@ watch([finished, () => auth.user.value?.uid], ([done, uid]) => {
   }
 }, { immediate: true })
 
+function beginAfterHowTo() {
+  howto.markSeen()
+  syncPlayTimer()
+}
+
 function syncPlayTimer() {
+  if (!howto.ready.value || howto.showIntro.value) return
   if (loading.value || playedElsewhere.value) return
   if (finished.value) {
     timer.read()
@@ -321,7 +348,7 @@ watch(loading, value => {
   syncPlayTimer()
 }, { immediate: true })
 
-watch(playedElsewhere, () => { syncPlayTimer() })
+watch([playedElsewhere, () => howto.ready.value, () => howto.showIntro.value], () => { syncPlayTimer() })
 
 useHead({ title: 'Connections · Bhaktiras' })
 </script>

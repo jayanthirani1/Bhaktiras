@@ -27,7 +27,7 @@
         :summary="elsewhereSummary"
       />
 
-      <div v-else-if="loading" class="card-surface p-8 text-center text-sm text-[hsl(var(--muted-foreground))]">
+      <div v-else-if="loading || !howto.ready.value" class="card-surface p-8 text-center text-sm text-[hsl(var(--muted-foreground))]">
         Loading questions…
       </div>
 
@@ -35,7 +35,21 @@
         Questions will appear here once they are added in admin.
       </div>
 
-      <div v-else-if="!started" class="card-surface space-y-4 p-6 text-center">
+      <GameHowTo
+        v-else-if="howto.showIntro.value"
+        intro
+        title="Climb the Vachnamrut ladder."
+        @start="beginAfterHowTo"
+      >
+        <ol class="list-decimal space-y-2 pl-5">
+          <li>Answer each question before the clock runs away. One wrong answer ends the run.</li>
+          <li>The timer starts when you tap <span class="font-semibold text-[hsl(var(--foreground))]">Start game</span> — it keeps running if you leave.</li>
+          <li>A new prakaran ladder arrives each day. Reach 1% to join the club.</li>
+        </ol>
+      </GameHowTo>
+
+      <div v-else class="space-y-4">
+      <div v-if="!started" class="card-surface space-y-4 p-6 text-center">
         <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-[hsl(var(--golden-900))]">
           {{ pack.sectionLabel }}
         </p>
@@ -87,7 +101,6 @@
           </p>
         </div>
         <h2 class="font-display text-xl font-semibold text-[hsl(var(--foreground))]">{{ current.question }}</h2>
-        <p v-if="current.source" class="text-xs text-[hsl(var(--muted-foreground))]">{{ current.source }}</p>
         <div class="grid gap-2">
           <button
             v-for="opt in current.options"
@@ -104,6 +117,15 @@
         <p v-if="feedback" class="text-sm font-medium" :class="feedbackOk ? 'text-emerald-700' : 'text-red-600'">
           {{ feedback }}
         </p>
+      </div>
+
+      <GameHowTo>
+        <ol class="list-decimal space-y-2 pl-5">
+          <li>Answer each question before the clock runs away. One wrong answer ends the run.</li>
+          <li>The timer keeps running if you leave the page.</li>
+          <li>A new prakaran ladder arrives each day. Reach 1% to join the club.</li>
+        </ol>
+      </GameHowTo>
       </div>
 
       <GameLeaderboard
@@ -142,6 +164,7 @@ const {
 } = useGameLeaderboard('one-percent', { sort: 'desc' })
 
 const timer = useGameTimer(`one-percent-timer:${ukDateId()}`)
+const howto = useHowToPlay('one-percent', ['one-percent-run:', 'one-percent-timer:'])
 const timerDisplay = computed(() => timer.display.value)
 const {
   playedElsewhere,
@@ -212,6 +235,11 @@ function loadRun() {
     failPercent.value = data.failPercent ?? null
     scoreSubmitted.value = !!data.scoreSubmitted
   } catch {}
+}
+
+function beginAfterHowTo() {
+  howto.markSeen()
+  startRun()
 }
 
 function startRun() {
@@ -312,6 +340,7 @@ backfill(() => ({
 }))
 
 function syncPlayTimer() {
+  if (!howto.ready.value || howto.showIntro.value) return
   if (loading.value || playedElsewhere.value) return
   if (finished.value) {
     timer.read()
@@ -326,7 +355,7 @@ onMounted(() => {
   syncPlayTimer()
 })
 
-watch([loading, playedElsewhere], () => { syncPlayTimer() })
+watch([loading, playedElsewhere, () => howto.ready.value, () => howto.showIntro.value], () => { syncPlayTimer() })
 
 useHead({ title: '1% Club · Vachnamrut · Bhaktiras' })
 </script>

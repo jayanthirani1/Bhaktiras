@@ -9,6 +9,7 @@ export type AchievementGroup =
   | 'crossword'
   | 'connections'
   | 'one-percent'
+  | 'bracket-city'
   | 'bhakti-marg'
   | 'ras-rani'
   | 'streak'
@@ -35,8 +36,6 @@ export type GameAchievementPayload = {
   guesses?: number
   timeMs?: number
   score?: number
-  words?: number
-  pangram?: boolean
   won?: boolean
   mistakes?: number
   clubStreak?: number
@@ -72,6 +71,16 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
   { id: 'connections-wins-300', title: '300-Day Connections', description: 'Solve 300 Connections puzzles.', group: 'connections', medal: 'platinum', progress: { stat: 'connectionsWins', goal: 300, unit: 'solves' } },
   { id: 'connections-perfect', title: 'Perfect Connections', description: 'Solve Connections with no mistakes.', group: 'connections', medal: 'gold' },
   { id: 'connections-perfect-10', title: 'Faultless Ten', description: 'Solve 10 Connections puzzles with no mistakes.', group: 'connections', medal: 'platinum', progress: { stat: 'connectionsPerfect', goal: 10, unit: 'perfects' } },
+  { id: 'bracket-city-first-win', title: 'First Nested Solve', description: 'Complete a Bracket City puzzle for the first time.', group: 'bracket-city', medal: 'bronze' },
+  { id: 'bracket-city-wins-7', title: 'Week of Brackets', description: 'Complete 7 Bracket City puzzles.', group: 'bracket-city', medal: 'silver', progress: { stat: 'bracketCityWins', goal: 7, unit: 'solves' } },
+  { id: 'bracket-city-wins-30', title: 'Bracket Sadhak', description: 'Complete 30 Bracket City puzzles.', group: 'bracket-city', medal: 'gold', progress: { stat: 'bracketCityWins', goal: 30, unit: 'solves' } },
+  { id: 'bracket-city-wins-100', title: '100-Day Bracket City', description: 'Complete 100 Bracket City puzzles.', group: 'bracket-city', medal: 'gold', progress: { stat: 'bracketCityWins', goal: 100, unit: 'solves' } },
+  { id: 'bracket-city-wins-200', title: '200-Day Bracket City', description: 'Complete 200 Bracket City puzzles.', group: 'bracket-city', medal: 'gold', progress: { stat: 'bracketCityWins', goal: 200, unit: 'solves' } },
+  { id: 'bracket-city-wins-300', title: '300-Day Bracket City', description: 'Complete 300 Bracket City puzzles.', group: 'bracket-city', medal: 'platinum', progress: { stat: 'bracketCityWins', goal: 300, unit: 'solves' } },
+  { id: 'bracket-city-no-hints', title: 'No Peeking', description: 'Complete Bracket City without revealing any answers.', group: 'bracket-city', medal: 'gold' },
+  { id: 'bracket-city-no-hints-10', title: 'Inner Circle', description: 'Complete 10 Bracket City puzzles without peeks.', group: 'bracket-city', medal: 'platinum', progress: { stat: 'bracketCityNoHints', goal: 10, unit: 'perfects' } },
+  { id: 'bracket-city-perfect', title: 'Clean Brackets', description: 'Complete Bracket City with no peeks and no wrong guesses.', group: 'bracket-city', medal: 'gold' },
+  { id: 'bracket-city-sub-60s', title: 'Swift Nest', description: 'Complete Bracket City in under 60 seconds.', group: 'bracket-city', medal: 'gold' },
   { id: 'one-percent-first-play', title: 'Ladder Climber', description: 'Finish a Vachnamrut 1% Club run.', group: 'one-percent', medal: 'bronze' },
   { id: 'one-percent-club', title: '1% Club', description: 'Clear every Vachnamrut rung and join the 1% Club.', group: 'one-percent', medal: 'gold' },
   { id: 'one-percent-club-clears-10', title: 'Club Member', description: 'Join the 1% Club on 10 different days.', group: 'one-percent', medal: 'gold', progress: { stat: 'onePercentClubClears', goal: 10, unit: 'days' } },
@@ -111,6 +120,7 @@ export const ACHIEVEMENT_GROUP_TITLES: Record<AchievementGroup, string> = {
   wordle: 'Wordle',
   crossword: 'Crossword',
   connections: 'Connections',
+  'bracket-city': 'Bracket City',
   'one-percent': '1% Club',
   'bhakti-marg': 'Surya Chandra',
   'ras-rani': 'Ras Rani',
@@ -121,6 +131,8 @@ export const CROWN_DEFINITIONS = [
   { id: 'wordle-fastest', title: 'Fastest Wordle', description: 'Current all-time fastest winning Wordle.', game: 'wordle' },
   { id: 'wordle-fewest-guesses', title: 'Fewest Guesses Wordle', description: 'Current all-time fewest-guesses winning Wordle.', game: 'wordle' },
   { id: 'crossword-fastest', title: 'Fastest Crossword', description: 'Current all-time fastest Crossword finish.', game: 'crossword' },
+  { id: 'bracket-city-fastest', title: 'Fastest Bracket City', description: 'Current all-time fastest Bracket City finish.', game: 'bracket-city' },
+  { id: 'bracket-city-fewest-peeks', title: 'Fewest Peeks Bracket City', description: 'Current all-time fewest-peek Bracket City finish.', game: 'bracket-city' },
   { id: 'one-percent-highest', title: '1% Club High Score', description: 'Current all-time most rungs cleared in 1% Club.', game: 'one-percent' },
   { id: 'one-percent-fastest', title: 'Fastest 1% Club', description: 'Current all-time fastest full 1% Club clear.', game: 'one-percent' },
   { id: 'bhakti-marg-fastest', title: 'Fastest Surya Chandra', description: 'Current all-time fastest Surya Chandra completion.', game: 'bhakti-marg' },
@@ -188,11 +200,15 @@ export function crownTitle(id: string) {
 }
 
 export function crownValue(crown: AchievementCrownRecord) {
-  if (crown.id === 'wordle-fastest' || crown.id === 'crossword-fastest') {
+  if (crown.id === 'wordle-fastest' || crown.id === 'crossword-fastest' || crown.id === 'bracket-city-fastest') {
     return formatElapsed(crown.timeMs || crown.value)
   }
   if (crown.id === 'wordle-fewest-guesses') {
     return `${crown.guesses || crown.value}/6${crown.timeMs ? ` · ${formatElapsed(crown.timeMs)}` : ''}`
+  }
+  if (crown.id === 'bracket-city-fewest-peeks') {
+    const peeks = crown.score ?? crown.value
+    return `${peeks} peek${peeks === 1 ? '' : 's'}${crown.timeMs ? ` · ${formatElapsed(crown.timeMs)}` : ''}`
   }
   if (crown.id === 'one-percent-fastest') {
     return formatElapsed(crown.timeMs || crown.value)
@@ -264,8 +280,10 @@ export function useAchievements() {
     loading.value = true
     error.value = ''
     try {
+      const knownCrowns = new Set<string>(CROWN_DEFINITIONS.map(item => item.id))
       const crownSnap = await getDocs(collection(db, 'achievementCrowns'))
       crowns.value = crownSnap.docs
+        .filter(item => knownCrowns.has(item.id))
         .map(item => ({
           id: item.id,
           ...(item.data() as Omit<AchievementCrownRecord, 'id'>)

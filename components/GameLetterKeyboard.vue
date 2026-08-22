@@ -60,6 +60,7 @@ const TOP = ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P']
 const MID = ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L']
 const BOT = ['Z', 'X', 'C', 'V', 'B', 'N', 'M']
 
+const tap = useKeyTapGuard()
 const pressed = ref<string | null>(null)
 let pressTimer: ReturnType<typeof setTimeout> | null = null
 function flash(key: string) {
@@ -70,6 +71,7 @@ function flash(key: string) {
 
 function run(key: string) {
   if (props.disabled) return
+  if (!tap.allow(key)) return
   flash(key)
   try {
     if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
@@ -81,15 +83,21 @@ function run(key: string) {
 }
 
 function onPointer(e: PointerEvent, key: string) {
-  // Handle every pointer here for immediate feedback. preventDefault suppresses
-  // the synthetic click that otherwise follows a touch and can enter twice.
+  if (e.button !== 0 && e.button !== -1) return
+  // Mouse is handled on click. Touch/pen must not also get the compatibility
+  // mouse pointerdown that some browsers fire after the finger event.
+  if (e.pointerType === 'mouse') return
   e.preventDefault()
+  tap.markPointerHandled()
   run(key)
 }
 
 function onClick(e: MouseEvent, key: string) {
-  // detail === 0 is a keyboard-generated click (Enter/Space), not a pointer.
-  if (e.detail === 0) run(key)
+  if (tap.clickIsEcho()) {
+    e.preventDefault()
+    return
+  }
+  run(key)
 }
 </script>
 
@@ -104,6 +112,9 @@ function onClick(e: MouseEvent, key: string) {
   height: 2.65rem;
   flex: 1 1 0;
   max-width: 2.2rem;
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
   border-radius: 0.45rem;
   border: 1px solid hsl(var(--border));
   background: #fff;
