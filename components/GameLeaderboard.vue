@@ -21,7 +21,7 @@
       >
         <span class="font-medium text-[hsl(var(--foreground))]">
           {{ row.rank }}. {{ row.entry.userName }}
-          <span v-if="row.mine" class="ml-1 text-xs font-semibold text-[hsl(var(--accent))]">you</span>
+          <span v-if="row.mine" class="ml-1 text-xs font-semibold text-[hsl(var(--golden-900))]">you</span>
         </span>
         <span class="text-[hsl(var(--muted-foreground))]">{{ displayScore(row.entry) }}</span>
       </li>

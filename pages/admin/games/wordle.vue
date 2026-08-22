@@ -38,7 +38,7 @@
               <td class="py-2 pr-3 align-middle">
                 <p class="font-semibold text-[hsl(var(--primary))]">
                   {{ day.weekday }}
-                  <span v-if="day.isToday" class="ml-1 rounded-full bg-[hsl(var(--golden-50))] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[hsl(var(--accent))]">Today</span>
+                  <span v-if="day.isToday" class="ml-1 rounded-full bg-[hsl(var(--golden-50))] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[hsl(var(--golden-900))]">Today</span>
                 </p>
                 <p class="text-xs text-[hsl(var(--muted-foreground))]">{{ day.label }}</p>
               </td>

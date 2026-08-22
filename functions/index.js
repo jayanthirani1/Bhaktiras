@@ -778,6 +778,90 @@ exports.processWordleAchievements = onCall(
   })
 )
 
+/** Games whose leaderboard resets each UK day, so yesterday's rows are dead weight. */
+const DAILY_LEADERBOARD_GAMES = [
+  'wordle',
+  'one-percent',
+  'mini-crossword',
+  'connections',
+  'bracket-city',
+  'bhakti-marg',
+  'ras-rani'
+]
+
+/** Firestore caps a batch at 500 writes; stay under it with room to spare. */
+const PRUNE_BATCH_SIZE = 400
+
+/** How many batches one run will delete per game before leaving the rest for tomorrow. */
+const PRUNE_MAX_BATCHES = 10
+
+/**
+ * Deletes everything a query matches, in batches, keeping `shouldDelete` as an
+ * in-memory guard so the query itself can stay single-field.
+ *
+ * Deliberately not `.where('game', '==', g).where('dateId', '<', today)`: that
+ * pair needs a composite index, and the deploy service account cannot create
+ * those (see the note in firestore.indexes.json). A single-field range scan
+ * uses the automatic index and always works.
+ */
+async function deleteMatchingInBatches(db, buildQuery, shouldDelete) {
+  let deleted = 0
+  for (let pass = 0; pass < PRUNE_MAX_BATCHES; pass += 1) {
+    const snap = await buildQuery().limit(PRUNE_BATCH_SIZE).get()
+    if (snap.empty) break
+    const doomed = snap.docs.filter(doc => shouldDelete(doc.data() || {}))
+    if (doomed.length) {
+      const batch = db.batch()
+      doomed.forEach(doc => batch.delete(doc.ref))
+      await batch.commit()
+      deleted += doomed.length
+    }
+    // Nothing in this page qualified, so paging further would loop forever on
+    // the same rows — the query is not ordered by anything we advance.
+    if (snap.size < PRUNE_BATCH_SIZE || !doomed.length) break
+  }
+  return deleted
+}
+
+/**
+ * Clears out finished days from the daily leaderboards.
+ *
+ * This used to run in the browser: `cleanseOldScores` fired on every visitor's
+ * every leaderboard fetch, so fifty people opening /play in the morning meant
+ * fifty concurrent sweeps of the same rows — and it forced `gameScores` to
+ * allow unauthenticated deletes, because the rule had to permit whatever the
+ * client was doing. Moving it here is what let that rule close.
+ *
+ * Runs before the daily reminder so players arrive to a clean board.
+ */
+exports.pruneOldGameScores = onSchedule(
+  { region: 'europe-west2', schedule: '10 3 * * *', timeZone: 'Europe/London', timeoutSeconds: 540 },
+  async () => {
+    const db = getFirestore()
+    const today = ukDateIdNow()
+    const daily = new Set(DAILY_LEADERBOARD_GAMES)
+
+    const scores = await deleteMatchingInBatches(
+      db,
+      () => db.collection('gameScores').where('dateId', '<', today),
+      data => daily.has(data.game)
+    )
+
+    // The pre-`gameScores` collection. Nothing writes to it any more; this
+    // drains what is left so it can eventually be dropped. Rows predating the
+    // `dateId` field are matched by the collection scan and swept too.
+    const legacy = await deleteMatchingInBatches(
+      db,
+      () => db.collection('wordleScores'),
+      data => !data.dateId || data.dateId < today
+    )
+
+    const removed = { gameScores: scores, wordleScores: legacy }
+    logger.info('Pruned old leaderboard scores', { today, removed })
+    return removed
+  }
+)
+
 /**
  * A gentle daily reminder for users who opted in after completing a game.
  * Kept out of the inbox — a daily nudge would bury real announcements.

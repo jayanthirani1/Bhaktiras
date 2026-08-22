@@ -11,7 +11,7 @@
       </div>
 
       <div v-else-if="!auth.user.value" class="card-surface p-8 text-center">
-        <IconLock class="mx-auto h-8 w-8 text-[hsl(var(--accent))]" />
+        <IconLock class="mx-auto h-8 w-8 text-[hsl(var(--golden-900))]" />
         <h2 class="mt-3 font-display text-xl font-semibold text-[hsl(var(--primary))]">Sign in required</h2>
         <p class="mt-2 text-sm text-[hsl(var(--muted-foreground))]">Sign in to manage or export your account data.</p>
         <NuxtLink to="/login?redirect=/account" class="btn-primary mt-5 inline-flex">Sign in</NuxtLink>
@@ -19,7 +19,7 @@
 
       <div v-else class="space-y-5">
         <section class="card-surface p-5 sm:p-6">
-          <p class="text-xs font-bold uppercase tracking-[0.16em] text-[hsl(var(--accent))]">Account details</p>
+          <p class="text-xs font-bold uppercase tracking-[0.16em] text-[hsl(var(--golden-900))]">Account details</p>
           <dl class="mt-4 space-y-3 text-sm">
             <div>
               <dt class="text-[hsl(var(--muted-foreground))]">Name</dt>
@@ -38,7 +38,7 @@
         <section class="card-surface p-5 sm:p-6">
           <div class="flex items-start justify-between gap-4">
             <div class="flex items-start gap-3">
-              <IconBell class="mt-0.5 h-6 w-6 shrink-0 text-[hsl(var(--accent))]" />
+              <IconBell class="mt-0.5 h-6 w-6 shrink-0 text-[hsl(var(--golden-900))]" />
               <div>
                 <h2 class="font-display text-xl font-semibold text-[hsl(var(--primary))]">Push notifications</h2>
                 <p class="mt-2 text-sm leading-relaxed text-[hsl(var(--muted-foreground))]">
@@ -110,7 +110,7 @@
 
         <section class="card-surface p-5 sm:p-6">
           <div class="flex items-start gap-3">
-            <IconLink class="mt-0.5 h-6 w-6 shrink-0 text-[hsl(var(--accent))]" />
+            <IconLink class="mt-0.5 h-6 w-6 shrink-0 text-[hsl(var(--golden-900))]" />
             <div>
               <h2 class="font-display text-xl font-semibold text-[hsl(var(--primary))]">Sign-in methods</h2>
               <p class="mt-2 text-sm leading-relaxed text-[hsl(var(--muted-foreground))]">
@@ -205,7 +205,7 @@
 
         <section class="card-surface p-5 sm:p-6">
           <div class="flex items-start gap-3">
-            <IconDownload class="mt-0.5 h-6 w-6 shrink-0 text-[hsl(var(--accent))]" />
+            <IconDownload class="mt-0.5 h-6 w-6 shrink-0 text-[hsl(var(--golden-900))]" />
             <div>
               <h2 class="font-display text-xl font-semibold text-[hsl(var(--primary))]">Download your data</h2>
               <p class="mt-2 text-sm leading-relaxed text-[hsl(var(--muted-foreground))]">

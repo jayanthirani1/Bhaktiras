@@ -28,12 +28,24 @@
   --accent: 45 69% 42%;
   --accent-foreground: 262 50% 16%;
   --border: 40 18% 90%;
-  --input: 40 18% 90%;
+  /**
+   * Deliberately darker than --border. WCAG 1.4.11 wants 3:1 for the boundary
+   * of a control, and the two used to share a value measuring 1.21:1 — so every
+   * field in the app read as floating text with no perceptible box. This
+   * computes to about 3.2:1 while the decorative card border stays light.
+   */
+  --input: 40 12% 56%;
   --ring: 262 50% 25%;
   --radius: 1rem;
   --font-sans: 'DM Sans', 'Segoe UI', sans-serif;
   --font-display: 'Cinzel', serif;
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  /**
+   * Declared explicitly so Chrome and Android WebView's automatic dark theme
+   * leaves the palette alone. Without this they algorithmically invert the
+   * purple and gold into colours the mandir never approved.
+   */
+  color-scheme: light;
 }
 
 @layer base {
@@ -42,6 +54,20 @@
   }
   html {
     scroll-behavior: smooth;
+  }
+
+  /**
+   * One visible focus ring for the whole app.
+   *
+   * Several components paired `focus:outline-none` with `ring-primary/15`,
+   * which measures about 1.3:1 against the page — it removed the browser's
+   * indicator and replaced it with something invisible. `:focus-visible` keeps
+   * mouse clicks clean while keyboard users can always see where they are.
+   */
+  :where(a, button, input, textarea, select, summary, [tabindex]):focus-visible {
+    outline: 3px solid hsl(var(--primary));
+    outline-offset: 2px;
+    border-radius: 4px;
   }
   body {
     @apply bg-[hsl(var(--background))] text-[hsl(var(--foreground))];
@@ -78,10 +104,10 @@
     @apply -translate-y-1 border-[hsl(var(--golden-200))] shadow-[0_20px_50px_-24px_rgba(56,32,97,0.28)];
   }
   .admin-input {
-    @apply w-full rounded-lg border border-[hsl(var(--border))] bg-white px-3 py-2 text-sm focus:border-[hsl(var(--primary))] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--primary))]/15;
+    @apply w-full rounded-lg border border-input bg-white px-3 py-2 text-base focus:border-primary;
   }
   .admin-label {
-    @apply mb-1 block text-xs font-semibold uppercase tracking-wide text-[hsl(var(--muted-foreground))];
+    @apply mb-1 block text-sm font-semibold text-muted-foreground;
   }
   .admin-btn {
     @apply inline-flex items-center justify-center rounded-lg bg-[hsl(var(--primary))] px-3.5 py-2 text-sm font-semibold text-white transition-colors hover:bg-[hsl(var(--primary))]/90 disabled:opacity-50;
@@ -125,10 +151,17 @@
 }
 
 @layer utilities {
-  .text-golden { color: hsl(var(--gold)); }
-  .bg-golden { background-color: hsl(var(--gold)); }
-  .text-temple-red { color: hsl(var(--purple)); }
-  .bg-temple-red { background-color: hsl(var(--purple)); }
+  /**
+   * Keeps a fixed bottom element clear of the iPhone home indicator.
+   *
+   * `components/Navigation.vue` has referenced this class since the bottom bar
+   * was written, but it was never defined anywhere — so the app's primary
+   * navigation sat under the gesture bar on every iPhone. `viewport-fit=cover`
+   * is already set in `nuxt.config.ts`, which is what makes the inset non-zero.
+   */
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
 }
 
 /* ——— Logo lockup animations ——— */
@@ -404,20 +437,24 @@
   to { transform: translateY(-90px); }
 }
 
+/**
+ * Reduced motion, applied to everything rather than to a hand-listed set.
+ *
+ * The previous block covered only the logo lockup, which left the page reveals,
+ * the shake, the win bounce, the achievement pop, the hover lifts, smooth
+ * scrolling — and `.flip`, the Wordle tile rotation — all still animating. Tile
+ * rotation is exactly the motion that provokes vestibular symptoms, so listing
+ * animations individually will always be the wrong shape here: a new keyframe
+ * added later would silently opt out again.
+ */
 @media (prefers-reduced-motion: reduce) {
-  .logo-lockup.logo-animate #logo-one,
-  .logo-lockup.logo-animate .logo-wipe-arch,
-  .logo-lockup.logo-animate .logo-wipe-filigree,
-  .logo-lockup.logo-animate #logo-filigree,
-  .logo-lockup.logo-animate #logo-figure,
-  .logo-lockup.logo-animate #logo-type,
-  .logo-lockup.logo-animate #logo-text-tagline,
-  .logo-lockup.logo-animate #logo-tilak,
-  .logo-lockup.logo-animate #logo-main-tilak,
-  .logo-lockup.logo-animate #logo-splash .logo-splash-drop,
-  .logo-lockup.logo-animate #logo-text-splash .logo-splash-drop,
-  .logo-lockup.logo-animate #logo-wordmark path {
-    animation: none !important;
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 

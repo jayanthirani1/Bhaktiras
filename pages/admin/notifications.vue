@@ -171,7 +171,7 @@
     <section class="admin-panel">
       <div class="flex items-center justify-between gap-3">
         <h2 class="font-display text-lg font-semibold text-[hsl(var(--primary))]">Recent messages</h2>
-        <button type="button" class="text-xs font-semibold text-[hsl(var(--accent))]" @click="refresh">Refresh</button>
+        <button type="button" class="text-xs font-semibold text-[hsl(var(--golden-900))]" @click="refresh">Refresh</button>
       </div>
       <p v-if="loading" class="mt-4 text-sm text-[hsl(var(--muted-foreground))]">Loading…</p>
       <p v-else-if="!messages.length" class="mt-4 text-sm text-[hsl(var(--muted-foreground))]">No notifications sent yet.</p>

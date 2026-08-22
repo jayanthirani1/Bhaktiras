@@ -41,7 +41,7 @@
         </NuxtLink>
       </section>
       <p v-else class="mt-7 text-center text-sm text-[hsl(var(--muted-foreground))]">
-        <NuxtLink to="/login?redirect=/play" class="font-semibold text-[hsl(var(--accent))] underline">Sign in</NuxtLink>
+        <NuxtLink to="/login?redirect=/play" class="font-semibold text-[hsl(var(--golden-900))] underline">Sign in</NuxtLink>
         to start a daily Games streak.
       </p>
 
@@ -85,7 +85,7 @@
 
             <span
               class="shrink-0 rounded-full px-4 py-2 text-sm font-bold shadow-sm sm:px-5"
-              :class="done[game.slug] ? 'bg-emerald-600 text-white' : game.button"
+              :class="done[game.slug] ? 'bg-emerald-700 text-white' : game.button"
             >
               {{ done[game.slug] ? 'Results' : 'Play' }}
             </span>
@@ -127,13 +127,13 @@ const games: Array<{
   tile: string
   button: string
 }> = [
-  { slug: 'wordle', title: 'Wordle', description: 'Guess the word in six tries — timer keeps going if you leave.', icon: IconTypography, href: '/play/wordle', tile: 'bg-emerald-100 text-emerald-700', button: 'bg-emerald-600 text-white' },
-  { slug: 'mini-crossword', title: 'Crossword', description: 'A quick Telegraph-style grid. Beat the clock.', icon: IconGrid3x3, href: '/play/crossword', tile: 'bg-sky-100 text-sky-700', button: 'bg-sky-600 text-white' },
-  { slug: 'one-percent', title: '1% Club', description: 'Daily Vachnamrut climb from 90% to 1%. One wrong answer ends your run.', icon: IconChartBar, href: '/play/one-percent', tile: 'bg-orange-100 text-orange-700', button: 'bg-orange-500 text-white' },
+  { slug: 'wordle', title: 'Wordle', description: 'Guess the word in six tries — timer keeps going if you leave.', icon: IconTypography, href: '/play/wordle', tile: 'bg-emerald-100 text-emerald-700', button: 'bg-emerald-700 text-white' },
+  { slug: 'mini-crossword', title: 'Crossword', description: 'A quick Telegraph-style grid. Beat the clock.', icon: IconGrid3x3, href: '/play/crossword', tile: 'bg-sky-100 text-sky-700', button: 'bg-sky-700 text-white' },
+  { slug: 'one-percent', title: '1% Club', description: 'Daily Vachnamrut climb from 90% to 1%. One wrong answer ends your run.', icon: IconChartBar, href: '/play/one-percent', tile: 'bg-orange-100 text-orange-700', button: 'bg-orange-800 text-white' },
   { slug: 'connections', title: 'Connections', description: 'Find four groups of four satsang-related words.', icon: IconCirclesRelation, href: '/play/connections', tile: 'bg-fuchsia-100 text-fuchsia-700', button: 'bg-fuchsia-600 text-white' },
   { slug: 'bracket-city', title: 'Bracket City', description: 'Clues nested inside clues. Solve the innermost one first.', icon: IconBrackets, href: '/play/bracket-city', tile: 'bg-indigo-100 text-indigo-700', button: 'bg-indigo-600 text-white' },
   { slug: 'bhakti-marg', title: 'Bhakti Marg', description: 'Find your path. Trace through the grid to discover hidden spiritual words.', icon: IconRoute, href: '/play/bhakti-marg', tile: 'bg-violet-100 text-violet-700', button: 'bg-violet-600 text-white' },
-  { slug: 'ras-rani', title: 'Ras Rani 🍯', description: 'Find the nectar. Place droplets in each row, column, and region without touching.', icon: NectarIcon, href: '/play/ras-rani', tile: 'bg-amber-100 text-amber-700', button: 'bg-amber-500 text-white' },
+  { slug: 'ras-rani', title: 'Ras Rani 🍯', description: 'Find the nectar. Place droplets in each row, column, and region without touching.', icon: NectarIcon, href: '/play/ras-rani', tile: 'bg-amber-100 text-amber-700', button: 'bg-amber-700 text-white' },
 ]
 
 const { done, results } = usePlayCompletion(games.map(g => g.slug))

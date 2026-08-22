@@ -12,7 +12,7 @@
       <template #list>
         <div class="space-y-5">
           <section v-for="group in grouped" :key="group.year" class="space-y-2">
-            <h2 class="text-xs font-semibold uppercase tracking-[0.18em] text-[hsl(var(--accent))]">
+            <h2 class="text-xs font-semibold uppercase tracking-[0.18em] text-[hsl(var(--golden-900))]">
               {{ group.year }}
               <span class="font-normal tracking-normal text-[hsl(var(--muted-foreground))]">
                 · {{ group.items.length }} moment{{ group.items.length === 1 ? '' : 's' }}

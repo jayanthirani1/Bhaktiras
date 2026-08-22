@@ -3,7 +3,7 @@
     <div class="flex items-center justify-between border-b border-[hsl(var(--border))] px-4 py-4">
       <NuxtLink to="/admin" class="min-w-0" @click="$emit('navigate')">
         <p class="font-display text-lg font-semibold text-[hsl(var(--primary))]">Bhaktiras</p>
-        <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-[hsl(var(--accent))]">Admin portal</p>
+        <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-[hsl(var(--golden-900))]">Admin portal</p>
       </NuxtLink>
       <button
         v-if="showClose"

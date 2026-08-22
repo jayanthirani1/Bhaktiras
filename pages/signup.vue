@@ -6,17 +6,17 @@
         Sign up to save your scores and see your greeting across the app.
       </p>
 
-      <label class="mb-5 flex items-start gap-3 rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4 text-sm">
+      <label class="mb-5 flex min-h-[44px] cursor-pointer items-start gap-3 rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4 text-sm">
         <input
           v-model="acceptedPolicies"
           type="checkbox"
-          class="mt-0.5 h-4 w-4 shrink-0 rounded"
+          class="mt-0.5 h-6 w-6 shrink-0 rounded"
         >
         <span class="leading-relaxed text-[hsl(var(--muted-foreground))]">
           I have read and agree to the
-          <NuxtLink to="/privacy" target="_blank" class="font-semibold text-[hsl(var(--accent))] underline">Privacy Policy</NuxtLink>
+          <NuxtLink to="/privacy" target="_blank" class="font-semibold text-[hsl(var(--golden-900))] underline">Privacy Policy</NuxtLink>
           and
-          <NuxtLink to="/policy" target="_blank" class="font-semibold text-[hsl(var(--accent))] underline">Site Policy</NuxtLink>.
+          <NuxtLink to="/policy" target="_blank" class="font-semibold text-[hsl(var(--golden-900))] underline">Site Policy</NuxtLink>.
         </span>
       </label>
 
@@ -24,7 +24,7 @@
       <button
         type="button"
         class="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-[hsl(var(--border))] bg-[hsl(var(--card))] font-semibold text-[hsl(var(--foreground))] hover:border-[hsl(var(--accent))] disabled:opacity-50 mb-4"
-        :disabled="loading || googleLoading || !acceptedPolicies"
+        :disabled="loading || googleLoading"
         @click="handleGoogleSignUp"
       >
         <svg class="w-5 h-5" viewBox="0 0 24 24">
@@ -47,38 +47,55 @@
 
       <form class="space-y-4" @submit.prevent="handleSubmit">
         <div>
-          <label class="block text-sm font-medium text-[hsl(var(--foreground))] mb-1">Email</label>
+          <label for="signup-email" class="block text-sm font-medium text-[hsl(var(--foreground))] mb-1">Email</label>
           <input
+            id="signup-email"
             v-model="email"
             type="email"
             required
-            class="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] focus:ring-2 focus:ring-[hsl(var(--primary))]/20 focus:border-[hsl(var(--primary))]"
+            autocomplete="email"
+            inputmode="email"
+            class="w-full px-4 py-2 rounded-lg border border-[hsl(var(--input))] focus:border-[hsl(var(--primary))]"
             placeholder="you@example.com"
           >
         </div>
         <div>
-          <label class="block text-sm font-medium text-[hsl(var(--foreground))] mb-1">Password</label>
+          <label for="signup-password" class="block text-sm font-medium text-[hsl(var(--foreground))] mb-1">Password</label>
           <input
+            id="signup-password"
             v-model="password"
-            type="password"
+            :type="showPassword ? 'text' : 'password'"
             required
             minlength="6"
-            class="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] focus:ring-2 focus:ring-[hsl(var(--primary))]/20 focus:border-[hsl(var(--primary))]"
-            placeholder="At least 6 characters"
+            autocomplete="new-password"
+            aria-describedby="signup-password-hint"
+            class="w-full px-4 py-2 rounded-lg border border-[hsl(var(--input))] focus:border-[hsl(var(--primary))]"
           >
+          <div class="mt-2 flex items-center justify-between gap-3">
+            <p id="signup-password-hint" class="text-xs text-[hsl(var(--muted-foreground))]">
+              At least 6 characters.
+            </p>
+            <button
+              type="button"
+              class="text-xs font-medium text-[hsl(var(--muted-foreground))] hover:underline"
+              @click="showPassword = !showPassword"
+            >
+              {{ showPassword ? 'Hide' : 'Show' }}
+            </button>
+          </div>
         </div>
-        <p v-if="error" class="text-sm text-red-600">{{ error }}</p>
+        <p v-if="error" role="alert" class="text-sm text-red-700">{{ error }}</p>
         <button
           type="submit"
           class="w-full py-2.5 rounded-xl bg-[hsl(var(--primary))] text-[hsl(var(--accent))] font-semibold hover:opacity-90 disabled:opacity-50"
-          :disabled="loading || !acceptedPolicies"
+          :disabled="loading"
         >
           {{ loading ? 'Creating account...' : 'Create account with email' }}
         </button>
       </form>
       <p class="mt-4 text-center text-sm text-[hsl(var(--muted-foreground))]">
         Already have an account?
-        <NuxtLink :to="loginLink" class="text-[hsl(var(--accent))] font-medium underline">Sign in</NuxtLink>
+        <NuxtLink :to="loginLink" class="text-[hsl(var(--golden-900))] font-medium underline">Sign in</NuxtLink>
       </p>
       <p class="mt-2 text-center">
         <NuxtLink to="/" class="text-sm text-[hsl(var(--muted-foreground))] hover:underline">Back to home</NuxtLink>
@@ -94,8 +111,10 @@ const error = ref('')
 const loading = ref(false)
 const googleLoading = ref(false)
 const acceptedPolicies = ref(false)
+const showPassword = ref(false)
 const auth = useAuth()
 const route = useRoute()
+const { authErrorMessage } = useAuthErrors()
 
 function safeRedirect() {
   const path = typeof route.query.redirect === 'string' ? route.query.redirect : ''
@@ -108,23 +127,39 @@ const loginLink = computed(() => {
   return redirect ? { path: '/login', query: { redirect } } : '/login'
 })
 
+/**
+ * Recording the policy acceptance must never fail the signup.
+ *
+ * These used to run in the same `try`, so a Firestore hiccup after the account
+ * was created surfaced as an error and skipped the redirect — and retrying then
+ * failed with "email already in use". That left the new member with a real
+ * account, an error on screen, and no way forward.
+ */
+async function recordAcceptanceQuietly() {
+  try {
+    await auth.recordPolicyAcceptance()
+  } catch (e: unknown) {
+    console.warn('[signup] could not record policy acceptance', e)
+  }
+}
+
 async function handleSubmit() {
   error.value = ''
   if (!acceptedPolicies.value) {
-    error.value = 'Please accept the Privacy Policy and Site Policy to create an account.'
+    error.value = 'Please tick the box to accept the Privacy Policy and Site Policy.'
     return
   }
   if (password.value.length < 6) {
-    error.value = 'Password must be at least 6 characters'
+    error.value = 'Please choose a password of at least 6 characters.'
     return
   }
   loading.value = true
   try {
     await auth.signUp(email.value, password.value)
-    await auth.recordPolicyAcceptance()
+    await recordAcceptanceQuietly()
     await navigateTo(safeRedirect())
   } catch (e: unknown) {
-    error.value = (e as { message?: string })?.message ?? 'Sign up failed'
+    error.value = authErrorMessage(e, 'Could not create your account. Please try again.')
   } finally {
     loading.value = false
   }
@@ -133,19 +168,16 @@ async function handleSubmit() {
 async function handleGoogleSignUp() {
   error.value = ''
   if (!acceptedPolicies.value) {
-    error.value = 'Please accept the Privacy Policy and Site Policy to create an account.'
+    error.value = 'Please tick the box to accept the Privacy Policy and Site Policy.'
     return
   }
   googleLoading.value = true
   try {
     await auth.signInWithGoogle()
-    await auth.recordPolicyAcceptance()
+    await recordAcceptanceQuietly()
     await navigateTo(safeRedirect())
   } catch (e: unknown) {
-    const message = (e as { message?: string })?.message || ''
-    error.value = message.includes('auth/account-exists-with-different-credential')
-      ? 'An account already exists with this email. Sign in with email and password, then link Google from Your account.'
-      : message || 'Sign up with Google failed'
+    error.value = authErrorMessage(e, 'Could not sign you up with Google. Please try again.')
   } finally {
     googleLoading.value = false
   }

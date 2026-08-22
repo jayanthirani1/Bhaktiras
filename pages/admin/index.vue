@@ -19,7 +19,7 @@
             {{ counts[card.key] }}
           </span>
         </div>
-        <p class="mt-4 text-sm font-semibold text-[hsl(var(--accent))] group-hover:underline">Edit →</p>
+        <p class="mt-4 text-sm font-semibold text-[hsl(var(--golden-900))] group-hover:underline">Edit →</p>
       </NuxtLink>
     </div>
 

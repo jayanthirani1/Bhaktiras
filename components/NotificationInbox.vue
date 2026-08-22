@@ -51,7 +51,7 @@
             <button
               v-if="messages.length"
               type="button"
-              class="text-xs font-semibold text-[hsl(var(--accent))]"
+              class="text-xs font-semibold text-[hsl(var(--golden-900))]"
               @click="dismissAll"
             >
               Clear all
@@ -71,7 +71,7 @@
 
             <div v-else-if="error" class="px-4 py-8 text-center">
               <p role="alert" class="text-sm text-red-600">{{ error }}</p>
-              <button type="button" class="mt-2 text-xs font-semibold text-[hsl(var(--accent))]" @click="load(true)">
+              <button type="button" class="mt-2 text-xs font-semibold text-[hsl(var(--golden-900))]" @click="load(true)">
                 Try again
               </button>
             </div>
@@ -84,7 +84,7 @@
               <NuxtLink
                 v-if="!push.enabled.value"
                 to="/account"
-                class="mt-1 inline-block text-xs font-semibold text-[hsl(var(--accent))]"
+                class="mt-1 inline-block text-xs font-semibold text-[hsl(var(--golden-900))]"
                 @click="close"
               >
                 Turn on notifications
@@ -133,7 +133,7 @@
                       <div class="flex px-4 pb-3 pl-[2.25rem]">
                         <button
                           type="button"
-                          class="text-xs font-semibold text-[hsl(var(--accent))] hover:text-[hsl(var(--primary))]"
+                          class="text-xs font-semibold text-[hsl(var(--golden-900))] hover:text-[hsl(var(--primary))]"
                           :aria-label="`Clear notification: ${message.title}`"
                           @click="onDismiss(message)"
                         >
@@ -154,7 +154,7 @@
             <span class="min-w-0 truncate text-xs text-[hsl(var(--muted-foreground))]">
               Cleared {{ undoQueue.length }} notification{{ undoQueue.length === 1 ? '' : 's' }}
             </span>
-            <button type="button" class="shrink-0 text-xs font-bold uppercase tracking-wide text-[hsl(var(--accent))]" @click="undo">
+            <button type="button" class="shrink-0 text-xs font-bold uppercase tracking-wide text-[hsl(var(--golden-900))]" @click="undo">
               Undo
             </button>
           </div>

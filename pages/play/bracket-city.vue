@@ -107,7 +107,7 @@
           <p class="text-sm text-[hsl(var(--muted-foreground))]">
             {{ resultSummary }}
           </p>
-          <p v-if="puzzle.credit" class="text-xs font-semibold uppercase tracking-wide text-[hsl(var(--accent))]">
+          <p v-if="puzzle.credit" class="text-xs font-semibold uppercase tracking-wide text-[hsl(var(--golden-900))]">
             {{ puzzle.credit }}
           </p>
           <div class="flex flex-wrap justify-center gap-2">
@@ -121,7 +121,7 @@
             <button
               v-if="isLoggedIn && !scoreSubmitted"
               type="button"
-              class="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+              class="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
               :disabled="submitting"
               @click="submitToLeaderboard"
             >

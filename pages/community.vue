@@ -11,7 +11,7 @@
         class="card-surface mb-10 overflow-hidden"
       >
         <div class="bg-gradient-to-br from-[hsl(var(--golden-50))] via-[hsl(var(--background))] to-[hsl(var(--muted))] p-6 sm:p-8">
-          <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-[hsl(var(--accent))]">
+          <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-[hsl(var(--golden-900))]">
             Event photos
           </p>
           <h2 class="mt-2 font-display text-2xl font-semibold text-[hsl(var(--primary))] sm:text-3xl">
@@ -42,19 +42,33 @@
           :class="form.prompt === p
             ? 'bg-[hsl(var(--primary))] text-white'
             : 'bg-[hsl(var(--muted))] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--primary))]'"
-          @click="form.prompt = p; isFormOpen = true"
+          @click="form.prompt = p; isFormOpen = isLoggedIn"
         >
           {{ p }}
         </button>
       </div>
 
       <div class="text-center mb-10">
-        <button type="button" class="btn-primary text-sm" @click="isFormOpen = !isFormOpen">
+        <button
+          v-if="isLoggedIn"
+          type="button"
+          class="btn-primary text-sm"
+          @click="isFormOpen = !isFormOpen"
+        >
           Leave a message
         </button>
+        <div v-else class="card-surface mx-auto max-w-md p-6">
+          <p class="text-sm leading-relaxed text-[hsl(var(--muted-foreground))]">
+            Sign in to add your message to the wall. You can still choose to post
+            it anonymously — signing in only keeps anyone from posting as someone else.
+          </p>
+          <NuxtLink to="/login?redirect=/community" class="btn-primary mt-4 inline-flex text-sm">
+            Sign in to post
+          </NuxtLink>
+        </div>
       </div>
 
-      <div v-show="isFormOpen" class="mb-12">
+      <div v-show="isFormOpen && isLoggedIn" class="mb-12">
         <div class="card-surface mx-auto max-w-lg p-6 sm:p-8">
           <h3 class="text-center font-display text-xl font-semibold">{{ form.prompt || 'Your message' }}</h3>
           <p class="mt-1 text-center text-xs text-[hsl(var(--muted-foreground))]">
@@ -99,7 +113,7 @@
           :key="msg.id"
           class="card-surface break-inside-avoid p-5 sm:p-6"
         >
-          <p v-if="msg.prompt" class="text-[10px] font-semibold uppercase tracking-[0.18em] text-[hsl(var(--accent))]">
+          <p v-if="msg.prompt" class="text-[10px] font-semibold uppercase tracking-[0.18em] text-[hsl(var(--golden-900))]">
             {{ msg.prompt }}
           </p>
           <p class="mt-3 font-serif text-lg italic leading-relaxed text-[hsl(var(--foreground))]/90">

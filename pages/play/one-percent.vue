@@ -36,7 +36,7 @@
       </div>
 
       <div v-else-if="!started" class="card-surface space-y-4 p-6 text-center">
-        <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-[hsl(var(--accent))]">
+        <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-[hsl(var(--golden-900))]">
           {{ pack.sectionLabel }}
         </p>
         <p class="font-display text-xl font-semibold text-[hsl(var(--primary))]">{{ pack.title }}</p>
@@ -60,7 +60,7 @@
         <button
           v-if="isLoggedIn && !scoreSubmitted"
           type="button"
-          class="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600 disabled:opacity-50"
+          class="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-50"
           :disabled="submitting"
           @click="submitToLeaderboard"
         >
@@ -69,7 +69,7 @@
         <NuxtLink
           v-else-if="!isLoggedIn && !scoreSubmitted"
           to="/login?redirect=/play/one-percent"
-          class="inline-block rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600"
+          class="inline-block rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800"
         >
           Sign in to submit score
         </NuxtLink>
@@ -79,7 +79,7 @@
 
       <div v-else-if="current" class="card-surface space-y-5 p-5 sm:p-6">
         <div class="flex items-center justify-between gap-3">
-          <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-[hsl(var(--accent))]">
+          <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-[hsl(var(--golden-900))]">
             {{ current.percent }}% · Vachnamrut
           </p>
           <p class="text-xs text-[hsl(var(--muted-foreground))]">

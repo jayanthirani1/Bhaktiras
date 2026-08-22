@@ -23,7 +23,7 @@
               <p class="font-semibold text-[hsl(var(--primary))]">{{ item.title }}</p>
               <p class="mt-1 line-clamp-2 text-sm text-[hsl(var(--muted-foreground))]">{{ item.detail }}</p>
             </div>
-            <span v-if="item.amount" class="shrink-0 text-xs font-semibold text-[hsl(var(--accent))]">{{ item.amount }}</span>
+            <span v-if="item.amount" class="shrink-0 text-xs font-semibold text-[hsl(var(--golden-900))]">{{ item.amount }}</span>
           </div>
           <p v-if="item.active === false" class="mt-2 text-xs font-semibold text-slate-500">Hidden</p>
         </button>

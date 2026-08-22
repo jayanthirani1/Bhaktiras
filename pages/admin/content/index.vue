@@ -10,7 +10,7 @@
         <h2 class="font-display text-lg font-semibold text-[hsl(var(--primary))]">{{ card.title }}</h2>
         <p class="mt-1 text-sm text-[hsl(var(--muted-foreground))]">{{ card.desc }}</p>
       </div>
-      <p class="mt-4 text-sm font-semibold text-[hsl(var(--accent))] group-hover:underline">Edit →</p>
+      <p class="mt-4 text-sm font-semibold text-[hsl(var(--golden-900))] group-hover:underline">Edit →</p>
     </NuxtLink>
   </div>
 </template>

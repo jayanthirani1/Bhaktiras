@@ -33,26 +33,49 @@
 
       <form class="space-y-4" @submit.prevent="handleSubmit">
         <div>
-          <label class="block text-sm font-medium text-[hsl(var(--foreground))] mb-1">Email</label>
+          <label for="login-email" class="block text-sm font-medium text-[hsl(var(--foreground))] mb-1">Email</label>
           <input
+            id="login-email"
             v-model="email"
             type="email"
             required
-            class="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] focus:ring-2 focus:ring-[hsl(var(--primary))]/20 focus:border-[hsl(var(--primary))]"
+            autocomplete="email"
+            inputmode="email"
+            class="w-full px-4 py-2 rounded-lg border border-[hsl(var(--input))] focus:border-[hsl(var(--primary))]"
             placeholder="you@example.com"
           >
         </div>
         <div>
-          <label class="block text-sm font-medium text-[hsl(var(--foreground))] mb-1">Password</label>
+          <label for="login-password" class="block text-sm font-medium text-[hsl(var(--foreground))] mb-1">Password</label>
           <input
+            id="login-password"
             v-model="password"
-            type="password"
+            :type="showPassword ? 'text' : 'password'"
             required
-            class="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] focus:ring-2 focus:ring-[hsl(var(--primary))]/20 focus:border-[hsl(var(--primary))]"
+            autocomplete="current-password"
+            class="w-full px-4 py-2 rounded-lg border border-[hsl(var(--input))] focus:border-[hsl(var(--primary))]"
             placeholder="••••••••"
           >
+          <div class="mt-2 flex items-center justify-between gap-3">
+            <button
+              type="button"
+              class="text-xs font-medium text-[hsl(var(--muted-foreground))] hover:underline"
+              @click="showPassword = !showPassword"
+            >
+              {{ showPassword ? 'Hide password' : 'Show password' }}
+            </button>
+            <button
+              type="button"
+              class="text-xs font-semibold text-[hsl(var(--golden-900))] hover:underline disabled:opacity-50"
+              :disabled="resetSending"
+              @click="handlePasswordReset"
+            >
+              {{ resetSending ? 'Sending…' : 'Forgot password?' }}
+            </button>
+          </div>
         </div>
-        <p v-if="error" class="text-sm text-red-600">{{ error }}</p>
+        <p v-if="notice" role="status" class="text-sm text-emerald-800">{{ notice }}</p>
+        <p v-if="error" role="alert" class="text-sm text-red-700">{{ error }}</p>
         <button
           type="submit"
           class="w-full py-2.5 rounded-xl bg-[hsl(var(--primary))] text-[hsl(var(--accent))] font-semibold hover:opacity-90 disabled:opacity-50"
@@ -63,13 +86,13 @@
       </form>
       <p class="mt-4 text-center text-sm text-[hsl(var(--muted-foreground))]">
         New user?
-        <NuxtLink :to="signupLink" class="text-[hsl(var(--accent))] font-medium underline">Create an account</NuxtLink>
+        <NuxtLink :to="signupLink" class="text-[hsl(var(--golden-900))] font-medium underline">Create an account</NuxtLink>
       </p>
       <p class="mt-2 text-center text-xs text-[hsl(var(--muted-foreground))]">
         By continuing you agree to our
-        <NuxtLink to="/privacy" class="font-medium text-[hsl(var(--accent))] hover:underline">Privacy</NuxtLink>
+        <NuxtLink to="/privacy" class="font-medium text-[hsl(var(--golden-900))] hover:underline">Privacy</NuxtLink>
         and
-        <NuxtLink to="/policy" class="font-medium text-[hsl(var(--accent))] hover:underline">Policy</NuxtLink>.
+        <NuxtLink to="/policy" class="font-medium text-[hsl(var(--golden-900))] hover:underline">Policy</NuxtLink>.
       </p>
       <p class="mt-2 text-center">
         <NuxtLink to="/" class="text-sm text-[hsl(var(--muted-foreground))] hover:underline">Back to home</NuxtLink>
@@ -93,6 +116,11 @@ function safeRedirect() {
   return path
 }
 
+const notice = ref('')
+const resetSending = ref(false)
+const showPassword = ref(false)
+const { authErrorMessage } = useAuthErrors()
+
 const signupLink = computed(() => {
   const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : ''
   return redirect ? { path: '/signup', query: { redirect } } : '/signup'
@@ -100,12 +128,13 @@ const signupLink = computed(() => {
 
 async function handleSubmit() {
   error.value = ''
+  notice.value = ''
   loading.value = true
   try {
     await auth.signIn(email.value, password.value)
     await navigateTo(safeRedirect())
   } catch (e: unknown) {
-    error.value = (e as { message?: string })?.message ?? 'Sign in failed'
+    error.value = authErrorMessage(e, 'Could not sign you in. Please try again.')
   } finally {
     loading.value = false
   }
@@ -113,17 +142,35 @@ async function handleSubmit() {
 
 async function handleGoogleSignIn() {
   error.value = ''
+  notice.value = ''
   googleLoading.value = true
   try {
     await auth.signInWithGoogle()
     await navigateTo(safeRedirect())
   } catch (e: unknown) {
-    const message = (e as { message?: string })?.message || ''
-    error.value = message.includes('auth/account-exists-with-different-credential')
-      ? 'An account already exists with this email. Sign in with email and password, then link Google from Your account.'
-      : message || 'Sign in with Google failed'
+    error.value = authErrorMessage(e, 'Could not sign you in with Google. Please try again.')
   } finally {
     googleLoading.value = false
+  }
+}
+
+async function handlePasswordReset() {
+  error.value = ''
+  notice.value = ''
+  if (!email.value.trim()) {
+    error.value = 'Enter your email address first, then tap Forgot password.'
+    return
+  }
+  resetSending.value = true
+  try {
+    await auth.sendPasswordReset(email.value)
+    // Deliberately the same wording whether or not the account exists, so this
+    // cannot be used to find out who has registered.
+    notice.value = `If an account exists for ${email.value.trim()}, a reset link is on its way. Check your spam folder too.`
+  } catch (e: unknown) {
+    error.value = authErrorMessage(e, 'Could not send the reset email. Please try again.')
+  } finally {
+    resetSending.value = false
   }
 }
 </script>

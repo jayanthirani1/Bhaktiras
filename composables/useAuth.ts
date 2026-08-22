@@ -2,6 +2,7 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signInWithPopup,
+  sendPasswordResetEmail,
   GoogleAuthProvider,
   EmailAuthProvider,
   linkWithCredential,
@@ -45,6 +46,17 @@ export function useAuth() {
     if (!auth) throw new Error('Firebase Auth not configured')
     const provider = new GoogleAuthProvider()
     await signInWithPopup(auth, provider)
+  }
+
+  /**
+   * There was no way to reset a password anywhere in the app, so a devotee who
+   * forgot theirs permanently lost the streak, achievements and niyam history
+   * the app exists to build.
+   */
+  async function sendPasswordReset(email: string) {
+    const auth = getAuth()
+    if (!auth) throw new Error('Firebase Auth not configured')
+    await sendPasswordResetEmail(auth, email.trim())
   }
 
   async function signUp(email: string, password: string) {
@@ -122,6 +134,7 @@ export function useAuth() {
     greeting,
     signIn,
     signInWithGoogle,
+    sendPasswordReset,
     signUp,
     recordPolicyAcceptance,
     linkGoogle,

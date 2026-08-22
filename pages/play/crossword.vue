@@ -111,7 +111,7 @@
             <button
               v-if="isLoggedIn && !scoreSubmitted"
               type="button"
-              class="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600 disabled:opacity-50"
+              class="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-50"
               :disabled="submitting"
               @click="submitToLeaderboard"
             >
@@ -120,7 +120,7 @@
             <NuxtLink
               v-else-if="!isLoggedIn && !scoreSubmitted"
               to="/login?redirect=/play/crossword"
-              class="inline-block rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-white"
+              class="inline-block rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white"
             >
               Sign in to submit time
             </NuxtLink>
@@ -162,7 +162,7 @@
         <!-- Desktop clue lists -->
         <div class="hidden gap-6 md:grid md:grid-cols-2">
           <section class="card-surface p-5">
-            <h4 class="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-[hsl(var(--accent))]">Across</h4>
+            <h4 class="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-[hsl(var(--golden-900))]">Across</h4>
             <ol class="space-y-2">
               <li v-for="word in acrossWords" :key="word.key">
                 <button
@@ -178,7 +178,7 @@
             </ol>
           </section>
           <section class="card-surface p-5">
-            <h4 class="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-[hsl(var(--accent))]">Down</h4>
+            <h4 class="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-[hsl(var(--golden-900))]">Down</h4>
             <ol class="space-y-2">
               <li v-for="word in downWords" :key="word.key">
                 <button

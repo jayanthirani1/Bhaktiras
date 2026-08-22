@@ -50,7 +50,7 @@
         </div>
         <p class="mt-2 text-xs text-[hsl(var(--muted-foreground))]">{{ nextPuzzleIn }}</p>
         <div v-if="fastestCrown || fewestCrown" class="mt-4 rounded-xl bg-[hsl(var(--background))] p-4 text-left">
-          <p class="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-[hsl(var(--accent))]">
+          <p class="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-[hsl(var(--golden-900))]">
             <IconCrown class="h-4 w-4" />
             All-time crowns
           </p>
@@ -72,7 +72,7 @@
           <button
             v-if="isWin && isLoggedIn && !scoreSubmitted"
             type="button"
-            class="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600 disabled:opacity-50"
+            class="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-50"
             :disabled="submittingScore"
             @click="submitToLeaderboard"
           >
@@ -81,7 +81,7 @@
           <NuxtLink
             v-else-if="isWin && !isLoggedIn && !scoreSubmitted"
             to="/login?redirect=/play/wordle"
-            class="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600"
+            class="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800"
           >
             Sign in to submit score
           </NuxtLink>
@@ -121,7 +121,7 @@
             :key="cellIndex"
             role="gridcell"
             :aria-label="cell.letter ? `${cell.letter}, ${statusLabel(cell.status)}` : 'empty'"
-            class="flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 border-2 rounded-lg font-bold text-lg sm:text-xl uppercase transition-colors"
+            class="relative flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 border-2 rounded-lg font-bold text-lg sm:text-xl uppercase transition-colors"
             :class="[
               cellBg(cell.status),
               { 'tile-pop': popTile === cellIndex && rowIndex === guesses.length && !!cell.letter }
@@ -129,6 +129,11 @@
             :style="{ animation: tileAnimation(rowIndex, cellIndex) }"
           >
             {{ cell.letter }}
+            <span
+              v-if="cellMark(cell.status)"
+              aria-hidden="true"
+              class="pointer-events-none absolute right-0.5 top-0 text-[9px] leading-none opacity-70"
+            >{{ cellMark(cell.status) }}</span>
           </div>
         </div>
       </div>
@@ -308,7 +313,7 @@
               <button
                 v-if="isLoggedIn"
                 type="button"
-                class="w-full py-2.5 rounded-xl bg-emerald-500 text-white font-semibold hover:bg-emerald-600"
+                class="w-full py-2.5 rounded-xl bg-emerald-700 text-white font-semibold hover:bg-emerald-800"
                 :disabled="submittingScore"
                 @click="submitToLeaderboard"
               >
@@ -317,7 +322,7 @@
               <NuxtLink
                 v-else
                 to="/login?redirect=/play/wordle"
-                class="block w-full py-2.5 rounded-xl bg-emerald-500 text-white font-semibold hover:bg-emerald-600 text-center"
+                class="block w-full py-2.5 rounded-xl bg-emerald-700 text-white font-semibold hover:bg-emerald-800 text-center"
               >
                 Sign in to submit score
               </NuxtLink>
@@ -517,11 +522,36 @@ const keyStatusMap = computed(() => {
   return m
 })
 
+/**
+ * Tile colours, chosen for contrast rather than convention.
+ *
+ * White on `amber-400` measured 1.67:1 and white on `emerald-500` measured
+ * 2.54:1 — the tiles are 18px bold, which needs 3:1, and the keyboard below
+ * needs 4.5:1 at 14px. Both failed at both sizes, on the screen this app is
+ * used on most, by people reading it on a phone in a bright mandir foyer.
+ *
+ * Dark ink on the yellow tile is what fixes it (9.95:1) and is also what
+ * players recognise from the game this borrows from. `emerald-700` carries
+ * white at 5.48:1.
+ */
 function cellBg(status: LetterStatus) {
-  if (status === 'correct') return 'bg-emerald-500 border-emerald-600 text-white'
-  if (status === 'present') return 'bg-amber-400 border-amber-500 text-white'
+  if (status === 'correct') return 'bg-emerald-700 border-emerald-800 text-white'
+  if (status === 'present') return 'bg-amber-400 border-amber-500 text-[hsl(var(--foreground))]'
   if (status === 'absent') return 'bg-[hsl(var(--muted))] border-[hsl(var(--border))] text-[hsl(var(--muted-foreground))]'
   return 'bg-[hsl(var(--card))] border-[hsl(var(--border))] text-[hsl(var(--foreground))]'
+}
+
+/**
+ * A glyph carrying the same meaning as the tile colour.
+ *
+ * `emerald` and `amber` sit at 1.52:1 to each other — near-identical once
+ * lightness is all you have — so a colour-blind player could not separate
+ * "right letter, right place" from "right letter, wrong place" at all.
+ */
+function cellMark(status: LetterStatus) {
+  if (status === 'correct') return '●'
+  if (status === 'present') return '◐'
+  return ''
 }
 
 function tileAnimation(rowIndex: number, cellIndex: number): string {
@@ -537,10 +567,11 @@ function tileAnimation(rowIndex: number, cellIndex: number): string {
 
 function keyBg(letter: string) {
   const s = keyStatusMap.value.get(letter)
-  if (s === 'correct') return 'bg-emerald-500 text-white'
-  if (s === 'present') return 'bg-amber-400 text-white'
-  // NYT-style: grey highlight only — keys stay clickable.
-  if (s === 'absent') return 'bg-slate-500 text-slate-200/80'
+  if (s === 'correct') return 'bg-emerald-700 text-white'
+  if (s === 'present') return 'bg-amber-400 text-[hsl(var(--foreground))]'
+  // Grey highlight only — keys stay clickable. `slate-200/80` on `slate-500`
+  // measured 3.09:1, below the 4.5:1 these 14px labels need.
+  if (s === 'absent') return 'bg-slate-600 text-slate-100'
   return 'bg-[hsl(var(--muted))] text-[hsl(var(--foreground))] hover:bg-[hsl(var(--border))]'
 }
 

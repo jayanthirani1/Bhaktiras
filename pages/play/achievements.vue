@@ -21,7 +21,7 @@
       <template v-else>
         <section class="card-surface mt-8 p-5 sm:p-6">
           <div class="flex items-center gap-2">
-            <IconCrown class="h-5 w-5 text-[hsl(var(--accent))]" />
+            <IconCrown class="h-5 w-5 text-[hsl(var(--golden-900))]" />
             <h2 class="font-display text-xl font-semibold text-[hsl(var(--primary))]">All-time crowns</h2>
           </div>
           <div v-if="achievements.loading.value" class="mt-4 text-sm text-[hsl(var(--muted-foreground))]">Loading crowns…</div>
@@ -38,7 +38,7 @@
                 <div>
                   <p class="text-sm font-semibold text-[hsl(var(--primary))]">{{ crownTitle(crown.id) }}</p>
                   <p class="mt-1 text-sm text-[hsl(var(--muted-foreground))]">{{ crown.holderName }}</p>
-                  <p class="mt-2 text-xs font-semibold uppercase tracking-wide text-[hsl(var(--accent))]">{{ crownValue(crown) }}</p>
+                  <p class="mt-2 text-xs font-semibold uppercase tracking-wide text-[hsl(var(--golden-900))]">{{ crownValue(crown) }}</p>
                   <p v-if="crown.holderUserId === auth.user.value?.uid" class="mt-2 text-xs font-semibold text-amber-700">You currently hold this crown.</p>
                 </div>
               </div>
@@ -65,7 +65,7 @@
                 <div class="min-w-0 flex-1">
                   <div class="flex items-start justify-between gap-3">
                     <p class="text-sm font-semibold text-[hsl(var(--primary))]">{{ item.title }}</p>
-                    <span class="shrink-0 rounded-full px-2.5 py-1 text-xs font-bold" :class="item.unlocked ? 'bg-emerald-600 text-white' : 'bg-[hsl(var(--muted))] text-[hsl(var(--muted-foreground))]'">
+                    <span class="shrink-0 rounded-full px-2.5 py-1 text-xs font-bold" :class="item.unlocked ? 'bg-emerald-700 text-white' : 'bg-[hsl(var(--muted))] text-[hsl(var(--muted-foreground))]'">
                       {{ item.unlocked ? 'Unlocked' : 'Locked' }}
                     </span>
                   </div>

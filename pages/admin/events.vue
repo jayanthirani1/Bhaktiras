@@ -21,7 +21,7 @@
           <div class="flex gap-3">
             <img v-if="item.posterUrl" :src="item.posterUrl" :alt="item.title" class="h-14 w-20 shrink-0 rounded-lg object-cover">
             <div class="min-w-0">
-              <p class="text-xs font-semibold uppercase tracking-wider text-[hsl(var(--accent))]">{{ formatDate(item.date) }}</p>
+              <p class="text-xs font-semibold uppercase tracking-wider text-[hsl(var(--golden-900))]">{{ formatDate(item.date) }}</p>
               <p class="font-semibold text-[hsl(var(--primary))]">{{ item.title }}</p>
               <p class="mt-1 line-clamp-2 text-sm text-[hsl(var(--muted-foreground))]">{{ item.description }}</p>
             </div>

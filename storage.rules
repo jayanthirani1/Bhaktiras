@@ -1,11 +1,64 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /** A new object. Storage sets `resource` to null when nothing is there yet. */
+    function isNewObject() {
+      return resource == null;
+    }
+
+    /**
+     * SVG is deliberately excluded from this list. It is an HTML document that
+     * can execute script, and everything in this bucket is world-readable, so
+     * accepting it turns an image upload into stored XSS on a Google-owned
+     * origin. The old rule used `image/.*`, which matched it.
+     *
+     * Content type is client-asserted, so this is a filter rather than a
+     * guarantee — but combined with create-only writes it bounds the damage to
+     * a file nothing in the app ever links to.
+     */
+    function isSafeImage() {
+      return request.resource.size < 8 * 1024 * 1024
+        && request.resource.contentType.matches('image/(jpeg|png|webp|gif|avif)');
+    }
+
+    /**
+     * Admin-uploaded site imagery: event posters and timeline photographs.
+     * `AdminImageUpload` writes `{folder}/{timestamp}-{name}`, so every upload
+     * is a new object and none of these paths is ever legitimately overwritten.
+     *
+     * This bucket used to be a single `{allPaths=**}` rule reading
+     * `allow write: if request.auth != null`, and `write` covers create,
+     * overwrite *and* delete. Since anyone can self-register at /signup, any
+     * account could swap an event poster for an arbitrary image or delete every
+     * photograph on the site.
+     *
+     * Writes are now create-only and nothing can be overwritten or deleted from
+     * a browser at all, which removes the destructive half outright without
+     * needing an admin claim provisioned first. Restricting *who* may upload is
+     * the follow-up: Storage rules cannot read Firestore, so that means setting
+     * an `admin` custom claim on the auth token and gating on
+     * `request.auth.token.admin == true` here. Until then an upload costs
+     * storage but cannot damage anything, and clearing stray objects is an
+     * admin job from the console.
+     */
+    match /{folder}/{imageId} {
+      allow read: if true;
+      allow create: if isSignedIn()
+        && isNewObject()
+        && isSafeImage()
+        && (folder == 'events' || folder == 'timeline' || folder == 'uploads');
+      allow update, delete: if false;
+    }
+
+    // Existing objects outside those folders stay readable so nothing that is
+    // already published breaks, but nothing new can be written there.
     match /{allPaths=**} {
       allow read: if true;
-      allow write: if request.auth != null
-        && request.resource.size < 8 * 1024 * 1024
-        && request.resource.contentType.matches('image/.*');
+      allow write: if false;
     }
   }
 }

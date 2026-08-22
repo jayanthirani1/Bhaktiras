@@ -29,7 +29,7 @@
                   class="h-auto w-full object-contain bg-[hsl(var(--muted))]"
                 >
                 <div class="p-5 sm:p-6">
-                  <p class="text-xs font-semibold uppercase tracking-[0.18em] text-[hsl(var(--accent))]">
+                  <p class="text-xs font-semibold uppercase tracking-[0.18em] text-[hsl(var(--golden-900))]">
                     {{ formatDate(event.date) }}
                   </p>
                   <h3 class="mt-2 font-display text-xl font-semibold text-[hsl(var(--primary))]">{{ event.title }}</h3>
@@ -66,7 +66,7 @@
                   class="h-auto w-full object-contain bg-[hsl(var(--muted))]"
                 >
                 <div class="p-5 sm:p-6">
-                  <p class="text-xs font-semibold uppercase tracking-[0.18em] text-[hsl(var(--accent))]">
+                  <p class="text-xs font-semibold uppercase tracking-[0.18em] text-[hsl(var(--golden-900))]">
                     {{ formatDate(event.date) }}
                   </p>
                   <h3 class="mt-2 font-display text-xl font-semibold text-[hsl(var(--primary))]">{{ event.title }}</h3>

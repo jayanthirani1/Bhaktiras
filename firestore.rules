@@ -11,17 +11,6 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.active != false;
     }
 
-    function twoDigits(n) {
-      return n < 10 ? '0' + string(n) : string(n);
-    }
-
-    /** UTC YYYY-MM-DD. Used only to allow deleting previous days' scores. */
-    function utcDateId() {
-      return string(request.time.year())
-        + '-' + twoDigits(request.time.month())
-        + '-' + twoDigits(request.time.day());
-    }
-
     // Doc ID = Auth UID. Fields: name, role (admin|guest), active.
     match /admins/{uid} {
       allow read: if isSignedIn() && (request.auth.uid == uid || isAdmin());
@@ -127,14 +116,37 @@ service cloud.firestore {
         && request.resource.data.updatedAt == request.time;
     }
 
-    // Daily leaderboards (all games). Read public; submit requires login; old days can be deleted.
+    // Daily leaderboards (all games). Read public; submit requires login.
+    //
+    // The document id is pinned to `{game}_{dateId}_{uid}` (or `{game}_{uid}`
+    // for an all-time board). Without that constraint a signed-in user could
+    // write unlimited documents under any id, with any `userName` and any
+    // `dateId` — which on a mandir leaderboard makes impersonating a sant or a
+    // trustee a one-line console command, and makes flooding free.
+    //
+    // Still open by design: `userName` is client-supplied, so a player can set
+    // the name shown against their own row. Rules cannot fix that — the only
+    // trustworthy name lives in the auth token, and email/password accounts
+    // have no `name` claim to read. Closing it means submitting scores through
+    // a callable that stamps the name server-side, the way
+    // `handleGameAchievements` already does for broadcast text.
     match /gameScores/{scoreId} {
+      function ownsScoreId() {
+        return scoreId == request.resource.data.game + '_' + request.resource.data.dateId + '_' + request.auth.uid
+          || scoreId == request.resource.data.game + '_' + request.auth.uid;
+      }
+
       allow read: if true;
       allow create: if isSignedIn()
+        && ownsScoreId()
+        && request.resource.data.keys().hasOnly([
+          'game', 'dateId', 'userId', 'userName', 'score', 'timeMs', 'detail', 'completedAt'
+        ])
         && request.resource.data.userId == request.auth.uid
         && request.resource.data.game is string
         && request.resource.data.dateId is string
-        && request.resource.data.dateId.size() == 10
+        && request.resource.data.dateId.matches('^20[2-9][0-9]-[0-1][0-9]-[0-3][0-9]$')
+        && request.resource.data.completedAt == request.time
         && request.resource.data.userName is string
         && request.resource.data.userName.size() <= 32
         && request.resource.data.score is number
@@ -154,13 +166,18 @@ service cloud.firestore {
             && request.resource.data.timeMs <= 86400000
           )
         );
-      // Own score updates.
+      // Own score updates. Identity and the day it belongs to are immutable;
+      // only the result may improve.
       allow update: if isSignedIn()
         && resource.data.userId == request.auth.uid
         && request.resource.data.userId == request.auth.uid
         && request.resource.data.game == resource.data.game
+        && request.resource.data.dateId == resource.data.dateId
         && request.resource.data.userName is string
         && request.resource.data.userName.size() <= 32
+        && request.resource.data.keys().hasOnly([
+          'game', 'dateId', 'userId', 'userName', 'score', 'timeMs', 'detail', 'completedAt'
+        ])
         && request.resource.data.score is number
         && request.resource.data.score == int(request.resource.data.score)
         && request.resource.data.score >= 0
@@ -174,23 +191,57 @@ service cloud.firestore {
             && request.resource.data.timeMs <= 86400000
           )
         );
-      allow delete: if (resource.data.dateId is string && resource.data.dateId < utcDateId())
+      // Previously: anyone, signed in or not, could delete any row from a past
+      // day — because `cleanseOldScores` ran the sweep in every visitor's
+      // browser and the rule had to permit it. The sweep is now
+      // `pruneOldGameScores` in functions/index.js, which runs with admin
+      // credentials, so the open clause is gone.
+      allow delete: if isAdmin()
         || (isSignedIn() && resource.data.userId == request.auth.uid);
     }
 
-    // Legacy Wordle scores — read + delete only so the daily cleanse can empty them.
+    // Legacy Wordle scores. Drained by the scheduled prune, not by visitors —
+    // `allow delete: if true` let any anonymous caller empty the collection.
     match /wordleScores/{scoreId} {
       allow read: if true;
       allow create, update: if false;
-      allow delete: if true;
+      allow delete: if isAdmin()
+        || (isSignedIn() && resource.data.userId == request.auth.uid);
     }
 
+    // The community wall.
+    //
+    // Posting now requires an account. Previously anyone could write here with
+    // no auth and no field allowlist, which allowed three things at once: a
+    // message signed with any `name` at all — a sant's, a trustee's, anyone's
+    // — unlimited automated flooding, and a client-chosen `createdAt` far in
+    // the future, which pinned a post to the top of the wall permanently.
+    //
+    // Requiring sign-in keeps the *display* anonymity people actually want:
+    // `anonymous` still hides the name on the wall. It removes only the
+    // ability to post as someone else. `userId` is stored so a member can
+    // delete their own note and admins can moderate.
     match /gratitude/{id} {
       allow read: if true;
-      allow create: if request.resource.data.message is string
+      allow create: if isSignedIn()
+        && request.resource.data.keys().hasOnly([
+          'userId', 'name', 'message', 'prompt', 'anonymous', 'createdAt'
+        ])
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.message is string
         && request.resource.data.message.size() >= 5
-        && request.resource.data.message.size() <= 500;
-      allow update, delete: if isAdmin();
+        && request.resource.data.message.size() <= 500
+        && request.resource.data.name is string
+        && request.resource.data.name.size() <= 50
+        && request.resource.data.anonymous is bool
+        && request.resource.data.createdAt == request.time
+        && (
+          request.resource.data.prompt == null
+          || (request.resource.data.prompt is string && request.resource.data.prompt.size() <= 120)
+        );
+      allow delete: if isAdmin()
+        || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow update: if isAdmin();
     }
 
     // Anyone may report a bug. Reports are private and managed by admins.
@@ -328,10 +379,29 @@ service cloud.firestore {
       allow delete: if isSignedIn() && request.auth.uid == uid;
     }
 
-    // Aggregate encouragement stats (counts + participants). Public read; signed-in write.
+    // Aggregate encouragement stats (counts + participants). Public read.
+    //
+    // This used to be `if isSignedIn()` with no validation at all, so any
+    // account could inject arbitrary fields into a document the whole sangat
+    // reads. The shape is now pinned: two known keys, integers in range, and a
+    // bounded map — which closes injection, dotted-key pollution and unbounded
+    // growth.
+    //
+    // Not closed: a signed-in user can still write wrong *numbers*, because the
+    // totals are computed in a client transaction. The real fix is to derive
+    // them in a Firestore trigger on `niyamProgress` and set this to
+    // `allow write: if false`. Doing that also removes the single-document
+    // write contention — every tick in the mandir currently contends on this
+    // one row, and Firestore sustains about one write per second per document.
     match /niyamStats/{id} {
       allow read: if true;
-      allow create, update: if isSignedIn();
+      allow create, update: if isSignedIn()
+        && request.resource.data.keys().hasOnly(['participants', 'counts'])
+        && request.resource.data.participants is int
+        && request.resource.data.participants >= 0
+        && request.resource.data.participants <= 1000000
+        && request.resource.data.counts is map
+        && request.resource.data.counts.size() <= 64;
       allow delete: if isAdmin();
     }
 
