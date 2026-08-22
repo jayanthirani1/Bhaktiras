@@ -16,16 +16,31 @@
           <IconBug class="h-3.5 w-3.5" aria-hidden="true" />
           Submit a bug
         </NuxtLink>
+        <!-- Only rendered where the app can actually be installed and is not already. -->
+        <ClientOnly>
+          <template v-if="install.available.value">
+            <span aria-hidden="true">|</span>
+            <button
+              type="button"
+              class="inline-flex items-center gap-1 font-medium text-[hsl(var(--primary))] hover:underline"
+              @click="install.open()"
+            >
+              <IconDeviceMobileDown class="h-3.5 w-3.5" aria-hidden="true" />
+              Install the app
+            </button>
+          </template>
+        </ClientOnly>
       </p>
     </div>
   </footer>
 </template>
 
 <script setup lang="ts">
-import { IconBug, IconCopyright } from '@tabler/icons-vue'
+import { IconBug, IconCopyright, IconDeviceMobileDown } from '@tabler/icons-vue'
 import { SITE } from '~/data/site'
 
 const year = new Date().getFullYear()
+const install = useInstallPrompt()
 const route = useRoute()
 const bugLink = computed(() => ({
   path: '/submit-bug',

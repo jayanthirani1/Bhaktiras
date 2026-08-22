@@ -62,6 +62,16 @@ messaging.onBackgroundMessage((payload) => {
   return self.registration.showNotification(title, options)
 })
 
+/**
+ * Chromium only offers "Install app" — and only fires \`beforeinstallprompt\` —
+ * when a registered service worker has a fetch handler. Push needs a service
+ * worker anyway, and two scripts cannot share the root scope (registering a
+ * second one at '/' replaces this registration and silently kills push), so
+ * installability rides along here. Requests pass straight through: Bhaktiras
+ * has no offline story and this must not become an accidental cache layer.
+ */
+self.addEventListener('fetch', () => {})
+
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
   const target = absoluteUrl(event.notification.data?.url || '/')
