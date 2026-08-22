@@ -68,6 +68,6 @@ export const CHARITRA_BRACKET_CITY_PUZZLES: BracketCityPuzzle[] = [
     title: 'Ghanshyam Leaves Home',
     credit: 'Ghanshyam Bal Charitra, Part 10',
     published: true,
-    source: 'Blamed for thrashing the wrestlers who had taunted him outside the [temple of the monkey god who served Ram::Hanuman] temple, Ghanshyam folded his clothes in a pile with his [what he left on top for his family to find::jewellery] and walked down to the Saryu — and when the asura [who seized him from behind and threw him into the current::Kaushidutt] tracked him twelve kilometres downstream, sitting in meditation beneath a [tree whose shade he had settled under::peepal], one look from him turned the demons on each other.'
+    source: 'Blamed for thrashing the wrestlers who had taunted him outside the [temple of the monkey god who served Ram::Hanuman] temple, Ghanshyam folded his clothes in a pile with his [what he left on top for his family to find::jewellery] and walked down to the Saryu — and when the asura [who seized him from behind and threw him into the current::Kaushidutt] tracked him twelve kilometres downstream, sitting in meditation beneath a [tree whose shade he had settled under::peepal|pipal|pipul], one look from him turned the demons on each other.'
   }
 ]

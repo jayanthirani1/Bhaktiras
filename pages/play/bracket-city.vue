@@ -155,10 +155,10 @@
 
 <script setup lang="ts">
 import {
-  answerMatches,
   clueText,
   flattenNodes,
   isActive,
+  matchAnswer,
   parseBracketSource,
   type BracketNode,
   type BracketPart
@@ -294,11 +294,16 @@ function submitGuess() {
   if (!node || !guess.value.trim()) return
   timer.ensureStarted()
 
-  if (answerMatches(guess.value, node)) {
-    feedbackOk.value = true
-    feedback.value = 'Solved!'
+  const match = matchAnswer(guess.value, node)
+  if (match.ok) {
+    // Solve first: moving to the next clue clears the feedback line, so the
+    // message has to be set after the move or it never reaches the screen.
     solve(node, false)
-    setTimeout(() => { feedback.value = '' }, 1200)
+    feedbackOk.value = true
+    // A guess that only got there on the spelling tolerance still counts, but
+    // the player is shown how the answer is actually spelled.
+    feedback.value = match.exact ? 'Solved!' : `Close enough — spelled “${match.spelling}”`
+    setTimeout(() => { feedback.value = '' }, match.exact ? 1200 : 2600)
     return
   }
 

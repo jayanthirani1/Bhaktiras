@@ -181,14 +181,94 @@ export function sentenceText(parts: BracketPart[], solved: Set<string> = new Set
 }
 
 /**
- * Accepts a guess if it normalises to the answer or any alternate. Normalising
- * through normalizeGameWord() drops spaces, punctuation and diacritics, so
- * "Mangla Aarti", "mangla-aarti" and "MANGLAAARTI" all match.
+ * How many single-character slips to forgive in an answer of this length.
+ *
+ * These answers are transliterations — Chhapaiya, Bhaktimata, Vachnamrut — and
+ * there is no one true English spelling of any of them, so a player who knows
+ * the answer should not lose to a doubled consonant. Short answers get no
+ * latitude, because at three letters almost every other word is one edit away.
  */
-export function answerMatches(guess: string, node: BracketNode): boolean {
+export function editsAllowed(answer: string): number {
+  if (answer.length <= 3) return 0
+  if (answer.length <= 7) return 1
+  return 2
+}
+
+/** Trailing plural, so "sants" answers a clue whose answer is "sant". */
+function singular(value: string): string {
+  return value.length >= 4 && value.endsWith('S') ? value.slice(0, -1) : value
+}
+
+/**
+ * Levenshtein distance, abandoned as soon as it passes `max` — the caller only
+ * ever cares whether the guess is within tolerance.
+ */
+function editDistance(a: string, b: string, max: number): number {
+  if (Math.abs(a.length - b.length) > max) return max + 1
+  let prev = Array.from({ length: b.length + 1 }, (_, i) => i)
+  for (let i = 1; i <= a.length; i++) {
+    const row = [i]
+    let best = i
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1
+      row[j] = Math.min(prev[j] + 1, row[j - 1] + 1, prev[j - 1] + cost)
+      best = Math.min(best, row[j])
+    }
+    if (best > max) return max + 1
+    prev = row
+  }
+  return prev[b.length]
+}
+
+export interface AnswerMatch {
+  ok: boolean
+  /** False when the guess only got there on the spelling tolerance. */
+  exact: boolean
+  /** The canonical spelling the guess matched. */
+  spelling: string
+}
+
+/**
+ * Checks a guess against the answer and its alternates. Normalising through
+ * normalizeGameWord() drops spaces, punctuation and diacritics, so "Mangla
+ * Aarti", "mangla-aarti" and "MANGLAAARTI" are all exact; beyond that a guess
+ * within editsAllowed() of a spelling is accepted as correct.
+ */
+export function matchAnswer(guess: string, node: BracketNode): AnswerMatch {
   const clean = normalizeGameWord(guess)
-  if (!clean) return false
-  return [node.answer, ...node.alts].some(candidate => normalizeGameWord(candidate) === clean)
+  const spellings = [node.answer, ...node.alts]
+  if (!clean) return { ok: false, exact: false, spelling: node.answer }
+
+  for (const spelling of spellings) {
+    if (normalizeGameWord(spelling) === clean) return { ok: true, exact: true, spelling }
+  }
+  for (const spelling of spellings) {
+    const target = normalizeGameWord(spelling)
+    if (!target) continue
+    const allowed = editsAllowed(target)
+    if (!allowed) continue
+    if (singular(clean) === singular(target)) return { ok: true, exact: false, spelling }
+    if (editDistance(clean, target, allowed) <= allowed) return { ok: true, exact: false, spelling }
+  }
+  return { ok: false, exact: false, spelling: node.answer }
+}
+
+export function answerMatches(guess: string, node: BracketNode): boolean {
+  return matchAnswer(guess, node).ok
+}
+
+/**
+ * True when two answers are close enough that one would be accepted for the
+ * other — "Satsang" and "Satsangi". Two such answers must never appear in the
+ * same puzzle, or a correct guess could solve the wrong clue.
+ */
+export function spellingsCollide(a: string, b: string): boolean {
+  const x = normalizeGameWord(a)
+  const y = normalizeGameWord(b)
+  if (!x || !y) return false
+  if (x === y || singular(x) === singular(y)) return true
+  const allowed = Math.max(editsAllowed(x), editsAllowed(y))
+  return allowed > 0 && editDistance(x, y, allowed) <= allowed
 }
 
 /** Builds the source string back from a tree — used by the admin generator button. */

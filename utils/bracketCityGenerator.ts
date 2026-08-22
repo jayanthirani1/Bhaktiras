@@ -2,7 +2,7 @@ import type { BracketCityPuzzle, GameWordEntry } from '~/types'
 import { SATSANG_WORD_BANK, normalizeGameWord } from '~/utils/gameWordBank'
 import { rngForSeed, shuffle } from '~/utils/seededRandom'
 import { BRACKET_CITY_FRAMES, type BracketCityFrame } from '~/data/bracketCityFrames'
-import { parseBracketSource, flattenNodes } from '~/utils/bracketCity'
+import { parseBracketSource, flattenNodes, spellingsCollide } from '~/utils/bracketCity'
 
 /**
  * The daily Bracket City puzzle, generated from the shared word bank.
@@ -27,6 +27,19 @@ const FRAME_ATTEMPTS = 6
  * puzzle ever reads as nonsense.
  */
 const NEST_STOPLIST = new Set(['deep'])
+
+/**
+ * True when this word is already in the puzzle, or is close enough to a word in
+ * it that the spelling tolerance would let one answer the other's clue.
+ */
+function isTaken(display: string, used: Set<string>): boolean {
+  const key = normalizeGameWord(display)
+  if (used.has(key)) return true
+  for (const taken of used) {
+    if (spellingsCollide(key, taken)) return true
+  }
+  return false
+}
 
 interface NestCandidate {
   entry: GameWordEntry
@@ -147,8 +160,7 @@ function nestCandidates(
 ): NestCandidate[] {
   const out: NestCandidate[] = []
   for (const entry of index.list) {
-    const key = normalizeGameWord(entry.display)
-    if (blocked.has(key)) continue
+    if (isTaken(entry.display, blocked)) continue
 
     const match = new RegExp(`\\b${escapeRegExp(entry.display)}\\b`, 'i').exec(clue)
     if (!match) continue
@@ -225,10 +237,10 @@ export function buildDailyBracketCitySource(
       // Prefer a word whose clue can carry a nested clue; any unused word will
       // do once the nesting budget is spent.
       const pick = shuffled.find((entry) => {
-        if (used.has(normalizeGameWord(entry.display))) return false
+        if (isTaken(entry.display, used)) return false
         if (budget.left <= 0) return true
         return nestCandidates(clean(entry.clue), index, used, [clean(entry.display)]).length > 0
-      }) ?? shuffled.find(entry => !used.has(normalizeGameWord(entry.display)))
+      }) ?? shuffled.find(entry => !isTaken(entry.display, used))
       if (!pick) break
       slots.push(buildClueSource(pick, 1, index, used, [], budget, rnd))
     }
