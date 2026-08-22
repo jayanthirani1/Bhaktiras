@@ -37,7 +37,7 @@
           </button>
           <button
             type="button"
-            class="flex-1 rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-600"
+            class="flex-1 rounded-xl bg-amber-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-800"
             @click="emit('confirm')"
           >
             {{ kind === 'letter' ? 'Reveal (+5s)' : 'Reveal (+20s)' }}

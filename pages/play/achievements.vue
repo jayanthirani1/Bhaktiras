@@ -65,7 +65,7 @@
                 <div class="min-w-0 flex-1">
                   <div class="flex items-start justify-between gap-3">
                     <p class="text-sm font-semibold text-[hsl(var(--primary))]">{{ item.title }}</p>
-                    <span class="shrink-0 rounded-full px-2.5 py-1 text-xs font-bold" :class="item.unlocked ? 'bg-emerald-600 text-white' : 'bg-[hsl(var(--muted))] text-[hsl(var(--muted-foreground))]'">
+                    <span class="shrink-0 rounded-full px-2.5 py-1 text-xs font-bold" :class="item.unlocked ? 'bg-emerald-700 text-white' : 'bg-[hsl(var(--muted))] text-[hsl(var(--muted-foreground))]'">
                       {{ item.unlocked ? 'Unlocked' : 'Locked' }}
                     </span>
                   </div>

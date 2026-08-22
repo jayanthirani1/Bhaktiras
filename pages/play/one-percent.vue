@@ -60,7 +60,7 @@
         <button
           v-if="isLoggedIn && !scoreSubmitted"
           type="button"
-          class="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600 disabled:opacity-50"
+          class="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-50"
           :disabled="submitting"
           @click="submitToLeaderboard"
         >
@@ -69,7 +69,7 @@
         <NuxtLink
           v-else-if="!isLoggedIn && !scoreSubmitted"
           to="/login?redirect=/play/one-percent"
-          class="inline-block rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600"
+          class="inline-block rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800"
         >
           Sign in to submit score
         </NuxtLink>

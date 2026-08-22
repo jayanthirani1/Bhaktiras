@@ -4,6 +4,9 @@ dist
 .output
 .env
 .env.*
+# ...but the template belongs in the repo. `.env.*` was silently excluding it,
+# so a fresh clone had no record of which variables the build needs.
+!.env.example
 *.log
 .DS_Store
 .local
