@@ -135,7 +135,7 @@
             <button
               v-if="isLoggedIn && !scoreSubmitted"
               type="button"
-              class="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+              class="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
               :disabled="submitting"
               @click="submitToLeaderboard"
             >
@@ -240,7 +240,7 @@ function getCellClass(row: number, col: number): string {
     if (wordIndex !== undefined) {
       return `${wordColors[wordIndex % wordColors.length]} text-white`
     }
-    return 'bg-emerald-500 text-white'
+    return 'bg-emerald-700 text-white'
   }
 
   if (currentPath.value.some(p => p.row === row && p.col === col)) {
