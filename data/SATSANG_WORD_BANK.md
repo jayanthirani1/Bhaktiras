@@ -83,6 +83,11 @@ Firebase collection that merges on top of the built-in list at runtime.
   Bhagvan) swaps the word rather than leaving both spellings in the games.
 - **Reset** removes an override so the generated word applies again.
 
+Editing happens in the row itself. Phones get a card list rather than the
+46rem table, and either way the chosen row turns into the editor in place, so
+correcting one letter no longer means scrolling to a form above 200 rows. Only
+one of the two lists is rendered at a time.
+
 `replaces` holds the original answer rather than its id, because regenerating
 this file renumbers ids but keeps answers stable. If a later regeneration drops
 the word an override targeted, that override simply becomes an ordinary custom

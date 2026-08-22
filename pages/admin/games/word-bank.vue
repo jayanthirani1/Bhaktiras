@@ -8,57 +8,30 @@
       </p>
     </div>
 
-    <form class="space-y-4 rounded-xl border border-[hsl(var(--border))] p-4" @submit.prevent="saveWord">
+    <div class="rounded-xl border border-[hsl(var(--border))] p-4">
       <div class="flex items-center justify-between gap-3">
-        <div>
-          <h3 class="font-display text-lg font-semibold text-[hsl(var(--primary))]">
-            {{ formHeading }}
-          </h3>
-          <p class="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
-            Spaces and accents are removed automatically for game input.
-          </p>
-        </div>
-        <button v-if="editingId" type="button" class="admin-btn-secondary" @click="resetForm">Cancel</button>
+        <h3 class="font-display text-lg font-semibold text-[hsl(var(--primary))]">Add custom word</h3>
+        <button type="button" class="admin-btn-secondary min-h-11 sm:min-h-0" @click="toggleAdd">
+          {{ addOpen ? 'Close' : 'Add word' }}
+        </button>
       </div>
-      <p
-        v-if="replacing"
-        class="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800"
-      >
-        Correcting the built-in word <span class="font-mono font-semibold">{{ replacing }}</span>.
-        The generated word bank is left alone — this saves an override the games use instead,
-        and Reset puts the original back.
-      </p>
-      <div class="grid gap-3 sm:grid-cols-3">
-        <div>
-          <label class="admin-label">Word or phrase</label>
-          <input v-model="form.display" required maxlength="40" class="admin-input" placeholder="e.g. Mahotsav">
-        </div>
-        <div class="sm:col-span-2">
-          <label class="admin-label">Crossword clue</label>
-          <input v-model="form.clue" required maxlength="160" class="admin-input" placeholder="A grand spiritual celebration">
-        </div>
-        <div>
-          <label class="admin-label">Category</label>
-          <input v-model="form.category" required maxlength="40" class="admin-input" placeholder="satsang">
-        </div>
-        <div class="sm:col-span-2">
-          <label class="admin-label">Game compatibility</label>
-          <div class="flex min-h-10 flex-wrap items-center gap-2 rounded-lg bg-[hsl(var(--muted))] px-3 py-2 text-xs">
-            <span class="font-mono font-semibold">{{ previewAnswer || '—' }}</span>
-            <span v-for="target in previewGames" :key="target" class="rounded-full bg-white px-2 py-0.5 font-semibold">
-              {{ gameLabel(target) }}
-            </span>
-            <span v-if="previewAnswer && !previewGames.length" class="text-amber-700">Reference only — incompatible length or letters</span>
-          </div>
-        </div>
-      </div>
-      <p v-if="formError || error" class="text-sm text-red-600">{{ formError || error }}</p>
-      <button type="submit" class="admin-btn" :disabled="saving">
-        {{ saving ? 'Saving…' : submitLabel }}
-      </button>
-    </form>
+      <AdminWordBankEditor
+        v-if="addOpen"
+        key="add"
+        class="mt-4"
+        :entry="blankEntry"
+        replacing=""
+        :categories="categories"
+        :saving="saving"
+        :error="addError || error"
+        :can-reset="false"
+        :can-delete="false"
+        @save="saveNew"
+        @cancel="closeAdd"
+      />
+    </div>
 
-    <div class="grid gap-3 sm:grid-cols-5">
+    <div class="grid grid-cols-2 gap-3 sm:grid-cols-5">
       <div v-for="stat in stats" :key="stat.label" class="rounded-xl bg-[hsl(var(--muted))] p-3">
         <p class="text-xs font-semibold uppercase tracking-wide text-[hsl(var(--muted-foreground))]">{{ stat.label }}</p>
         <p class="mt-1 font-display text-2xl font-semibold text-[hsl(var(--primary))]">{{ stat.value.toLocaleString() }}</p>
@@ -69,15 +42,15 @@
       <input
         v-model="search"
         type="search"
-        class="admin-input"
+        class="admin-input min-h-11 sm:min-h-0"
         placeholder="Search words, clues or categories…"
       >
-      <select v-model="game" class="admin-input">
+      <select v-model="game" class="admin-input min-h-11 sm:min-h-0">
         <option value="">All games</option>
         <option value="wordle">Wordle</option>
         <option value="crossword">Crossword</option>
       </select>
-      <select v-model="category" class="admin-input">
+      <select v-model="category" class="admin-input min-h-11 sm:min-h-0">
         <option value="">All categories</option>
         <option v-for="item in categories" :key="item" :value="item">{{ item }}</option>
       </select>
@@ -88,7 +61,54 @@
       <span v-if="filtered.length > DISPLAY_LIMIT">· showing first {{ DISPLAY_LIMIT }}</span>
     </p>
 
-    <div class="overflow-x-auto">
+    <!-- Phones edit in the card itself: the table needs 46rem and the old flow
+         sent you to a form at the top of a 200-row list to change one letter.
+         Only one of the two lists is rendered, so the open row has a single
+         editor and its autofocus is not stolen by a hidden twin. -->
+    <ul v-if="!isWide" class="space-y-2">
+      <li
+        v-for="entry in visibleEntries"
+        :key="entry.id"
+        class="rounded-xl border border-[hsl(var(--border))] bg-white p-3"
+        :class="openId === entry.id ? 'border-[hsl(var(--primary))] ring-2 ring-[hsl(var(--primary))]/10' : ''"
+      >
+        <AdminWordBankEditor
+          v-if="openId === entry.id"
+          :key="`edit-${entry.id}`"
+          :entry="entry"
+          :replacing="replacing"
+          :categories="categories"
+          :saving="saving"
+          :error="rowError || error"
+          :can-reset="!!originalOf(entry)"
+          :can-delete="isStored(entry)"
+          @save="payload => saveEdit(entry, payload)"
+          @cancel="closeEdit"
+          @reset="resetToBuiltIn(entry)"
+          @delete="deleteWord(entry)"
+        />
+        <template v-else>
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <p class="font-mono font-semibold text-[hsl(var(--primary))]">{{ entry.answer }}</p>
+              <p v-if="entry.display.toUpperCase() !== entry.answer" class="text-sm text-[hsl(var(--muted-foreground))]">
+                {{ entry.display }}
+              </p>
+              <p v-if="originalOf(entry)" class="mt-0.5 text-xs text-amber-700">
+                was {{ originalOf(entry)!.display }}
+              </p>
+            </div>
+            <button type="button" class="admin-btn-secondary min-h-11 shrink-0" @click="openEdit(entry)">Edit</button>
+          </div>
+          <p class="mt-2 text-sm">{{ entry.clue }}</p>
+          <p class="mt-2 text-xs text-[hsl(var(--muted-foreground))]">
+            {{ entry.category }} · {{ entry.games.map(gameLabel).join(', ') || 'Reference only' }} · {{ sourceLabel(entry) }}
+          </p>
+        </template>
+      </li>
+    </ul>
+
+    <div v-else class="overflow-x-auto">
       <table class="w-full min-w-[46rem] text-left text-sm">
         <thead>
           <tr class="border-b border-[hsl(var(--border))] text-xs uppercase tracking-wide text-[hsl(var(--muted-foreground))]">
@@ -100,40 +120,42 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="entry in visibleEntries" :key="entry.id" class="border-b border-[hsl(var(--border))]/70">
-            <td class="py-2 pr-3 align-top">
-              <p class="font-mono font-semibold text-[hsl(var(--primary))]">{{ entry.answer }}</p>
-              <p v-if="entry.display.toUpperCase() !== entry.answer" class="text-xs text-[hsl(var(--muted-foreground))]">{{ entry.display }}</p>
-              <p v-if="originalOf(entry)" class="mt-0.5 text-xs text-amber-700">
-                was {{ originalOf(entry)!.display }}
-              </p>
-            </td>
-            <td class="py-2 pr-3 align-top">{{ entry.clue }}</td>
-            <td class="py-2 pr-3 align-top text-xs">{{ entry.category }}</td>
-            <td class="py-2 pr-3 align-top text-xs">{{ entry.games.map(gameLabel).join(', ') || 'Reference only' }}</td>
-            <td class="py-2 align-top">
-              <div class="flex flex-wrap gap-2">
-                <button type="button" class="text-xs font-semibold text-[hsl(var(--primary))]" @click="editWord(entry)">Edit</button>
-                <button
-                  v-if="originalOf(entry)"
-                  type="button"
-                  class="text-xs font-semibold text-amber-700"
-                  @click="resetToBuiltIn(entry)"
-                >
-                  Reset
-                </button>
-                <button
-                  v-else-if="isStored(entry)"
-                  type="button"
-                  class="text-xs font-semibold text-red-600"
-                  @click="deleteWord(entry)"
-                >
-                  Delete
-                </button>
-              </div>
-              <span class="mt-0.5 block text-xs text-[hsl(var(--muted-foreground))]">{{ sourceLabel(entry) }}</span>
-            </td>
-          </tr>
+          <template v-for="entry in visibleEntries" :key="entry.id">
+            <tr v-if="openId === entry.id">
+              <td colspan="5" class="py-2">
+                <AdminWordBankEditor
+                  :key="`edit-wide-${entry.id}`"
+                  :entry="entry"
+                  :replacing="replacing"
+                  :categories="categories"
+                  :saving="saving"
+                  :error="rowError || error"
+                  :can-reset="!!originalOf(entry)"
+                  :can-delete="isStored(entry)"
+                  @save="payload => saveEdit(entry, payload)"
+                  @cancel="closeEdit"
+                  @reset="resetToBuiltIn(entry)"
+                  @delete="deleteWord(entry)"
+                />
+              </td>
+            </tr>
+            <tr v-else class="border-b border-[hsl(var(--border))]/70">
+              <td class="py-2 pr-3 align-top">
+                <p class="font-mono font-semibold text-[hsl(var(--primary))]">{{ entry.answer }}</p>
+                <p v-if="entry.display.toUpperCase() !== entry.answer" class="text-xs text-[hsl(var(--muted-foreground))]">{{ entry.display }}</p>
+                <p v-if="originalOf(entry)" class="mt-0.5 text-xs text-amber-700">
+                  was {{ originalOf(entry)!.display }}
+                </p>
+              </td>
+              <td class="py-2 pr-3 align-top">{{ entry.clue }}</td>
+              <td class="py-2 pr-3 align-top text-xs">{{ entry.category }}</td>
+              <td class="py-2 pr-3 align-top text-xs">{{ entry.games.map(gameLabel).join(', ') || 'Reference only' }}</td>
+              <td class="py-2 align-top">
+                <button type="button" class="text-xs font-semibold text-[hsl(var(--primary))]" @click="openEdit(entry)">Edit</button>
+                <span class="mt-0.5 block text-xs text-[hsl(var(--muted-foreground))]">{{ sourceLabel(entry) }}</span>
+              </td>
+            </tr>
+          </template>
         </tbody>
       </table>
     </div>
@@ -141,15 +163,13 @@
 </template>
 
 <script setup lang="ts">
-import type { GameWordTarget } from '~/types'
-import type { GameWordEntry } from '~/types'
+import type { GameWordEntry, GameWordTarget } from '~/types'
 import {
   gameTargetsForAnswer,
   gameWordsFor,
   mergeGameWords,
   normalizeGameWord,
-  replacedBuiltIn,
-  SATSANG_WORD_BANK
+  replacedBuiltIn
 } from '~/utils/gameWordBank'
 
 definePageMeta({ layout: 'admin', middleware: 'admin' })
@@ -158,12 +178,30 @@ const DISPLAY_LIMIT = 200
 const search = ref('')
 const game = ref<'' | GameWordTarget>('')
 const category = ref('')
+
+/** Id of the row whose editor is open; only one is ever open at a time. */
+const openId = ref('')
+/** Document id being updated, empty when the edit will create a new override. */
 const editingId = ref('')
 /** Answer of the built-in word being superseded, empty for a plain custom word. */
 const replacing = ref('')
-const formError = ref('')
-const form = reactive({ display: '', clue: '', category: 'satsang' })
+const rowError = ref('')
+
+const addOpen = ref(false)
+const addError = ref('')
+
+/** Tailwind's `sm`. Starts false so the phone layout is the server default. */
+const isWide = ref(false)
+let media: MediaQueryList | null = null
+function onMediaChange(event: MediaQueryList | MediaQueryListEvent) {
+  isWide.value = event.matches
+}
+
 const { items, loading, saving, error, fetchAll, create, updateItem, remove } = useAdminGameWords()
+
+const blankEntry = computed<GameWordEntry>(() => ({
+  id: 'new', answer: '', display: '', clue: '', category: 'satsang', source: 'Custom', games: []
+}))
 
 const customEntries = computed<GameWordEntry[]>(() => items.value.map((entry) => {
   const replaces = normalizeGameWord(entry.replaces || '')
@@ -187,8 +225,6 @@ const stats = computed(() => [
   { label: 'Wordle words', value: gameWordsFor('wordle', allEntries.value).length },
   { label: 'Crossword words', value: gameWordsFor('crossword', allEntries.value).length },
 ])
-const previewAnswer = computed(() => normalizeGameWord(form.display))
-const previewGames = computed(() => gameTargetsForAnswer(previewAnswer.value))
 
 const filtered = computed(() => {
   const query = search.value.trim().toLocaleLowerCase()
@@ -200,7 +236,13 @@ const filtered = computed(() => {
   })
 })
 
-const visibleEntries = computed(() => filtered.value.slice(0, DISPLAY_LIMIT))
+/** The open row stays rendered even once a filter would exclude it mid-edit. */
+const visibleEntries = computed(() => {
+  const rows = filtered.value.slice(0, DISPLAY_LIMIT)
+  if (!openId.value || rows.some(entry => entry.id === openId.value)) return rows
+  const open = allEntries.value.find(entry => entry.id === openId.value)
+  return open ? [open, ...rows] : rows
+})
 
 function gameLabel(target: GameWordTarget) {
   return target[0].toUpperCase() + target.slice(1)
@@ -223,81 +265,101 @@ function sourceLabel(entry: GameWordEntry) {
   return originalOf(entry) ? 'Edited' : 'Custom'
 }
 
-const formHeading = computed(() => {
-  if (replacing.value) return 'Correct built-in word'
-  return editingId.value ? 'Edit custom word' : 'Add custom word'
-})
-
-const submitLabel = computed(() => {
-  if (replacing.value) return editingId.value ? 'Update correction' : 'Save correction'
-  return editingId.value ? 'Update word' : 'Add to word bank'
-})
-
-function resetForm() {
-  editingId.value = ''
-  replacing.value = ''
-  formError.value = ''
-  Object.assign(form, { display: '', clue: '', category: 'satsang' })
-}
-
 /**
- * Editing a built-in word does not touch the generated bank. It opens the form
+ * Editing a built-in word does not touch the generated bank. It opens the row
  * as a new override that supersedes that word, so the change is a Firebase
  * document the mandir can undo with Reset.
  */
-function editWord(entry: GameWordEntry) {
-  const builtIn = entry.source !== 'Custom' && entry.source !== 'Edited'
+function openEdit(entry: GameWordEntry) {
+  const builtIn = !isStored(entry)
+  openId.value = entry.id
   editingId.value = builtIn ? '' : entry.id
   replacing.value = builtIn ? entry.answer : normalizeGameWord(entry.replaces || '')
-  formError.value = ''
-  Object.assign(form, { display: entry.display, clue: entry.clue, category: entry.category })
-  window.scrollTo({ top: 0, behavior: 'smooth' })
+  rowError.value = ''
+  error.value = ''
+  addOpen.value = false
 }
 
-/** Drops an override so the generated built-in word applies again. */
-async function resetToBuiltIn(entry: GameWordEntry) {
-  const original = replacedBuiltIn(entry)
-  if (!original) return
-  if (!confirm(`Restore ${original.display} to the built-in spelling?`)) return
-  try {
-    await remove(entry.id)
-    if (editingId.value === entry.id) resetForm()
-  } catch {
-    // Shared admin composable exposes the Firebase error above.
-  }
+function closeEdit() {
+  openId.value = ''
+  editingId.value = ''
+  replacing.value = ''
+  rowError.value = ''
 }
 
-async function saveWord() {
-  formError.value = ''
-  const answer = previewAnswer.value
+function toggleAdd() {
+  addOpen.value = !addOpen.value
+  addError.value = ''
+  if (addOpen.value) closeEdit()
+}
+
+function closeAdd() {
+  addOpen.value = false
+  addError.value = ''
+}
+
+interface WordDraft { display: string, clue: string, category: string }
+
+/** Empty when the draft can be saved, otherwise the reason it cannot. */
+function problemWith(draft: WordDraft, ignoreDocId: string, replacedAnswer: string): string {
+  const answer = normalizeGameWord(draft.display)
   if (answer.length < 3 || answer.length > 24) {
-    formError.value = 'The game answer must contain between 3 and 24 letters.'
-    return
+    return 'The game answer must contain between 3 and 24 letters.'
   }
   // The built-in being superseded is still listed until the override saves,
   // so it must not count against itself as a duplicate.
   const duplicate = allEntries.value.find(entry =>
     entry.answer === answer
-    && entry.id !== editingId.value
-    && entry.answer !== replacing.value
+    && entry.id !== ignoreDocId
+    && entry.answer !== replacedAnswer
   )
-  if (duplicate) {
-    formError.value = `${answer} is already in the word bank.`
-    return
-  }
-  const payload = {
+  return duplicate ? `${answer} is already in the word bank.` : ''
+}
+
+function payloadFor(draft: WordDraft, answer: string, replacedAnswer: string) {
+  return {
     answer,
-    display: form.display.trim(),
-    clue: form.clue.trim(),
-    category: form.category.trim().toLowerCase() || 'custom',
-    source: replacing.value ? 'Edited' : 'Custom',
+    display: draft.display,
+    clue: draft.clue,
+    category: draft.category.toLowerCase() || 'custom',
+    source: replacedAnswer ? 'Edited' : 'Custom',
     games: gameTargetsForAnswer(answer),
-    replaces: replacing.value || ''
+    replaces: replacedAnswer
   }
+}
+
+async function saveEdit(entry: GameWordEntry, draft: WordDraft) {
+  rowError.value = problemWith(draft, editingId.value, replacing.value)
+  if (rowError.value) return
+  const answer = normalizeGameWord(draft.display)
   try {
-    if (editingId.value) await updateItem(editingId.value, payload)
-    else await create(payload)
-    resetForm()
+    if (editingId.value) await updateItem(editingId.value, payloadFor(draft, answer, replacing.value))
+    else await create(payloadFor(draft, answer, replacing.value))
+    closeEdit()
+  } catch {
+    // Shared admin composable exposes the Firebase error above.
+  }
+}
+
+async function saveNew(draft: WordDraft) {
+  addError.value = problemWith(draft, '', '')
+  if (addError.value) return
+  try {
+    await create(payloadFor(draft, normalizeGameWord(draft.display), ''))
+    closeAdd()
+  } catch {
+    // Shared admin composable exposes the Firebase error above.
+  }
+}
+
+/** Drops an override so the generated built-in word applies again. */
+async function resetToBuiltIn(entry: GameWordEntry) {
+  const original = originalOf(entry)
+  if (!original) return
+  if (!confirm(`Restore ${original.display} to the built-in spelling?`)) return
+  try {
+    await remove(entry.id)
+    closeEdit()
   } catch {
     // Shared admin composable exposes the Firebase error above.
   }
@@ -307,13 +369,20 @@ async function deleteWord(entry: GameWordEntry) {
   if (!confirm(`Delete ${entry.display} from the custom word bank?`)) return
   try {
     await remove(entry.id)
-    if (editingId.value === entry.id) resetForm()
+    closeEdit()
   } catch {
     // Shared admin composable exposes the Firebase error above.
   }
 }
 
-onMounted(fetchAll)
+onMounted(() => {
+  media = window.matchMedia('(min-width: 640px)')
+  onMediaChange(media)
+  media.addEventListener('change', onMediaChange)
+  void fetchAll()
+})
+
+onUnmounted(() => media?.removeEventListener('change', onMediaChange))
 
 useHead({ title: 'Game Word Bank · Admin' })
 </script>
