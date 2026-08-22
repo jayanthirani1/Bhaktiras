@@ -78,9 +78,16 @@ self.addEventListener('notificationclick', (event) => {
 })
 `
 
-  // The generated file is committed, so writing blanks is how a build without
-  // .env used to silently ship a service worker that can never receive a push,
-  // with no build error and nothing visibly wrong on the site.
+  // A blank config produces a service worker that registers cleanly and can
+  // never receive a push — no build error, nothing visibly wrong on the site.
+  // So an incomplete config must never reach disk.
+  //
+  // The file is generated rather than committed (see .gitignore). It used to be
+  // checked in, which meant any local build without .env rewrote it with empty
+  // strings, and committing that shipped dead push to the whole sangat. Keeping
+  // it out of git means the only copy that can reach production is the one CI
+  // generates, and the throw below guarantees CI had real config to generate it
+  // from.
   const missing = Object.entries(config).filter(([, value]) => !value).map(([key]) => key)
   if (missing.length) {
     const detail = `missing Firebase config (${missing.join(', ')}); `
@@ -88,7 +95,7 @@ self.addEventListener('notificationclick', (event) => {
     if (process.env.CI) {
       throw new Error(`Refusing to write public/firebase-messaging-sw.js: ${detail}.`)
     }
-    console.warn(`[push] Kept the existing public/firebase-messaging-sw.js: ${detail}.`)
+    console.warn(`[push] Skipped public/firebase-messaging-sw.js: ${detail}.`)
     return
   }
 

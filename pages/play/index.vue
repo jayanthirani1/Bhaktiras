@@ -41,7 +41,7 @@
         </NuxtLink>
       </section>
       <p v-else class="mt-7 text-center text-sm text-[hsl(var(--muted-foreground))]">
-        <NuxtLink to="/login?redirect=/play" class="font-semibold text-[hsl(var(--accent))] underline">Sign in</NuxtLink>
+        <NuxtLink to="/login?redirect=/play" class="font-semibold text-[hsl(var(--golden-900))] underline">Sign in</NuxtLink>
         to start a daily Games streak.
       </p>
 

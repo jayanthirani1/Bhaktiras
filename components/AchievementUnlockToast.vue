@@ -14,7 +14,7 @@
       >
         <p
           id="achievement-unlock-title"
-          class="text-xs font-bold uppercase tracking-[0.2em] text-[hsl(var(--accent))]"
+          class="text-xs font-bold uppercase tracking-[0.2em] text-[hsl(var(--golden-900))]"
         >
           {{ heading }}
         </p>

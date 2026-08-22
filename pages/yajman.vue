@@ -8,7 +8,7 @@
 
       <p v-if="loading" class="text-center text-sm text-[hsl(var(--muted-foreground))]">Loading opportunities…</p>
       <div v-else-if="!opportunities.length" class="card-surface p-8 text-center">
-        <IconSparkles class="mx-auto h-9 w-9 text-[hsl(var(--accent))]" />
+        <IconSparkles class="mx-auto h-9 w-9 text-[hsl(var(--golden-900))]" />
         <h2 class="mt-3 font-display text-xl font-semibold text-[hsl(var(--primary))]">More opportunities coming soon</h2>
         <p class="mt-2 text-sm text-[hsl(var(--muted-foreground))]">Please check back as Patotsav approaches.</p>
       </div>

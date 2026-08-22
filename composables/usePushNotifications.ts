@@ -10,7 +10,7 @@ import {
 import { getApp } from 'firebase/app'
 
 export type PushTopic = 'announcements' | 'games'
-export type PushPromptMoment = 'sign-in' | 'game-complete' | 'events'
+export type PushPromptMoment = 'game-complete' | 'events'
 
 const ALL_TOPICS: PushTopic[] = ['announcements', 'games']
 const SUBSCRIPTION_ID_KEY = 'bhaktiras-push-subscription-id'

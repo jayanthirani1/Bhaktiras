@@ -23,7 +23,7 @@
           :class="isEditing && editingId === n.id ? 'admin-row-active' : ''"
           @click="openEdit(n)"
         >
-          <p class="text-xs font-semibold text-[hsl(var(--accent))]">#{{ n.order ?? 0 }}</p>
+          <p class="text-xs font-semibold text-[hsl(var(--golden-900))]">#{{ n.order ?? 0 }}</p>
           <p class="font-semibold text-[hsl(var(--primary))]">{{ n.title }}</p>
           <p class="mt-1 text-sm text-[hsl(var(--muted-foreground))]">{{ n.detail }}</p>
         </button>

@@ -5,7 +5,7 @@
       <div class="pointer-events-none absolute -top-32 left-1/2 h-64 w-64 -translate-x-1/2 rounded-full bg-[hsl(var(--golden-100))]/70 blur-3xl" />
 
       <div class="relative z-10 mx-auto flex max-w-3xl flex-col items-center text-center">
-        <p class="reveal text-[11px] font-semibold uppercase tracking-[0.28em] text-[hsl(var(--accent))]">
+        <p class="reveal text-[11px] font-semibold uppercase tracking-[0.28em] text-[hsl(var(--golden-900))]">
           {{ greeting || 'Jay Swaminarayan' }}
         </p>
         <div class="reveal reveal-delay-1 mt-6 md:mt-8">
@@ -51,7 +51,7 @@
 
     <section class="mx-auto max-w-2xl px-4">
       <div class="card-surface p-6 sm:p-8 text-center">
-        <p class="text-[11px] font-semibold uppercase tracking-[0.22em] text-[hsl(var(--accent))]">Daily satsang quote</p>
+        <p class="text-[11px] font-semibold uppercase tracking-[0.22em] text-[hsl(var(--golden-900))]">Daily satsang quote</p>
         <blockquote class="mt-4 font-display text-xl italic leading-relaxed text-[hsl(var(--primary))] sm:text-2xl">
           “{{ dailyQuote.quote }}”
         </blockquote>

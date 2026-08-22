@@ -63,7 +63,7 @@
               class="card-surface overflow-hidden"
             >
               <div class="p-6 sm:p-8">
-                <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-[hsl(var(--accent))]">
+                <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-[hsl(var(--golden-900))]">
                   {{ item.date || item.year }}
                 </p>
                 <h3 class="mt-2 text-2xl font-display font-semibold">{{ item.title }}</h3>

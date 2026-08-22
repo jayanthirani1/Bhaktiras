@@ -146,7 +146,7 @@
             <NuxtLink
               v-else
               to="/account"
-              class="ml-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--muted))] hover:text-[hsl(var(--accent))]"
+              class="ml-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--muted))] hover:text-[hsl(var(--golden-900))]"
             >
               <IconUserCircle class="w-4 h-4" />
               Account

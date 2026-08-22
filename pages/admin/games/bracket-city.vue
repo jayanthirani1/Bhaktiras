@@ -33,7 +33,7 @@
           :class="isEditing && editingId === item.id ? 'admin-row-active' : ''"
           @click="openEdit(item)"
         >
-          <p class="text-xs font-semibold text-[hsl(var(--accent))]">{{ item.dateId || 'Rotating puzzle' }}</p>
+          <p class="text-xs font-semibold text-[hsl(var(--golden-900))]">{{ item.dateId || 'Rotating puzzle' }}</p>
           <p class="font-semibold text-[hsl(var(--primary))]">{{ item.title }}</p>
           <p class="mt-1 line-clamp-2 text-sm text-[hsl(var(--muted-foreground))]">{{ plainText(item.source) }}</p>
         </button>

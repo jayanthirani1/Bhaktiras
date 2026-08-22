@@ -40,6 +40,7 @@ export type GameAchievementPayload = {
   won?: boolean
   mistakes?: number
   clubStreak?: number
+  /** 1% Club: cleared every question. Drives the club streak in the callable. */
   clearedAll?: boolean
   moves?: number
   hintsUsed?: number

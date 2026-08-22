@@ -46,7 +46,7 @@
             <span class="min-w-0">
               <span class="block truncate font-semibold text-[hsl(var(--foreground))]">
                 {{ entry.userName }}
-                <span v-if="entry.userId === auth.user.value?.uid" class="text-xs text-[hsl(var(--accent))]">you</span>
+                <span v-if="entry.userId === auth.user.value?.uid" class="text-xs text-[hsl(var(--golden-900))]">you</span>
               </span>
               <span class="text-xs text-[hsl(var(--muted-foreground))]">Best: {{ entry.longestStreak }} days</span>
             </span>

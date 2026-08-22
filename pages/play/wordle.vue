@@ -50,7 +50,7 @@
         </div>
         <p class="mt-2 text-xs text-[hsl(var(--muted-foreground))]">{{ nextPuzzleIn }}</p>
         <div v-if="fastestCrown || fewestCrown" class="mt-4 rounded-xl bg-[hsl(var(--background))] p-4 text-left">
-          <p class="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-[hsl(var(--accent))]">
+          <p class="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-[hsl(var(--golden-900))]">
             <IconCrown class="h-4 w-4" />
             All-time crowns
           </p>

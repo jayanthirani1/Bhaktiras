@@ -11,7 +11,7 @@
         class="card-surface mb-10 overflow-hidden"
       >
         <div class="bg-gradient-to-br from-[hsl(var(--golden-50))] via-[hsl(var(--background))] to-[hsl(var(--muted))] p-6 sm:p-8">
-          <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-[hsl(var(--accent))]">
+          <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-[hsl(var(--golden-900))]">
             Event photos
           </p>
           <h2 class="mt-2 font-display text-2xl font-semibold text-[hsl(var(--primary))] sm:text-3xl">
@@ -99,7 +99,7 @@
           :key="msg.id"
           class="card-surface break-inside-avoid p-5 sm:p-6"
         >
-          <p v-if="msg.prompt" class="text-[10px] font-semibold uppercase tracking-[0.18em] text-[hsl(var(--accent))]">
+          <p v-if="msg.prompt" class="text-[10px] font-semibold uppercase tracking-[0.18em] text-[hsl(var(--golden-900))]">
             {{ msg.prompt }}
           </p>
           <p class="mt-3 font-serif text-lg italic leading-relaxed text-[hsl(var(--foreground))]/90">

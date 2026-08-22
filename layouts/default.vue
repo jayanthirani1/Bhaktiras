@@ -16,9 +16,20 @@
 const route = useRoute()
 const auth = useAuth()
 const { recordVisit } = usePlayStreak()
-const { request: requestPushPrompt } = usePushPrompt()
-let signInPromptTimer: ReturnType<typeof setTimeout> | null = null
 
+/**
+ * There is deliberately no sign-in push prompt here.
+ *
+ * This used to ask for notification permission 1.5s after sign-in — before the
+ * new member had played anything or seen a streak, so there was nothing to
+ * accept it *for*. Cold prompts are refused most of the time, and on iOS a
+ * refusal is effectively permanent: the only way back is Settings. There is one
+ * ask per device, so it has to be spent well.
+ *
+ * The prompt now fires only from the `game-complete` moment in
+ * `usePushPrompt`, where the offer ("Remind me tomorrow's game?") answers a
+ * want the player has just demonstrated.
+ */
 watch(
   [() => route.path, () => auth.user.value?.uid, auth.loading],
   ([path, uid, loading]) => {
@@ -28,18 +39,4 @@ watch(
   },
   { immediate: true }
 )
-
-watch(
-  [() => auth.user.value?.uid, auth.loading],
-  ([uid, loading]) => {
-    if (loading || !uid || import.meta.server) return
-    if (signInPromptTimer) clearTimeout(signInPromptTimer)
-    signInPromptTimer = setTimeout(() => requestPushPrompt('sign-in'), 1500)
-  },
-  { immediate: true }
-)
-
-onUnmounted(() => {
-  if (signInPromptTimer) clearTimeout(signInPromptTimer)
-})
 </script>

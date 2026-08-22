@@ -8,3 +8,9 @@ dist
 .DS_Store
 .local
 .replit
+
+# Generated at build time by scripts/writeFirebaseMessagingSw.mjs from the
+# NUXT_PUBLIC_FIREBASE_* variables. Committing it meant a local build without
+# .env could overwrite it with empty strings and ship push that silently never
+# fires. CI generates it, and refuses to build if the config is missing.
+public/firebase-messaging-sw.js

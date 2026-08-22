@@ -15,7 +15,7 @@
       :disabled="disabled"
       @click="$emit('toggle-direction')"
     >
-      <p class="text-[10px] font-semibold uppercase tracking-[0.16em] text-[hsl(var(--accent))]">
+      <p class="text-[10px] font-semibold uppercase tracking-[0.16em] text-[hsl(var(--golden-900))]">
         {{ number }} {{ directionLabel }}
       </p>
       <p class="mt-0.5 max-h-[6.5rem] overflow-y-auto overscroll-contain break-words text-sm font-semibold leading-snug text-[hsl(var(--foreground))] [touch-action:pan-y]">

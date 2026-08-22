@@ -36,7 +36,7 @@
       </div>
 
       <div v-else-if="!started" class="card-surface space-y-4 p-6 text-center">
-        <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-[hsl(var(--accent))]">
+        <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-[hsl(var(--golden-900))]">
           {{ pack.sectionLabel }}
         </p>
         <p class="font-display text-xl font-semibold text-[hsl(var(--primary))]">{{ pack.title }}</p>
@@ -79,7 +79,7 @@
 
       <div v-else-if="current" class="card-surface space-y-5 p-5 sm:p-6">
         <div class="flex items-center justify-between gap-3">
-          <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-[hsl(var(--accent))]">
+          <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-[hsl(var(--golden-900))]">
             {{ current.percent }}% · Vachnamrut
           </p>
           <p class="text-xs text-[hsl(var(--muted-foreground))]">

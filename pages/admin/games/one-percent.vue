@@ -21,7 +21,7 @@
       <template #list>
         <div class="space-y-5">
           <section v-for="group in grouped" :key="group.section" class="space-y-2">
-            <h2 class="text-xs font-semibold uppercase tracking-[0.18em] text-[hsl(var(--accent))]">
+            <h2 class="text-xs font-semibold uppercase tracking-[0.18em] text-[hsl(var(--golden-900))]">
               {{ group.label }}
               <span class="font-normal tracking-normal text-[hsl(var(--muted-foreground))]">
                 · {{ group.items.length }}
@@ -35,7 +35,7 @@
               :class="isEditing && editingId === q.id ? 'admin-row-active' : ''"
               @click="openEdit(q)"
             >
-              <p class="text-xs font-semibold text-[hsl(var(--accent))]">{{ q.percent }}% · {{ q.source || q.packId || 'Vachnamrut' }}</p>
+              <p class="text-xs font-semibold text-[hsl(var(--golden-900))]">{{ q.percent }}% · {{ q.source || q.packId || 'Vachnamrut' }}</p>
               <p class="font-semibold text-[hsl(var(--primary))]">{{ q.question }}</p>
               <p class="mt-1 text-sm text-[hsl(var(--muted-foreground))]">Answer: {{ q.correctAnswer }}</p>
             </button>

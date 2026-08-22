@@ -2,7 +2,7 @@
   <section class="mb-5 rounded-2xl border border-[hsl(var(--golden-200))] bg-[hsl(var(--golden-50))] p-4 sm:p-5">
     <div class="flex flex-wrap items-start justify-between gap-3">
       <div>
-        <p class="text-xs font-bold uppercase tracking-[0.16em] text-[hsl(var(--accent))]">Today · {{ dateLabel }}</p>
+        <p class="text-xs font-bold uppercase tracking-[0.16em] text-[hsl(var(--golden-900))]">Today · {{ dateLabel }}</p>
         <h2 class="mt-1 font-display text-xl font-semibold text-[hsl(var(--primary))]">{{ puzzle.title }}</h2>
         <p class="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
           {{ overridden ? 'Admin override is live.' : 'Generated from today’s word bank.' }}

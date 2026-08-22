@@ -7,7 +7,7 @@
       />
 
       <div class="card-surface mb-6 p-5 text-center sm:p-6">
-        <p class="text-sm font-semibold text-[hsl(var(--accent))]">
+        <p class="text-sm font-semibold text-[hsl(var(--golden-900))]">
           Niyams completed together with all Devotees
         </p>
         <p class="mt-2 font-display text-4xl text-[hsl(var(--primary))]">
@@ -16,7 +16,7 @@
       </div>
 
       <div class="card-surface mb-8 p-5 text-center sm:p-6">
-        <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-[hsl(var(--accent))]">Your tracker</p>
+        <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-[hsl(var(--golden-900))]">Your tracker</p>
         <p class="mt-2 font-display text-4xl text-[hsl(var(--primary))]">
           {{ doneCount }}/{{ total }}
         </p>
@@ -27,7 +27,7 @@
           />
         </div>
         <p v-if="!isLoggedIn" class="mt-4 text-sm text-[hsl(var(--muted-foreground))]">
-          <NuxtLink to="/login?redirect=/niyams" class="font-semibold text-[hsl(var(--accent))] hover:underline">
+          <NuxtLink to="/login?redirect=/niyams" class="font-semibold text-[hsl(var(--golden-900))] hover:underline">
             Sign in
           </NuxtLink>
           to save your niyams to your account and add to the community total.

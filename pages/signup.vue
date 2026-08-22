@@ -14,9 +14,9 @@
         >
         <span class="leading-relaxed text-[hsl(var(--muted-foreground))]">
           I have read and agree to the
-          <NuxtLink to="/privacy" target="_blank" class="font-semibold text-[hsl(var(--accent))] underline">Privacy Policy</NuxtLink>
+          <NuxtLink to="/privacy" target="_blank" class="font-semibold text-[hsl(var(--golden-900))] underline">Privacy Policy</NuxtLink>
           and
-          <NuxtLink to="/policy" target="_blank" class="font-semibold text-[hsl(var(--accent))] underline">Site Policy</NuxtLink>.
+          <NuxtLink to="/policy" target="_blank" class="font-semibold text-[hsl(var(--golden-900))] underline">Site Policy</NuxtLink>.
         </span>
       </label>
 
@@ -78,7 +78,7 @@
       </form>
       <p class="mt-4 text-center text-sm text-[hsl(var(--muted-foreground))]">
         Already have an account?
-        <NuxtLink :to="loginLink" class="text-[hsl(var(--accent))] font-medium underline">Sign in</NuxtLink>
+        <NuxtLink :to="loginLink" class="text-[hsl(var(--golden-900))] font-medium underline">Sign in</NuxtLink>
       </p>
       <p class="mt-2 text-center">
         <NuxtLink to="/" class="text-sm text-[hsl(var(--muted-foreground))] hover:underline">Back to home</NuxtLink>

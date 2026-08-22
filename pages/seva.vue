@@ -22,7 +22,7 @@
       <div class="grid gap-4 sm:grid-cols-2">
         <article v-for="team in sevaTeams" :key="team.id" class="card-surface p-5 sm:p-6">
           <h3 class="font-display text-lg font-semibold text-[hsl(var(--primary))]">{{ team.name }}</h3>
-          <p v-if="team.summary" class="mt-1 text-sm font-medium text-[hsl(var(--accent))]">{{ team.summary }}</p>
+          <p v-if="team.summary" class="mt-1 text-sm font-medium text-[hsl(var(--golden-900))]">{{ team.summary }}</p>
           <p class="mt-2 text-sm leading-relaxed text-[hsl(var(--foreground))]/80">{{ team.description }}</p>
         </article>
       </div>
