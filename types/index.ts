@@ -284,6 +284,41 @@ export interface BracketCityPuzzle {
   credit?: string
 }
 
+export interface BhaktiMargWord {
+  word: string
+  meaning: string
+}
+
+export interface BhaktiMargPuzzle {
+  id: string
+  title: string
+  dateId?: string | null
+  gridSize: number
+  grid: string[][]
+  walls: Array<{ row: number; col: number; direction: 'right' | 'down' }>
+  words: BhaktiMargWord[]
+  paths: Array<Array<[number, number]>>
+  published?: boolean
+}
+
+export interface RasRaniRegion {
+  id: string
+  name: string
+  color: string
+  meaning?: string
+}
+
+export interface RasRaniPuzzle {
+  id: string
+  title: string
+  dateId?: string | null
+  gridSize: number
+  regionGrid: string[][]
+  regions: RasRaniRegion[]
+  solution: Array<[number, number]>
+  published?: boolean
+}
+
 export interface PlayStreakRecord {
   id: string
   userId: string

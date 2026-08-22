@@ -46,16 +46,32 @@
             <button
               v-for="(_, idx) in puzzle.gridSize * puzzle.gridSize"
               :key="idx"
+              :ref="el => cellRefs[idx] = el as HTMLElement"
               type="button"
               :data-row="Math.floor(idx / puzzle.gridSize)"
               :data-col="idx % puzzle.gridSize"
-              class="flex aspect-square items-center justify-center border-2 text-lg font-bold transition-all sm:text-xl"
-              :class="getCellClass(Math.floor(idx / puzzle.gridSize), idx % puzzle.gridSize)"
+              class="relative flex aspect-square items-center justify-center border-2 text-lg font-bold transition-all sm:text-xl"
+              :class="[
+                getCellClass(Math.floor(idx / puzzle.gridSize), idx % puzzle.gridSize),
+                animatingCells.has(`${Math.floor(idx / puzzle.gridSize)},${idx % puzzle.gridSize}`) ? 'nectar-cell-glow' : ''
+              ]"
               :disabled="finished"
               @click="toggleCell(Math.floor(idx / puzzle.gridSize), idx % puzzle.gridSize)"
             >
-              <span v-if="grid[Math.floor(idx / puzzle.gridSize)][idx % puzzle.gridSize] === 'queen'">🍯</span>
+              <span
+                v-if="grid[Math.floor(idx / puzzle.gridSize)][idx % puzzle.gridSize] === 'queen'"
+                :class="animatingCells.has(`${Math.floor(idx / puzzle.gridSize)},${idx % puzzle.gridSize}`) ? 'nectar-drop-animate' : ''"
+              >🍯</span>
               <span v-else-if="grid[Math.floor(idx / puzzle.gridSize)][idx % puzzle.gridSize] === 'marked'" class="text-sm opacity-50">✕</span>
+              <!-- Splash particles -->
+              <template v-if="animatingCells.has(`${Math.floor(idx / puzzle.gridSize)},${idx % puzzle.gridSize}`)">
+                <span class="nectar-splash-particle" style="--splash-x: -8px; --splash-y: -10px;" />
+                <span class="nectar-splash-particle" style="--splash-x: 8px; --splash-y: -9px;" />
+                <span class="nectar-splash-particle" style="--splash-x: -10px; --splash-y: -4px;" />
+                <span class="nectar-splash-particle" style="--splash-x: 10px; --splash-y: -5px;" />
+                <span class="nectar-splash-particle" style="--splash-x: -4px; --splash-y: -12px;" />
+                <span class="nectar-splash-particle" style="--splash-x: 5px; --splash-y: -11px;" />
+              </template>
             </button>
           </div>
         </div>
@@ -190,6 +206,8 @@ const shareCopied = ref(false)
 const scoreSubmitted = ref(false)
 const submitting = ref(false)
 const submitError = ref('')
+const animatingCells = ref<Set<string>>(new Set())
+const cellRefs = ref<(HTMLElement | null)[]>([])
 
 const queenCount = computed(() => getQueenPositions(grid.value).length)
 const violations = computed(() => checkViolations(grid.value, puzzle.value))
@@ -281,6 +299,14 @@ function loadState() {
   }
 }
 
+function triggerNectarAnimation(row: number, col: number) {
+  const key = `${row},${col}`
+  animatingCells.value = new Set([...animatingCells.value, key])
+  setTimeout(() => {
+    animatingCells.value = new Set([...animatingCells.value].filter(k => k !== key))
+  }, 600)
+}
+
 function toggleCell(row: number, col: number) {
   if (finished.value) return
   timer.ensureStarted()
@@ -294,6 +320,10 @@ function toggleCell(row: number, col: number) {
   grid.value = grid.value.map((r, ri) =>
     r.map((c, ci) => (ri === row && ci === col ? next : c))
   )
+
+  if (next === 'queen') {
+    triggerNectarAnimation(row, col)
+  }
 
   if (autoMark.value && next === 'queen') {
     grid.value = autoMarkInvalidCells(grid.value, puzzle.value)

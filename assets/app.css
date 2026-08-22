@@ -484,3 +484,80 @@
 .achievement-medal-pop:nth-child(2) { animation-delay: 0.08s; }
 .achievement-medal-pop:nth-child(3) { animation-delay: 0.16s; }
 .achievement-medal-pop:nth-child(4) { animation-delay: 0.24s; }
+
+/* Ras Rani nectar droplet animation */
+@keyframes nectar-drop {
+  0% {
+    opacity: 0;
+    transform: translateY(-20px) scaleX(0.7) scaleY(1.4);
+  }
+  15% {
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(0) scaleX(0.85) scaleY(1.2);
+  }
+  65% {
+    transform: translateY(2px) scaleX(1.3) scaleY(0.7);
+  }
+  80% {
+    transform: translateY(-4px) scaleX(0.9) scaleY(1.1);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scaleX(1) scaleY(1);
+  }
+}
+
+@keyframes nectar-splash {
+  0% {
+    opacity: 0;
+    transform: translate(var(--splash-x, 0), var(--splash-y, 0)) scale(0.3);
+  }
+  20% {
+    opacity: 0.9;
+  }
+  50% {
+    opacity: 0.7;
+    transform: translate(calc(var(--splash-x, 0) * 2.5), calc(var(--splash-y, 0) * 2.5)) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(var(--splash-x, 0) * 3.5), calc(var(--splash-y, 0) * 3.5)) scale(0.4);
+  }
+}
+
+@keyframes nectar-glow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(217, 174, 48, 0);
+  }
+  50% {
+    box-shadow: 0 0 12px 4px rgba(217, 174, 48, 0.4);
+  }
+}
+
+.nectar-drop-animate {
+  animation: nectar-drop 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.nectar-cell-glow {
+  animation: nectar-glow 0.6s ease-out;
+}
+
+.nectar-splash-particle {
+  position: absolute;
+  width: 6px;
+  height: 8px;
+  background: #d9ae30;
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  pointer-events: none;
+  animation: nectar-splash 0.55s cubic-bezier(0.2, 0.65, 0.3, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nectar-drop-animate,
+  .nectar-cell-glow,
+  .nectar-splash-particle {
+    animation: none !important;
+  }
+}

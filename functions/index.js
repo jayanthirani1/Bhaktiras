@@ -55,6 +55,28 @@ const GAME_ACHIEVEMENTS = {
     { id: 'one-percent-club-14-days', when: ({ clubStreak, onePercentClubLongestStreak }) => Math.max(clubStreak || 0, onePercentClubLongestStreak || 0) >= 14 },
     { id: 'one-percent-club-30-days', when: ({ clubStreak, onePercentClubLongestStreak }) => Math.max(clubStreak || 0, onePercentClubLongestStreak || 0) >= 30 }
   ],
+  'bhakti-marg': [
+    { id: 'bhakti-marg-first-win', when: ({ bhaktiMargWins }) => bhaktiMargWins >= 1 },
+    { id: 'bhakti-marg-wins-7', when: ({ bhaktiMargWins }) => bhaktiMargWins >= 7 },
+    { id: 'bhakti-marg-wins-30', when: ({ bhaktiMargWins }) => bhaktiMargWins >= 30 },
+    { id: 'bhakti-marg-wins-100', when: ({ bhaktiMargWins }) => bhaktiMargWins >= 100 },
+    { id: 'bhakti-marg-wins-200', when: ({ bhaktiMargWins }) => bhaktiMargWins >= 200 },
+    { id: 'bhakti-marg-wins-300', when: ({ bhaktiMargWins }) => bhaktiMargWins >= 300 },
+    { id: 'bhakti-marg-no-hints', when: ({ hintsUsed }) => hintsUsed === 0 },
+    { id: 'bhakti-marg-no-hints-10', when: ({ bhaktiMargNoHints }) => bhaktiMargNoHints >= 10 },
+    { id: 'bhakti-marg-sub-60s', when: ({ timeMs }) => timeMs < 60_000 }
+  ],
+  'ras-rani': [
+    { id: 'ras-rani-first-win', when: ({ rasRaniWins }) => rasRaniWins >= 1 },
+    { id: 'ras-rani-wins-7', when: ({ rasRaniWins }) => rasRaniWins >= 7 },
+    { id: 'ras-rani-wins-30', when: ({ rasRaniWins }) => rasRaniWins >= 30 },
+    { id: 'ras-rani-wins-100', when: ({ rasRaniWins }) => rasRaniWins >= 100 },
+    { id: 'ras-rani-wins-200', when: ({ rasRaniWins }) => rasRaniWins >= 200 },
+    { id: 'ras-rani-wins-300', when: ({ rasRaniWins }) => rasRaniWins >= 300 },
+    { id: 'ras-rani-no-hints', when: ({ hintsUsed }) => hintsUsed === 0 },
+    { id: 'ras-rani-no-hints-10', when: ({ rasRaniNoHints }) => rasRaniNoHints >= 10 },
+    { id: 'ras-rani-sub-60s', when: ({ timeMs }) => timeMs < 60_000 }
+  ],
   streak: [
     { id: 'streak-7', when: ({ longestStreak }) => longestStreak >= 7 },
     { id: 'streak-30', when: ({ longestStreak }) => longestStreak >= 30 },
@@ -169,6 +191,12 @@ function applyGameStats(game, candidate, stats, today) {
     stats.onePercentClubLastDate = streak.last
     candidate.clubStreak = streak.current
     if (candidate.clearedAll) bumpOncePerDay(stats, 'onePercentClubClears', 'onePercentClubClearsDate', today)
+  } else if (game === 'bhakti-marg') {
+    bumpOncePerDay(stats, 'bhaktiMargWins', 'bhaktiMargWinsDate', today)
+    if (candidate.hintsUsed === 0) bumpOncePerDay(stats, 'bhaktiMargNoHints', 'bhaktiMargNoHintsDate', today)
+  } else if (game === 'ras-rani') {
+    bumpOncePerDay(stats, 'rasRaniWins', 'rasRaniWinsDate', today)
+    if (candidate.hintsUsed === 0) bumpOncePerDay(stats, 'rasRaniNoHints', 'rasRaniNoHintsDate', today)
   }
   Object.assign(candidate, stats)
 }
@@ -195,6 +223,13 @@ function isBetterOnePercentScore(current, candidate) {
   if (!current) return true
   const currentScore = Number(current.score || current.value)
   if (candidate.score !== currentScore) return candidate.score > currentScore
+  return candidate.timeMs < Number(current.timeMs || Infinity)
+}
+
+function isBetterFewestMoves(current, candidate) {
+  if (!current) return true
+  const currentMoves = Number(current.moves || current.value)
+  if (candidate.moves !== currentMoves) return candidate.moves < currentMoves
   return candidate.timeMs < Number(current.timeMs || Infinity)
 }
 
@@ -227,6 +262,10 @@ const CROWN_LABELS = {
   'crossword-fastest': 'fastest Crossword',
   'one-percent-highest': 'highest 1% Club score',
   'one-percent-fastest': 'fastest 1% Club clear',
+  'bhakti-marg-fastest': 'fastest Bhakti Marg',
+  'bhakti-marg-fewest-moves': 'fewest-move Bhakti Marg',
+  'ras-rani-fastest': 'fastest Ras Rani',
+  'ras-rani-fewest-moves': 'fewest-move Ras Rani',
   'streak-longest': 'longest play streak'
 }
 
@@ -599,6 +638,30 @@ async function handleGameAchievements(request) {
         extra: { score, timeMs }
       })
     }
+  } else if (game === 'bhakti-marg') {
+    const moves = intInRange(request.data?.moves, 1, 1000)
+    const timeMs = intInRange(request.data?.timeMs, 0, 86_400_000)
+    const hintsUsed = intInRange(request.data?.hintsUsed ?? 0, 0, 100)
+    if (moves == null) throw new HttpsError('invalid-argument', 'Invalid Bhakti Marg move count.')
+    if (timeMs == null) throw new HttpsError('invalid-argument', 'Invalid Bhakti Marg time.')
+    if (hintsUsed == null) throw new HttpsError('invalid-argument', 'Invalid Bhakti Marg hints.')
+    Object.assign(candidate, { moves, timeMs, hintsUsed })
+    crownSpecs.push(
+      { id: 'bhakti-marg-fastest', metric: 'fastest-time', value: timeMs, better: isBetterFastestTime, extra: { moves, timeMs } },
+      { id: 'bhakti-marg-fewest-moves', metric: 'fewest-moves', value: moves, better: isBetterFewestMoves, extra: { moves, timeMs } }
+    )
+  } else if (game === 'ras-rani') {
+    const moves = intInRange(request.data?.moves, 1, 1000)
+    const timeMs = intInRange(request.data?.timeMs, 0, 86_400_000)
+    const hintsUsed = intInRange(request.data?.hintsUsed ?? 0, 0, 100)
+    if (moves == null) throw new HttpsError('invalid-argument', 'Invalid Ras Rani move count.')
+    if (timeMs == null) throw new HttpsError('invalid-argument', 'Invalid Ras Rani time.')
+    if (hintsUsed == null) throw new HttpsError('invalid-argument', 'Invalid Ras Rani hints.')
+    Object.assign(candidate, { moves, timeMs, hintsUsed })
+    crownSpecs.push(
+      { id: 'ras-rani-fastest', metric: 'fastest-time', value: timeMs, better: isBetterFastestTime, extra: { moves, timeMs } },
+      { id: 'ras-rani-fewest-moves', metric: 'fewest-moves', value: moves, better: isBetterFewestMoves, extra: { moves, timeMs } }
+    )
   } else if (game === 'streak') {
     const streakSnap = await db.doc(`playStreaks/${uid}`).get()
     if (!streakSnap.exists) return { unlockedIds: [], crowns: [] }
