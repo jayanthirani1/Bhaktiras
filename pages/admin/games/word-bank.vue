@@ -4,7 +4,7 @@
       <h2 class="font-display text-xl font-semibold text-[hsl(var(--primary))]">Shared game word bank</h2>
       <p class="mt-1 text-sm text-[hsl(var(--muted-foreground))]">
         {{ allEntries.length.toLocaleString() }} Swaminarayan, satsang and Hindu vocabulary entries.
-        The built-in words remain protected; custom words are saved to Firebase.
+        Built-in words come from the generated bank; edits and custom words are saved to Firebase.
       </p>
     </div>
 
@@ -12,7 +12,7 @@
       <div class="flex items-center justify-between gap-3">
         <div>
           <h3 class="font-display text-lg font-semibold text-[hsl(var(--primary))]">
-            {{ editingId ? 'Edit custom word' : 'Add custom word' }}
+            {{ formHeading }}
           </h3>
           <p class="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
             Spaces and accents are removed automatically for game input.
@@ -20,6 +20,14 @@
         </div>
         <button v-if="editingId" type="button" class="admin-btn-secondary" @click="resetForm">Cancel</button>
       </div>
+      <p
+        v-if="replacing"
+        class="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800"
+      >
+        Correcting the built-in word <span class="font-mono font-semibold">{{ replacing }}</span>.
+        The generated word bank is left alone — this saves an override the games use instead,
+        and Reset puts the original back.
+      </p>
       <div class="grid gap-3 sm:grid-cols-3">
         <div>
           <label class="admin-label">Word or phrase</label>
@@ -46,7 +54,7 @@
       </div>
       <p v-if="formError || error" class="text-sm text-red-600">{{ formError || error }}</p>
       <button type="submit" class="admin-btn" :disabled="saving">
-        {{ saving ? 'Saving…' : editingId ? 'Update word' : 'Add to word bank' }}
+        {{ saving ? 'Saving…' : submitLabel }}
       </button>
     </form>
 
@@ -96,16 +104,34 @@
             <td class="py-2 pr-3 align-top">
               <p class="font-mono font-semibold text-[hsl(var(--primary))]">{{ entry.answer }}</p>
               <p v-if="entry.display.toUpperCase() !== entry.answer" class="text-xs text-[hsl(var(--muted-foreground))]">{{ entry.display }}</p>
+              <p v-if="originalOf(entry)" class="mt-0.5 text-xs text-amber-700">
+                was {{ originalOf(entry)!.display }}
+              </p>
             </td>
             <td class="py-2 pr-3 align-top">{{ entry.clue }}</td>
             <td class="py-2 pr-3 align-top text-xs">{{ entry.category }}</td>
             <td class="py-2 pr-3 align-top text-xs">{{ entry.games.map(gameLabel).join(', ') || 'Reference only' }}</td>
             <td class="py-2 align-top">
-              <div v-if="entry.source === 'Custom'" class="flex gap-2">
+              <div class="flex flex-wrap gap-2">
                 <button type="button" class="text-xs font-semibold text-[hsl(var(--primary))]" @click="editWord(entry)">Edit</button>
-                <button type="button" class="text-xs font-semibold text-red-600" @click="deleteWord(entry)">Delete</button>
+                <button
+                  v-if="originalOf(entry)"
+                  type="button"
+                  class="text-xs font-semibold text-amber-700"
+                  @click="resetToBuiltIn(entry)"
+                >
+                  Reset
+                </button>
+                <button
+                  v-else-if="isStored(entry)"
+                  type="button"
+                  class="text-xs font-semibold text-red-600"
+                  @click="deleteWord(entry)"
+                >
+                  Delete
+                </button>
               </div>
-              <span v-else class="text-xs text-[hsl(var(--muted-foreground))]">Built in</span>
+              <span class="mt-0.5 block text-xs text-[hsl(var(--muted-foreground))]">{{ sourceLabel(entry) }}</span>
             </td>
           </tr>
         </tbody>
@@ -122,6 +148,7 @@ import {
   gameWordsFor,
   mergeGameWords,
   normalizeGameWord,
+  replacedBuiltIn,
   SATSANG_WORD_BANK
 } from '~/utils/gameWordBank'
 
@@ -132,24 +159,31 @@ const search = ref('')
 const game = ref<'' | GameWordTarget>('')
 const category = ref('')
 const editingId = ref('')
+/** Answer of the built-in word being superseded, empty for a plain custom word. */
+const replacing = ref('')
 const formError = ref('')
 const form = reactive({ display: '', clue: '', category: 'satsang' })
 const { items, loading, saving, error, fetchAll, create, updateItem, remove } = useAdminGameWords()
 
-const customEntries = computed<GameWordEntry[]>(() => items.value.map(entry => ({
-  ...entry,
-  answer: normalizeGameWord(entry.answer || entry.display),
-  display: String(entry.display || entry.answer || '').trim(),
-  clue: String(entry.clue || '').trim(),
-  category: String(entry.category || 'custom').trim() || 'custom',
-  source: 'Custom',
-  games: gameTargetsForAnswer(entry.answer || entry.display)
-})))
+const customEntries = computed<GameWordEntry[]>(() => items.value.map((entry) => {
+  const replaces = normalizeGameWord(entry.replaces || '')
+  return {
+    ...entry,
+    answer: normalizeGameWord(entry.answer || entry.display),
+    display: String(entry.display || entry.answer || '').trim(),
+    clue: String(entry.clue || '').trim(),
+    category: String(entry.category || 'custom').trim() || 'custom',
+    source: replaces ? 'Edited' : 'Custom',
+    games: gameTargetsForAnswer(entry.answer || entry.display),
+    ...(replaces ? { replaces } : {})
+  }
+}))
 const allEntries = computed(() => mergeGameWords(customEntries.value))
 const categories = computed(() => [...new Set(allEntries.value.map(entry => entry.category))].sort())
 const stats = computed(() => [
   { label: 'Total entries', value: allEntries.value.length },
-  { label: 'Custom words', value: customEntries.value.length },
+  { label: 'Custom words', value: customEntries.value.filter(e => !replacedBuiltIn(e)).length },
+  { label: 'Edited words', value: customEntries.value.filter(e => replacedBuiltIn(e)).length },
   { label: 'Wordle words', value: gameWordsFor('wordle', allEntries.value).length },
   { label: 'Crossword words', value: gameWordsFor('crossword', allEntries.value).length },
 ])
@@ -172,17 +206,65 @@ function gameLabel(target: GameWordTarget) {
   return target[0].toUpperCase() + target.slice(1)
 }
 
+/** The built-in word this row supersedes, when the row is an admin edit. */
+function originalOf(entry: GameWordEntry) {
+  return replacedBuiltIn(entry)
+}
+
+/** True when the row is a Firebase document rather than a generated word. */
+function isStored(entry: GameWordEntry) {
+  return entry.source === 'Custom' || entry.source === 'Edited'
+}
+
+function sourceLabel(entry: GameWordEntry) {
+  if (!isStored(entry)) return 'Built in'
+  // An edit whose built-in word has since left the generated bank is just a
+  // custom word now, and is deleted rather than reset.
+  return originalOf(entry) ? 'Edited' : 'Custom'
+}
+
+const formHeading = computed(() => {
+  if (replacing.value) return 'Correct built-in word'
+  return editingId.value ? 'Edit custom word' : 'Add custom word'
+})
+
+const submitLabel = computed(() => {
+  if (replacing.value) return editingId.value ? 'Update correction' : 'Save correction'
+  return editingId.value ? 'Update word' : 'Add to word bank'
+})
+
 function resetForm() {
   editingId.value = ''
+  replacing.value = ''
   formError.value = ''
   Object.assign(form, { display: '', clue: '', category: 'satsang' })
 }
 
+/**
+ * Editing a built-in word does not touch the generated bank. It opens the form
+ * as a new override that supersedes that word, so the change is a Firebase
+ * document the mandir can undo with Reset.
+ */
 function editWord(entry: GameWordEntry) {
-  editingId.value = entry.id
+  const builtIn = entry.source !== 'Custom' && entry.source !== 'Edited'
+  editingId.value = builtIn ? '' : entry.id
+  replacing.value = builtIn ? entry.answer : normalizeGameWord(entry.replaces || '')
   formError.value = ''
   Object.assign(form, { display: entry.display, clue: entry.clue, category: entry.category })
   window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+/** Drops an override so the generated built-in word applies again. */
+async function resetToBuiltIn(entry: GameWordEntry) {
+  const original = replacedBuiltIn(entry)
+  if (!original) return
+  if (!confirm(`Restore ${original.display} to the built-in spelling?`)) return
+  try {
+    await remove(entry.id)
+    if (editingId.value === entry.id) resetForm()
+  } catch {
+    // Shared admin composable exposes the Firebase error above.
+  }
 }
 
 async function saveWord() {
@@ -192,8 +274,12 @@ async function saveWord() {
     formError.value = 'The game answer must contain between 3 and 24 letters.'
     return
   }
+  // The built-in being superseded is still listed until the override saves,
+  // so it must not count against itself as a duplicate.
   const duplicate = allEntries.value.find(entry =>
-    entry.answer === answer && entry.id !== editingId.value
+    entry.answer === answer
+    && entry.id !== editingId.value
+    && entry.answer !== replacing.value
   )
   if (duplicate) {
     formError.value = `${answer} is already in the word bank.`
@@ -204,8 +290,9 @@ async function saveWord() {
     display: form.display.trim(),
     clue: form.clue.trim(),
     category: form.category.trim().toLowerCase() || 'custom',
-    source: 'Custom',
-    games: gameTargetsForAnswer(answer)
+    source: replacing.value ? 'Edited' : 'Custom',
+    games: gameTargetsForAnswer(answer),
+    replaces: replacing.value || ''
   }
   try {
     if (editingId.value) await updateItem(editingId.value, payload)

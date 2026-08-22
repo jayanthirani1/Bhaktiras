@@ -101,6 +101,12 @@ export interface GameWordEntry {
   category: string
   source: string
   games: GameWordTarget[]
+  /**
+   * For an admin edit of a built-in word: the original built-in `answer` this
+   * entry supersedes. Held rather than the built-in id because regenerating
+   * satsangWordBank.json renumbers ids but keeps answers stable.
+   */
+  replaces?: string
 }
 
 export interface GratitudeMessage {
