@@ -48,7 +48,7 @@ Requires the **Blaze** plan (Functions + Storage).
 **Games** — `/play` plus `wordle`, `crossword`, `mini-crossword`, `connections`,
 `one-percent`, `achievements`, `streaks`
 
-**Admin** — `/admin` plus `auth`, `timeline`, `events`, `niyams`, `yajman`,
+**Admin** — `/admin` plus `auth`, `timeline`, `events`, `niyams`, `niyam-challenges`, `yajman`,
 `notifications`, `legal`, `bugs`, `content/{index,homepage,community,navigation}`,
 `games/{wordle,crossword,mini-crossword,connections,one-percent,word-bank}`
 
@@ -81,10 +81,36 @@ WhatsApp community invite (live link in `data/site.ts`) plus 12 volunteer teams 
 responsibilities from `data/sevaTeams.ts`. No hour logging.
 
 ### Our Niyams
-12 utsav niyams (`data/niyams.ts`, admin-editable via the `niyams` collection). Each
-person ticks their own — a **checklist**, not a dated daily tracker: `niyamProgress/{uid}`
-holds a `checked` map with no per-day history. Public `niyamStats` aggregates
-participants and per-niyam counts as community encouragement.
+Two tabs on `/niyams`.
+
+**Challenges** — admin-set community goals with a target and a deadline
+("10,000 malas in three months"). A devotee submits how many they have done;
+approved entries from every devotee ladder up into one shared total on a
+progress bar. Admin side is `/admin/niyam-challenges`: create the challenge,
+then review the queue and see everyone's entries and per-person totals.
+
+The integrity model is worth knowing before changing anything here:
+
+- `niyamChallengeStats/{challengeId}` and the per-person
+  `niyamChallenges/{id}/contributors/{uid}` rollups are **closed to browser
+  writes** and derived by the `syncNiyamChallengeTotals` Firestore trigger. The
+  number on the progress bar cannot be typed in.
+- Each challenge carries an `autoApproveMax`. A submission at or below it is
+  written as `approved`; anything larger is written as `pending` and stays out
+  of the total until an admin approves it. **The security rules enforce which
+  one it must be**, so bypassing the UI does not bypass review.
+- `maxPerSubmission` is a hard ceiling — rules refuse anything above it.
+- Submissions are private to their author and to admins. An individual mala
+  count is personal sadhana, not a leaderboard row.
+- Every query uses a single equality filter (`statusKey`, `userChallengeKey`,
+  `challengeId`) and submission ids embed an inverted timestamp, so nothing here
+  needs a composite index — the deploy service account cannot create them.
+
+**Daily niyams** — the original checklist: 12 utsav niyams (`data/niyams.ts`,
+admin-editable via the `niyams` collection). Each person ticks their own — a
+checklist, not a dated daily tracker: `niyamProgress/{uid}` holds a `checked`
+map with no per-day history. Public `niyamStats` aggregates participants and
+per-niyam counts as community encouragement.
 
 ### Yajman
 Utsav sponsorship opportunities with amounts and contact links, admin-managed.
@@ -140,7 +166,8 @@ and the game banks (`connectionsPuzzles`, `miniCrossword`,
 `userAchievements` `achievementCrowns` `gameWords` `wordleWords` `wordleDaily`
 `miniCrosswordPuzzles` `connectionsPuzzles` `onePercentQuestions`
 
-**Niyams** — `niyamProgress` `niyamStats`
+**Niyams** — `niyamProgress` `niyamStats` `niyamChallenges`
+(+ `contributors` subcollection) `niyamChallengeStats` `niyamSubmissions`
 
 **Push** — `pushSubscriptions` `pushMessages`
 
