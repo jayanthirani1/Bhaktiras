@@ -10,7 +10,7 @@
         </span>
       </div>
 
-      <PageHeader title="Ras Rani 👑🍯" subtitle="Find the nectar. Place one droplet in each row, column, and colored region. No two can touch." />
+      <PageHeader title="Ras Rani 🍯" subtitle="Find the nectar. Place one droplet in each row, column, and colored region. No two can touch." />
 
       <GamePlayedElsewhere
         v-if="playedElsewhere"
@@ -360,7 +360,7 @@ function shareResult() {
   ).join('\n')
   const shareUrl = typeof window !== 'undefined' ? `${window.location.origin}/play/ras-rani` : ''
   const text = [
-    `Bhaktiras Ras Rani 👑`,
+    `Bhaktiras Ras Rani 🍯`,
     timer.display.value,
     `${moves.value} moves · ${hintsUsed.value} hints`,
     '',
