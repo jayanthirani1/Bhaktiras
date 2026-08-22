@@ -224,6 +224,8 @@ export type GameLeaderboardId =
   | 'mini-crossword'
   | 'connections'
   | 'bracket-city'
+  | 'bhakti-marg'
+  | 'ras-rani'
 
 export interface GameScoreEntry {
   id: string

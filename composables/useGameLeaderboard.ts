@@ -66,6 +66,8 @@ async function cleanseOldScores(
     'mini-crossword',
     'connections',
     'bracket-city',
+    'bhakti-marg',
+    'ras-rani',
   ]
   if (!dailyGames.includes(game)) return
 
