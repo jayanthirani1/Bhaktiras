@@ -33,6 +33,26 @@
         </p>
       </section>
 
+      <section class="admin-panel">
+        <AdminTrendChart
+          :caption="trendCaption"
+          :series-label="trendSeriesLabel"
+          :points="trendPoints"
+        />
+        <p class="mt-3 text-xs leading-relaxed text-[hsl(var(--muted-foreground))]">
+          <span v-if="!usingMeasured">
+            Site-wide active members cannot be worked out retrospectively — an account records only
+            the most recent time it was used, so past days are unrecoverable. A nightly snapshot now
+            records it, and this chart switches over once a fortnight of nights has built up
+            ({{ data.history.measured }} so far). Until then it shows daily unique players, which
+            game scores do record historically.
+          </span>
+          <span v-else>
+            Recorded nightly from {{ data.history.measured }} daily snapshots.
+          </span>
+        </p>
+      </section>
+
       <section>
         <h2 class="mb-2 font-display text-lg font-semibold text-[hsl(var(--primary))]">Members</h2>
         <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -151,6 +171,10 @@ type Overview = {
     playsPerGame: Record<string, number>
   }
   policy: { profiles: number; versions: Record<string, number> }
+  history: {
+    measured: number
+    points: Array<{ dateId: string; players: number; activeMembers: number | null }>
+  }
   computedAt: number
   cached: boolean
 }
@@ -202,6 +226,20 @@ const gameRows = computed(() => {
     .map(([key, value]) => ({ label: GAME_LABELS[key] || key, value }))
     .sort((a, b) => b.value - a.value)
 })
+
+/** Prefer the real measurement, but only once there is enough of it to read. */
+const MEASURED_MINIMUM = 14
+const usingMeasured = computed(() => (data.value?.history.measured ?? 0) >= MEASURED_MINIMUM)
+
+const trendPoints = computed(() => (data.value?.history.points ?? []).map(point => ({
+  dateId: point.dateId,
+  value: usingMeasured.value ? (point.activeMembers ?? 0) : point.players
+})))
+
+const trendSeriesLabel = computed(() => usingMeasured.value ? 'Active members' : 'Players')
+const trendCaption = computed(() => usingMeasured.value
+  ? 'Active members, last 30 days'
+  : 'Daily unique players, last 30 days')
 
 const onCurrentPolicy = computed(() => data.value?.policy.versions[currentPolicyVersion] || 0)
 const behindPolicy = computed(() => {
