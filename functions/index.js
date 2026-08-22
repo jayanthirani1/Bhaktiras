@@ -262,8 +262,8 @@ const CROWN_LABELS = {
   'crossword-fastest': 'fastest Crossword',
   'one-percent-highest': 'highest 1% Club score',
   'one-percent-fastest': 'fastest 1% Club clear',
-  'bhakti-marg-fastest': 'fastest Bhakti Marg',
-  'bhakti-marg-fewest-moves': 'fewest-move Bhakti Marg',
+  'bhakti-marg-fastest': 'fastest Surya Chandra',
+  'bhakti-marg-fewest-moves': 'fewest-move Surya Chandra',
   'ras-rani-fastest': 'fastest Ras Rani',
   'ras-rani-fewest-moves': 'fewest-move Ras Rani',
   'streak-longest': 'longest play streak'
@@ -642,9 +642,9 @@ async function handleGameAchievements(request) {
     const moves = intInRange(request.data?.moves, 1, 1000)
     const timeMs = intInRange(request.data?.timeMs, 0, 86_400_000)
     const hintsUsed = intInRange(request.data?.hintsUsed ?? 0, 0, 100)
-    if (moves == null) throw new HttpsError('invalid-argument', 'Invalid Bhakti Marg move count.')
-    if (timeMs == null) throw new HttpsError('invalid-argument', 'Invalid Bhakti Marg time.')
-    if (hintsUsed == null) throw new HttpsError('invalid-argument', 'Invalid Bhakti Marg hints.')
+    if (moves == null) throw new HttpsError('invalid-argument', 'Invalid Surya Chandra move count.')
+    if (timeMs == null) throw new HttpsError('invalid-argument', 'Invalid Surya Chandra time.')
+    if (hintsUsed == null) throw new HttpsError('invalid-argument', 'Invalid Surya Chandra hints.')
     Object.assign(candidate, { moves, timeMs, hintsUsed })
     crownSpecs.push(
       { id: 'bhakti-marg-fastest', metric: 'fastest-time', value: timeMs, better: isBetterFastestTime, extra: { moves, timeMs } },

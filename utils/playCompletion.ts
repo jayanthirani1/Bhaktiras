@@ -73,11 +73,11 @@ export function readLocalPlayCompletion(
       const state = localStorage.getItem(`bhakti-marg:${dateId}`)
       if (!state) return null
       const data = JSON.parse(state)
-      return data.finished ? { score: Number(data.solvedWords?.length) || 0 } : null
+      return data.finished ? { score: Number(data.moves) || 0 } : null
     }
 
     if (slug === 'ras-rani') {
-      const state = localStorage.getItem(`ras-rani:${dateId}`)
+      const state = localStorage.getItem(`ras-rani-v3:${dateId}`) || localStorage.getItem(`ras-rani:${dateId}`)
       if (!state) return null
       const data = JSON.parse(state)
       return data.finished ? { score: Number(data.moves) || 0 } : null

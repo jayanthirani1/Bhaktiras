@@ -1,16 +1,20 @@
 <template>
   <div class="min-h-screen bg-[hsl(var(--background))] px-3 pb-24 pt-0 md:px-4 md:pt-12">
     <div class="mx-auto max-w-2xl">
-      <div class="sticky top-0 z-40 -mx-3 mb-4 flex items-center justify-between border-b border-[hsl(var(--border))] bg-[hsl(var(--background))]/95 px-3 py-2 backdrop-blur md:top-16 md:-mx-4 md:px-4">
+      <div class="sticky top-0 z-40 -mx-3 mb-4 flex items-center gap-2 border-b border-[hsl(var(--border))] bg-[hsl(var(--background))]/95 px-3 py-2 backdrop-blur md:top-16 md:-mx-4 md:px-4">
         <NuxtLink to="/play" class="rounded-full bg-[hsl(var(--muted))] px-3 py-1.5 text-sm font-medium text-[hsl(var(--muted-foreground))]">
           ‹ Back
         </NuxtLink>
         <span class="rounded-full bg-[hsl(var(--muted))] px-3 py-1 text-sm font-semibold tabular-nums text-[hsl(var(--primary))]">
           ⏱ {{ timer.display.value }}
         </span>
+        <div v-if="!playedElsewhere && !loading && !finished" class="ml-auto flex gap-2">
+          <button type="button" class="rounded-full border border-[hsl(var(--border))] px-3 py-1.5 text-sm font-semibold" @click="clearGrid">Clear</button>
+          <button type="button" class="rounded-full border border-[hsl(var(--border))] px-3 py-1.5 text-sm font-semibold" @click="useHint">Hint</button>
+        </div>
       </div>
 
-      <PageHeader title="Ras Rani 🍯" subtitle="Find the nectar. Place one droplet in each row, column, and colored region. No two can touch." />
+      <PageHeader title="Ras Rani 🍯" subtitle="Place one nectar drop in every row, column and colour. No two can touch — not even diagonally." />
 
       <GamePlayedElsewhere
         v-if="playedElsewhere"
@@ -21,26 +25,12 @@
         Loading today's puzzle…
       </div>
       <div v-else class="space-y-4">
-        <!-- Region legend -->
-        <div class="card-surface flex flex-wrap gap-2 p-3">
-          <div
-            v-for="region in uniqueRegions"
-            :key="region.id"
-            class="flex items-center gap-1.5 rounded-full border px-2 py-1 text-xs font-medium"
-            :class="region.color"
-          >
-            <span>{{ region.name }}</span>
-            <span class="text-[10px] opacity-70">({{ region.meaning }})</span>
-          </div>
-        </div>
-
-        <!-- Grid -->
         <div
-          class="card-surface relative mx-auto p-4"
-          :style="{ maxWidth: `${puzzle.gridSize * 52 + 32}px` }"
+          class="mx-auto w-full overflow-hidden rounded-xl border-2 border-slate-800"
+          :style="{ maxWidth: `${Math.min(puzzle.gridSize * 56, 420)}px` }"
         >
           <div
-            class="grid gap-0.5"
+            class="grid"
             :style="{ gridTemplateColumns: `repeat(${puzzle.gridSize}, 1fr)` }"
           >
             <button
@@ -50,20 +40,26 @@
               type="button"
               :data-row="Math.floor(idx / puzzle.gridSize)"
               :data-col="idx % puzzle.gridSize"
-              class="relative flex aspect-square items-center justify-center border-2 text-lg font-bold transition-all sm:text-xl"
+              class="relative flex aspect-square items-center justify-center text-lg font-bold transition-colors sm:text-xl"
               :class="[
                 getCellClass(Math.floor(idx / puzzle.gridSize), idx % puzzle.gridSize),
                 animatingCells.has(`${Math.floor(idx / puzzle.gridSize)},${idx % puzzle.gridSize}`) ? 'nectar-cell-glow' : ''
               ]"
+              :style="regionBorderStyle(puzzle, Math.floor(idx / puzzle.gridSize), idx % puzzle.gridSize)"
               :disabled="finished"
+              :aria-label="cellAria(Math.floor(idx / puzzle.gridSize), idx % puzzle.gridSize)"
               @click="toggleCell(Math.floor(idx / puzzle.gridSize), idx % puzzle.gridSize)"
             >
               <span
                 v-if="grid[Math.floor(idx / puzzle.gridSize)][idx % puzzle.gridSize] === 'queen'"
+                class="leading-none"
                 :class="animatingCells.has(`${Math.floor(idx / puzzle.gridSize)},${idx % puzzle.gridSize}`) ? 'nectar-drop-animate' : ''"
               >🍯</span>
-              <span v-else-if="grid[Math.floor(idx / puzzle.gridSize)][idx % puzzle.gridSize] === 'marked'" class="text-sm opacity-50">✕</span>
-              <!-- Splash particles -->
+              <span
+                v-else-if="grid[Math.floor(idx / puzzle.gridSize)][idx % puzzle.gridSize] === 'marked'"
+                class="text-[11px] font-bold leading-none text-slate-700 sm:text-xs"
+                aria-hidden="true"
+              >✕</span>
               <template v-if="animatingCells.has(`${Math.floor(idx / puzzle.gridSize)},${idx % puzzle.gridSize}`)">
                 <span class="nectar-splash-particle" style="--splash-x: -8px; --splash-y: -10px;" />
                 <span class="nectar-splash-particle" style="--splash-x: 8px; --splash-y: -9px;" />
@@ -86,33 +82,11 @@
         <div v-if="!finished" class="flex flex-wrap justify-center gap-2">
           <button
             type="button"
-            class="rounded-full border border-[hsl(var(--border))] px-4 py-2 text-sm font-semibold"
-            @click="clearGrid"
-          >
-            Clear
-          </button>
-          <button
-            type="button"
-            class="rounded-full border border-[hsl(var(--border))] px-4 py-2 text-sm font-semibold"
+            class="rounded-full border border-[hsl(var(--border))] px-5 py-2 text-sm font-semibold"
             @click="undoMove"
             :disabled="history.length === 0"
           >
             Undo
-          </button>
-          <button
-            type="button"
-            class="rounded-full border border-[hsl(var(--border))] px-4 py-2 text-sm font-semibold"
-            :class="autoMark ? 'bg-[hsl(var(--primary))] text-white' : ''"
-            @click="autoMark = !autoMark"
-          >
-            Auto-mark {{ autoMark ? 'ON' : 'OFF' }}
-          </button>
-          <button
-            type="button"
-            class="rounded-full border border-[hsl(var(--border))] px-4 py-2 text-sm font-semibold"
-            @click="useHint"
-          >
-            Hint (+10s)
           </button>
         </div>
 
@@ -123,8 +97,8 @@
 
         <!-- Violations warning -->
         <div v-if="hasViolation && !finished" class="rounded-xl border border-red-200 bg-red-50 p-3 text-center text-sm text-red-700">
-          <p class="font-semibold">Rule violation detected!</p>
-          <p class="text-xs opacity-80">Check rows, columns, regions, and adjacency.</p>
+          <p class="font-semibold">Those nectar drops cannot sit there.</p>
+          <p class="text-xs opacity-80">Each row, column and colour gets one drop, and drops cannot touch — even diagonally.</p>
         </div>
 
         <!-- Completed state -->
@@ -159,6 +133,22 @@
           <p v-if="submitError" class="text-sm text-red-600">{{ submitError }}</p>
         </div>
 
+        <details class="card-surface p-4 text-sm leading-relaxed text-[hsl(var(--muted-foreground))]">
+          <summary class="cursor-pointer font-semibold text-[hsl(var(--primary))]">How to play</summary>
+          <ol class="mt-3 list-decimal space-y-3 pl-5">
+            <li>
+              Your goal is to have <span class="font-semibold text-[hsl(var(--foreground))]">exactly one nectar drop</span> 🍯 in each <span class="font-semibold text-[hsl(var(--foreground))]">row, column, and colour region</span>.
+            </li>
+            <li>
+              Tap once to place an <span class="font-semibold text-[hsl(var(--foreground))]">X</span> as a draft.
+              Tap that cell again to place a nectar drop. Tap a drop to remove it.
+            </li>
+            <li>
+              Two nectar drops cannot touch each other, <span class="font-semibold text-[hsl(var(--foreground))]">not even diagonally</span>.
+            </li>
+          </ol>
+        </details>
+
         <GameLeaderboard
           :entries="entries"
           :loading="boardLoading"
@@ -181,13 +171,12 @@ import {
   checkViolations,
   hasViolations,
   isPuzzleSolved,
-  autoMarkInvalidCells,
   getHint,
-  cycleCell,
+  regionBorderStyle,
   type CellState
 } from '~/utils/rasRani'
 
-const STORAGE_KEY = `ras-rani:${ukDateId()}`
+const STORAGE_KEY = `ras-rani-v3:${ukDateId()}`
 const { puzzle, loading } = useRasRaniPuzzle()
 const timer = useGameTimer(`ras-rani-timer:${ukDateId()}`)
 const auth = useAuth()
@@ -200,7 +189,6 @@ const grid = ref<CellState[][]>([])
 const history = ref<CellState[][][]>([])
 const moves = ref(0)
 const hintsUsed = ref(0)
-const autoMark = ref(false)
 const feedback = ref('')
 const feedbackOk = ref(false)
 const shareCopied = ref(false)
@@ -215,27 +203,12 @@ const violations = computed(() => checkViolations(grid.value, puzzle.value))
 const hasViolation = computed(() => hasViolations(grid.value, puzzle.value))
 const finished = computed(() => isPuzzleSolved(grid.value, puzzle.value))
 
-const uniqueRegions = computed(() => {
-  const seen = new Set<string>()
-  const regions: Array<{ id: string; name: string; color: string; meaning: string }> = []
-  for (const row of puzzle.value.regionGrid) {
-    for (const regionId of row) {
-      if (!seen.has(regionId)) {
-        seen.add(regionId)
-        const region = puzzle.value.regions.find(r => r.id === regionId)
-        if (region) {
-          regions.push({
-            id: region.id,
-            name: region.name,
-            color: region.color,
-            meaning: region.meaning || ''
-          })
-        }
-      }
-    }
-  }
-  return regions
-})
+function cellAria(row: number, col: number) {
+  const state = grid.value[row]?.[col]
+  if (state === 'queen') return `Nectar drop, row ${row + 1}, column ${col + 1}`
+  if (state === 'marked') return `Marked empty, row ${row + 1}, column ${col + 1}`
+  return `Empty cell, row ${row + 1}, column ${col + 1}`
+}
 
 const resultSummary = computed(() => [
   `${puzzle.value.gridSize} droplets`,
@@ -316,7 +289,8 @@ function toggleCell(row: number, col: number) {
   if (history.value.length > 50) history.value = history.value.slice(-50)
 
   const current = grid.value[row][col]
-  const next = cycleCell(current)
+  // Empty → X (draft) → nectar → empty.
+  const next = current === 'empty' ? 'marked' : current === 'marked' ? 'queen' : 'empty'
 
   grid.value = grid.value.map((r, ri) =>
     r.map((c, ci) => (ri === row && ci === col ? next : c))
@@ -324,10 +298,6 @@ function toggleCell(row: number, col: number) {
 
   if (next === 'queen') {
     triggerNectarAnimation(row, col)
-  }
-
-  if (autoMark.value && next === 'queen') {
-    grid.value = autoMarkInvalidCells(grid.value, puzzle.value)
   }
 
   moves.value += 1
@@ -365,10 +335,17 @@ function useHint() {
 
   if (hint.type === 'error') {
     feedbackOk.value = false
-    feedback.value = `Error at row ${hint.row + 1}, column ${hint.col + 1}`
+    feedback.value = `That drop at row ${hint.row + 1}, column ${hint.col + 1} breaks a rule.`
   } else {
+    history.value = [...history.value, grid.value.map(r => [...r])]
+    grid.value = grid.value.map((r, ri) =>
+      r.map((c, ci) => (ri === hint.row && ci === hint.col ? 'queen' : c))
+    )
+    triggerNectarAnimation(hint.row, hint.col)
+    moves.value += 1
     feedbackOk.value = true
-    feedback.value = `Place droplet at row ${hint.row + 1}, column ${hint.col + 1}`
+    feedback.value = `Nectar drop placed at row ${hint.row + 1}, column ${hint.col + 1}`
+    if (isPuzzleSolved(grid.value, puzzle.value)) finishGame()
   }
 
   saveState()

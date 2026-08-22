@@ -20,17 +20,34 @@ export interface RasRaniPuzzle {
 }
 
 export const RAS_REGIONS: RasRegion[] = [
-  { id: 'shanti', name: 'Shanti', color: 'bg-blue-200 border-blue-400', meaning: 'Peace' },
-  { id: 'vatsalya', name: 'Vatsalya', color: 'bg-pink-200 border-pink-400', meaning: 'Parental love' },
-  { id: 'madhurya', name: 'Madhurya', color: 'bg-amber-200 border-amber-400', meaning: 'Sweetness' },
-  { id: 'dasya', name: 'Dasya', color: 'bg-green-200 border-green-400', meaning: 'Servitude' },
-  { id: 'sakhya', name: 'Sakhya', color: 'bg-purple-200 border-purple-400', meaning: 'Friendship' },
-  { id: 'aishwarya', name: 'Aishwarya', color: 'bg-orange-200 border-orange-400', meaning: 'Majesty' },
-  { id: 'karuna', name: 'Karuna', color: 'bg-cyan-200 border-cyan-400', meaning: 'Compassion' },
-  { id: 'bhakti', name: 'Bhakti', color: 'bg-rose-200 border-rose-400', meaning: 'Devotion' },
-  { id: 'prema', name: 'Prema', color: 'bg-red-200 border-red-400', meaning: 'Divine love' },
-  { id: 'ananda', name: 'Ananda', color: 'bg-yellow-200 border-yellow-400', meaning: 'Bliss' }
+  { id: 'shanti', name: 'Shanti', color: 'bg-sky-200', meaning: 'Peace' },
+  { id: 'vatsalya', name: 'Vatsalya', color: 'bg-pink-200', meaning: 'Parental love' },
+  { id: 'madhurya', name: 'Madhurya', color: 'bg-amber-200', meaning: 'Sweetness' },
+  { id: 'dasya', name: 'Dasya', color: 'bg-emerald-200', meaning: 'Servitude' },
+  { id: 'sakhya', name: 'Sakhya', color: 'bg-violet-200', meaning: 'Friendship' },
+  { id: 'aishwarya', name: 'Aishwarya', color: 'bg-orange-200', meaning: 'Majesty' },
+  { id: 'karuna', name: 'Karuna', color: 'bg-cyan-200', meaning: 'Compassion' },
+  { id: 'bhakti', name: 'Bhakti', color: 'bg-rose-200', meaning: 'Devotion' },
+  { id: 'prema', name: 'Prema', color: 'bg-red-200', meaning: 'Divine love' },
+  { id: 'ananda', name: 'Ananda', color: 'bg-yellow-200', meaning: 'Bliss' }
 ]
+
+export const RAS_REGION_FILLS: Record<string, string> = {
+  shanti: '#bae6fd',
+  vatsalya: '#fbcfe8',
+  madhurya: '#fde68a',
+  dasya: '#a7f3d0',
+  sakhya: '#ddd6fe',
+  aishwarya: '#fed7aa',
+  karuna: '#a5f3fc',
+  bhakti: '#fecdd3',
+  prema: '#fecaca',
+  ananda: '#fef08a'
+}
+
+function regionsFor(ids: string[]) {
+  return RAS_REGIONS.filter(r => ids.includes(r.id))
+}
 
 export const RAS_RANI_PUZZLES: RasRaniPuzzle[] = [
   {
@@ -39,13 +56,13 @@ export const RAS_RANI_PUZZLES: RasRaniPuzzle[] = [
     title: 'Five Rasas',
     gridSize: 5,
     regionGrid: [
-      ['shanti', 'shanti', 'vatsalya', 'vatsalya', 'madhurya'],
-      ['shanti', 'dasya', 'dasya', 'vatsalya', 'madhurya'],
-      ['sakhya', 'dasya', 'dasya', 'madhurya', 'madhurya'],
-      ['sakhya', 'sakhya', 'dasya', 'aishwarya', 'aishwarya'],
-      ['sakhya', 'aishwarya', 'aishwarya', 'aishwarya', 'aishwarya']
+      ['shanti', 'shanti', 'shanti', 'vatsalya', 'vatsalya'],
+      ['shanti', 'shanti', 'vatsalya', 'vatsalya', 'vatsalya'],
+      ['madhurya', 'madhurya', 'madhurya', 'vatsalya', 'vatsalya'],
+      ['sakhya', 'madhurya', 'madhurya', 'vatsalya', 'dasya'],
+      ['sakhya', 'sakhya', 'sakhya', 'sakhya', 'sakhya']
     ],
-    regions: RAS_REGIONS.filter(r => ['shanti', 'vatsalya', 'madhurya', 'dasya', 'sakhya', 'aishwarya'].includes(r.id)),
+    regions: regionsFor(['shanti', 'vatsalya', 'madhurya', 'dasya', 'sakhya']),
     solution: [[0, 0], [1, 3], [2, 1], [3, 4], [4, 2]],
     published: true
   },
@@ -55,14 +72,14 @@ export const RAS_RANI_PUZZLES: RasRaniPuzzle[] = [
     title: 'Nectar Garden',
     gridSize: 5,
     regionGrid: [
-      ['prema', 'prema', 'ananda', 'ananda', 'ananda'],
-      ['prema', 'karuna', 'karuna', 'ananda', 'bhakti'],
-      ['karuna', 'karuna', 'shanti', 'shanti', 'bhakti'],
-      ['karuna', 'shanti', 'shanti', 'bhakti', 'bhakti'],
-      ['dasya', 'dasya', 'dasya', 'dasya', 'bhakti']
+      ['shanti', 'shanti', 'vatsalya', 'vatsalya', 'vatsalya'],
+      ['shanti', 'shanti', 'madhurya', 'vatsalya', 'vatsalya'],
+      ['madhurya', 'madhurya', 'madhurya', 'vatsalya', 'vatsalya'],
+      ['madhurya', 'madhurya', 'madhurya', 'vatsalya', 'dasya'],
+      ['sakhya', 'sakhya', 'sakhya', 'sakhya', 'sakhya']
     ],
-    regions: RAS_REGIONS.filter(r => ['prema', 'ananda', 'karuna', 'bhakti', 'shanti', 'dasya'].includes(r.id)),
-    solution: [[0, 1], [1, 4], [2, 2], [3, 0], [4, 3]],
+    regions: regionsFor(['shanti', 'vatsalya', 'madhurya', 'dasya', 'sakhya']),
+    solution: [[0, 0], [1, 3], [2, 1], [3, 4], [4, 2]],
     published: true
   },
   {
@@ -72,46 +89,49 @@ export const RAS_RANI_PUZZLES: RasRaniPuzzle[] = [
     gridSize: 6,
     regionGrid: [
       ['shanti', 'shanti', 'vatsalya', 'vatsalya', 'vatsalya', 'madhurya'],
-      ['shanti', 'dasya', 'dasya', 'vatsalya', 'madhurya', 'madhurya'],
-      ['sakhya', 'dasya', 'dasya', 'karuna', 'karuna', 'madhurya'],
-      ['sakhya', 'sakhya', 'karuna', 'karuna', 'prema', 'prema'],
-      ['sakhya', 'ananda', 'ananda', 'prema', 'prema', 'prema'],
-      ['ananda', 'ananda', 'ananda', 'ananda', 'prema', 'bhakti']
+      ['shanti', 'dasya', 'vatsalya', 'vatsalya', 'vatsalya', 'madhurya'],
+      ['dasya', 'dasya', 'dasya', 'dasya', 'madhurya', 'madhurya'],
+      ['dasya', 'dasya', 'dasya', 'dasya', 'sakhya', 'madhurya'],
+      ['aishwarya', 'aishwarya', 'aishwarya', 'aishwarya', 'sakhya', 'sakhya'],
+      ['aishwarya', 'aishwarya', 'aishwarya', 'aishwarya', 'aishwarya', 'sakhya']
     ],
-    regions: RAS_REGIONS.filter(r => ['shanti', 'vatsalya', 'madhurya', 'dasya', 'sakhya', 'karuna', 'prema', 'ananda', 'bhakti'].includes(r.id)),
-    solution: [[0, 0], [1, 2], [2, 4], [3, 1], [4, 5], [5, 3]],
+    regions: regionsFor(['shanti', 'vatsalya', 'madhurya', 'dasya', 'sakhya', 'aishwarya']),
+    solution: [[0, 0], [1, 3], [2, 5], [3, 1], [4, 4], [5, 2]],
     published: true
   },
   {
     id: 'ras-rani-4',
     dateId: null,
     title: 'Ocean of Bliss',
-    gridSize: 5,
+    gridSize: 6,
     regionGrid: [
-      ['ananda', 'ananda', 'bhakti', 'bhakti', 'prema'],
-      ['ananda', 'madhurya', 'madhurya', 'bhakti', 'prema'],
-      ['shanti', 'madhurya', 'dasya', 'dasya', 'prema'],
-      ['shanti', 'shanti', 'dasya', 'karuna', 'karuna'],
-      ['shanti', 'vatsalya', 'vatsalya', 'vatsalya', 'karuna']
+      ['shanti', 'dasya', 'dasya', 'vatsalya', 'vatsalya', 'madhurya'],
+      ['shanti', 'dasya', 'dasya', 'vatsalya', 'vatsalya', 'madhurya'],
+      ['dasya', 'dasya', 'dasya', 'vatsalya', 'vatsalya', 'madhurya'],
+      ['dasya', 'dasya', 'dasya', 'sakhya', 'sakhya', 'sakhya'],
+      ['dasya', 'aishwarya', 'aishwarya', 'sakhya', 'sakhya', 'sakhya'],
+      ['aishwarya', 'aishwarya', 'aishwarya', 'sakhya', 'sakhya', 'sakhya']
     ],
-    regions: RAS_REGIONS.filter(r => ['ananda', 'bhakti', 'prema', 'madhurya', 'shanti', 'dasya', 'karuna', 'vatsalya'].includes(r.id)),
-    solution: [[0, 2], [1, 0], [2, 4], [3, 2], [4, 1]],
+    regions: regionsFor(['shanti', 'vatsalya', 'madhurya', 'dasya', 'sakhya', 'aishwarya']),
+    solution: [[0, 0], [1, 3], [2, 5], [3, 1], [4, 4], [5, 2]],
     published: true
   },
   {
     id: 'ras-rani-5',
     dateId: null,
     title: 'Sacred Journey',
-    gridSize: 5,
+    gridSize: 7,
     regionGrid: [
-      ['vatsalya', 'vatsalya', 'sakhya', 'sakhya', 'sakhya'],
-      ['vatsalya', 'shanti', 'shanti', 'dasya', 'sakhya'],
-      ['prema', 'shanti', 'ananda', 'dasya', 'dasya'],
-      ['prema', 'prema', 'ananda', 'ananda', 'madhurya'],
-      ['prema', 'ananda', 'ananda', 'madhurya', 'madhurya']
+      ['shanti', 'shanti', 'madhurya', 'madhurya', 'vatsalya', 'vatsalya', 'vatsalya'],
+      ['shanti', 'madhurya', 'madhurya', 'dasya', 'vatsalya', 'vatsalya', 'vatsalya'],
+      ['shanti', 'madhurya', 'madhurya', 'dasya', 'dasya', 'dasya', 'vatsalya'],
+      ['sakhya', 'sakhya', 'sakhya', 'aishwarya', 'dasya', 'dasya', 'dasya'],
+      ['sakhya', 'sakhya', 'sakhya', 'aishwarya', 'dasya', 'dasya', 'karuna'],
+      ['sakhya', 'sakhya', 'aishwarya', 'aishwarya', 'aishwarya', 'karuna', 'karuna'],
+      ['sakhya', 'aishwarya', 'aishwarya', 'karuna', 'karuna', 'karuna', 'karuna']
     ],
-    regions: RAS_REGIONS.filter(r => ['vatsalya', 'sakhya', 'shanti', 'dasya', 'prema', 'ananda', 'madhurya'].includes(r.id)),
-    solution: [[0, 1], [1, 3], [2, 0], [3, 4], [4, 2]],
+    regions: regionsFor(['shanti', 'vatsalya', 'madhurya', 'dasya', 'sakhya', 'aishwarya', 'karuna']),
+    solution: [[0, 0], [1, 6], [2, 2], [3, 4], [4, 1], [5, 3], [6, 5]],
     published: true
   }
 ]
@@ -129,7 +149,11 @@ export function getRasRaniPuzzleForDate(dateId: string): RasRaniPuzzle {
 
 export function getRegionColor(regionId: string): string {
   const region = RAS_REGIONS.find(r => r.id === regionId)
-  return region?.color ?? 'bg-gray-200 border-gray-400'
+  return region?.color ?? 'bg-stone-200'
+}
+
+export function getRegionFill(regionId: string): string {
+  return RAS_REGION_FILLS[regionId] || '#e7e5e4'
 }
 
 export function getRegionName(regionId: string): string {

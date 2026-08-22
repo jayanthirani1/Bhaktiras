@@ -139,6 +139,7 @@ dasya dasya sakhya sakhya"
 <script setup lang="ts">
 import type { RasRaniPuzzle, RasRaniRegion } from '~/types'
 import { RAS_RANI_PUZZLES } from '~/data/rasRaniPuzzles'
+import { validateRasRaniPuzzle } from '~/utils/rasRani'
 
 definePageMeta({ layout: 'admin', middleware: 'admin' })
 
@@ -212,7 +213,11 @@ const validationError = computed(() => {
   if (previewRegionGrid.value.some(row => row.length !== form.gridSize)) return `Each row must have ${form.gridSize} columns`
   if (parsedSolution.value === null) return 'Invalid solution JSON'
   if ((parsedSolution.value?.length || 0) !== form.gridSize) return `Solution must have exactly ${form.gridSize} positions`
-  return ''
+  return validateRasRaniPuzzle({
+    gridSize: form.gridSize,
+    regionGrid: previewRegionGrid.value,
+    solution: parsedSolution.value || []
+  })
 })
 
 function openNew() {

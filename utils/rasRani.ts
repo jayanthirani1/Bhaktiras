@@ -1,4 +1,5 @@
 import type { RasRaniPuzzle } from '~/data/rasRaniPuzzles'
+import { getRegionFill } from '~/data/rasRaniPuzzles'
 
 export type CellState = 'empty' | 'marked' | 'queen'
 
@@ -89,6 +90,14 @@ export function hasViolations(
   return v.row.size > 0 || v.col.size > 0 || v.region.size > 0 || v.adjacent.size > 0
 }
 
+export function uniqueRegionIds(puzzle: RasRaniPuzzle): string[] {
+  const ids = new Set<string>()
+  for (const row of puzzle.regionGrid) {
+    for (const regionId of row) ids.add(regionId)
+  }
+  return [...ids]
+}
+
 export function isPuzzleSolved(
   grid: CellState[][],
   puzzle: RasRaniPuzzle
@@ -100,23 +109,34 @@ export function isPuzzleSolved(
 
   const rowsWithQueens = new Set(queens.map(([r]) => r))
   const colsWithQueens = new Set(queens.map(([, c]) => c))
-
   if (rowsWithQueens.size !== puzzle.gridSize) return false
   if (colsWithQueens.size !== puzzle.gridSize) return false
 
-  const uniqueRegions = new Set<string>()
-  for (const row of puzzle.regionGrid) {
-    for (const regionId of row) {
-      uniqueRegions.add(regionId)
-    }
-  }
+  const uniqueRegions = uniqueRegionIds(puzzle)
+  if (uniqueRegions.length !== puzzle.gridSize) return false
 
   const regionsWithQueens = new Set(queens.map(([r, c]) => puzzle.regionGrid[r][c]))
-  for (const region of uniqueRegions) {
-    if (!regionsWithQueens.has(region)) return false
-  }
+  return uniqueRegions.every(region => regionsWithQueens.has(region))
+}
 
-  return true
+/** Thick outline between colour regions, thin lines inside a region. Drawn on top/left so edges are not doubled. */
+export function regionBorderStyle(puzzle: RasRaniPuzzle, row: number, col: number) {
+  const id = puzzle.regionGrid[row]?.[col]
+  const n = puzzle.gridSize
+  const different = (r: number, c: number) => {
+    if (r < 0 || c < 0 || r >= n || c >= n) return true
+    return puzzle.regionGrid[r][c] !== id
+  }
+  const width = (edge: boolean) => edge ? '4px' : '1px'
+  return {
+    backgroundColor: getRegionFill(id || ''),
+    borderStyle: 'solid' as const,
+    borderColor: '#1f2937',
+    borderTopWidth: width(different(row - 1, col)),
+    borderLeftWidth: width(different(row, col - 1)),
+    borderRightWidth: col === n - 1 ? width(true) : '0px',
+    borderBottomWidth: row === n - 1 ? width(true) : '0px'
+  }
 }
 
 export function autoMarkInvalidCells(
@@ -211,4 +231,44 @@ export function cycleCell(current: CellState): CellState {
   if (current === 'empty') return 'marked'
   if (current === 'marked') return 'queen'
   return 'empty'
+}
+
+export function validateRasRaniPuzzle(puzzle: Pick<RasRaniPuzzle, 'gridSize' | 'regionGrid' | 'solution'>): string {
+  const { gridSize, regionGrid, solution } = puzzle
+  if (regionGrid.length !== gridSize || regionGrid.some(row => row.length !== gridSize)) {
+    return `Region grid must be ${gridSize}×${gridSize}.`
+  }
+  const regions = uniqueRegionIds(puzzle as RasRaniPuzzle)
+  if (regions.length !== gridSize) {
+    return `Need exactly ${gridSize} colour regions (one per nectar drop), found ${regions.length}.`
+  }
+  if (solution.length !== gridSize) {
+    return `Solution must have exactly ${gridSize} nectar positions.`
+  }
+
+  const rows = new Set<number>()
+  const cols = new Set<number>()
+  const regionHits = new Set<string>()
+  for (const [r, c] of solution) {
+    if (r < 0 || c < 0 || r >= gridSize || c >= gridSize) return 'A solution cell is off the grid.'
+    rows.add(r)
+    cols.add(c)
+    regionHits.add(regionGrid[r][c])
+  }
+  if (rows.size !== gridSize || cols.size !== gridSize) {
+    return 'Solution must use each row and column once.'
+  }
+  if (regionHits.size !== gridSize) {
+    return 'Solution must place one nectar drop in each colour region.'
+  }
+  for (let i = 0; i < solution.length; i++) {
+    for (let j = i + 1; j < solution.length; j++) {
+      const [r1, c1] = solution[i]
+      const [r2, c2] = solution[j]
+      if (isAdjacent(r1, c1, r2, c2)) {
+        return 'Two nectar drops in the solution touch (including diagonally).'
+      }
+    }
+  }
+  return ''
 }

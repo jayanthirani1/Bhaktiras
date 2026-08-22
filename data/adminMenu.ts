@@ -45,8 +45,8 @@ export const ADMIN_MENU_GROUPS: AdminMenuGroup[] = [
       { label: '1% Club', to: '/admin/games/one-percent', subtitle: 'Daily Vachnamrut ladders (Bhuj edition)' },
       { label: 'Connections', to: '/admin/games/connections', subtitle: 'Four groups of four satsang words' },
       { label: 'Bracket City', to: '/admin/games/bracket-city', subtitle: 'Override the generated nested-clue puzzle' },
-      { label: 'Bhakti Marg', to: '/admin/games/bhakti-marg', subtitle: 'Maze-style spiritual word path puzzles' },
-      { label: 'Ras Rani', to: '/admin/games/ras-rani', subtitle: 'Logic puzzle with nectar droplets and regions' }
+      { label: 'Surya Chandra', to: '/admin/games/bhakti-marg', subtitle: 'Daily sun-and-moon logic puzzles (Tango-style)' },
+      { label: 'Ras Rani', to: '/admin/games/ras-rani', subtitle: 'Queens-style nectar drops, colours and regions' }
     ]
   }
 ]
