@@ -21,6 +21,10 @@ const GAME_STORAGE_PREFIXES = [
   'one-percent-timer:',
   'bracket-city:',
   'bracket-city-timer:',
+  'bhakti-marg:',
+  'bhakti-marg-timer:',
+  'ras-rani:',
+  'ras-rani-timer:',
   'leaderboard-submitted:',
   'play-done:',
 ] as const
@@ -39,7 +43,9 @@ const GAME_DAY_KEYS: Record<PlayGameSlug, (dateId: string) => string[]> = {
   'mini-crossword': dateId => [`mini-crossword:${dateId}`, `mini-crossword-timer:${dateId}`],
   'one-percent': dateId => [`one-percent-run:${dateId}`, `one-percent-timer:${dateId}`],
   'connections': dateId => [`connections:${dateId}`, `connections-timer:${dateId}`],
-  'bracket-city': dateId => [`bracket-city:${dateId}`, `bracket-city-timer:${dateId}`]
+  'bracket-city': dateId => [`bracket-city:${dateId}`, `bracket-city-timer:${dateId}`],
+  'bhakti-marg': dateId => [`bhakti-marg:${dateId}`, `bhakti-marg-timer:${dateId}`],
+  'ras-rani': dateId => [`ras-rani:${dateId}`, `ras-rani-timer:${dateId}`]
 }
 
 /** Every local key holding this device's play of one game on one day. */

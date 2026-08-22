@@ -6,6 +6,8 @@ export type PlayGameSlug =
   | 'one-percent'
   | 'connections'
   | 'bracket-city'
+  | 'bhakti-marg'
+  | 'ras-rani'
 
 export interface PlayCompletionEntry {
   /** Game-specific headline number (guesses, cleared rungs, words found). */
@@ -65,6 +67,20 @@ export function readLocalPlayCompletion(
       if (!state) return null
       const data = JSON.parse(state)
       return data.finished ? { score: Number(data.peekedIds?.length) || 0 } : null
+    }
+
+    if (slug === 'bhakti-marg') {
+      const state = localStorage.getItem(`bhakti-marg:${dateId}`)
+      if (!state) return null
+      const data = JSON.parse(state)
+      return data.finished ? { score: Number(data.solvedWords?.length) || 0 } : null
+    }
+
+    if (slug === 'ras-rani') {
+      const state = localStorage.getItem(`ras-rani:${dateId}`)
+      if (!state) return null
+      const data = JSON.parse(state)
+      return data.finished ? { score: Number(data.moves) || 0 } : null
     }
 
     return null

@@ -9,6 +9,8 @@ export type AchievementGroup =
   | 'crossword'
   | 'connections'
   | 'one-percent'
+  | 'bhakti-marg'
+  | 'ras-rani'
   | 'streak'
 
 export type AchievementMedal = 'bronze' | 'silver' | 'gold' | 'platinum'
@@ -38,6 +40,11 @@ export type GameAchievementPayload = {
   won?: boolean
   mistakes?: number
   clubStreak?: number
+  clearedAll?: boolean
+  moves?: number
+  hintsUsed?: number
+  pathsFound?: number
+  perfect?: boolean
 }
 
 export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
@@ -74,6 +81,24 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
   { id: 'one-percent-club-7-days', title: 'Week in the Club', description: 'Be part of the 1% Club 7 days in a row.', group: 'one-percent', medal: 'gold', progress: { stat: 'onePercentClubCurrentStreak', goal: 7, unit: 'days' } },
   { id: 'one-percent-club-14-days', title: 'Fortnight of Amrut', description: 'Join the 1% Club 14 days in a row.', group: 'one-percent', medal: 'gold', progress: { stat: 'onePercentClubCurrentStreak', goal: 14, unit: 'days' } },
   { id: 'one-percent-club-30-days', title: 'Club Devotee', description: 'Join the 1% Club 30 days in a row.', group: 'one-percent', medal: 'platinum', progress: { stat: 'onePercentClubCurrentStreak', goal: 30, unit: 'days' } },
+  { id: 'bhakti-marg-first-win', title: 'First Path', description: 'Complete a Bhakti Marg puzzle for the first time.', group: 'bhakti-marg', medal: 'bronze' },
+  { id: 'bhakti-marg-wins-7', title: 'Week of Paths', description: 'Complete 7 Bhakti Marg puzzles.', group: 'bhakti-marg', medal: 'silver', progress: { stat: 'bhaktiMargWins', goal: 7, unit: 'wins' } },
+  { id: 'bhakti-marg-wins-30', title: 'Bhakti Marg Sadhak', description: 'Complete 30 Bhakti Marg puzzles.', group: 'bhakti-marg', medal: 'gold', progress: { stat: 'bhaktiMargWins', goal: 30, unit: 'wins' } },
+  { id: 'bhakti-marg-wins-100', title: '100-Day Bhakti Marg', description: 'Complete 100 Bhakti Marg puzzles.', group: 'bhakti-marg', medal: 'gold', progress: { stat: 'bhaktiMargWins', goal: 100, unit: 'wins' } },
+  { id: 'bhakti-marg-wins-200', title: '200-Day Bhakti Marg', description: 'Complete 200 Bhakti Marg puzzles.', group: 'bhakti-marg', medal: 'gold', progress: { stat: 'bhaktiMargWins', goal: 200, unit: 'wins' } },
+  { id: 'bhakti-marg-wins-300', title: '300-Day Bhakti Marg', description: 'Complete 300 Bhakti Marg puzzles.', group: 'bhakti-marg', medal: 'platinum', progress: { stat: 'bhaktiMargWins', goal: 300, unit: 'wins' } },
+  { id: 'bhakti-marg-no-hints', title: 'Pure Path', description: 'Complete Bhakti Marg without using any hints.', group: 'bhakti-marg', medal: 'gold' },
+  { id: 'bhakti-marg-no-hints-10', title: 'Devoted Walker', description: 'Complete 10 Bhakti Marg puzzles without hints.', group: 'bhakti-marg', medal: 'platinum', progress: { stat: 'bhaktiMargNoHints', goal: 10, unit: 'perfects' } },
+  { id: 'bhakti-marg-sub-60s', title: 'Swift Devotee', description: 'Complete Bhakti Marg in under 60 seconds.', group: 'bhakti-marg', medal: 'gold' },
+  { id: 'ras-rani-first-win', title: 'First Nectar', description: 'Complete a Ras Rani puzzle for the first time.', group: 'ras-rani', medal: 'bronze' },
+  { id: 'ras-rani-wins-7', title: 'Week of Nectar', description: 'Complete 7 Ras Rani puzzles.', group: 'ras-rani', medal: 'silver', progress: { stat: 'rasRaniWins', goal: 7, unit: 'wins' } },
+  { id: 'ras-rani-wins-30', title: 'Ras Rani Sadhak', description: 'Complete 30 Ras Rani puzzles.', group: 'ras-rani', medal: 'gold', progress: { stat: 'rasRaniWins', goal: 30, unit: 'wins' } },
+  { id: 'ras-rani-wins-100', title: '100-Day Ras Rani', description: 'Complete 100 Ras Rani puzzles.', group: 'ras-rani', medal: 'gold', progress: { stat: 'rasRaniWins', goal: 100, unit: 'wins' } },
+  { id: 'ras-rani-wins-200', title: '200-Day Ras Rani', description: 'Complete 200 Ras Rani puzzles.', group: 'ras-rani', medal: 'gold', progress: { stat: 'rasRaniWins', goal: 200, unit: 'wins' } },
+  { id: 'ras-rani-wins-300', title: '300-Day Ras Rani', description: 'Complete 300 Ras Rani puzzles.', group: 'ras-rani', medal: 'platinum', progress: { stat: 'rasRaniWins', goal: 300, unit: 'wins' } },
+  { id: 'ras-rani-no-hints', title: 'Pure Nectar', description: 'Complete Ras Rani without using any hints.', group: 'ras-rani', medal: 'gold' },
+  { id: 'ras-rani-no-hints-10', title: 'Nectar Master', description: 'Complete 10 Ras Rani puzzles without hints.', group: 'ras-rani', medal: 'platinum', progress: { stat: 'rasRaniNoHints', goal: 10, unit: 'perfects' } },
+  { id: 'ras-rani-sub-60s', title: 'Swift Collector', description: 'Complete Ras Rani in under 60 seconds.', group: 'ras-rani', medal: 'gold' },
   { id: 'streak-7', title: '7-Day Streak', description: 'Keep your games streak going for 7 days.', group: 'streak', medal: 'silver', progress: { stat: 'gamesStreak', goal: 7, unit: 'days' } },
   { id: 'streak-30', title: '30-Day Streak', description: 'Keep your games streak going for 30 days.', group: 'streak', medal: 'gold', progress: { stat: 'gamesStreak', goal: 30, unit: 'days' } },
   { id: 'streak-100', title: '100-Day Streak', description: 'Keep your games streak going for 100 days.', group: 'streak', medal: 'gold', progress: { stat: 'gamesStreak', goal: 100, unit: 'days' } },
@@ -86,6 +111,8 @@ export const ACHIEVEMENT_GROUP_TITLES: Record<AchievementGroup, string> = {
   crossword: 'Crossword',
   connections: 'Connections',
   'one-percent': '1% Club',
+  'bhakti-marg': 'Bhakti Marg',
+  'ras-rani': 'Ras Rani',
   streak: 'Streaks'
 }
 
@@ -95,6 +122,10 @@ export const CROWN_DEFINITIONS = [
   { id: 'crossword-fastest', title: 'Fastest Crossword', description: 'Current all-time fastest Crossword finish.', game: 'crossword' },
   { id: 'one-percent-highest', title: '1% Club High Score', description: 'Current all-time most rungs cleared in 1% Club.', game: 'one-percent' },
   { id: 'one-percent-fastest', title: 'Fastest 1% Club', description: 'Current all-time fastest full 1% Club clear.', game: 'one-percent' },
+  { id: 'bhakti-marg-fastest', title: 'Fastest Bhakti Marg', description: 'Current all-time fastest Bhakti Marg completion.', game: 'bhakti-marg' },
+  { id: 'bhakti-marg-fewest-moves', title: 'Fewest Moves Bhakti Marg', description: 'Current all-time fewest moves Bhakti Marg completion.', game: 'bhakti-marg' },
+  { id: 'ras-rani-fastest', title: 'Fastest Ras Rani', description: 'Current all-time fastest Ras Rani completion.', game: 'ras-rani' },
+  { id: 'ras-rani-fewest-moves', title: 'Fewest Moves Ras Rani', description: 'Current all-time fewest moves Ras Rani completion.', game: 'ras-rani' },
   { id: 'streak-longest', title: 'Longest Streak', description: 'Current all-time longest games streak.', game: 'streak' }
 ] as const
 
@@ -168,6 +199,13 @@ export function crownValue(crown: AchievementCrownRecord) {
   if (crown.id === 'one-percent-highest') {
     const rungs = crown.score || crown.value
     return `${rungs} cleared${crown.timeMs ? ` · ${formatElapsed(crown.timeMs)}` : ''}`
+  }
+  if (crown.id === 'bhakti-marg-fastest' || crown.id === 'ras-rani-fastest') {
+    return formatElapsed(crown.timeMs || crown.value)
+  }
+  if (crown.id === 'bhakti-marg-fewest-moves' || crown.id === 'ras-rani-fewest-moves') {
+    const moves = (crown as { moves?: number }).moves || crown.value
+    return `${moves} move${moves === 1 ? '' : 's'}${crown.timeMs ? ` · ${formatElapsed(crown.timeMs)}` : ''}`
   }
   if (crown.id === 'streak-longest') {
     const days = crown.longestStreak || crown.value

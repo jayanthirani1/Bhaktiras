@@ -3,7 +3,7 @@
     <div class="max-w-3xl mx-auto">
       <PageHeader
         title="Games"
-        subtitle="Choose a game — Wordle, Crossword, 1% Club, and more."
+        subtitle="Choose a game — Wordle, Crossword, 1% Club, Bhakti Marg, Ras Rani, and more."
       />
 
       <section
@@ -97,6 +97,7 @@
 </template>
 
 <script setup lang="ts">
+import type { Component } from 'vue'
 import {
   IconGrid3x3,
   IconTypography,
@@ -105,8 +106,10 @@ import {
   IconArrowRight,
   IconCheck,
   IconCirclesRelation,
-  IconBrackets
+  IconBrackets,
+  IconRoute
 } from '@tabler/icons-vue'
+import NectarIcon from '~/components/NectarIcon.vue'
 
 import type { PlayGameSlug } from '~/utils/playCompletion'
 
@@ -118,7 +121,7 @@ const games: Array<{
   slug: PlayGameSlug
   title: string
   description: string
-  icon: typeof IconTypography
+  icon: Component
   href: string
   /** Icon tile colours, mirrored by the call-to-action pill. */
   tile: string
@@ -129,6 +132,8 @@ const games: Array<{
   { slug: 'one-percent', title: '1% Club', description: 'Daily Vachnamrut climb from 90% to 1%. One wrong answer ends your run.', icon: IconChartBar, href: '/play/one-percent', tile: 'bg-orange-100 text-orange-700', button: 'bg-orange-500 text-white' },
   { slug: 'connections', title: 'Connections', description: 'Find four groups of four satsang-related words.', icon: IconCirclesRelation, href: '/play/connections', tile: 'bg-fuchsia-100 text-fuchsia-700', button: 'bg-fuchsia-600 text-white' },
   { slug: 'bracket-city', title: 'Bracket City', description: 'Clues nested inside clues. Solve the innermost one first.', icon: IconBrackets, href: '/play/bracket-city', tile: 'bg-indigo-100 text-indigo-700', button: 'bg-indigo-600 text-white' },
+  { slug: 'bhakti-marg', title: 'Bhakti Marg', description: 'Find your path. Trace through the grid to discover hidden spiritual words.', icon: IconRoute, href: '/play/bhakti-marg', tile: 'bg-violet-100 text-violet-700', button: 'bg-violet-600 text-white' },
+  { slug: 'ras-rani', title: 'Ras Rani 🍯', description: 'Find the nectar. Place droplets in each row, column, and region without touching.', icon: NectarIcon, href: '/play/ras-rani', tile: 'bg-amber-100 text-amber-700', button: 'bg-amber-500 text-white' },
 ]
 
 const { done, results } = usePlayCompletion(games.map(g => g.slug))

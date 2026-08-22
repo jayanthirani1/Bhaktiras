@@ -44,7 +44,9 @@ export const ADMIN_MENU_GROUPS: AdminMenuGroup[] = [
       { label: 'Crossword', to: '/admin/games/crossword', subtitle: 'Quick timed crossword' },
       { label: '1% Club', to: '/admin/games/one-percent', subtitle: 'Daily Vachnamrut ladders (Bhuj edition)' },
       { label: 'Connections', to: '/admin/games/connections', subtitle: 'Four groups of four satsang words' },
-      { label: 'Bracket City', to: '/admin/games/bracket-city', subtitle: 'Override the generated nested-clue puzzle' }
+      { label: 'Bracket City', to: '/admin/games/bracket-city', subtitle: 'Override the generated nested-clue puzzle' },
+      { label: 'Bhakti Marg', to: '/admin/games/bhakti-marg', subtitle: 'Maze-style spiritual word path puzzles' },
+      { label: 'Ras Rani', to: '/admin/games/ras-rani', subtitle: 'Logic puzzle with nectar droplets and regions' }
     ]
   }
 ]

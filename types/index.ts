@@ -224,6 +224,8 @@ export type GameLeaderboardId =
   | 'mini-crossword'
   | 'connections'
   | 'bracket-city'
+  | 'bhakti-marg'
+  | 'ras-rani'
 
 export interface GameScoreEntry {
   id: string
@@ -280,6 +282,41 @@ export interface BracketCityPuzzle {
   source: string
   /** Where the episode comes from, shown once the puzzle is solved. */
   credit?: string
+}
+
+export interface BhaktiMargWord {
+  word: string
+  meaning: string
+}
+
+export interface BhaktiMargPuzzle {
+  id: string
+  title: string
+  dateId?: string | null
+  gridSize: number
+  grid: string[][]
+  walls: Array<{ row: number; col: number; direction: 'right' | 'down' }>
+  words: BhaktiMargWord[]
+  paths: Array<Array<[number, number]>>
+  published?: boolean
+}
+
+export interface RasRaniRegion {
+  id: string
+  name: string
+  color: string
+  meaning?: string
+}
+
+export interface RasRaniPuzzle {
+  id: string
+  title: string
+  dateId?: string | null
+  gridSize: number
+  regionGrid: string[][]
+  regions: RasRaniRegion[]
+  solution: Array<[number, number]>
+  published?: boolean
 }
 
 export interface PlayStreakRecord {
