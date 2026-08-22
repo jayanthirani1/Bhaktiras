@@ -104,10 +104,14 @@ import type { Event } from '~/types'
 
 const { events, isLoading } = useEvents()
 const { request: requestPushPrompt } = usePushPrompt()
+const { request: requestInstallPrompt } = useInstallPrompt()
 let pushPromptTimer: number | null = null
 
 onMounted(() => {
-  pushPromptTimer = window.setTimeout(() => requestPushPrompt('events'), 1200)
+  pushPromptTimer = window.setTimeout(() => {
+    requestInstallPrompt('events')
+    requestPushPrompt('events')
+  }, 1200)
 })
 onUnmounted(() => {
   if (pushPromptTimer) window.clearTimeout(pushPromptTimer)

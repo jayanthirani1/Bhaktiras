@@ -120,6 +120,7 @@ export function usePlayCompletionStore() {
 export function useDailyGameCompletion(slug: PlayGameSlug) {
   const auth = useAuth()
   const { request: requestPushPrompt } = usePushPrompt()
+  const { request: requestInstallPrompt } = useInstallPrompt()
   const { remote, loaded, markDone: store } = usePlayCompletionStore()
   const localDone = ref(false)
 
@@ -135,6 +136,10 @@ export function useDailyGameCompletion(slug: PlayGameSlug) {
     const firstCompletion = !localDone.value
     localDone.value = true
     await store(slug, meta)
+    // Finishing a puzzle is the strongest engagement signal the app has, so both
+    // asks hang off it. Installing is not account-gated the way push is, so it
+    // is offered to signed-out players too; `useAppPrompts` shows only one.
+    if (firstCompletion) requestInstallPrompt('game-complete')
     if (firstCompletion && auth.user.value?.uid) requestPushPrompt('game-complete')
   }
 

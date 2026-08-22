@@ -8,6 +8,7 @@ import {
   type Firestore
 } from 'firebase/firestore'
 import { getApp } from 'firebase/app'
+import { isIos, isStandalone } from '~/utils/pwa'
 
 export type PushTopic = 'announcements' | 'games'
 export type PushPromptMoment = 'game-complete' | 'events'
@@ -126,20 +127,6 @@ async function syncSubscription(db: Firestore, uid: string, vapidKey: string): P
 }
 
 let initialiseRun = 0
-
-/** iOS only exposes web push to web apps launched from the Home Screen. */
-function isIos() {
-  if (import.meta.server) return false
-  const ua = navigator.userAgent
-  return /iPad|iPhone|iPod/.test(ua)
-    || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
-}
-
-function isStandalone() {
-  if (import.meta.server) return false
-  return window.matchMedia?.('(display-mode: standalone)').matches
-    || (navigator as { standalone?: boolean }).standalone === true
-}
 
 /** Browser permission, FCM token registration and per-device topic preferences. */
 export function usePushNotifications() {
@@ -375,6 +362,7 @@ export function usePushPrompt() {
   const moment = useState<PushPromptMoment | null>('push-prompt-moment', () => null)
   const auth = useAuth()
   const push = usePushNotifications()
+  const gate = useAppPrompts()
 
   function topicFor(value: PushPromptMoment): PushTopic {
     if (value === 'game-complete') return 'games'
@@ -387,6 +375,7 @@ export function usePushPrompt() {
     if (push.topics.value.includes(topic)) return
     if (localStorage.getItem(`bhaktiras-push-prompt-seen:${value}`) === '1') return
     moment.value = value
+    gate.setPending('push', true)
   }
 
   function close(markSeen = true) {
@@ -394,6 +383,7 @@ export function usePushPrompt() {
       localStorage.setItem(`bhaktiras-push-prompt-seen:${moment.value}`, '1')
     }
     moment.value = null
+    gate.setPending('push', false)
   }
 
   async function accept() {
