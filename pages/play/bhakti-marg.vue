@@ -182,6 +182,7 @@ const auth = useAuth()
 const isLoggedIn = computed(() => !!auth.user.value)
 const { playedElsewhere, result: elsewhereResult, markDone } = useDailyGameCompletion('bhakti-marg')
 const { entries, loading: boardLoading, dateId, submitScore } = useGameLeaderboard('bhakti-marg', { sort: 'asc' })
+const achievements = useAchievements()
 
 const wordColors = [
   'bg-emerald-500',
@@ -409,17 +410,25 @@ async function submitToLeaderboard() {
   if (!auth.user.value || scoreSubmitted.value || submitting.value || !finished.value) return
   submitting.value = true
   submitError.value = ''
+  const userName = auth.user.value.displayName || auth.user.value.email?.split('@')[0] || 'Player'
   try {
     await submitScore({
       score: hintsUsed.value,
       timeMs: timer.elapsedMs.value,
       detail: `${puzzle.value.words.length} words`,
       userId: auth.user.value.uid,
-      userName: auth.user.value.displayName || auth.user.value.email?.split('@')[0] || 'Player',
+      userName,
       userEmail: auth.user.value.email || undefined
     })
     scoreSubmitted.value = true
     saveState()
+
+    await achievements.processResult('bhakti-marg', {
+      userName,
+      timeMs: timer.elapsedMs.value,
+      moves: puzzle.value.words.length,
+      hintsUsed: hintsUsed.value
+    })
   } catch (error) {
     submitError.value = (error as Error).message
   } finally {

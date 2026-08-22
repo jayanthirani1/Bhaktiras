@@ -194,6 +194,7 @@ const auth = useAuth()
 const isLoggedIn = computed(() => !!auth.user.value)
 const { playedElsewhere, result: elsewhereResult, markDone } = useDailyGameCompletion('ras-rani')
 const { entries, loading: boardLoading, dateId, submitScore } = useGameLeaderboard('ras-rani', { sort: 'asc' })
+const achievements = useAchievements()
 
 const grid = ref<CellState[][]>([])
 const history = ref<CellState[][][]>([])
@@ -415,17 +416,25 @@ async function submitToLeaderboard() {
   if (!auth.user.value || scoreSubmitted.value || submitting.value || !finished.value) return
   submitting.value = true
   submitError.value = ''
+  const userName = auth.user.value.displayName || auth.user.value.email?.split('@')[0] || 'Player'
   try {
     await submitScore({
       score: moves.value,
       timeMs: timer.elapsedMs.value,
       detail: `${hintsUsed.value} hints`,
       userId: auth.user.value.uid,
-      userName: auth.user.value.displayName || auth.user.value.email?.split('@')[0] || 'Player',
+      userName,
       userEmail: auth.user.value.email || undefined
     })
     scoreSubmitted.value = true
     saveState()
+
+    await achievements.processResult('ras-rani', {
+      userName,
+      timeMs: timer.elapsedMs.value,
+      moves: moves.value,
+      hintsUsed: hintsUsed.value
+    })
   } catch (error) {
     submitError.value = (error as Error).message
   } finally {
