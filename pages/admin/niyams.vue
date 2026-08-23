@@ -1,6 +1,14 @@
 <template>
   <div>
     <p v-if="error" class="mb-3 text-sm text-red-600">{{ error }}</p>
+    <!-- The two niyam editors are easy to confuse: this page is the daily
+         checklist, the shared goals live next door. -->
+    <p class="mb-3 text-sm text-[hsl(var(--muted-foreground))]">
+      Looking for the shared goals devotees add their counts to?
+      <NuxtLink to="/admin/niyam-challenges" class="font-semibold text-[hsl(var(--golden-900))] hover:underline">
+        Niyam challenges →
+      </NuxtLink>
+    </p>
     <div v-if="!loading && !sorted.length" class="mb-4">
       <button type="button" class="admin-btn-secondary" :disabled="importing || saving" @click="importDefaults">
         {{ importing ? 'Importing…' : 'Import default niyams' }}

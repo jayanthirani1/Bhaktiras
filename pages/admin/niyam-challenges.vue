@@ -2,6 +2,12 @@
   <div class="space-y-4">
     <p v-if="error" class="text-sm text-red-600">{{ error }}</p>
     <p v-if="submissionError" class="text-sm text-red-600">{{ submissionError }}</p>
+    <p class="text-sm text-[hsl(var(--muted-foreground))]">
+      Shared goals with a target and a deadline. The daily niyam checklist is
+      <NuxtLink to="/admin/niyams" class="font-semibold text-[hsl(var(--golden-900))] hover:underline">
+        Niyams →
+      </NuxtLink>
+    </p>
 
     <AdminEditorLayout
       :count-label="`${sorted.length} challenge${sorted.length === 1 ? '' : 's'}`"
