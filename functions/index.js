@@ -3,7 +3,7 @@ const logger = require('firebase-functions/logger')
 const { onSchedule } = require('firebase-functions/v2/scheduler')
 const { onDocumentCreated, onDocumentWritten } = require('firebase-functions/v2/firestore')
 const { initializeApp } = require('firebase-admin/app')
-const { getFirestore, FieldValue, FieldPath } = require('firebase-admin/firestore')
+const { getFirestore, FieldValue } = require('firebase-admin/firestore')
 const { getMessaging } = require('firebase-admin/messaging')
 const { getAuth } = require('firebase-admin/auth')
 
@@ -757,11 +757,14 @@ async function collectGameStats(db, days) {
  */
 async function collectHistory(db, days, playersByDay) {
   const ids = recentDateIds(days).reverse()
-  const snap = await db.collection('dailyStats')
-    .orderBy(FieldPath.documentId(), 'desc')
-    .limit(days)
-    .get()
-  const snapshots = new Map(snap.docs.map(docSnap => [docSnap.id, docSnap.data()]))
+  // Fetched by document reference, not by query. Ordering a query by document
+  // id descending is not covered by Firestore's automatic single-field indexes
+  // and needs a composite one — which the deploy service account has no
+  // permission to create. Document ids are the dates, so they are already known.
+  const snaps = await db.getAll(...ids.map(id => db.doc(`dailyStats/${id}`)))
+  const snapshots = new Map(
+    snaps.filter(docSnap => docSnap.exists).map(docSnap => [docSnap.id, docSnap.data()])
+  )
 
   const points = ids.map(dateId => ({
     dateId,
