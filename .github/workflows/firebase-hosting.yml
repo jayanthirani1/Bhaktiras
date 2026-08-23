@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 env:
-  NODE_VERSION: "20"
+  NODE_VERSION: "22"
 
 jobs:
   build-and-deploy:
@@ -62,6 +62,15 @@ jobs:
           echo "NUXT_PUBLIC_FIREBASE_VAPID_KEY=$NUXT_PUBLIC_FIREBASE_VAPID_KEY" >> .env
           echo "NUXT_PUBLIC_FLICKR_API_KEY=$NUXT_PUBLIC_FLICKR_API_KEY" >> .env
           echo "NUXT_PUBLIC_FLICKR_USER_ID=$NUXT_PUBLIC_FLICKR_USER_ID" >> .env
+
+      # After .env exists, because `nuxt typecheck` evaluates nuxt.config.ts and
+      # writeFirebaseMessagingSw() refuses to run in CI without real config.
+      # Before the build, so a type error fails the job without deploying.
+      #
+      # Nuxt's build does not run vue-tsc, so type errors used to ship silently:
+      # main sat broken for several commits before anyone noticed.
+      - name: Typecheck
+        run: npm run typecheck
 
       - name: Build (Nuxt generate)
         run: npm run generate
