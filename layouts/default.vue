@@ -20,6 +20,7 @@ const auth = useAuth()
 const { recordVisit } = usePlayStreak()
 const signInPrompt = useSignInPrompt()
 const { request: requestInstallPrompt } = useInstallPrompt()
+const { request: requestPushPrompt } = usePushPrompt()
 
 /**
  * The two launch-time prompts, held until Firebase has restored the session.
@@ -33,14 +34,14 @@ const { request: requestInstallPrompt } = useInstallPrompt()
  * session; a newcomer is asked instead at the `game-complete` and `events`
  * moments, once they have got something out of the app.
  *
- * Still deliberately absent: a push prompt on sign-in. That used to ask for
- * notification permission 1.5s after signing in — before the new member had
- * played anything or seen a streak, so there was nothing to accept it *for*.
- * Cold prompts are refused most of the time, and on iOS a refusal is
- * effectively permanent: the only way back is Settings. There is one ask per
- * device, so it has to be spent well. Push now fires only from the
- * `game-complete` moment in `usePushPrompt`, where the offer ("Remind me
- * tomorrow's game?") answers a want the player has just demonstrated.
+ * The `signed-in` push moment is the third trigger, below. It is deliberately
+ * narrow, because there is one notification ask per device and on iOS a refusal
+ * is effectively permanent — the only way back is Settings. So it fires only
+ * after the sign-in a devotee just performed, never the one Firebase restores
+ * on each launch; never where iOS would refuse it anyway for want of a Home
+ * Screen launch; and once, after which the seen flag stands. The other two push
+ * moments still carry the asks that answer a demonstrated want: `game-complete`
+ * ("Remind me tomorrow's game?") and `events`.
  */
 let launchPromptsFired = false
 let launchPromptTimer: number | null = null
@@ -60,8 +61,26 @@ onMounted(() => {
   )
 })
 
+/**
+ * The ask that follows signing in, held back so the page they landed on is the
+ * first thing they see rather than a card over a screen they have not read.
+ * `usePushPrompt` decides whether this moment is owed at all; `useAppPrompts`
+ * decides whether it is this round's card.
+ */
+let signedInPromptTimer: number | null = null
+
+watch(
+  () => auth.user.value?.uid,
+  (uid, previous) => {
+    if (import.meta.server || !uid || uid === previous) return
+    if (signedInPromptTimer) window.clearTimeout(signedInPromptTimer)
+    signedInPromptTimer = window.setTimeout(() => requestPushPrompt('signed-in'), 2500)
+  }
+)
+
 onUnmounted(() => {
   if (launchPromptTimer) window.clearTimeout(launchPromptTimer)
+  if (signedInPromptTimer) window.clearTimeout(signedInPromptTimer)
 })
 
 watch(
