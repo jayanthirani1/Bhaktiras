@@ -59,13 +59,13 @@ const visible = computed(() => !!moment.value && !!method.value && active.value)
 const copy = computed(() => {
   if (method.value === 'ios') {
     return {
-      title: 'Add Bhaktiras to your Home Screen',
-      body: 'Tap Share, then Add to Home Screen. It works in Safari, Chrome and other iPhone browsers, and it is how temple and Patotsav announcements reach you.'
+      title: 'Add the Bhaktiras app to your phone',
+      body: 'Tap Share, then Add to Home Screen, for quick and easy access to the full experience. No app store download required.'
     }
   }
   return {
-    title: 'Add Bhaktiras to your phone?',
-    body: 'Install it for a full-screen Bhaktiras, one tap from your home screen. Nothing to download from an app store.'
+    title: 'Add the Bhaktiras app to your phone',
+    body: 'Install Bhaktiras directly to your phone for quick and easy access to the full experience. No app store download required.'
   }
 })
 </script>
