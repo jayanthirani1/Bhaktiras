@@ -10,11 +10,11 @@
       <IconDeviceMobileDown class="h-5 w-5" aria-hidden="true" />
     </template>
 
-    <template v-if="method === 'ios-safari'" #detail>
+    <template v-if="method === 'ios'" #detail>
       <ol class="mt-3 space-y-1.5 text-xs text-[hsl(var(--muted-foreground))]">
         <li class="flex items-center gap-2">
           <IconShare2 class="h-4 w-4 shrink-0 text-[hsl(var(--primary))]" aria-hidden="true" />
-          <span>Tap <strong class="font-semibold">Share</strong> at the bottom of Safari</span>
+          <span>Tap <strong class="font-semibold">Share</strong></span>
         </li>
         <li class="flex items-center gap-2">
           <IconSquarePlus class="h-4 w-4 shrink-0 text-[hsl(var(--primary))]" aria-hidden="true" />
@@ -53,21 +53,14 @@ const active = useAppPrompts().visible('install')
 const visible = computed(() => !!moment.value && !!method.value && active.value)
 
 /**
- * Three different asks. Chromium gets a button that installs; iOS Safari gets
- * the Share-sheet steps, because Apple offers no button to give it; anything
- * else on iOS cannot install at all and is sent to Safari.
+ * Chromium gets a button that installs. Every iPhone browser gets the same
+ * Share-sheet steps — Safari, Chrome, Firefox and Edge all offer Add to Home Screen.
  */
 const copy = computed(() => {
-  if (method.value === 'ios-safari') {
+  if (method.value === 'ios') {
     return {
       title: 'Add Bhaktiras to your Home Screen',
-      body: 'It opens full screen, like an app — and on iPhone it is the only way to receive temple and Patotsav announcements.'
-    }
-  }
-  if (method.value === 'ios-other') {
-    return {
-      title: 'Install Bhaktiras from Safari',
-      body: 'Open this page in Safari, tap Share, then Add to Home Screen. Chrome and Firefox on iPhone cannot install apps.'
+      body: 'Tap Share, then Add to Home Screen. It works in Safari, Chrome and other iPhone browsers, and it is how temple and Patotsav announcements reach you.'
     }
   }
   return {

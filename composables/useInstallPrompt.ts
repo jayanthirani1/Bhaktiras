@@ -1,16 +1,15 @@
-import { isIos, isIosSafari, isStandalone } from '~/utils/pwa'
+import { isIos, isStandalone } from '~/utils/pwa'
 
 export type InstallPromptMoment = 'game-complete' | 'events' | 'return-visit'
 
 /**
  * How this device can install, or `null` when it simply cannot.
  *
- * `prompt` is Chromium's real install dialog. `ios-safari` is a set of
- * instructions, because Apple exposes no API — Add to Home Screen is a manual
- * Share-sheet action and the only route to push on iOS. `ios-other` is Chrome
- * or Firefox on iOS, which cannot install at all and needs sending to Safari.
+ * `prompt` is Chromium's real install dialog. `ios` is Share → Add to Home
+ * Screen, which Safari, Chrome, Firefox and Edge on iPhone all expose. Apple
+ * still offers no install API, so the card is instructions rather than a button.
  */
-export type InstallMethod = 'prompt' | 'ios-safari' | 'ios-other'
+export type InstallMethod = 'prompt' | 'ios'
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>
@@ -87,7 +86,7 @@ export function useInstallPrompt() {
   const method = computed<InstallMethod | null>(() => {
     if (import.meta.server) return null
     if (canPrompt.value) return 'prompt'
-    if (isIos()) return isIosSafari() ? 'ios-safari' : 'ios-other'
+    if (isIos()) return 'ios'
     return null
   })
 

@@ -22,9 +22,9 @@ export function isStandalone() {
 }
 
 /**
- * Every iOS browser is WebKit, but only Safari carries Add to Home Screen —
- * Chrome, Firefox and Edge on iOS have no way to install at all, so they get
- * different instructions rather than a Share menu that will not help them.
+ * Safari on iOS (not Chrome / Firefox / Edge, which still use WebKit but a
+ * different UA). Add to Home Screen is available from those browsers too;
+ * this is only useful when a flow is genuinely Safari-only.
  */
 export function isIosSafari() {
   if (!isIos() || typeof navigator === 'undefined') return false
