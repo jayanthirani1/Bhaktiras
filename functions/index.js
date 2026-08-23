@@ -1,7 +1,7 @@
 const { onCall, HttpsError } = require('firebase-functions/v2/https')
 const logger = require('firebase-functions/logger')
 const { onSchedule } = require('firebase-functions/v2/scheduler')
-const { onDocumentCreated } = require('firebase-functions/v2/firestore')
+const { onDocumentCreated, onDocumentWritten } = require('firebase-functions/v2/firestore')
 const { initializeApp } = require('firebase-admin/app')
 const { getFirestore, FieldValue, FieldPath } = require('firebase-admin/firestore')
 const { getMessaging } = require('firebase-admin/messaging')
@@ -1259,5 +1259,144 @@ exports.notifyNewEvent = onDocumentCreated(
       url: '/events',
       sentBy: 'system:new-event'
     })
+  }
+)
+
+/* ------------------------------------------------------------------ *
+ * Niyam challenges — community goals ("10,000 malas by Patotsav")
+ * ------------------------------------------------------------------ */
+
+/**
+ * Everything shown on the challenge progress bar is derived here, from the
+ * submissions themselves. `niyamChallengeStats` and the per-person
+ * `contributors` rollups are closed to browser writes, so the only way to move
+ * a community total is to have a submission approved.
+ *
+ * A submission counts when its status is `approved`. Anything larger than the
+ * challenge's `autoApproveMax` is written as `pending` by the security rules
+ * and stays out of the total until an admin flips it.
+ *
+ * Contention note: every entry for a challenge touches one stats document, and
+ * Firestore sustains roughly one write per second per document. That is fine at
+ * sangat scale; if a challenge ever goes viral this wants sharded counters.
+ */
+function niyamCounters(value) {
+  const number = Number(value)
+  return Number.isFinite(number) && number > 0 ? Math.floor(number) : 0
+}
+
+function readNiyamSubmission(snap) {
+  if (!snap || !snap.exists) return null
+  const data = snap.data() || {}
+  const challengeId = typeof data.challengeId === 'string' ? data.challengeId.trim() : ''
+  const userId = typeof data.userId === 'string' ? data.userId.trim() : ''
+  const amount = niyamCounters(data.amount)
+  if (!challengeId || !userId) return null
+  const status = data.status === 'approved'
+    ? 'approved'
+    : data.status === 'rejected' ? 'rejected' : 'pending'
+  return {
+    challengeId,
+    userId,
+    userName: cleanText(data.userName, 32) || 'Devotee',
+    amount,
+    status
+  }
+}
+
+function niyamDelta(before, after) {
+  const approvedOf = (row) => (row && row.status === 'approved' ? row.amount : 0)
+  const pendingOf = (row) => (row && row.status === 'pending' ? row.amount : 0)
+  const countOf = (row, status) => (row && row.status === status ? 1 : 0)
+  return {
+    approvedTotal: approvedOf(after) - approvedOf(before),
+    pendingTotal: pendingOf(after) - pendingOf(before),
+    approvedCount: countOf(after, 'approved') - countOf(before, 'approved'),
+    pendingCount: countOf(after, 'pending') - countOf(before, 'pending'),
+    submissionCount: (after ? 1 : 0) - (before ? 1 : 0)
+  }
+}
+
+function isEmptyNiyamDelta(delta) {
+  return Object.values(delta).every(value => value === 0)
+}
+
+async function applyNiyamDelta(db, { challengeId, userId, userName }, delta) {
+  if (isEmptyNiyamDelta(delta)) return
+  const statsRef = db.doc(`niyamChallengeStats/${challengeId}`)
+  const contributorRef = db.doc(`niyamChallenges/${challengeId}/contributors/${userId}`)
+
+  await db.runTransaction(async (tx) => {
+    const [statsSnap, contributorSnap] = await Promise.all([tx.get(statsRef), tx.get(contributorRef)])
+    const stats = statsSnap.data() || {}
+    const contributor = contributorSnap.data() || {}
+
+    const prevApproved = niyamCounters(contributor.approvedTotal)
+    const nextApproved = Math.max(0, prevApproved + delta.approvedTotal)
+    const nextPending = Math.max(0, niyamCounters(contributor.pendingTotal) + delta.pendingTotal)
+    const nextSubmissions = Math.max(0, niyamCounters(contributor.submissionCount) + delta.submissionCount)
+
+    // Participants counts people who have something approved, so it only moves
+    // when a contributor crosses zero in either direction.
+    let participantsDelta = 0
+    if (prevApproved <= 0 && nextApproved > 0) participantsDelta = 1
+    else if (prevApproved > 0 && nextApproved <= 0) participantsDelta = -1
+
+    tx.set(statsRef, {
+      challengeId,
+      approvedTotal: Math.max(0, niyamCounters(stats.approvedTotal) + delta.approvedTotal),
+      pendingTotal: Math.max(0, niyamCounters(stats.pendingTotal) + delta.pendingTotal),
+      approvedCount: Math.max(0, niyamCounters(stats.approvedCount) + delta.approvedCount),
+      pendingCount: Math.max(0, niyamCounters(stats.pendingCount) + delta.pendingCount),
+      participants: Math.max(0, niyamCounters(stats.participants) + participantsDelta),
+      updatedAt: FieldValue.serverTimestamp()
+    }, { merge: true })
+
+    if (nextSubmissions <= 0) {
+      tx.delete(contributorRef)
+      return
+    }
+
+    tx.set(contributorRef, {
+      userId,
+      userName: userName || contributor.userName || 'Devotee',
+      approvedTotal: nextApproved,
+      pendingTotal: nextPending,
+      submissionCount: nextSubmissions,
+      lastSubmittedAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp()
+    }, { merge: true })
+  })
+}
+
+exports.syncNiyamChallengeTotals = onDocumentWritten(
+  { document: 'niyamSubmissions/{submissionId}', region: 'europe-west2' },
+  async (event) => {
+    const before = readNiyamSubmission(event.data?.before)
+    const after = readNiyamSubmission(event.data?.after)
+    if (!before && !after) return
+
+    const db = getFirestore()
+    const sameOwner = before && after
+      && before.challengeId === after.challengeId
+      && before.userId === after.userId
+
+    try {
+      if (sameOwner || !before || !after) {
+        const subject = after || before
+        await applyNiyamDelta(db, subject, niyamDelta(before, after))
+        return
+      }
+      // A submission should never change hands, but if it ever does, unwind it
+      // from the old rollup before adding it to the new one.
+      await applyNiyamDelta(db, before, niyamDelta(before, null))
+      await applyNiyamDelta(db, after, niyamDelta(null, after))
+    } catch (error) {
+      logger.error('Failed to sync niyam challenge totals', {
+        submissionId: event.params.submissionId,
+        message: error.message
+      })
+      throw error
+    }
   }
 )

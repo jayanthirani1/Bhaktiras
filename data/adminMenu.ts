@@ -33,6 +33,7 @@ export const ADMIN_MENU_GROUPS: AdminMenuGroup[] = [
       { label: 'Events', to: '/admin/events', subtitle: 'Title, date, description and poster' },
       { label: 'Yajman opportunities', to: '/admin/yajman', subtitle: 'Utsav Yajman opportunities shown on the site' },
       { label: 'Niyams', to: '/admin/niyams', subtitle: 'Utsav niyams shown on the tracker' },
+      { label: 'Niyam challenges', to: '/admin/niyam-challenges', subtitle: 'Set a shared goal and approve the entries devotees submit' },
       { label: 'Privacy & Policy', to: '/admin/legal', subtitle: 'Footer legal pages' }
     ]
   },

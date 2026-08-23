@@ -412,6 +412,129 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // Admin-set community goals — "10,000 malas between now and Patotsav".
+    // Public read so the progress bar works for a signed-out visitor too.
+    match /niyamChallenges/{challengeId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+
+      // Per-person rollups, derived by `syncNiyamChallengeTotals`. A devotee
+      // sees their own; admins see everyone's while reviewing.
+      match /contributors/{uid} {
+        allow read: if isAdmin() || (isSignedIn() && request.auth.uid == uid);
+        allow write: if false;
+      }
+    }
+
+    // Community totals per challenge. Written only by Cloud Functions, so the
+    // number on the progress bar is not one anybody can type in. This is the
+    // pattern the `niyamStats` comment above asks for, applied from the start.
+    match /niyamChallengeStats/{challengeId} {
+      allow read: if true;
+      allow create, update: if false;
+      allow delete: if isAdmin();
+    }
+
+    // What each devotee has added to a challenge.
+    //
+    // Entries are private — yours and the admins', never the whole sangat's.
+    // An individual mala count is personal sadhana, not a leaderboard row.
+    //
+    // The anti-inflation rule lives here rather than in the app. `status` is
+    // not free text: it must be exactly what the challenge's `autoApproveMax`
+    // implies, so an implausibly large entry is written as `pending` even by a
+    // caller talking to Firestore directly with no UI in the way. Only an admin
+    // can move it to `approved`, and only an `approved` entry is folded into
+    // the community total by `syncNiyamChallengeTotals`.
+    match /niyamSubmissions/{submissionId} {
+      function challenge() {
+        return get(/databases/$(database)/documents/niyamChallenges/$(request.resource.data.challengeId)).data;
+      }
+      function challengeExists() {
+        return exists(/databases/$(database)/documents/niyamChallenges/$(request.resource.data.challengeId));
+      }
+      // Both default to a value that denies, so a challenge missing its limits
+      // accepts nothing rather than accepting everything.
+      function autoApproveMax(c) {
+        return (('autoApproveMax' in c) && (c.autoApproveMax is number)) ? c.autoApproveMax : 0;
+      }
+      function maxPerSubmission(c) {
+        return (('maxPerSubmission' in c) && (c.maxPerSubmission is number)) ? c.maxPerSubmission : 0;
+      }
+      function isOpen(c) {
+        return c.active == true
+          && (!('startAt' in c) || c.startAt == null || request.time >= c.startAt)
+          && (!('endAt' in c) || c.endAt == null || request.time <= c.endAt);
+      }
+
+      allow get, list: if isAdmin()
+        || (isSignedIn() && resource.data.userId == request.auth.uid);
+
+      allow create: if isSignedIn()
+        && challengeExists()
+        && submissionId.matches('^' + request.resource.data.challengeId + '__.*')
+        && request.resource.data.keys().hasOnly([
+             'challengeId', 'userId', 'userName', 'amount', 'note',
+             'status', 'statusKey', 'userChallengeKey', 'dayKey', 'createdAt'
+           ])
+        && request.resource.data.keys().hasAll([
+             'challengeId', 'userId', 'userName', 'amount',
+             'status', 'statusKey', 'userChallengeKey', 'dayKey', 'createdAt'
+           ])
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.userChallengeKey ==
+             request.auth.uid + '__' + request.resource.data.challengeId
+        && request.resource.data.statusKey ==
+             request.resource.data.challengeId + '__' + request.resource.data.status
+        && request.resource.data.userName is string
+        && request.resource.data.userName.size() <= 32
+        && request.resource.data.dayKey is string
+        && request.resource.data.dayKey.matches('^20[2-9][0-9]-[0-1][0-9]-[0-3][0-9]$')
+        && (
+             request.resource.data.note == null
+             || (request.resource.data.note is string && request.resource.data.note.size() <= 240)
+           )
+        && request.resource.data.amount is number
+        && request.resource.data.amount == int(request.resource.data.amount)
+        && request.resource.data.amount >= 1
+        && request.resource.data.amount <= maxPerSubmission(challenge())
+        && request.resource.data.createdAt == request.time
+        && isOpen(challenge())
+        && request.resource.data.status == (
+             request.resource.data.amount <= autoApproveMax(challenge()) ? 'approved' : 'pending'
+           );
+
+      // Only an admin decides what counts. Identity, amount, day and the
+      // challenge it belongs to are immutable — a review changes the verdict,
+      // never the claim.
+      allow update: if isAdmin()
+        && request.resource.data.keys().hasOnly([
+             'challengeId', 'userId', 'userName', 'amount', 'note',
+             'status', 'statusKey', 'userChallengeKey', 'dayKey', 'createdAt',
+             'reviewedAt', 'reviewedBy', 'reviewNote'
+           ])
+        && request.resource.data.challengeId == resource.data.challengeId
+        && request.resource.data.userId == resource.data.userId
+        && request.resource.data.userChallengeKey == resource.data.userChallengeKey
+        && request.resource.data.amount == resource.data.amount
+        && request.resource.data.dayKey == resource.data.dayKey
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.status in ['approved', 'pending', 'rejected']
+        && request.resource.data.statusKey ==
+             resource.data.challengeId + '__' + request.resource.data.status
+        && request.resource.data.reviewedAt == request.time
+        && request.resource.data.reviewedBy == request.auth.uid
+        && (
+             request.resource.data.reviewNote == null
+             || (request.resource.data.reviewNote is string && request.resource.data.reviewNote.size() <= 240)
+           );
+
+      // A devotee can withdraw their own entry — a mistyped count, usually.
+      // The trigger unwinds it from the totals either way.
+      allow delete: if isAdmin()
+        || (isSignedIn() && resource.data.userId == request.auth.uid);
+    }
+
     // Privacy / policy pages. Public read; admin write.
     match /sitePages/{id} {
       allow read: if true;

@@ -140,6 +140,87 @@ export interface NiyamStats {
   counts: Record<string, number>
 }
 
+export type FirestoreTimestampLike = { seconds: number; nanoseconds: number } | Date
+
+export type NiyamSubmissionStatus = 'approved' | 'pending' | 'rejected'
+
+/**
+ * An admin-set community goal — "10,000 malas between now and Patotsav".
+ * Every devotee submits what they have actually done and the approved entries
+ * ladder up into one shared total, so the sangat finishes the goal together.
+ */
+export interface NiyamChallenge {
+  id: string
+  title: string
+  detail: string
+  /** Plural noun used in totals, e.g. "malas". */
+  unit: string
+  /** Singular form, e.g. "mala". */
+  unitSingular: string
+  target: number
+  startAt: FirestoreTimestampLike | null
+  endAt: FirestoreTimestampLike | null
+  active: boolean
+  order?: number
+  /**
+   * A single entry at or below this counts straight away. Anything larger is
+   * held as `pending` until an admin approves it, so one implausible number
+   * can never move the community total on its own.
+   */
+  autoApproveMax: number
+  /** Hard ceiling — the form and the security rules both refuse anything above it. */
+  maxPerSubmission: number
+  createdAt?: FirestoreTimestampLike
+  updatedAt?: FirestoreTimestampLike
+}
+
+export interface NiyamSubmission {
+  id: string
+  challengeId: string
+  userId: string
+  userName: string
+  amount: number
+  note?: string | null
+  status: NiyamSubmissionStatus
+  /** `${challengeId}__${status}` — lets a single equality filter serve every queue query. */
+  statusKey: string
+  /** `${userId}__${challengeId}` — the same trick for "my entries". */
+  userChallengeKey: string
+  /** UK calendar day the entry was made, YYYY-MM-DD. */
+  dayKey: string
+  createdAt?: FirestoreTimestampLike
+  reviewedAt?: FirestoreTimestampLike | null
+  reviewedBy?: string | null
+  reviewNote?: string | null
+}
+
+/**
+ * Community totals for one challenge. Derived by the `syncNiyamChallengeTotals`
+ * trigger from the submissions themselves — never written from a browser, so
+ * the number on the progress bar is one nobody can type in directly.
+ */
+export interface NiyamChallengeStats {
+  challengeId: string
+  approvedTotal: number
+  pendingTotal: number
+  approvedCount: number
+  pendingCount: number
+  participants: number
+  updatedAt?: FirestoreTimestampLike
+}
+
+/** Per-person rollup at `niyamChallenges/{challengeId}/contributors/{uid}`. */
+export interface NiyamContributor {
+  id: string
+  userId: string
+  userName: string
+  approvedTotal: number
+  pendingTotal: number
+  submissionCount: number
+  lastSubmittedAt?: FirestoreTimestampLike
+  updatedAt?: FirestoreTimestampLike
+}
+
 export type LegalSlug = 'privacy' | 'policy'
 
 export interface SitePage {
