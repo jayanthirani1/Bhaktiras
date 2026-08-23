@@ -54,8 +54,20 @@
                   :style="{ gridColumn: `${(c - 1) * 2 + 1}`, gridRow: `${(r - 1) * 2 + 1}` }"
                   @click="toggleCell(r - 1, c - 1)"
                 >
-                  <span v-if="board[r - 1][c - 1] === 1">☀️</span>
-                  <span v-else-if="board[r - 1][c - 1] === 0">🌙</span>
+                  <IconSun
+                    v-if="board[r - 1][c - 1] === 1"
+                    class="h-7 w-7 text-amber-500 sm:h-8 sm:w-8"
+                    fill="currentColor"
+                    stroke-width="1.4"
+                    aria-hidden="true"
+                  />
+                  <IconMoon
+                    v-else-if="board[r - 1][c - 1] === 0"
+                    class="h-7 w-7 text-slate-700 sm:h-8 sm:w-8"
+                    fill="currentColor"
+                    stroke-width="1.4"
+                    aria-hidden="true"
+                  />
                 </button>
                 <span
                   v-if="c < 6"
@@ -143,6 +155,7 @@
 </template>
 
 <script setup lang="ts">
+import { IconMoon, IconSun } from '@tabler/icons-vue'
 import { ukDateId } from '~/utils/gameDay'
 import { formatElapsed } from '~/composables/useGameTimer'
 import {
