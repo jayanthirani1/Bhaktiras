@@ -16,7 +16,7 @@ Bhaktiras is run by the temple community. We use this site to share the journey,
 
 ## Signing in
 
-You can use Bhaktiras without an account. Sign in if you want to save personal progress (for example niyams), appear on game leaderboards, or personalise your greeting.
+You can use Bhaktiras without an account. Sign in if you want to save personal progress (for example what you have added to a niyam challenge), appear on game leaderboards, or personalise your greeting.
 
 We offer two ways to sign in:
 
@@ -29,7 +29,7 @@ When you create an account, you must accept the current Privacy Policy and Site 
 
 ## Why we use your data
 
-We process account information because it is needed to provide the features you request, such as saving niyams and scores. We use legitimate interests to keep the service secure and prevent misuse. Where a feature is genuinely optional and requires consent, you can choose not to use it and withdraw that consent.
+We process account information because it is needed to provide the features you request, such as saving your niyam challenge entries and scores. We use legitimate interests to keep the service secure and prevent misuse. Where a feature is genuinely optional and requires consent, you can choose not to use it and withdraw that consent.
 
 ## What we store
 
@@ -37,7 +37,7 @@ Depending on how you use the site, we may store:
 
 - Your account ID, display name, and email
 - Game scores you choose to submit to a leaderboard (with your display name)
-- Niyam ticks saved to your account
+- What you submit to a niyam challenge: the count, an optional note, and the day
 - Community wall messages you post (you can post anonymously)
 - Bug reports you submit, including an optional contact email
 - A device notification token and the update categories you choose, if you opt in to push notifications
@@ -52,8 +52,8 @@ The site is served over HTTPS. Accounts, scores, and content are stored with **G
 
 Access to data is limited by Firestore security rules. For example:
 
-- Anyone can read public content (events, timeline, published niyams, leaderboards)
-- Only you can update your own niyam tracker and your own scores
+- Anyone can read public content (events, timeline, niyam challenges and their combined totals, leaderboards)
+- Only you and temple admins can read what you submitted to a niyam challenge; only you can add or withdraw your own entries
 - Only temple admins can edit site content, including this policy
 - Only temple admins can read submitted bug reports
 
@@ -64,14 +64,14 @@ You should use a strong password (or Google sign-in with 2-step verification) an
 Some things are visible to everyone on purpose, to encourage the mandal:
 
 - Leaderboards show display name and score (not your email)
-- Community niyam totals are shown as combined numbers, not your personal list
+- Niyam challenge progress is shown as one combined total, never an individual's count
 - Community wall messages you post (unless you post anonymously)
 
 Your email address is not shown on public pages.
 
 ## Cookies and device storage
 
-We use local device storage for things like a guest niyam tracker, your signed-in session, and whether this device has enabled notifications. These are for the site to work, not for tracking you across the web.
+We use local device storage for things like your signed-in session and whether this device has enabled notifications. These are for the site to work, not for tracking you across the web.
 
 ## Children and family use
 
@@ -85,7 +85,7 @@ You can:
 - Sign out at any time
 - Turn push notifications on or off from **Your account**
 - Open **Your account** to download a copy of data linked to your account
-- Permanently delete your account and linked scores, streaks, niyam progress and game completions
+- Permanently delete your account and linked scores, streaks, niyam entries and game completions
 - Ask a temple admin to correct information or remove a message you posted
 
 Anonymous wall posts, anonymous bug reports and anonymised community totals do not contain your account ID, so the account tool cannot identify them automatically. Speak to a mandir admin if you need help with a specific item.
@@ -133,7 +133,7 @@ Games are for fun and satsang. Play fairly. Do not try to break or spam the lead
 
 ## Niyams and seva
 
-Niyams are a personal tracker. Community totals are shown only to encourage the mandal, not to compare individuals.
+A niyam challenge is a shared goal. Count honestly — a large entry is held for a temple admin to approve before it joins the total. Progress is shown as one combined number to encourage the mandal, not to compare individuals.
 
 ## Content and photos
 

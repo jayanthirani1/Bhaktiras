@@ -118,13 +118,6 @@ export interface GratitudeMessage {
   createdAt?: { seconds: number; nanoseconds: number } | Date
 }
 
-export interface Niyam {
-  id: string
-  title: string
-  detail: string
-  order?: number
-}
-
 export interface YajmanOpportunity {
   id: string
   title: string
@@ -133,11 +126,6 @@ export interface YajmanOpportunity {
   contactUrl?: string | null
   active?: boolean
   order?: number
-}
-
-export interface NiyamStats {
-  participants: number
-  counts: Record<string, number>
 }
 
 export type FirestoreTimestampLike = { seconds: number; nanoseconds: number } | Date
@@ -284,6 +272,8 @@ export interface SevaTeamContent {
 export interface SiteContentSettings {
   id: string
   homeTiles: HomeTileContent[]
+  /** Revision of DEFAULT_HOME_TILES this document's homeTiles were saved against. */
+  homeTilesRevision?: number
   navItems: NavItemContent[]
   /** Revision of DEFAULT_NAV_ITEMS this document's navItems were saved against. */
   navItemsRevision?: number

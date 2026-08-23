@@ -131,8 +131,9 @@
       </section>
 
       <p class="text-xs text-[hsl(var(--muted-foreground))]">
-        These are totals only — no individual member's activity is shown here. Niyam progress is
-        deliberately excluded: it is a personal tracker, not a leaderboard.
+        These are totals only — no individual member's activity is shown here. What a devotee has
+        submitted to a niyam challenge is deliberately excluded: it is personal sadhana, not a
+        leaderboard. Review those entries on the challenge itself.
       </p>
     </template>
   </div>

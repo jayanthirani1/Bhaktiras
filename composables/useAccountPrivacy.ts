@@ -38,7 +38,10 @@ export function useAccountPrivacy() {
   const usesGoogle = computed(() => authState.user.value?.providerIds?.includes('google.com') || false)
 
   async function linkedData(db: Firestore, uid: string) {
-    const [profile, admin, scores, legacyWordleScores, streak, niyams, completions, pushSubscriptions] = await Promise.all([
+    // `legacyNiyams` is the retired daily tracker. Nothing writes it any more;
+    // it is read here so an export and a deletion still cover what it left
+    // behind. Drop it once the collection has been cleared.
+    const [profile, admin, scores, legacyWordleScores, streak, legacyNiyams, completions, pushSubscriptions] = await Promise.all([
       getDoc(doc(db, 'users', uid)),
       getDoc(doc(db, 'admins', uid)),
       getDocs(query(collection(db, 'gameScores'), where('userId', '==', uid))),
@@ -49,7 +52,7 @@ export function useAccountPrivacy() {
       getDocs(query(collection(db, 'pushSubscriptions'), where('userId', '==', uid)))
     ])
 
-    return { profile, admin, scores, legacyWordleScores, streak, niyams, completions, pushSubscriptions }
+    return { profile, admin, scores, legacyWordleScores, streak, legacyNiyams, completions, pushSubscriptions }
   }
 
   async function exportMyData() {
@@ -72,7 +75,7 @@ export function useAccountPrivacy() {
         gameScores: data.scores.docs.map(item => ({ id: item.id, ...item.data() })),
         legacyWordleScores: data.legacyWordleScores.docs.map(item => ({ id: item.id, ...item.data() })),
         playStreak: data.streak.exists() ? data.streak.data() : null,
-        niyamProgress: data.niyams.exists() ? data.niyams.data() : null,
+        legacyNiyamProgress: data.legacyNiyams.exists() ? data.legacyNiyams.data() : null,
         playCompletions: data.completions.docs.map(item => ({ id: item.id, ...item.data() })),
         pushSubscriptions: data.pushSubscriptions.docs.map(item => ({
           id: item.id,
@@ -81,7 +84,7 @@ export function useAccountPrivacy() {
         })),
         notes: [
           'Anonymous community posts and bug reports are not linked to your account.',
-          'Anonymous aggregate niyam totals do not contain your user ID.'
+          'Community niyam challenge totals are combined figures and do not contain your user ID.'
         ]
       }
 
@@ -143,7 +146,7 @@ export function useAccountPrivacy() {
       ]
       if (data.profile.exists()) refs.push(data.profile.ref)
       if (data.streak.exists()) refs.push(data.streak.ref)
-      if (data.niyams.exists()) refs.push(data.niyams.ref)
+      if (data.legacyNiyams.exists()) refs.push(data.legacyNiyams.ref)
       await deleteRefs(db, refs)
       await deleteUser(currentUser)
       authState.user.value = null

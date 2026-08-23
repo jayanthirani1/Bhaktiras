@@ -598,8 +598,8 @@ async function announceRecords({ db, name, uid, claimedCrowns }) {
  *
  * Everything here is a count. No per-person record is returned, and no
  * third-party analytics is involved — the privacy policy promises both.
- * niyamProgress is deliberately untouched: the policy states niyams are a
- * personal tracker, "not to compare individuals".
+ * Niyam challenge submissions are deliberately untouched: the policy states a
+ * devotee's own niyam count is personal, "not to compare individuals".
  */
 
 const OVERVIEW_CACHE_MS = 60 * 1000

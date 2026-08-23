@@ -47,7 +47,7 @@ export const DEFAULT_HOME_TILES: HomeTileContent[] = [
   { id: 'events', title: 'Our Events', desc: 'Sabhas & mahotsav dates', icon: 'events', href: '/events', order: 2, active: true },
   { id: 'community', title: 'Our Community', desc: 'What mandir means to you', icon: 'community', href: '/community', order: 3, active: true },
   { id: 'seva', title: 'Seva', desc: 'Teams & WhatsApp community', icon: 'seva', href: '/seva', order: 4, active: true },
-  { id: 'niyams', title: 'Our Niyams', desc: 'Utsav niyams & tracker', icon: 'niyams', href: '/niyams', order: 5, active: true },
+  { id: 'niyams', title: 'Our Niyams', desc: 'Shared goals we keep together', icon: 'niyams', href: '/niyams', order: 5, active: true },
   { id: 'yajman', title: 'Yajman Opportunities', desc: 'Take part in the Utsav', icon: 'yajman', href: '/yajman', order: 6, active: true },
   { id: 'donate', title: 'Donate', desc: 'Support Shree KS Swaminarayan Temple Woolwich', icon: 'donate', href: 'https://www.sksswoolwich.org/donate', external: true, order: 7, active: true },
   { id: 'games', title: 'Games', desc: 'Wordle, Crossword & daily streaks', icon: 'games', href: '/play', order: 8, active: true }
@@ -64,6 +64,12 @@ export const DEFAULT_NAV_ITEMS: NavItemContent[] = [
   { id: 'yajman', label: 'Yajman', href: '/yajman', icon: 'yajman', order: 8, active: true, showInMobileNav: true },
   { id: 'donate', label: 'Donate', href: 'https://www.sksswoolwich.org/donate', icon: 'donate', external: true, order: 9, active: true, showInMobileNav: true }
 ]
+
+/**
+ * Revision of DEFAULT_HOME_TILES. Same contract as NAV_ITEMS_REVISION below:
+ * bump it when the tiles change in a way that has to reach the live site.
+ */
+export const HOME_TILES_REVISION = 2
 
 /**
  * Revision of DEFAULT_NAV_ITEMS. Bump it whenever the defaults above change in a
@@ -91,6 +97,7 @@ export const DEFAULT_COMMUNITY_PROMPTS: CommunityPromptContent[] = [
 export const DEFAULT_SITE_CONTENT: SiteContentSettings = {
   id: SITE_CONTENT_DOC_ID,
   homeTiles: DEFAULT_HOME_TILES,
+  homeTilesRevision: HOME_TILES_REVISION,
   navItems: DEFAULT_NAV_ITEMS,
   navItemsRevision: NAV_ITEMS_REVISION,
   communityPrompts: DEFAULT_COMMUNITY_PROMPTS,
@@ -185,19 +192,25 @@ export function cloneList<T extends object>(items: T[]): T[] {
   return items.map(item => ({ ...item }))
 }
 
-export function homeTilesFromSource(raw: unknown): HomeTileContent[] {
+export function homeTilesFromSource(raw: unknown, storedRevision?: unknown): HomeTileContent[] {
+  if (homeTilesAreStale(storedRevision)) return cloneList(DEFAULT_HOME_TILES)
   const parsed = parseHomeTiles(raw)
   return parsed.length ? parsed : cloneList(DEFAULT_HOME_TILES)
 }
 
-export function parseNavItemsRevision(raw: unknown): number {
+export function parseContentRevision(raw: unknown): number {
   const value = Math.floor(Number(raw))
   return Number.isFinite(value) && value > 0 ? value : 0
 }
 
 /** True when a stored document predates the current DEFAULT_NAV_ITEMS. */
 export function navItemsAreStale(storedRevision: unknown): boolean {
-  return parseNavItemsRevision(storedRevision) < NAV_ITEMS_REVISION
+  return parseContentRevision(storedRevision) < NAV_ITEMS_REVISION
+}
+
+/** True when a stored document predates the current DEFAULT_HOME_TILES. */
+export function homeTilesAreStale(storedRevision: unknown): boolean {
+  return parseContentRevision(storedRevision) < HOME_TILES_REVISION
 }
 
 export function navItemsFromSource(raw: unknown, storedRevision?: unknown): NavItemContent[] {
@@ -226,6 +239,7 @@ export function siteContentWritePayload(data: {
 }) {
   return {
     homeTiles: parseHomeTiles(data.homeTiles.length ? data.homeTiles : DEFAULT_HOME_TILES),
+    homeTilesRevision: HOME_TILES_REVISION,
     navItems: parseNavItems(data.navItems.length ? data.navItems : DEFAULT_NAV_ITEMS),
     navItemsRevision: NAV_ITEMS_REVISION,
     communityPrompts: parseCommunityPrompts(data.communityPrompts.length ? data.communityPrompts : DEFAULT_COMMUNITY_PROMPTS),

@@ -371,45 +371,20 @@ service cloud.firestore {
       allow delete: if isSignedIn() && request.auth.uid == uid;
     }
 
-    // Admin-editable niyam list. Public read.
-    match /niyams/{id} {
-      allow read: if true;
-      allow create, update, delete: if isAdmin();
-    }
-
-    // Personal niyam ticks. Doc ID = Auth UID.
+    // The personal daily niyam tracker is retired — the niyams area is the
+    // shared challenges now. `niyams` (the checklist) and `niyamStats` (its
+    // community counter) have no rules at all any more, so they are closed by
+    // default; whatever documents are left in them are dead data an admin can
+    // clear from the console.
+    //
+    // `niyamProgress` is the exception because it is *personal* data: the ticks
+    // a devotee saved while the tracker existed. Nothing writes it any more, so
+    // it is read-and-delete only, and only for its owner. That is what keeps
+    // "delete my account" able to erase it. Once the collection has been
+    // emptied, this block and the legacy branch in `useAccountPrivacy` can go.
     match /niyamProgress/{uid} {
-      allow read: if isSignedIn() && request.auth.uid == uid;
-      allow create, update: if isSignedIn()
-        && request.auth.uid == uid
-        && request.resource.data.userId == request.auth.uid;
-      allow delete: if isSignedIn() && request.auth.uid == uid;
-    }
-
-    // Aggregate encouragement stats (counts + participants). Public read.
-    //
-    // This used to be `if isSignedIn()` with no validation at all, so any
-    // account could inject arbitrary fields into a document the whole sangat
-    // reads. The shape is now pinned: two known keys, integers in range, and a
-    // bounded map — which closes injection, dotted-key pollution and unbounded
-    // growth.
-    //
-    // Not closed: a signed-in user can still write wrong *numbers*, because the
-    // totals are computed in a client transaction. The real fix is to derive
-    // them in a Firestore trigger on `niyamProgress` and set this to
-    // `allow write: if false`. Doing that also removes the single-document
-    // write contention — every tick in the mandir currently contends on this
-    // one row, and Firestore sustains about one write per second per document.
-    match /niyamStats/{id} {
-      allow read: if true;
-      allow create, update: if isSignedIn()
-        && request.resource.data.keys().hasOnly(['participants', 'counts'])
-        && request.resource.data.participants is int
-        && request.resource.data.participants >= 0
-        && request.resource.data.participants <= 1000000
-        && request.resource.data.counts is map
-        && request.resource.data.counts.size() <= 64;
-      allow delete: if isAdmin();
+      allow read, delete: if isSignedIn() && request.auth.uid == uid;
+      allow create, update: if false;
     }
 
     // Admin-set community goals — "10,000 malas between now and Patotsav".
@@ -427,8 +402,8 @@ service cloud.firestore {
     }
 
     // Community totals per challenge. Written only by Cloud Functions, so the
-    // number on the progress bar is not one anybody can type in. This is the
-    // pattern the `niyamStats` comment above asks for, applied from the start.
+    // number on the progress bar is not one anybody can type in — the retired
+    // tracker's counter was client-written, and this one never was.
     match /niyamChallengeStats/{challengeId} {
       allow read: if true;
       allow create, update: if false;

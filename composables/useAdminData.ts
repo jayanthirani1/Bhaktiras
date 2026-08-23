@@ -11,10 +11,12 @@ import {
   type DocumentData,
   type Firestore
 } from 'firebase/firestore'
-import type { BhaktiMargPuzzle, BracketCityPuzzle, ConnectionsPuzzle, CrosswordPuzzle, Event, GameWordEntry, Niyam, OnePercentQuestion, RasRaniPuzzle, SiteContentSettings, SitePage, TimelineItem, WordleWordDoc, YajmanOpportunity } from '~/types'
+import type { BhaktiMargPuzzle, BracketCityPuzzle, ConnectionsPuzzle, CrosswordPuzzle, Event, GameWordEntry, OnePercentQuestion, RasRaniPuzzle, SiteContentSettings, SitePage, TimelineItem, WordleWordDoc, YajmanOpportunity } from '~/types'
 import {
   communityPromptsFromSource,
+  homeTilesAreStale,
   homeTilesFromSource,
+  HOME_TILES_REVISION,
   navItemsAreStale,
   navItemsFromSource,
   NAV_ITEMS_REVISION,
@@ -153,9 +155,6 @@ export function useAdminWordleWords() {
 export function useAdminGameWords() {
   return useAdminCollection<GameWordEntry>('gameWords')
 }
-export function useAdminNiyams() {
-  return useAdminCollection<Niyam>('niyams')
-}
 export function useAdminYajmanOpportunities() {
   return useAdminCollection<YajmanOpportunity>('yajmanOpportunities')
 }
@@ -244,16 +243,17 @@ export function useAdminSiteContent() {
       const snap = await getDoc(ref)
       const data = snap.exists() ? snap.data() : {}
       const next = {
-        homeTiles: homeTilesFromSource(data.homeTiles),
+        homeTiles: homeTilesFromSource(data.homeTiles, data.homeTilesRevision),
         navItems: navItemsFromSource(data.navItems, data.navItemsRevision),
         communityPrompts: communityPromptsFromSource(data.communityPrompts),
         sevaHeading: parseSevaHeading(data.sevaHeading),
         sevaIntro: parseSevaIntro(data.sevaIntro),
         sevaTeams: sevaTeamsFromSource(data.sevaTeams)
       }
-      // A stored nav older than the current DEFAULT_NAV_ITEMS is re-seeded here, so
+      // Stored tiles or nav older than the current defaults are re-seeded here, so
       // the editor and the live site agree and the revision stamp is brought forward.
       const needsSeed = !snap.exists()
+        || homeTilesAreStale(data.homeTilesRevision)
         || navItemsAreStale(data.navItemsRevision)
         || !Array.isArray(data.homeTiles)
         || !data.homeTiles.length
@@ -289,7 +289,10 @@ export function useAdminSiteContent() {
     try {
       const db = requireDb()
       const payload: Record<string, unknown> = { updatedAt: serverTimestamp() }
-      if (data.homeTiles !== undefined) payload.homeTiles = parseHomeTiles(data.homeTiles)
+      if (data.homeTiles !== undefined) {
+        payload.homeTiles = parseHomeTiles(data.homeTiles)
+        payload.homeTilesRevision = HOME_TILES_REVISION
+      }
       if (data.navItems !== undefined) {
         payload.navItems = parseNavItems(data.navItems)
         payload.navItemsRevision = NAV_ITEMS_REVISION
