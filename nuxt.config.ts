@@ -19,6 +19,8 @@ export default defineNuxtConfig({
     }
   },
   runtimeConfig: {
+    /** Empty = site is public. Set SITE_PASSWORD in App Hosting to lock it until launch. */
+    sitePassword: process.env.SITE_PASSWORD || '',
     public: {
       firebaseApiKey: process.env.NUXT_PUBLIC_FIREBASE_API_KEY || '',
       firebaseAuthDomain: process.env.NUXT_PUBLIC_FIREBASE_AUTH_DOMAIN || '',
