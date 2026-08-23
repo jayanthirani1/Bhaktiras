@@ -12,6 +12,7 @@ import {
 import { doc, serverTimestamp, setDoc, type Firestore } from 'firebase/firestore'
 import type { AuthUserSnapshot } from '~/types'
 import { PRIVACY_POLICY_VERSION, SITE_POLICY_VERSION } from '~/utils/privacy'
+import { markInteractiveSignIn } from '~/utils/signInSignal'
 
 export function useAuth() {
   const nuxtApp = useNuxtApp()
@@ -39,6 +40,7 @@ export function useAuth() {
     const auth = getAuth()
     if (!auth) throw new Error('Firebase Auth not configured')
     await signInWithEmailAndPassword(auth, email, password)
+    markInteractiveSignIn()
   }
 
   async function signInWithGoogle() {
@@ -46,6 +48,7 @@ export function useAuth() {
     if (!auth) throw new Error('Firebase Auth not configured')
     const provider = new GoogleAuthProvider()
     await signInWithPopup(auth, provider)
+    markInteractiveSignIn()
   }
 
   /**
@@ -63,6 +66,7 @@ export function useAuth() {
     const auth = getAuth()
     if (!auth) throw new Error('Firebase Auth not configured')
     await createUserWithEmailAndPassword(auth, email, password)
+    markInteractiveSignIn()
   }
 
   /** Store an auditable, minimal record of the legal documents accepted at signup. */

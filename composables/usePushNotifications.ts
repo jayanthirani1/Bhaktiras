@@ -9,9 +9,10 @@ import {
 } from 'firebase/firestore'
 import { getApp } from 'firebase/app'
 import { isIos, isStandalone } from '~/utils/pwa'
+import { consumeInteractiveSignIn } from '~/utils/signInSignal'
 
 export type PushTopic = 'announcements' | 'games'
-export type PushPromptMoment = 'game-complete' | 'events'
+export type PushPromptMoment = 'game-complete' | 'events' | 'signed-in'
 
 const ALL_TOPICS: PushTopic[] = ['announcements', 'games']
 const SUBSCRIPTION_ID_KEY = 'bhaktiras-push-subscription-id'
@@ -374,6 +375,15 @@ export function usePushPrompt() {
     const topic = topicFor(value)
     if (push.topics.value.includes(topic)) return
     if (localStorage.getItem(`bhaktiras-push-prompt-seen:${value}`) === '1') return
+    if (value === 'signed-in') {
+      // On iOS, push arrives only through a Home Screen launch. Asking in a
+      // browser tab spends the one ask on something that cannot be granted, so
+      // the install prompt gets this devotee instead.
+      if (push.needsHomeScreen.value) return
+      // Only the sign-in that just happened counts. Firebase restores a session
+      // on every launch, which would otherwise read as signing in again.
+      if (!consumeInteractiveSignIn()) return
+    }
     moment.value = value
     gate.setPending('push', true)
   }

@@ -48,6 +48,13 @@ const copy = computed(() => {
       action: 'Remind me'
     }
   }
+  if (moment.value === 'signed-in') {
+    return {
+      title: 'Turn on notifications?',
+      body: 'Sabha times, Patotsav dates and mandir announcements come through to this device. You can change this any time from your account.',
+      action: 'Turn them on'
+    }
+  }
   return {
     title: 'Stay updated with announcements?',
     body: 'Receive temple and Patotsav announcements on this device.',
