@@ -65,6 +65,18 @@ export const DEFAULT_NAV_ITEMS: NavItemContent[] = [
   { id: 'donate', label: 'Donate', href: 'https://www.sksswoolwich.org/donate', icon: 'donate', external: true, order: 9, active: true, showInMobileNav: true }
 ]
 
+/**
+ * Revision of DEFAULT_NAV_ITEMS. Bump it whenever the defaults above change in a
+ * way that should reach the live site.
+ *
+ * `siteContent/main` in Firestore normally wins over these defaults, so a stored
+ * copy of an older default set would quietly undo the change on every load. A
+ * stored document written before this revision is treated as stale and these
+ * defaults are used instead, until an admin saves Admin -> Content -> Navigation:
+ * that save stamps the current revision and hands control back to the CMS.
+ */
+export const NAV_ITEMS_REVISION = 2
+
 export const DEFAULT_COMMUNITY_PROMPTS: CommunityPromptContent[] = [
   { id: 'meaning', text: 'What does this mandir mean to you?', order: 1, active: true },
   { id: 'home', text: 'When did you first feel at home here?', order: 2, active: true },
@@ -80,6 +92,7 @@ export const DEFAULT_SITE_CONTENT: SiteContentSettings = {
   id: SITE_CONTENT_DOC_ID,
   homeTiles: DEFAULT_HOME_TILES,
   navItems: DEFAULT_NAV_ITEMS,
+  navItemsRevision: NAV_ITEMS_REVISION,
   communityPrompts: DEFAULT_COMMUNITY_PROMPTS,
   sevaHeading: DEFAULT_SEVA_HEADING,
   sevaIntro: DEFAULT_SEVA_INTRO,
@@ -177,7 +190,18 @@ export function homeTilesFromSource(raw: unknown): HomeTileContent[] {
   return parsed.length ? parsed : cloneList(DEFAULT_HOME_TILES)
 }
 
-export function navItemsFromSource(raw: unknown): NavItemContent[] {
+export function parseNavItemsRevision(raw: unknown): number {
+  const value = Math.floor(Number(raw))
+  return Number.isFinite(value) && value > 0 ? value : 0
+}
+
+/** True when a stored document predates the current DEFAULT_NAV_ITEMS. */
+export function navItemsAreStale(storedRevision: unknown): boolean {
+  return parseNavItemsRevision(storedRevision) < NAV_ITEMS_REVISION
+}
+
+export function navItemsFromSource(raw: unknown, storedRevision?: unknown): NavItemContent[] {
+  if (navItemsAreStale(storedRevision)) return cloneList(DEFAULT_NAV_ITEMS)
   const parsed = parseNavItems(raw)
   return parsed.length ? parsed : cloneList(DEFAULT_NAV_ITEMS)
 }
@@ -203,6 +227,7 @@ export function siteContentWritePayload(data: {
   return {
     homeTiles: parseHomeTiles(data.homeTiles.length ? data.homeTiles : DEFAULT_HOME_TILES),
     navItems: parseNavItems(data.navItems.length ? data.navItems : DEFAULT_NAV_ITEMS),
+    navItemsRevision: NAV_ITEMS_REVISION,
     communityPrompts: parseCommunityPrompts(data.communityPrompts.length ? data.communityPrompts : DEFAULT_COMMUNITY_PROMPTS),
     sevaHeading: parseSevaHeading(data.sevaHeading),
     sevaIntro: parseSevaIntro(data.sevaIntro),
