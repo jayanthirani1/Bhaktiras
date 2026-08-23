@@ -148,6 +148,10 @@ export function useGameLeaderboard(
         entries.value = []
         return
       }
+      // `db` is a `let`, so TypeScript discards the null-narrowing inside the
+      // nested closure below — a closure could observe a later reassignment.
+      // Pinning it to a const keeps the narrowing where `queryGame` can see it.
+      const database = db
 
       const ids = scoreQueryIds(game)
       const known = new Set(ids)
@@ -156,19 +160,19 @@ export function useGameLeaderboard(
         try {
           return allTime
             ? await getDocs(query(
-              collection(db, SCORES_COLLECTION),
+              collection(database, SCORES_COLLECTION),
               where('game', '==', id),
               limit(200)
             ))
             : await getDocs(query(
-              collection(db, SCORES_COLLECTION),
+              collection(database, SCORES_COLLECTION),
               where('game', '==', id),
               where('dateId', '==', today),
               limit(100)
             ))
         } catch {
           return getDocs(query(
-            collection(db, SCORES_COLLECTION),
+            collection(database, SCORES_COLLECTION),
             where('game', '==', id),
             limit(200)
           ))
@@ -185,7 +189,7 @@ export function useGameLeaderboard(
         for (const id of ids) {
           const mineId = allTime ? `${id}_${uid}` : `${id}_${today}_${uid}`
           try {
-            const mine = await getDoc(doc(db, SCORES_COLLECTION, mineId))
+            const mine = await getDoc(doc(database, SCORES_COLLECTION, mineId))
             if (mine.exists()) {
               const row = mapScoreDoc(mine.id, mine.data() as Record<string, unknown>, game)
               if (known.has(row.game) && (allTime || row.dateId === today)) {

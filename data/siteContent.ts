@@ -55,11 +55,11 @@ export const DEFAULT_HOME_TILES: HomeTileContent[] = [
 
 export const DEFAULT_NAV_ITEMS: NavItemContent[] = [
   { id: 'home', label: 'Home', href: '/', icon: 'home', order: 1, active: true, showInDesktopNav: true, showInMobileNav: true, mobilePrimary: true },
-  { id: 'journey', label: 'Journey', href: '/journey', icon: 'journey', order: 2, active: true, showInDesktopNav: true, showInMobileNav: true, mobilePrimary: true },
+  { id: 'niyams', label: 'Niyams', href: '/niyams', icon: 'niyams', order: 2, active: true, showInDesktopNav: true, showInMobileNav: true, mobilePrimary: true },
   { id: 'events', label: 'Events', href: '/events', icon: 'events', order: 3, active: true, showInDesktopNav: true, showInMobileNav: true, mobilePrimary: true },
   { id: 'community', label: 'Community', href: '/community', icon: 'community', order: 4, active: true, showInDesktopNav: true, showInMobileNav: true },
   { id: 'seva', label: 'Seva', href: '/seva', icon: 'seva', order: 5, active: true, showInDesktopNav: true, showInMobileNav: true },
-  { id: 'niyams', label: 'Niyams', href: '/niyams', icon: 'niyams', order: 6, active: true, showInDesktopNav: true, showInMobileNav: true },
+  { id: 'journey', label: 'Journey', href: '/journey', icon: 'journey', order: 6, active: true, showInDesktopNav: true, showInMobileNav: true },
   { id: 'games', label: 'Games', href: '/play', icon: 'games', order: 7, active: true, showInDesktopNav: true, showInMobileNav: true, mobilePrimary: true },
   { id: 'yajman', label: 'Yajman', href: '/yajman', icon: 'yajman', order: 8, active: true, showInMobileNav: true },
   { id: 'donate', label: 'Donate', href: 'https://www.sksswoolwich.org/donate', icon: 'donate', external: true, order: 9, active: true, showInMobileNav: true }
