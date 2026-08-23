@@ -139,8 +139,14 @@ moderator is a document write, no rules edit or redeploy. Enforced in
 `middleware/admin.ts` + `layouts/admin.vue`.
 
 The admin area is a full CMS: homepage tiles, navigation (including which items are
-mobile-primary), community prompts, timeline, events, niyams, yajman, legal pages, push
-notifications, bug triage, and a per-game puzzle editor with a shared word bank.
+mobile-primary), community prompts, timeline, events, niyams, niyam challenges, yajman,
+legal pages, push notifications, bug triage, and a per-game puzzle editor with a shared
+word bank.
+
+Every admin page is listed once, in `data/adminMenu.ts`. The sidebar and the `/admin`
+dashboard cards are both generated from it, so a page cannot be reachable from one and
+missing from the other. An entry's optional `collection` is the Firestore collection
+behind that editor — the dashboard shows its document count on the card.
 
 ## Content model
 
