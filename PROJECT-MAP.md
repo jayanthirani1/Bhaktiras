@@ -48,7 +48,7 @@ Requires the **Blaze** plan (Functions + Storage).
 **Games** — `/play` plus `wordle`, `crossword`, `mini-crossword`, `connections`,
 `one-percent`, `achievements`, `streaks`
 
-**Admin** — `/admin` plus `auth`, `timeline`, `events`, `niyams`, `niyam-challenges`, `yajman`,
+**Admin** — `/admin` plus `auth`, `timeline`, `events`, `niyam-challenges`, `yajman`,
 `notifications`, `legal`, `bugs`, `content/{index,homepage,community,navigation}`,
 `games/{wordle,crossword,mini-crossword,connections,one-percent,word-bank}`
 
@@ -81,9 +81,7 @@ WhatsApp community invite (live link in `data/site.ts`) plus 12 volunteer teams 
 responsibilities from `data/sevaTeams.ts`. No hour logging.
 
 ### Our Niyams
-Two tabs on `/niyams`.
-
-**Challenges** — admin-set community goals with a target and a deadline
+`/niyams` is the challenges: admin-set community goals with a target and a deadline
 ("10,000 malas in three months"). A devotee submits how many they have done;
 approved entries from every devotee ladder up into one shared total on a
 progress bar. Admin side is `/admin/niyam-challenges`: create the challenge,
@@ -106,11 +104,12 @@ The integrity model is worth knowing before changing anything here:
   `challengeId`) and submission ids embed an inverted timestamp, so nothing here
   needs a composite index — the deploy service account cannot create them.
 
-**Daily niyams** — the original checklist: 12 utsav niyams (`data/niyams.ts`,
-admin-editable via the `niyams` collection). Each person ticks their own — a
-checklist, not a dated daily tracker: `niyamProgress/{uid}` holds a `checked`
-map with no per-day history. Public `niyamStats` aggregates participants and
-per-niyam counts as community encouragement.
+The personal daily tracker that used to sit on a second tab — a 12-item
+checklist each devotee ticked for themselves — is **retired**. Its code and its
+`niyams` / `niyamStats` rules are gone. `niyamProgress/{uid}` keeps a
+read-and-delete-only rule, because it is personal data and "delete my account"
+must still be able to erase it; once those documents are cleared from the
+console, that rule and the legacy branch in `useAccountPrivacy` can go too.
 
 ### Yajman
 Utsav sponsorship opportunities with amounts and contact links, admin-managed.
@@ -139,9 +138,9 @@ moderator is a document write, no rules edit or redeploy. Enforced in
 `middleware/admin.ts` + `layouts/admin.vue`.
 
 The admin area is a full CMS: homepage tiles, navigation (including which items are
-mobile-primary), community prompts, timeline, events, niyams, niyam challenges, yajman,
-legal pages, push notifications, bug triage, and a per-game puzzle editor with a shared
-word bank.
+mobile-primary), community prompts, timeline, events, niyam challenges, yajman, legal
+pages, push notifications, bug triage, and a per-game puzzle editor with a shared word
+bank.
 
 Every admin page is listed once, in `data/adminMenu.ts`. The sidebar and the `/admin`
 dashboard cards are both generated from it, so a page cannot be reachable from one and
@@ -154,14 +153,14 @@ Two layers throughout: **static TypeScript defaults in `data/`** and **Firestore
 overrides**. The static layer means the site is never blank; the Firestore layer means
 admins can change content without a deploy.
 
-`data/` holds: `site.ts`, `timeline.ts`, `niyams.ts`, `sevaTeams.ts`,
+`data/` holds: `site.ts`, `timeline.ts`, `sevaTeams.ts`,
 `communityPrompts.ts`, `quotes.csv`, `siteContent.ts`, `legalPages.ts`, `adminMenu.ts`,
 and the game banks (`connectionsPuzzles`, `miniCrossword`,
 `onePercentClub`, `fiveLetterWords`, `wordleGuessList`, `satsangWordBank`).
 
 ## Firestore collections
 
-**Public content** — `siteContent` `sitePages` `timeline` `events` `niyams`
+**Public content** — `siteContent` `sitePages` `timeline` `events`
 `yajmanOpportunities`
 
 **User-generated** — `gratitude` (wall) · `bugReports`
@@ -172,8 +171,9 @@ and the game banks (`connectionsPuzzles`, `miniCrossword`,
 `userAchievements` `achievementCrowns` `gameWords` `wordleWords` `wordleDaily`
 `miniCrosswordPuzzles` `connectionsPuzzles` `onePercentQuestions`
 
-**Niyams** — `niyamProgress` `niyamStats` `niyamChallenges`
-(+ `contributors` subcollection) `niyamChallengeStats` `niyamSubmissions`
+**Niyams** — `niyamChallenges` (+ `contributors` subcollection)
+`niyamChallengeStats` `niyamSubmissions`. `niyamProgress`, `niyams` and
+`niyamStats` are retired leftovers of the personal tracker, not written any more.
 
 **Push** — `pushSubscriptions` `pushMessages`
 
@@ -192,7 +192,7 @@ Recorded so the divergence is deliberate rather than forgotten:
 |---|---|
 | Wall strictly anonymous, no author stored | Optional name, defaults to Anonymous |
 | Wall pre-moderated (approve before showing) | Publishes immediately, admins remove after |
-| Niyams a daily check-in with streaks | A checklist with community totals |
+| Niyams a daily check-in with streaks | Shared challenges with a moderated total; the personal checklist was built, then dropped |
 | Darshan and Legacy dropped | Both retained |
 | Journey spans 39 years | 2017–2027, ten years |
 | Moderation-only admin UI | Full CMS |

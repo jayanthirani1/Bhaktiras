@@ -47,7 +47,7 @@ export const DEFAULT_HOME_TILES: HomeTileContent[] = [
   { id: 'events', title: 'Our Events', desc: 'Sabhas & mahotsav dates', icon: 'events', href: '/events', order: 2, active: true },
   { id: 'community', title: 'Our Community', desc: 'What mandir means to you', icon: 'community', href: '/community', order: 3, active: true },
   { id: 'seva', title: 'Seva', desc: 'Teams & WhatsApp community', icon: 'seva', href: '/seva', order: 4, active: true },
-  { id: 'niyams', title: 'Our Niyams', desc: 'Utsav niyams & tracker', icon: 'niyams', href: '/niyams', order: 5, active: true },
+  { id: 'niyams', title: 'Our Niyams', desc: 'Shared goals we keep together', icon: 'niyams', href: '/niyams', order: 5, active: true },
   { id: 'yajman', title: 'Yajman Opportunities', desc: 'Take part in the Utsav', icon: 'yajman', href: '/yajman', order: 6, active: true },
   { id: 'donate', title: 'Donate', desc: 'Support Shree KS Swaminarayan Temple Woolwich', icon: 'donate', href: 'https://www.sksswoolwich.org/donate', external: true, order: 7, active: true },
   { id: 'games', title: 'Games', desc: 'Wordle, Crossword & daily streaks', icon: 'games', href: '/play', order: 8, active: true }

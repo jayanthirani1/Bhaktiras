@@ -114,7 +114,7 @@
             <div>
               <h2 class="font-display text-xl font-semibold text-[hsl(var(--primary))]">Sign-in methods</h2>
               <p class="mt-2 text-sm leading-relaxed text-[hsl(var(--muted-foreground))]">
-                Link more than one method to this account. Your scores, niyams and streak stay under the same profile.
+                Link more than one method to this account. Your scores, niyam challenge entries and streak stay under the same profile.
               </p>
             </div>
           </div>
@@ -210,7 +210,7 @@
               <h2 class="font-display text-xl font-semibold text-[hsl(var(--primary))]">Download your data</h2>
               <p class="mt-2 text-sm leading-relaxed text-[hsl(var(--muted-foreground))]">
                 Download a JSON file containing your account details, policy acceptance, game scores, streak,
-                niyam progress and daily game completions.
+                daily game completions and anything left from the retired niyam tracker.
               </p>
             </div>
           </div>
@@ -232,8 +232,9 @@
             <div>
               <h2 class="font-display text-xl font-semibold text-red-900">Delete your account</h2>
               <p class="mt-2 text-sm leading-relaxed text-red-800">
-                This permanently deletes your login, scores, streak, saved niyams, daily completions and policy
-                acceptance record. Anonymous posts and anonymised community totals cannot be linked back to you.
+                This permanently deletes your login, scores, streak, daily completions, saved niyam ticks and
+                policy acceptance record. Anonymous posts and anonymised community totals cannot be linked back
+                to you.
               </p>
             </div>
           </div>

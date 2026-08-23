@@ -11,7 +11,7 @@ import {
   type DocumentData,
   type Firestore
 } from 'firebase/firestore'
-import type { BhaktiMargPuzzle, BracketCityPuzzle, ConnectionsPuzzle, CrosswordPuzzle, Event, GameWordEntry, Niyam, OnePercentQuestion, RasRaniPuzzle, SiteContentSettings, SitePage, TimelineItem, WordleWordDoc, YajmanOpportunity } from '~/types'
+import type { BhaktiMargPuzzle, BracketCityPuzzle, ConnectionsPuzzle, CrosswordPuzzle, Event, GameWordEntry, OnePercentQuestion, RasRaniPuzzle, SiteContentSettings, SitePage, TimelineItem, WordleWordDoc, YajmanOpportunity } from '~/types'
 import {
   communityPromptsFromSource,
   homeTilesFromSource,
@@ -150,9 +150,6 @@ export function useAdminWordleWords() {
 }
 export function useAdminGameWords() {
   return useAdminCollection<GameWordEntry>('gameWords')
-}
-export function useAdminNiyams() {
-  return useAdminCollection<Niyam>('niyams')
 }
 export function useAdminYajmanOpportunities() {
   return useAdminCollection<YajmanOpportunity>('yajmanOpportunities')

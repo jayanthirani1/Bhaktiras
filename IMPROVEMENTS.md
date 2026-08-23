@@ -58,16 +58,13 @@ only gate, and it is client-asserted.
 **Fix.** Scope writes to admins (mirror the Firestore admins lookup), or at minimum confine
 user writes to a per-UID prefix and make the admin upload paths admin-only.
 
-### 3. `niyamStats` accepts arbitrary writes from any signed-in user
+### 3. `niyamStats` accepts arbitrary writes from any signed-in user — ~~closed~~
 
-`firestore.rules:306,308` — `allow create, update: if isSignedIn();`
-
-No field validation, no ownership check. Any account can zero the community counts, set
-`participants` to anything, or inject fields — and it is public-read, so it renders. It is
-the one number on the niyams page meant to encourage the sangat.
-
-**Fix.** Validate shape and allow only increments, or move aggregation into a Cloud
-Function and set `allow write: if false`.
+The writable community counter belonged to the personal daily niyam tracker, which has
+since been retired. Its rules are gone, so the collection is closed by default and there
+is nothing left to write. The niyams area is the challenges now, where the shared total is
+derived by a Cloud Function and `allow write: if false` from the browser — the fix this
+entry asked for, arrived at by deleting the feature.
 
 ### 4. Unauthenticated deletion of leaderboard history
 
@@ -239,7 +236,7 @@ not a code one: grow the bank at lengths 4 and 5, where it is thinnest.
 
 1. **Wall rules** (#1) — one rules edit, removes impersonation and flooding
 2. **Storage scoping** (#2) — one rules edit, protects all site imagery
-3. **`niyamStats` and the delete rules** (#3, #4) — same deploy
+3. **The delete rules** (#4) — #3 closed itself when the daily tracker was retired
 4. **Decide the guest role** (#5) — enforce it or delete it
 5. **Error states** (#8) — the failure mode with the worst track record on this project
 6. Then integrity (#6, #7), and the rest as capacity allows
