@@ -21,6 +21,20 @@
     </div>
 
     <template v-else-if="data">
+      <div
+        v-if="data.errors?.length"
+        class="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900"
+        role="alert"
+      >
+        <p class="font-semibold">Some figures could not be counted.</p>
+        <ul class="mt-1 space-y-0.5">
+          <li v-for="item in data.errors" :key="item.section">
+            <strong>{{ item.section }}:</strong> {{ item.message }}
+          </li>
+        </ul>
+        <p class="mt-1 text-xs">Everything else below is accurate. Refresh to retry.</p>
+      </div>
+
       <!-- Hero: the one number this page leads with. -->
       <section class="admin-panel">
         <p class="admin-label mb-0">Active today</p>
@@ -35,20 +49,24 @@
 
       <section class="admin-panel">
         <AdminTrendChart
+          v-if="trendPoints.length"
           :caption="trendCaption"
           :series-label="trendSeriesLabel"
           :points="trendPoints"
         />
+        <p v-else class="text-sm text-[hsl(var(--muted-foreground))]">
+          No activity history yet.
+        </p>
         <p class="mt-3 text-xs leading-relaxed text-[hsl(var(--muted-foreground))]">
           <span v-if="!usingMeasured">
             Site-wide active members cannot be worked out retrospectively — an account records only
             the most recent time it was used, so past days are unrecoverable. A nightly snapshot now
             records it, and this chart switches over once a fortnight of nights has built up
-            ({{ data.history.measured }} so far). Until then it shows daily unique players, which
+            ({{ data.history?.measured ?? 0 }} so far). Until then it shows daily unique players, which
             game scores do record historically.
           </span>
           <span v-else>
-            Recorded nightly from {{ data.history.measured }} daily snapshots.
+            Recorded nightly from {{ data.history?.measured ?? 0 }} daily snapshots.
           </span>
         </p>
       </section>
@@ -176,6 +194,7 @@ type Overview = {
     measured: number
     points: Array<{ dateId: string; players: number; activeMembers: number | null }>
   }
+  errors?: Array<{ section: string; message: string }>
   computedAt: number
   cached: boolean
 }
@@ -230,9 +249,9 @@ const gameRows = computed(() => {
 
 /** Prefer the real measurement, but only once there is enough of it to read. */
 const MEASURED_MINIMUM = 14
-const usingMeasured = computed(() => (data.value?.history.measured ?? 0) >= MEASURED_MINIMUM)
+const usingMeasured = computed(() => (data.value?.history?.measured ?? 0) >= MEASURED_MINIMUM)
 
-const trendPoints = computed(() => (data.value?.history.points ?? []).map(point => ({
+const trendPoints = computed(() => (data.value?.history?.points ?? []).map(point => ({
   dateId: point.dateId,
   value: usingMeasured.value ? (point.activeMembers ?? 0) : point.players
 })))

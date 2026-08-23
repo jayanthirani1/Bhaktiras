@@ -789,6 +789,60 @@ async function collectPolicyStats(db) {
   return { profiles: snap.size, versions }
 }
 
+/** Fresh objects, never shared constants — callers mutate what they get back. */
+function emptyAccounts() {
+  return {
+    total: 0,
+    newLast7: 0,
+    newLast30: 0,
+    activeLast1: 0,
+    activeLast7: 0,
+    activeLast30: 0,
+    neverActive: 0,
+    google: 0,
+    password: 0
+  }
+}
+function emptyPush() {
+  return { devices: 0, accounts: 0, announcements: 0, games: 0, platforms: {} }
+}
+function emptyGames() {
+  return {
+    playersToday: 0,
+    playersThisWeek: 0,
+    playsThisWeek: 0,
+    playsPerGame: {},
+    playersByDay: new Map()
+  }
+}
+function emptyPolicy() {
+  return { profiles: 0, versions: {} }
+}
+function emptyHistory() {
+  return { points: [], measured: 0 }
+}
+
+/**
+ * Runs one section of the dashboard in isolation.
+ *
+ * A single failing query should degrade its own panel, not blank the page — and
+ * an unhandled throw in a callable reaches the client as a bare "internal",
+ * which tells an admin nothing. This reports the section by name instead.
+ */
+async function section(name, fallback, task, errors) {
+  try {
+    return await task()
+  } catch (error) {
+    logger.error('Insights section failed', {
+      section: name,
+      code: error?.code,
+      message: error?.message
+    })
+    errors.push({ section: name, message: String(error?.message || error).slice(0, 300) })
+    return fallback()
+  }
+}
+
 exports.getAdminOverview = onCall(
   { region: 'europe-west2', timeoutSeconds: 120 },
   async (request) => {
@@ -799,17 +853,26 @@ exports.getAdminOverview = onCall(
     }
 
     const db = getFirestore()
+    const errors = []
     const [accounts, push, games, policy] = await Promise.all([
-      collectAccountStats(),
-      collectPushStats(db),
-      collectGameStats(db, HISTORY_DAYS),
-      collectPolicyStats(db)
+      section('Members', emptyAccounts, () => collectAccountStats(), errors),
+      section('Notification reach', emptyPush, () => collectPushStats(db), errors),
+      section('Games', emptyGames, () => collectGameStats(db, HISTORY_DAYS), errors),
+      section('Privacy policy', emptyPolicy, () => collectPolicyStats(db), errors)
     ])
 
-    const history = await collectHistory(db, HISTORY_DAYS, games.playersByDay)
+    const history = await section(
+      'Activity trend',
+      emptyHistory,
+      () => collectHistory(db, HISTORY_DAYS, games.playersByDay),
+      errors
+    )
     delete games.playersByDay
-    overviewCache = { accounts, push, games, policy, history, computedAt: Date.now() }
-    return { ...overviewCache, cached: false }
+
+    const payload = { accounts, push, games, policy, history, errors, computedAt: Date.now() }
+    // A failed run is not cached, so refreshing actually retries.
+    if (!errors.length) overviewCache = payload
+    return { ...payload, cached: false }
   }
 )
 
