@@ -1,4 +1,5 @@
 import type { OnePercentQuestion } from '~/types'
+import { stripBhujFromPlayerText } from '~/utils/stripBhuj'
 
 /** Rungs on every daily climb — easy (high %) → hard (1%). */
 export const ONE_PERCENT_RUNGS = [90, 80, 70, 50, 20, 10, 5, 1] as const
@@ -239,25 +240,8 @@ export function withShuffledOptions(question: OnePercentQuestion, dateId: string
 export function forPlayerOnePercent(question: OnePercentQuestion): OnePercentQuestion {
   return {
     ...question,
-    question: stripBhujEditionLabel(question.question),
-    options: question.options.map(stripBhujEditionLabel),
-    correctAnswer: stripBhujEditionLabel(question.correctAnswer)
+    question: stripBhujFromPlayerText(question.question),
+    options: question.options.map(stripBhujFromPlayerText),
+    correctAnswer: stripBhujFromPlayerText(question.correctAnswer)
   }
-}
-
-function stripBhujEditionLabel(text: string): string {
-  return text
-    .replace(/\s+in the Bhuj edition/gi, '')
-    .replace(/^In the Bhuj edition,\s*/i, '')
-    .replace(/^The Bhuj edition says\s+/i, '')
-    .replace(/The Bhuj edition contents include an\s+/i, '')
-    .replace(/\s+appears in the Bhuj edition with/gi, ' has')
-    .replace(/\s+in the Bhuj edition contents/gi, '')
-    .replace(/Together, the Bhuj edition arranges/gi, 'The Vachnamrut arranges')
-    .replace(/\bthe Bhuj edition\b/gi, '')
-    .replace(/\bBhuj edition\b/gi, '')
-    .replace(/\s{2,}/g, ' ')
-    .replace(/\s+\?/g, '?')
-    .replace(/\s+,/g, ',')
-    .trim()
 }

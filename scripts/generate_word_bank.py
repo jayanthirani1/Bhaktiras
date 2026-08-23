@@ -36,7 +36,7 @@ Anand|Spiritual bliss or joy|hinduism
 Anjali|A gesture of reverence with joined palms|worship
 Anuvrutti|Following the inner wish of the guru|satsang
 Arjun|Warrior taught by Krishna in the Bhagavad Gita|hinduism
-Arti|Lamp ceremony, spelled this way in the Bhuj Vachnamrut|worship
+Arti|Lamp ceremony, spelled this way in the Vachnamrut|worship
 Ashirwad|A blessing|worship
 Ashram|A place for spiritual practice and community|community
 Atladra|Swaminarayan pilgrimage centre near Vadodara|place

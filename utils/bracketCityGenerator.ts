@@ -1,5 +1,6 @@
 import type { BracketCityPuzzle, GameWordEntry } from '~/types'
 import { SATSANG_WORD_BANK, normalizeGameWord } from '~/utils/gameWordBank'
+import { stripBhujFromPlayerText } from '~/utils/stripBhuj'
 import { rngForSeed, shuffle } from '~/utils/seededRandom'
 import { BRACKET_CITY_FRAMES, type BracketCityFrame } from '~/data/bracketCityFrames'
 import { parseBracketSource, flattenNodes, spellingsCollide } from '~/utils/bracketCity'
@@ -57,7 +58,9 @@ const nestIndexCache = new WeakMap<GameWordEntry[], NestIndex>()
 
 /** Strips the characters that carry meaning in the puzzle source. */
 function clean(value: string): string {
-  return String(value || '').replace(/[[\]]/g, '').replace(/::/g, ':').replace(/\|/g, '/').trim()
+  return stripBhujFromPlayerText(
+    String(value || '').replace(/[[\]]/g, '').replace(/::/g, ':').replace(/\|/g, '/')
+  )
 }
 
 function escapeRegExp(value: string): string {
@@ -66,6 +69,7 @@ function escapeRegExp(value: string): string {
 
 function usable(entry: GameWordEntry): boolean {
   if (!entry.display || !entry.clue) return false
+  if (normalizeGameWord(entry.display) === 'BHUJ') return false
   const clue = clean(entry.clue)
   if (clue.length < MIN_CLUE_LENGTH) return false
   if (normalizeGameWord(entry.display).length < 3) return false
@@ -222,7 +226,7 @@ export function buildDailyBracketCitySource(
 ): string | null {
   const pool = entries.filter(usable)
   if (pool.length < 8) return null
-  const index = buildNestIndex(entries)
+  const index = buildNestIndex(pool)
 
   for (let attempt = 0; attempt < FRAME_ATTEMPTS; attempt++) {
     const rnd = rngForSeed(`bracket-city:${dateId}#${attempt}`)
