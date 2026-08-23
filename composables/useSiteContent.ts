@@ -5,7 +5,7 @@ import {
   communityPromptsFromSource,
   homeTilesFromSource,
   navItemsFromSource,
-  parseNavItemsRevision,
+  parseContentRevision,
   parseSevaHeading,
   parseSevaIntro,
   sevaTeamsFromSource,
@@ -41,11 +41,12 @@ export function useSiteContent() {
       const data = snap.data()
       content.value = {
         id: SITE_CONTENT_DOC_ID,
-        homeTiles: homeTilesFromSource(data.homeTiles),
-        // A stored nav older than the current defaults is ignored, so the bar does
-        // not flip back to a stale order a moment after every page load.
+        // Stored tiles or nav older than the current defaults are ignored, so the
+        // page does not flip back to stale content a moment after every load.
+        homeTiles: homeTilesFromSource(data.homeTiles, data.homeTilesRevision),
+        homeTilesRevision: parseContentRevision(data.homeTilesRevision),
         navItems: navItemsFromSource(data.navItems, data.navItemsRevision),
-        navItemsRevision: parseNavItemsRevision(data.navItemsRevision),
+        navItemsRevision: parseContentRevision(data.navItemsRevision),
         communityPrompts: communityPromptsFromSource(data.communityPrompts),
         sevaHeading: parseSevaHeading(data.sevaHeading),
         sevaIntro: parseSevaIntro(data.sevaIntro),

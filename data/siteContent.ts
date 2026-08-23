@@ -66,6 +66,12 @@ export const DEFAULT_NAV_ITEMS: NavItemContent[] = [
 ]
 
 /**
+ * Revision of DEFAULT_HOME_TILES. Same contract as NAV_ITEMS_REVISION below:
+ * bump it when the tiles change in a way that has to reach the live site.
+ */
+export const HOME_TILES_REVISION = 2
+
+/**
  * Revision of DEFAULT_NAV_ITEMS. Bump it whenever the defaults above change in a
  * way that should reach the live site.
  *
@@ -91,6 +97,7 @@ export const DEFAULT_COMMUNITY_PROMPTS: CommunityPromptContent[] = [
 export const DEFAULT_SITE_CONTENT: SiteContentSettings = {
   id: SITE_CONTENT_DOC_ID,
   homeTiles: DEFAULT_HOME_TILES,
+  homeTilesRevision: HOME_TILES_REVISION,
   navItems: DEFAULT_NAV_ITEMS,
   navItemsRevision: NAV_ITEMS_REVISION,
   communityPrompts: DEFAULT_COMMUNITY_PROMPTS,
@@ -185,19 +192,25 @@ export function cloneList<T extends object>(items: T[]): T[] {
   return items.map(item => ({ ...item }))
 }
 
-export function homeTilesFromSource(raw: unknown): HomeTileContent[] {
+export function homeTilesFromSource(raw: unknown, storedRevision?: unknown): HomeTileContent[] {
+  if (homeTilesAreStale(storedRevision)) return cloneList(DEFAULT_HOME_TILES)
   const parsed = parseHomeTiles(raw)
   return parsed.length ? parsed : cloneList(DEFAULT_HOME_TILES)
 }
 
-export function parseNavItemsRevision(raw: unknown): number {
+export function parseContentRevision(raw: unknown): number {
   const value = Math.floor(Number(raw))
   return Number.isFinite(value) && value > 0 ? value : 0
 }
 
 /** True when a stored document predates the current DEFAULT_NAV_ITEMS. */
 export function navItemsAreStale(storedRevision: unknown): boolean {
-  return parseNavItemsRevision(storedRevision) < NAV_ITEMS_REVISION
+  return parseContentRevision(storedRevision) < NAV_ITEMS_REVISION
+}
+
+/** True when a stored document predates the current DEFAULT_HOME_TILES. */
+export function homeTilesAreStale(storedRevision: unknown): boolean {
+  return parseContentRevision(storedRevision) < HOME_TILES_REVISION
 }
 
 export function navItemsFromSource(raw: unknown, storedRevision?: unknown): NavItemContent[] {
@@ -226,6 +239,7 @@ export function siteContentWritePayload(data: {
 }) {
   return {
     homeTiles: parseHomeTiles(data.homeTiles.length ? data.homeTiles : DEFAULT_HOME_TILES),
+    homeTilesRevision: HOME_TILES_REVISION,
     navItems: parseNavItems(data.navItems.length ? data.navItems : DEFAULT_NAV_ITEMS),
     navItemsRevision: NAV_ITEMS_REVISION,
     communityPrompts: parseCommunityPrompts(data.communityPrompts.length ? data.communityPrompts : DEFAULT_COMMUNITY_PROMPTS),

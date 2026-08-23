@@ -272,6 +272,8 @@ export interface SevaTeamContent {
 export interface SiteContentSettings {
   id: string
   homeTiles: HomeTileContent[]
+  /** Revision of DEFAULT_HOME_TILES this document's homeTiles were saved against. */
+  homeTilesRevision?: number
   navItems: NavItemContent[]
   /** Revision of DEFAULT_NAV_ITEMS this document's navItems were saved against. */
   navItemsRevision?: number
