@@ -273,6 +273,8 @@ export interface SiteContentSettings {
   id: string
   homeTiles: HomeTileContent[]
   navItems: NavItemContent[]
+  /** Revision of DEFAULT_NAV_ITEMS this document's navItems were saved against. */
+  navItemsRevision?: number
   communityPrompts: CommunityPromptContent[]
   sevaHeading: string
   sevaIntro: string

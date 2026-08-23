@@ -5,6 +5,7 @@ import {
   communityPromptsFromSource,
   homeTilesFromSource,
   navItemsFromSource,
+  parseNavItemsRevision,
   parseSevaHeading,
   parseSevaIntro,
   sevaTeamsFromSource,
@@ -41,7 +42,10 @@ export function useSiteContent() {
       content.value = {
         id: SITE_CONTENT_DOC_ID,
         homeTiles: homeTilesFromSource(data.homeTiles),
-        navItems: navItemsFromSource(data.navItems),
+        // A stored nav older than the current defaults is ignored, so the bar does
+        // not flip back to a stale order a moment after every page load.
+        navItems: navItemsFromSource(data.navItems, data.navItemsRevision),
+        navItemsRevision: parseNavItemsRevision(data.navItemsRevision),
         communityPrompts: communityPromptsFromSource(data.communityPrompts),
         sevaHeading: parseSevaHeading(data.sevaHeading),
         sevaIntro: parseSevaIntro(data.sevaIntro),

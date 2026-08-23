@@ -15,7 +15,9 @@ import type { BhaktiMargPuzzle, BracketCityPuzzle, ConnectionsPuzzle, CrosswordP
 import {
   communityPromptsFromSource,
   homeTilesFromSource,
+  navItemsAreStale,
   navItemsFromSource,
+  NAV_ITEMS_REVISION,
   parseCommunityPrompts,
   parseHomeTiles,
   parseNavItems,
@@ -240,13 +242,16 @@ export function useAdminSiteContent() {
       const data = snap.exists() ? snap.data() : {}
       const next = {
         homeTiles: homeTilesFromSource(data.homeTiles),
-        navItems: navItemsFromSource(data.navItems),
+        navItems: navItemsFromSource(data.navItems, data.navItemsRevision),
         communityPrompts: communityPromptsFromSource(data.communityPrompts),
         sevaHeading: parseSevaHeading(data.sevaHeading),
         sevaIntro: parseSevaIntro(data.sevaIntro),
         sevaTeams: sevaTeamsFromSource(data.sevaTeams)
       }
+      // A stored nav older than the current DEFAULT_NAV_ITEMS is re-seeded here, so
+      // the editor and the live site agree and the revision stamp is brought forward.
       const needsSeed = !snap.exists()
+        || navItemsAreStale(data.navItemsRevision)
         || !Array.isArray(data.homeTiles)
         || !data.homeTiles.length
         || !Array.isArray(data.navItems)
@@ -282,7 +287,10 @@ export function useAdminSiteContent() {
       const db = requireDb()
       const payload: Record<string, unknown> = { updatedAt: serverTimestamp() }
       if (data.homeTiles !== undefined) payload.homeTiles = parseHomeTiles(data.homeTiles)
-      if (data.navItems !== undefined) payload.navItems = parseNavItems(data.navItems)
+      if (data.navItems !== undefined) {
+        payload.navItems = parseNavItems(data.navItems)
+        payload.navItemsRevision = NAV_ITEMS_REVISION
+      }
       if (data.communityPrompts !== undefined) payload.communityPrompts = parseCommunityPrompts(data.communityPrompts)
       if (data.sevaHeading !== undefined) payload.sevaHeading = parseSevaHeading(data.sevaHeading)
       if (data.sevaIntro !== undefined) payload.sevaIntro = parseSevaIntro(data.sevaIntro)
