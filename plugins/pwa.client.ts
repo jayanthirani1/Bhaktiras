@@ -13,8 +13,6 @@ export default defineNuxtPlugin(() => {
   const install = useInstallPrompt()
   const config = useRuntimeConfig().public
 
-  recordSession()
-
   // The worker is only written when the Firebase config was present at build
   // time (see `scripts/writeFirebaseMessagingSw.mjs`), so this mirrors that
   // condition rather than requesting a file that is not there — a local dev run

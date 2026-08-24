@@ -1,6 +1,6 @@
 import { isIos, isStandalone } from '~/utils/pwa'
 
-export type InstallPromptMoment = 'game-complete' | 'events' | 'return-visit'
+export type InstallPromptMoment = 'game-complete' | 'events' | 'launch'
 
 /**
  * How this device can install, or `null` when it simply cannot.
@@ -19,21 +19,10 @@ type BeforeInstallPromptEvent = Event & {
 const SNOOZE_KEY = 'bhaktiras-install-prompt-snoozed-until'
 const DISMISSALS_KEY = 'bhaktiras-install-prompt-dismissals'
 const INSTALLED_KEY = 'bhaktiras-installed'
-const SESSIONS_KEY = 'bhaktiras-session-count'
-const SESSION_MARKER = 'bhaktiras-session-counted'
 const DAY_MS = 24 * 60 * 60 * 1000
 
 /** Two "not now"s buy longer silence; the third retires the prompt for good. */
 const SNOOZE_STEPS_MS = [14 * DAY_MS, 30 * DAY_MS]
-
-/**
- * The banner is only offered to someone who has already got something out of
- * the app — a finished game, a look at the events, or a second visit. A cold
- * install ask on first paint is the one people dismiss by reflex, and a
- * dismissal costs the slot. This mirrors the reasoning in `layouts/default.vue`
- * that moved the push ask off sign-in and onto a finished game.
- */
-const RETURN_VISIT_MIN_SESSIONS = 2
 
 /**
  * Chromium fires `beforeinstallprompt` once, early, and discards it if nothing
@@ -47,21 +36,22 @@ function readNumber(key: string) {
   return Number.isFinite(raw) ? raw : 0
 }
 
-/** Counts app launches, not page views — a reload keeps the same session. */
-export function recordSession() {
-  try {
-    if (sessionStorage.getItem(SESSION_MARKER) === '1') return
-    sessionStorage.setItem(SESSION_MARKER, '1')
-    localStorage.setItem(SESSIONS_KEY, String(readNumber(SESSIONS_KEY) + 1))
-  } catch {
-    // Private browsing with storage denied: the prompt just stays quiet.
-  }
-}
-
 export function useInstallPrompt() {
   const moment = useState<InstallPromptMoment | null>('install-prompt-moment', () => null)
   const canPrompt = useState<boolean>('install-can-prompt', () => false)
   const installed = useState<boolean>('install-completed', () => false)
+
+  /**
+   * A moment asked for before Chromium had anything to offer.
+   *
+   * `beforeinstallprompt` does not fire until the service worker registered on
+   * this page load has activated, and on a first visit that lands well after
+   * the launch-time ask has come and gone. `request` used to drop such an ask
+   * on the floor, so a newcomer opening the link saw nothing — and then saw the
+   * card the moment they tapped Events, because by then the event had arrived.
+   * The moment is parked here instead and replayed as soon as it can be shown.
+   */
+  const wanted = useState<InstallPromptMoment | null>('install-prompt-wanted', () => null)
   const gate = useAppPrompts()
 
   /** Called by `plugins/pwa.client.ts` as the events arrive. */
@@ -69,12 +59,14 @@ export function useInstallPrompt() {
     event.preventDefault()
     deferredEvent = event as BeforeInstallPromptEvent
     canPrompt.value = true
+    if (wanted.value) request(wanted.value)
   }
 
   function markInstalled() {
     deferredEvent = null
     canPrompt.value = false
     installed.value = true
+    wanted.value = null
     close(false)
     try {
       localStorage.setItem(INSTALLED_KEY, '1')
@@ -106,11 +98,28 @@ export function useInstallPrompt() {
     }
   }
 
-  function request(value: InstallPromptMoment) {
-    if (import.meta.server || moment.value || !available.value || snoozed()) return
-    if (value === 'return-visit' && readNumber(SESSIONS_KEY) < RETURN_VISIT_MIN_SESSIONS) return
+  function show(value: InstallPromptMoment) {
+    wanted.value = null
     moment.value = value
     gate.setPending('install', true)
+  }
+
+  /**
+   * Ask for the card at a given moment.
+   *
+   * The difference between "not installable here" and "not installable *yet*"
+   * matters: the first is a Firefox desktop that will never fire the event, the
+   * second is the first two or three seconds of every Chromium page load. Only
+   * the second is worth waiting for, and `capture` is what ends the wait.
+   */
+  function request(value: InstallPromptMoment) {
+    if (import.meta.server || moment.value) return
+    if (isStandalone() || installed.value || snoozed()) return
+    if (!method.value) {
+      wanted.value = value
+      return
+    }
+    show(value)
   }
 
   /**
@@ -129,6 +138,7 @@ export function useInstallPrompt() {
       }
     }
     moment.value = null
+    wanted.value = null
     gate.setPending('install', false)
   }
 
@@ -137,12 +147,12 @@ export function useInstallPrompt() {
    *
    * A snoozed banner must not become a dead end: someone who dismissed it in
    * March and wants the app in August has to be able to ask for it, so this
-   * ignores both the snooze and the engagement gate.
+   * ignores the snooze. The link only renders when `available` is already true,
+   * so there is nothing here to wait for.
    */
   function open() {
     if (import.meta.server || !available.value) return
-    moment.value = 'return-visit'
-    gate.setPending('install', true)
+    show('launch')
   }
 
   /**

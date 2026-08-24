@@ -30,9 +30,12 @@ const { request: requestPushPrompt } = usePushPrompt()
  * on a short pause so the page they opened is the first thing they see.
  * `useAppPrompts` makes sure only one card actually appears.
  *
- * The install ask is the `return-visit` moment, which is refused on a first
- * session; a newcomer is asked instead at the `game-complete` and `events`
- * moments, once they have got something out of the app.
+ * The install ask is the `launch` moment. It used to be refused on a first
+ * session, on the theory that a newcomer should reach it via `game-complete`
+ * or `events` instead — but someone who opens the link, likes what they see and
+ * never taps Events was simply never asked, so the ask now stands from the
+ * first visit. On Chromium it may surface a moment later than this timer:
+ * `useInstallPrompt` holds it until `beforeinstallprompt` arrives.
  *
  * The `signed-in` push moment is the third trigger, below. It is deliberately
  * narrow, because there is one notification ask per device and on iOS a refusal
@@ -54,7 +57,7 @@ onMounted(() => {
       launchPromptsFired = true
       launchPromptTimer = window.setTimeout(() => {
         signInPrompt.request()
-        requestInstallPrompt('return-visit')
+        requestInstallPrompt('launch')
       }, 2000)
     },
     { immediate: true }
