@@ -83,7 +83,7 @@ export function useAccountPrivacy() {
           token: '[redacted from export]'
         })),
         notes: [
-          'Anonymous community posts and bug reports are not linked to your account.',
+          'Anonymous community wall posts carry no link to your account and are not listed here. A signed post is linked and is included above.',
           'Community niyam challenge totals are combined figures and do not contain your user ID.'
         ]
       }

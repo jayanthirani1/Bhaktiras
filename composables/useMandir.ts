@@ -3,6 +3,7 @@ import {
   getDocs,
   addDoc,
   doc,
+  writeBatch,
   updateDoc,
   query,
   orderBy,
@@ -169,26 +170,44 @@ export function useCreateGratitudeMessage() {
     try {
       const db = getDb()
       if (!db) throw new Error('Firebase is not configured, so the wall cannot save yet. Check .env and restart the dev server.')
-      // Posting is signed-in only. The wall used to accept writes from anyone,
-      // which meant a note could be signed with any name at all. Storing the
-      // uid keeps `anonymous` doing what people want — hiding the name on the
-      // wall — while making it impossible to post as someone else.
+      // Posting is signed-in only, so a note can no longer be signed with
+      // someone else's name.
+      //
+      // But an anonymous post must not carry `userId`. The wall is world
+      // readable, and `playStreaks` is a public uid-to-name map — so a stored
+      // uid made "anonymous" a UI mask over a document that named its author to
+      // anyone willing to make two requests. The author link for an anonymous
+      // post lives in `gratitudeAuthors`, which only admins can read, so
+      // moderation still works and the wall itself gives nothing away.
       const auth = useNuxtApp().$firebaseAuth as import('firebase/auth').Auth | null
       const uid = auth?.currentUser?.uid
       if (!uid) throw new Error('Please sign in to add your message to the wall.')
       const nameTrim = data.name?.trim().slice(0, 50) || ''
       const anonymous = data.anonymous === true || !nameTrim
       const name = anonymous ? 'Anonymous' : nameTrim
-      const payload = {
-        userId: uid,
+      const payload: Record<string, unknown> = {
         name,
         message: data.message.trim(),
         prompt: data.prompt?.trim().slice(0, 120) || null,
         anonymous,
         createdAt: serverTimestamp()
       }
-      const ref = await addDoc(collection(db, 'gratitude'), payload)
-      return { id: ref.id, ...payload, createdAt: new Date() }
+      // A signed post already names its author, so nothing is gained by hiding
+      // the uid there — and keeping it lets the author delete their own note.
+      if (!anonymous) payload.userId = uid
+
+      // Both writes or neither: a post whose author record failed to save would
+      // be unmoderatable, and an author record with no post is a dangling link.
+      const postRef = doc(collection(db, 'gratitude'))
+      const batch = writeBatch(db)
+      batch.set(postRef, payload)
+      batch.set(doc(db, 'gratitudeAuthors', postRef.id), {
+        postId: postRef.id,
+        userId: uid,
+        createdAt: serverTimestamp()
+      })
+      await batch.commit()
+      return { id: postRef.id, ...payload, createdAt: new Date() }
     } finally {
       pending.value = false
     }

@@ -87,4 +87,4 @@ jobs:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_SKSSW_BHAKTIRAS }}
         run: |
           echo "$FIREBASE_SERVICE_ACCOUNT" > gcp-key.json
-          firebase deploy --only hosting,functions,firestore:rules
+          firebase deploy --only hosting,functions,firestore:rules,storage
