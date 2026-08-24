@@ -42,9 +42,18 @@
             <div class="mt-3 space-y-1 text-xs text-[hsl(var(--muted-foreground))]">
               <p v-if="bug.pageUrl">
                 Page:
-                <a :href="bug.pageUrl" target="_blank" rel="noopener noreferrer" class="font-medium text-[hsl(var(--primary))] underline">
+                <a
+                  v-if="safePageUrl(bug.pageUrl)"
+                  :href="safePageUrl(bug.pageUrl)"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="font-medium text-[hsl(var(--primary))] underline"
+                >
                   {{ bug.pageUrl }}
                 </a>
+                <!-- Not a link when the scheme is not http(s): a bug report is
+                     unauthenticated, so this value is attacker-controlled. -->
+                <span v-else class="break-all font-medium">{{ bug.pageUrl }}</span>
               </p>
               <p v-if="bug.contactEmail">
                 Contact:
@@ -93,6 +102,18 @@ import { serverTimestamp } from 'firebase/firestore'
 import type { BugReport, BugReportStatus } from '~/types'
 
 definePageMeta({ layout: 'admin', middleware: 'admin' })
+
+/**
+ * Bug reports can be filed without signing in, so `pageUrl` is attacker
+ * controlled. Vue does not sanitise `:href`, and `target="_blank"` does not
+ * stop a `javascript:` URL — it runs in this document, which is an
+ * authenticated admin session. Anything that is not plain http(s) is rendered
+ * as text instead of a link.
+ */
+function safePageUrl(value: string | null | undefined): string | undefined {
+  const url = String(value || '').trim()
+  return /^https?:\/\//i.test(url) ? url : undefined
+}
 
 const { items, loading, saving, error, fetchAll, updateItem } = useAdminCollection<BugReport>('bugReports')
 const filter = ref<'all' | BugReportStatus>('open')

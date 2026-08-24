@@ -230,25 +230,57 @@ service cloud.firestore {
     // delete their own note and admins can moderate.
     match /gratitude/{id} {
       allow read: if true;
+      // `userId` is optional and must be ABSENT on an anonymous post. This
+      // collection is world readable and `playStreaks` is a public
+      // uid-to-name map, so a uid stored here would make `anonymous` a mask
+      // over a document that names its author. The author link lives in
+      // `gratitudeAuthors` instead, readable only by admins.
       allow create: if isSignedIn()
         && request.resource.data.keys().hasOnly([
           'userId', 'name', 'message', 'prompt', 'anonymous', 'createdAt'
         ])
-        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.anonymous is bool
+        && (
+          request.resource.data.anonymous == true
+            ? !('userId' in request.resource.data)
+            : request.resource.data.userId == request.auth.uid
+        )
         && request.resource.data.message is string
         && request.resource.data.message.size() >= 5
         && request.resource.data.message.size() <= 500
         && request.resource.data.name is string
         && request.resource.data.name.size() <= 50
-        && request.resource.data.anonymous is bool
         && request.resource.data.createdAt == request.time
         && (
           request.resource.data.prompt == null
           || (request.resource.data.prompt is string && request.resource.data.prompt.size() <= 120)
         );
+      // An anonymous post has no `userId` to match, so its author cannot remove
+      // it from the app — that is the cost of the wall not naming them. Admins
+      // can, and the link in `gratitudeAuthors` tells them whose it is.
       allow delete: if isAdmin()
-        || (isSignedIn() && resource.data.userId == request.auth.uid);
+        || (isSignedIn() && ('userId' in resource.data) && resource.data.userId == request.auth.uid);
       allow update: if isAdmin();
+    }
+
+    /**
+     * Who wrote which wall post. Never public — this is the half of an
+     * anonymous post that must not be readable, kept apart so moderation can
+     * still find an author without the wall itself naming one.
+     *
+     * The owner may read and delete their own link, which is what lets "delete
+     * my account" sever it. Once severed the post stays and is genuinely
+     * anonymous, because nothing anywhere ties it back to a person.
+     */
+    match /gratitudeAuthors/{postId} {
+      allow read: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow create: if isSignedIn()
+        && request.resource.data.keys().hasOnly(['postId', 'userId', 'createdAt'])
+        && request.resource.data.postId == postId
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.createdAt == request.time;
+      allow update: if false;
+      allow delete: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
     }
 
     // Anyone may report a bug. Reports are private and managed by admins.
@@ -268,7 +300,15 @@ service cloud.firestore {
         && (
           !('pageUrl' in request.resource.data)
           || request.resource.data.pageUrl == null
-          || (request.resource.data.pageUrl is string && request.resource.data.pageUrl.size() <= 300)
+          || (
+            request.resource.data.pageUrl is string
+            && request.resource.data.pageUrl.size() <= 300
+            // Defence in depth with the admin page, which also refuses to link
+            // anything that is not http(s). Reports are unauthenticated, so a
+            // `javascript:` URL here would be a one-click takeover of whichever
+            // trustee opens the queue.
+            && request.resource.data.pageUrl.matches('^https?://.*')
+          )
         )
         && (
           !('contactEmail' in request.resource.data)
