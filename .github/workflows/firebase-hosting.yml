@@ -87,4 +87,14 @@ jobs:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_SKSSW_BHAKTIRAS }}
         run: |
           echo "$FIREBASE_SERVICE_ACCOUNT" > gcp-key.json
-          firebase deploy --only hosting,functions,firestore:rules,storage
+          # `storage` is deliberately absent. The deploy service account lacks
+          # `firebasestorage.defaultBucket.get`, and the CLI resolves the bucket
+          # before it deploys anything — so including it here fails the whole
+          # deploy at the first step and ships nothing at all, not even hosting.
+          #
+          # To put it back: grant the deploy service account the Firebase
+          # Storage Admin role (roles/firebasestorage.admin) in IAM, confirm a
+          # manual `--only storage` deploy succeeds, then add it to this line.
+          # Until then storage.rules must be deployed by hand by someone with
+          # owner access — see README.
+          firebase deploy --only hosting,functions,firestore:rules

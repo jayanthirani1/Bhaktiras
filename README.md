@@ -4,6 +4,25 @@
 
 This is the Bhaktiras app recreated with **Nuxt 3** and **Firebase (Firestore)** as the database. It can be deployed as a static site (e.g. Netlify, Vercel) with no backend server.
 
+## Deploying storage rules
+
+`storage.rules` is **not** deployed by CI. The GitHub Actions service account
+lacks `firebasestorage.defaultBucket.get`, and the Firebase CLI resolves the
+bucket before deploying anything — so including `storage` in the CI deploy fails
+the entire run at the first step and ships nothing, not even hosting.
+
+Until that is fixed, deploy storage rules by hand from an account with owner
+access, after any change to `storage.rules`:
+
+```bash
+npx firebase-tools deploy --only storage --project skssw-bhaktiras
+```
+
+To fold it back into CI: grant the deploy service account the **Firebase Storage
+Admin** role (`roles/firebasestorage.admin`), verify a manual
+`--only storage` deploy works as that account, then add `storage` to the deploy
+line in `.github/workflows/firebase-hosting.yml`.
+
 ## Setup
 
 **→ For a full step-by-step Firebase and database setup, see [FIREBASE_SETUP.md](./FIREBASE_SETUP.md).**
