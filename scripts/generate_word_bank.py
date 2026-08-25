@@ -48,8 +48,8 @@ Badrinath|Himalayan pilgrimage shrine dedicated to Vishnu|place
 Balak|A child|community
 Balika|A young girl in satsang|community
 Bal Mandal|A satsang group for children|community
-Bapa|An affectionate form of address for a revered guru|swaminarayan
-Bapu|Affectionate Gujarati address for a respected elder or guru|gujarati
+Bapa|Gujarati word for father, also a warm address for an elderly man|gujarati
+Bapu|Affectionate Gujarati address for a respected elder|gujarati
 Barfi|A milk-based Indian sweet often offered as prasad|food
 Shreemad Bhagvat|Puran the Vachnamrut quotes on Bhagvan's true form|scripture
 Bhagvan|The supreme Lord|hinduism
