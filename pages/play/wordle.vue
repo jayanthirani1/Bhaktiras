@@ -47,7 +47,7 @@
         <ol class="list-decimal space-y-2 pl-5">
           <li>Type a five-letter word and press Enter. The timer starts when you tap <span class="font-semibold text-[hsl(var(--foreground))]">Start game</span>.</li>
           <li><span class="font-semibold text-[hsl(var(--foreground))]">Green</span> is the right letter in the right spot. <span class="font-semibold text-[hsl(var(--foreground))]">Amber</span> is in the word, but elsewhere. Grey is not in the word.</li>
-          <li>You have six guesses. The clock keeps running if you leave the page.</li>
+          <li>You have six guesses. The clock pauses if you leave the page and picks up when you return.</li>
         </ol>
       </GameHowTo>
 
@@ -229,7 +229,7 @@
         <ol class="list-decimal space-y-2 pl-5">
           <li>Type a five-letter word and press Enter.</li>
           <li><span class="font-semibold text-[hsl(var(--foreground))]">Green</span> is the right letter in the right spot. <span class="font-semibold text-[hsl(var(--foreground))]">Amber</span> is in the word, but elsewhere. Grey is not in the word.</li>
-          <li>You have six guesses. The clock keeps running if you leave the page.</li>
+          <li>You have six guesses. The clock pauses if you leave the page and picks up when you return.</li>
         </ol>
       </GameHowTo>
 
