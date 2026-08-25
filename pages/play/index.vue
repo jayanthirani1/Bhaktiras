@@ -3,7 +3,7 @@
     <div class="max-w-3xl mx-auto">
       <PageHeader
         title="Games"
-        subtitle="Wordle and Crossword are live. More games unlock on the 29th of each month."
+        subtitle="Wordle and Crossword are live. More games unlock on the 30th of each month."
       />
 
       <section

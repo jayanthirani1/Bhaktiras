@@ -1,8 +1,8 @@
 import type { PlayGameSlug } from '~/utils/playCompletion'
 import { ukDateId } from '~/utils/gameDay'
 
-/** Wordle and Crossword are live now. Other games unlock on the 29th, one a month. */
-export const GAME_UNLOCK_START = '2026-08-29'
+/** Wordle and Crossword are live now. Other games unlock on the 30th, one a month. */
+export const GAME_UNLOCK_START = '2026-08-30'
 
 export const ALWAYS_LIVE_GAMES: PlayGameSlug[] = ['wordle', 'mini-crossword']
 
