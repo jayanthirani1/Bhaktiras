@@ -2,7 +2,18 @@
   <div class="flex min-h-screen flex-col bg-[hsl(var(--background))]">
     <Navigation />
     <main class="flex-1">
-      <slot />
+      <!-- A section an admin has switched off, or a game not out yet, never
+           mounts its page: the gate stands in its place. -->
+      <ContentGate
+        v-if="gate"
+        :title="gate.title"
+        :message="gate.message"
+        :release-label="gate.releaseLabel"
+        :coming-soon="gate.comingSoon"
+        :back-to="gate.backTo"
+        :back-label="gate.backLabel"
+      />
+      <slot v-else />
     </main>
     <SiteFooter />
     <ClientOnly>
@@ -17,6 +28,7 @@
 <script setup lang="ts">
 const route = useRoute()
 const auth = useAuth()
+const { gate } = useContentGate()
 const { recordVisit } = usePlayStreak()
 const signInPrompt = useSignInPrompt()
 const { request: requestInstallPrompt } = useInstallPrompt()

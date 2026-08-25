@@ -49,8 +49,8 @@ Requires the **Blaze** plan (Functions + Storage).
 `one-percent`, `achievements`, `streaks`
 
 **Admin** — `/admin` plus `auth`, `timeline`, `events`, `niyam-challenges`, `yajman`,
-`notifications`, `legal`, `bugs`, `content/{index,homepage,community,navigation}`,
-`games/{wordle,crossword,mini-crossword,connections,one-percent,word-bank}`
+`notifications`, `legal`, `bugs`, `content/{index,homepage,community,navigation,seva,sections}`,
+`games/{wordle,crossword,mini-crossword,connections,one-percent,word-bank,releases}`
 
 ## Sections
 
@@ -142,6 +142,24 @@ The admin area is a full CMS: homepage tiles, navigation (including which items 
 mobile-primary), community prompts, timeline, events, niyam challenges, yajman, legal
 pages, push notifications, bug triage, and a per-game puzzle editor with a shared word
 bank.
+
+Two of those editors decide what the site shows at all, and both write to the same
+`siteContent/main` document as the rest of the CMS:
+
+- **Content → Sections** (`/admin/content/sections`) switches a whole part of the app
+  off. A hidden section drops out of the navigation and the homepage tiles, and its
+  pages render a "not available" screen instead of mounting. The sections themselves
+  are code (`data/siteSections.ts`) — Firestore stores only the switches, so a stored
+  document can never resurrect a page this build does not have.
+- **Games → Game releases** (`/admin/games/releases`) stages the games. Each is `live`,
+  `scheduled` with a date, or `hidden`. A scheduled game is listed on `/play` as a
+  locked "Coming soon" row carrying its date and unlocks itself on the minute, with no
+  deploy and nothing to do on the day. `data/gameReleases.ts` holds the catalogue;
+  everything ships `live` by default, so staggering a launch is always a deliberate act.
+
+Both gates are enforced in one place — `useContentGate` in `layouts/default.vue` — and
+the switches are cached in `localStorage`, so a repeat visitor never sees a hidden
+section flash up while Firestore answers.
 
 Every admin page is listed once, in `data/adminMenu.ts`. The sidebar and the `/admin`
 dashboard cards are both generated from it, so a page cannot be reachable from one and

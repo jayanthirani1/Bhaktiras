@@ -1,3 +1,5 @@
+import type { PlayGameSlug } from '~/utils/playCompletion'
+
 /** Plain snapshot of Firebase user (avoids storing Firebase User object which can trigger cross-origin errors in Vue reactivity). */
 export interface AuthUserSnapshot {
   uid: string
@@ -269,6 +271,41 @@ export interface SevaTeamContent {
   order?: number
 }
 
+/** An app section an admin can switch off, resolved against the code catalogue. */
+export interface SiteSectionContent {
+  id: string
+  label: string
+  description: string
+  /** Route prefixes this section owns — anything underneath one is gated with it. */
+  paths: string[]
+  visible: boolean
+  order: number
+}
+
+/** What is actually stored per section: the switch, nothing else. */
+export interface SiteSectionVisibility {
+  id: string
+  visible: boolean
+}
+
+export type GameReleaseStatus = 'live' | 'scheduled' | 'hidden'
+
+/** What is actually stored per game: whether it is out, and when it is due. */
+export interface GameReleaseStored {
+  slug: PlayGameSlug
+  status: GameReleaseStatus
+  /** ISO instant a scheduled game unlocks itself. Null on live and hidden games. */
+  releaseAt: string | null
+}
+
+/** A stored release plan resolved against the code game catalogue. */
+export interface GameReleaseContent extends GameReleaseStored {
+  title: string
+  href: string
+  paths: string[]
+  order: number
+}
+
 export interface SiteContentSettings {
   id: string
   homeTiles: HomeTileContent[]
@@ -281,6 +318,10 @@ export interface SiteContentSettings {
   sevaHeading: string
   sevaIntro: string
   sevaTeams: SevaTeamContent[]
+  /** Which app sections are switched on. */
+  sections: SiteSectionContent[]
+  /** Which games are out, and when the rest are due. */
+  gameReleases: GameReleaseContent[]
   updatedAt?: { seconds?: number; nanoseconds?: number } | Date
 }
 

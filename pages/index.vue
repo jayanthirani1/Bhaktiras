@@ -43,7 +43,8 @@
           </template>
         </ClientOnly>
 
-        <NuxtLink to="/seva" class="reveal reveal-delay-3 mt-8">
+        <!-- Hidden along with the Seva section itself, so the hero never points at a gate. -->
+        <NuxtLink v-if="isSectionVisible('seva')" to="/seva" class="reveal reveal-delay-3 mt-8">
           <button class="btn-primary text-sm md:text-base">Join the seva</button>
         </NuxtLink>
       </div>
@@ -95,7 +96,7 @@ import { getDailyQuote } from '~/utils/quotes'
 const { greeting } = useAuth()
 const countdown = useCountdown()
 const dailyQuote = getDailyQuote()
-const { homeTiles } = useSiteContent()
+const { homeTiles, isSectionVisible } = useSiteContent()
 
 const countdownUnits = computed(() => [
   { label: 'Days', value: countdown.parts.value.days },

@@ -30,6 +30,8 @@ import {
   SITE_CONTENT_DOC_ID,
   siteContentWritePayload
 } from '~/data/siteContent'
+import { gameReleasesFromSource, gameReleasesWritePayload } from '~/data/gameReleases'
+import { siteSectionsFromSource, siteSectionsWritePayload } from '~/data/siteSections'
 
 function getDb(): Firestore | null {
   if (import.meta.server) return null
@@ -228,7 +230,9 @@ export function useAdminSiteContent() {
     communityPrompts: communityPromptsFromSource(undefined),
     sevaHeading: parseSevaHeading(undefined),
     sevaIntro: parseSevaIntro(undefined),
-    sevaTeams: sevaTeamsFromSource(undefined)
+    sevaTeams: sevaTeamsFromSource(undefined),
+    sections: siteSectionsFromSource(undefined),
+    gameReleases: gameReleasesFromSource(undefined)
   })
   const loading = ref(false)
   const saving = ref(false)
@@ -248,7 +252,9 @@ export function useAdminSiteContent() {
         communityPrompts: communityPromptsFromSource(data.communityPrompts),
         sevaHeading: parseSevaHeading(data.sevaHeading),
         sevaIntro: parseSevaIntro(data.sevaIntro),
-        sevaTeams: sevaTeamsFromSource(data.sevaTeams)
+        sevaTeams: sevaTeamsFromSource(data.sevaTeams),
+        sections: siteSectionsFromSource(data.sections),
+        gameReleases: gameReleasesFromSource(data.gameReleases)
       }
       // Stored tiles or nav older than the current defaults are re-seeded here, so
       // the editor and the live site agree and the revision stamp is brought forward.
@@ -263,6 +269,8 @@ export function useAdminSiteContent() {
         || !data.communityPrompts.length
         || !Array.isArray(data.sevaTeams)
         || !data.sevaTeams.length
+        || !Array.isArray(data.sections)
+        || !Array.isArray(data.gameReleases)
       if (needsSeed) {
         await setDoc(ref, { ...siteContentWritePayload(next), updatedAt: serverTimestamp() }, { merge: true })
       }
@@ -276,14 +284,16 @@ export function useAdminSiteContent() {
         communityPrompts: communityPromptsFromSource(undefined),
         sevaHeading: parseSevaHeading(undefined),
         sevaIntro: parseSevaIntro(undefined),
-        sevaTeams: sevaTeamsFromSource(undefined)
+        sevaTeams: sevaTeamsFromSource(undefined),
+        sections: siteSectionsFromSource(undefined),
+        gameReleases: gameReleasesFromSource(undefined)
       }
     } finally {
       loading.value = false
     }
   }
 
-  async function save(data: Partial<Pick<SiteContentSettings, 'homeTiles' | 'navItems' | 'communityPrompts' | 'sevaHeading' | 'sevaIntro' | 'sevaTeams'>>) {
+  async function save(data: Partial<Pick<SiteContentSettings, 'homeTiles' | 'navItems' | 'communityPrompts' | 'sevaHeading' | 'sevaIntro' | 'sevaTeams' | 'sections' | 'gameReleases'>>) {
     saving.value = true
     error.value = ''
     try {
@@ -301,6 +311,8 @@ export function useAdminSiteContent() {
       if (data.sevaHeading !== undefined) payload.sevaHeading = parseSevaHeading(data.sevaHeading)
       if (data.sevaIntro !== undefined) payload.sevaIntro = parseSevaIntro(data.sevaIntro)
       if (data.sevaTeams !== undefined) payload.sevaTeams = parseSevaTeams(data.sevaTeams)
+      if (data.sections !== undefined) payload.sections = siteSectionsWritePayload(data.sections)
+      if (data.gameReleases !== undefined) payload.gameReleases = gameReleasesWritePayload(data.gameReleases)
       await setDoc(doc(db, 'siteContent', SITE_CONTENT_DOC_ID), payload, { merge: true })
       await load()
     } catch (e) {
