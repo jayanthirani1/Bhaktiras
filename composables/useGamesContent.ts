@@ -236,7 +236,11 @@ export function useBracketCityPuzzle() {
 }
 
 export async function fetchWordleRemote(date = new Date()) {
-  const db = getDb()
+  let db = getDb()
+  if (!db) {
+    await new Promise(resolve => setTimeout(resolve, 50))
+    db = getDb()
+  }
   if (!db) {
     return {
       extraWords: [] as string[],
@@ -256,10 +260,10 @@ export async function fetchWordleRemote(date = new Date()) {
   const extraWords = [...wordsSnap.docs
     .map(d => String((d.data() as WordleWordDoc).word || '').toUpperCase())
     .filter(w => w.length === 5), ...customWords]
-  const dailyWord = dailySnap.exists() ? String(dailySnap.data().word || '').toUpperCase() : null
+  const dailyWord = dailySnap.exists() ? String(dailySnap.data().word || '').trim().toUpperCase() : null
   return {
     extraWords,
-    dailyWord: dailyWord && dailyWord.length === 5 ? dailyWord : null,
+    dailyWord: dailyWord && dailyWord.length === 5 && /^[A-Z]+$/.test(dailyWord) ? dailyWord : null,
     wordEntries: customEntries
   }
 }

@@ -4,7 +4,7 @@
     <div class="flex items-center justify-between gap-3">
       <div>
         <h1 class="font-display text-2xl font-semibold text-[hsl(var(--primary))]">Community questions</h1>
-        <p class="text-sm text-[hsl(var(--muted-foreground))]">These are the current prompt chips on the community wall. Edit, remove, or add questions, then save.</p>
+        <p class="text-sm text-[hsl(var(--muted-foreground))]">These appear in the prompt dropdown when someone posts a message. Edit, remove, or add questions, then save.</p>
       </div>
       <button type="button" class="admin-btn-secondary" :disabled="saving" @click="addPrompt">Add question</button>
     </div>

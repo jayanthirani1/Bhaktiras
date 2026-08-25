@@ -16,5 +16,8 @@ export const SITE = {
    * Leave empty to hide the Community photo section until the gallery is ready.
    */
   guestCamUrl: '',
-  guestCamLabel: 'Open photo gallery'
+  guestCamLabel: 'Open photo gallery',
+  /** Canonical scriptures and learning resources (Bhuj / SKSS). */
+  scripturesUrl: 'https://www.swaminarayan.faith/learning-resources/scriptures',
+  scripturesHomeUrl: 'https://www.swaminarayan.faith/'
 }

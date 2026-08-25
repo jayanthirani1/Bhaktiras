@@ -4,7 +4,9 @@
       <h2 class="font-display text-xl font-semibold text-[hsl(var(--primary))]">Shared game word bank</h2>
       <p class="mt-1 text-sm text-[hsl(var(--muted-foreground))]">
         {{ allEntries.length.toLocaleString() }} Swaminarayan, satsang and Hindu vocabulary entries.
-        Built-in words come from the generated bank; edits and custom words are saved to Firebase.
+        Clues must follow
+        <a class="font-semibold underline" href="https://www.swaminarayan.faith/learning-resources/scriptures" target="_blank" rel="noopener noreferrer">swaminarayan.faith scriptures</a>
+        (Bhuj Vachnamrut, Shikshapatri, Satsangi Jeevan). Built-in words come from the generated bank; edits and custom words are saved to Firebase.
       </p>
     </div>
 

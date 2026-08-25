@@ -3,7 +3,7 @@
     <div class="max-w-3xl mx-auto">
       <PageHeader
         title="Games"
-        subtitle="Choose a game — Wordle, Crossword, 1% Club, Surya Chandra, Ras Rani, and more."
+        subtitle="Wordle and Crossword are live. More games unlock on the 29th of each month."
       />
 
       <section
@@ -45,15 +45,16 @@
         to start a daily Games streak.
       </p>
 
-      <ul class="mt-10 divide-y divide-[hsl(var(--border))] overflow-hidden rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] shadow-[0_18px_40px_-32px_rgba(59,32,97,0.55)]">
+      <ul class="mt-10 divide-y divide-[hsl(var(--golden-200))] overflow-hidden rounded-2xl border border-[hsl(var(--golden-200))] bg-[hsl(var(--card))] shadow-[0_18px_40px_-32px_rgba(59,32,97,0.55)]">
         <li v-for="game in games" :key="game.slug">
           <NuxtLink
+            v-if="isLive(game.slug)"
             :to="game.href"
-            class="flex items-center gap-3 px-3 py-4 transition-colors hover:bg-[hsl(var(--muted))]/60 active:bg-[hsl(var(--muted))] sm:gap-4 sm:px-5"
+            class="flex items-center gap-3 px-3 py-4 transition-colors hover:bg-[hsl(var(--golden-50))] active:bg-[hsl(var(--golden-100))] sm:gap-4 sm:px-5"
             :class="done[game.slug] ? 'bg-emerald-50/60 hover:bg-emerald-50' : ''"
           >
             <div
-              class="grid h-14 w-14 shrink-0 place-items-center rounded-2xl shadow-sm sm:h-16 sm:w-16"
+              class="grid h-14 w-14 shrink-0 place-items-center rounded-2xl shadow-sm ring-1 ring-[hsl(var(--golden-200))] sm:h-16 sm:w-16"
               :class="game.tile"
             >
               <component :is="game.icon" class="h-7 w-7 sm:h-8 sm:w-8" stroke-width="1.9" />
@@ -61,7 +62,7 @@
 
             <div class="min-w-0 flex-1">
               <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
-                <h3 class="font-display text-base font-bold text-[hsl(var(--foreground))] sm:text-lg">
+                <h3 class="font-display text-base font-bold text-[hsl(var(--primary))] sm:text-lg">
                   <RasRaniTitle v-if="game.slug === 'ras-rani'" honey />
                   <template v-else>{{ game.title }}</template>
                 </h3>
@@ -91,6 +92,33 @@
               {{ done[game.slug] ? 'Results' : 'Play' }}
             </span>
           </NuxtLink>
+
+          <div
+            v-else
+            class="flex cursor-default items-center gap-3 bg-zinc-100/80 px-3 py-4 grayscale sm:gap-4 sm:px-5"
+            aria-disabled="true"
+          >
+            <div
+              class="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-zinc-200 text-zinc-500 shadow-sm sm:h-16 sm:w-16"
+            >
+              <component :is="game.icon" class="h-7 w-7 sm:h-8 sm:w-8" stroke-width="1.9" />
+            </div>
+            <div class="min-w-0 flex-1">
+              <h3 class="font-display text-base font-bold text-zinc-600 sm:text-lg">
+                <RasRaniTitle v-if="game.slug === 'ras-rani'" honey />
+                <template v-else>{{ game.title }}</template>
+              </h3>
+              <p class="mt-0.5 line-clamp-2 text-sm leading-snug text-zinc-500">
+                {{ game.description }}
+              </p>
+              <p class="mt-1.5 text-xs font-semibold text-zinc-500">
+                Opens {{ unlockLabel(game.slug) }}
+              </p>
+            </div>
+            <span class="shrink-0 rounded-full bg-zinc-300 px-3 py-2 text-center text-xs font-bold tabular-nums text-zinc-700 sm:px-4 sm:text-sm">
+              {{ countdownLabel(game.slug) }}
+            </span>
+          </div>
         </li>
       </ul>
     </div>
@@ -102,7 +130,6 @@ import type { Component } from 'vue'
 import {
   IconGrid3x3,
   IconTypography,
-  IconHexagon,
   IconChartBar,
   IconArrowRight,
   IconCheck,
@@ -113,6 +140,13 @@ import {
 import NectarIcon from '~/components/NectarIcon.vue'
 
 import type { PlayGameSlug } from '~/utils/playCompletion'
+import {
+  formatUnlockCountdown,
+  formatUnlockLabel,
+  gameUnlockDateId,
+  isGameLive,
+  londonMidnightMs
+} from '~/utils/gameRelease'
 
 const auth = useAuth()
 const isLoggedIn = computed(() => !!auth.user.value)
@@ -138,6 +172,30 @@ const games: Array<{
 ]
 
 const { done, results } = usePlayCompletion(games.map(g => g.slug))
+
+const nowMs = ref(Date.now())
+
+onMounted(() => {
+  const tick = window.setInterval(() => {
+    nowMs.value = Date.now()
+  }, 15_000)
+  onUnmounted(() => window.clearInterval(tick))
+})
+
+function isLive(slug: PlayGameSlug) {
+  return isGameLive(slug)
+}
+
+function unlockLabel(slug: PlayGameSlug) {
+  const dateId = gameUnlockDateId(slug)
+  return dateId ? formatUnlockLabel(dateId) : ''
+}
+
+function countdownLabel(slug: PlayGameSlug) {
+  const dateId = gameUnlockDateId(slug)
+  if (!dateId) return ''
+  return formatUnlockCountdown(londonMidnightMs(dateId) - nowMs.value)
+}
 
 function formatTime(ms: number) {
   const total = Math.round(ms / 1000)

@@ -5,7 +5,7 @@
         <div>
           <h2 class="font-display text-xl font-semibold text-[hsl(var(--primary))]">Daily schedule</h2>
           <p class="mt-1 text-sm text-[hsl(var(--muted-foreground))]">
-            Plan words ahead. Blank days use the rotation. Dates are UK calendar days.
+            The planned word is what everyone plays that UK day. Leave a day blank to use the built-in rotation shown here.
           </p>
         </div>
         <div class="flex gap-2">
@@ -29,7 +29,8 @@
             <tr class="border-b border-[hsl(var(--border))] text-xs uppercase tracking-wide text-[hsl(var(--muted-foreground))]">
               <th class="py-2 pr-3 font-semibold">Date</th>
               <th class="py-2 pr-3 font-semibold">Planned word</th>
-              <th class="py-2 pr-3 font-semibold">Rotation</th>
+              <th class="py-2 pr-3 font-semibold">If left blank</th>
+              <th class="py-2 pr-3 font-semibold">Players get</th>
               <th class="py-2 font-semibold"></th>
             </tr>
           </thead>
@@ -54,6 +55,9 @@
               <td class="py-2 pr-3 align-middle font-mono text-xs uppercase text-[hsl(var(--muted-foreground))]">
                 {{ day.fallback }}
               </td>
+              <td class="py-2 pr-3 align-middle font-mono text-xs font-semibold uppercase text-[hsl(var(--primary))]">
+                {{ (day.savedWord || day.fallback) }}
+              </td>
               <td class="py-2 align-middle">
                 <div class="flex flex-wrap gap-2">
                   <button type="button" class="admin-btn" :disabled="savingDaily" @click="saveDay(day)">Save</button>
@@ -77,7 +81,7 @@
       <div>
         <h2 class="font-display text-xl font-semibold text-[hsl(var(--primary))]">Solution list</h2>
         <p class="mt-1 text-sm text-[hsl(var(--muted-foreground))]">
-          Extra 5-letter words used in the rotation when a day has no planned word. {{ sortedWords.length }} extra word{{ sortedWords.length === 1 ? '' : 's' }}.
+          Extra 5-letter words allowed as guesses (and as planned answers). They do not change the blank-day rotation. {{ sortedWords.length }} extra word{{ sortedWords.length === 1 ? '' : 's' }}.
         </p>
       </div>
       <form class="flex flex-wrap items-end gap-2" @submit.prevent="addWord">
@@ -128,8 +132,6 @@ const sortedWords = computed(() =>
   [...items.value].sort((a, b) => String(a.word).localeCompare(String(b.word)))
 )
 
-const extraWords = computed(() => items.value.map(w => String(w.word || '')))
-
 const rangeLabel = computed(() => {
   if (!days.value.length) return ''
   if (range.value === 'week') {
@@ -178,7 +180,6 @@ function buildIds(): string[] {
 
 function rebuildDays() {
   const todayId = wordleDateId()
-  const extra = extraWords.value
   days.value = buildIds().map((id) => {
     const meta = formatDay(id)
     return {
@@ -186,7 +187,7 @@ function rebuildDays() {
       weekday: meta.weekday,
       label: meta.label,
       isToday: id === todayId,
-      fallback: getWordForDateId(id, extra),
+      fallback: getWordForDateId(id),
       word: '',
       savedWord: ''
     }
@@ -327,9 +328,6 @@ async function addWord() {
 }
 
 watch([range, cursorId], () => { refreshSchedule() })
-watch(extraWords, (extra) => {
-  for (const day of days.value) day.fallback = getWordForDateId(day.id, extra)
-})
 
 onMounted(async () => {
   await fetchAll()

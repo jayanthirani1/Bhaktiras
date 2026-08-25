@@ -34,7 +34,7 @@
       <div class="mt-4">
         <div class="flex h-2.5 overflow-hidden rounded-full bg-[hsl(var(--muted))]">
           <div
-            class="h-full bg-[hsl(var(--primary))] transition-all duration-700"
+            class="h-full bg-[hsl(var(--golden-500))] transition-all duration-700"
             :style="{ width: `${approvedPercent}%` }"
           />
           <!-- Held entries are shown, but visibly outside the counted total. -->

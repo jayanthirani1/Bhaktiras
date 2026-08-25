@@ -27,7 +27,20 @@ const FRAME_ATTEMPTS = 6
  * it in passing must not become a nested clue. Grow this list if a generated
  * puzzle ever reads as nonsense.
  */
-const NEST_STOPLIST = new Set(['deep'])
+const NEST_STOPLIST = new Set(['deep', 'bapa', 'bapu', 'pramukh'])
+
+/**
+ * BAPS guru titles and “Bapa” as an address for a guru. SKSS does not call
+ * the guru Bapa, so these must never appear as Bracket City answers even if
+ * an admin re-adds them to the live word bank.
+ */
+const BRACKET_ANSWER_BLOCKLIST = new Set([
+  'BAPA',
+  'BAPU',
+  'PRAMUKH',
+  'PRAMUKHSWAMI',
+  'YOGIJIMAHARAJ'
+])
 
 /**
  * True when this word is already in the puzzle, or is close enough to a word in
@@ -70,6 +83,7 @@ function escapeRegExp(value: string): string {
 function usable(entry: GameWordEntry): boolean {
   if (!entry.display || !entry.clue) return false
   if (normalizeGameWord(entry.display) === 'BHUJ') return false
+  if (BRACKET_ANSWER_BLOCKLIST.has(normalizeGameWord(entry.display))) return false
   const clue = clean(entry.clue)
   if (clue.length < MIN_CLUE_LENGTH) return false
   if (normalizeGameWord(entry.display).length < 3) return false

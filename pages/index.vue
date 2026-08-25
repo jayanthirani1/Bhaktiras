@@ -69,10 +69,10 @@
           :rel="item.external ? 'noopener noreferrer' : undefined"
           class="card-surface group flex flex-col items-center p-5 text-center sm:p-7"
         >
-          <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[hsl(var(--golden-50))] text-[hsl(var(--primary))] transition-transform duration-500 ease-out group-hover:scale-110 group-hover:bg-[hsl(var(--primary))] group-hover:text-white sm:h-14 sm:w-14">
+          <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[hsl(var(--golden-500))] text-[hsl(var(--primary))] shadow-[0_8px_18px_-10px_rgba(217,174,48,0.9)] transition-transform duration-500 ease-out group-hover:scale-110 group-hover:bg-[hsl(var(--primary))] group-hover:text-[hsl(var(--golden-500))] sm:h-14 sm:w-14">
             <component :is="item.icon" class="h-6 w-6 sm:h-7 sm:w-7" />
           </div>
-          <h3 class="text-base font-semibold sm:text-lg">{{ item.title }}</h3>
+          <h3 class="text-base font-semibold text-[hsl(var(--primary))] sm:text-lg">{{ item.title }}</h3>
           <p class="mt-1 text-xs text-[hsl(var(--muted-foreground))] sm:text-sm">{{ item.desc }}</p>
         </NuxtLink>
       </div>

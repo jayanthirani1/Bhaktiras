@@ -97,11 +97,11 @@
     color: hsl(var(--gold));
   }
   .card-surface {
-    @apply rounded-2xl border border-[hsl(var(--border))] bg-white shadow-[0_8px_30px_-18px_rgba(56,32,97,0.18)];
+    @apply rounded-2xl border border-[hsl(var(--golden-200))] bg-white shadow-[0_8px_30px_-18px_rgba(56,32,97,0.18)];
     transition: transform 0.5s var(--ease-out-expo), box-shadow 0.5s var(--ease-out-expo), border-color 0.4s ease;
   }
   .card-surface:hover {
-    @apply -translate-y-1 border-[hsl(var(--golden-200))] shadow-[0_20px_50px_-24px_rgba(56,32,97,0.28)];
+    @apply -translate-y-1 border-[hsl(var(--golden-500))] shadow-[0_20px_50px_-24px_rgba(217,174,48,0.35)];
   }
   .admin-input {
     @apply w-full rounded-lg border border-input bg-white px-3 py-2 text-base focus:border-primary;

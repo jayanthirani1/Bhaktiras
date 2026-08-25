@@ -29,16 +29,16 @@
         class="mb-6"
       />
 
-      <p v-else-if="!howto.ready.value" class="mt-8 text-center text-sm text-[hsl(var(--muted-foreground))]">
+      <p v-else-if="!howto.ready.value || !solutionReady" class="mt-8 text-center text-sm text-[hsl(var(--muted-foreground))]">
         Loading Wordle…
       </p>
 
-      <div v-if="!playedElsewhere && howto.ready.value" class="mb-4 flex items-center justify-center gap-2 text-sm font-semibold text-[hsl(var(--primary))]">
+      <div v-if="!playedElsewhere && howto.ready.value && solutionReady" class="mb-4 flex items-center justify-center gap-2 text-sm font-semibold text-[hsl(var(--primary))]">
         <span class="rounded-full bg-[hsl(var(--muted))] px-3 py-1 tabular-nums">⏱ {{ timer.display.value }}</span>
       </div>
 
       <GameHowTo
-        v-if="!playedElsewhere && howto.showIntro.value"
+        v-if="!playedElsewhere && solutionReady && howto.showIntro.value"
         intro
         title="Guess the word in six tries."
         class="mb-6"
@@ -52,7 +52,7 @@
       </GameHowTo>
 
       <div
-        v-if="isComplete && !playedElsewhere && howto.ready.value && !howto.showIntro.value"
+        v-if="isComplete && !playedElsewhere && howto.ready.value && solutionReady && !howto.showIntro.value"
         class="mb-6 rounded-2xl border border-[hsl(var(--golden-200))] bg-[hsl(var(--card))] p-5 text-center"
       >
         <p class="font-display text-xl font-semibold text-[hsl(var(--primary))]">Today’s Wordle complete</p>
@@ -126,7 +126,7 @@
       </div>
 
       <!-- Grid -->
-      <div v-if="!playedElsewhere && howto.ready.value && !howto.showIntro.value" class="flex flex-col gap-2 mb-8" role="grid" aria-label="Wordle guesses">
+      <div v-if="!playedElsewhere && howto.ready.value && solutionReady && !howto.showIntro.value" class="flex flex-col gap-2 mb-8" role="grid" aria-label="Wordle guesses">
         <div
           v-for="(row, rowIndex) in rows"
           :key="rowIndex"
@@ -157,7 +157,7 @@
       </div>
 
       <!-- Keyboard -->
-      <div v-if="!isComplete && !playedElsewhere && howto.ready.value && !howto.showIntro.value" class="flex flex-col gap-1.5 touch-manipulation">
+      <div v-if="!isComplete && !playedElsewhere && howto.ready.value && solutionReady && !howto.showIntro.value" class="flex flex-col gap-1.5 touch-manipulation">
         <div class="flex justify-center gap-1">
           <button
             v-for="k in KEYBOARD_TOP"
@@ -386,7 +386,7 @@
 
 <script setup lang="ts">
 import { IconArrowLeft, IconCrown } from '@tabler/icons-vue'
-import { getWordForDate, wordleDateId } from '~/utils/wordleDaily'
+import { getWordForDate, resolveWordleWord, wordleDateId } from '~/utils/wordleDaily'
 import { getFeedback } from '~/utils/wordle'
 import { findGameWord } from '~/utils/gameWordBank'
 import { isValidWord } from '~/data/wordleGuessList'
@@ -405,6 +405,7 @@ const howto = useHowToPlay('wordle', ['wordle-daily', 'wordle-timer:'])
 
 const remoteExtraWords = ref<string[]>([])
 const remoteWordEntries = ref<GameWordEntry[]>([])
+const solutionReady = ref(false)
 
 function getTodayId(): string {
   return wordleDateId()
@@ -754,6 +755,7 @@ watch([isComplete, isWin, isLose, guesses], () => {
 }, { deep: true })
 
 watch([solution, guesses, isComplete, scoreSubmitted], () => {
+  if (!solutionReady.value) return
   saveDailyState(solution.value, guesses.value, isComplete.value, scoreSubmitted.value)
 }, { deep: true })
 
@@ -868,27 +870,31 @@ onMounted(async () => {
   hasRecordedResult.value = state.isComplete
   scoreSubmitted.value = false
   showResultModal.value = false
-  solution.value = state.solution
   guesses.value = state.guesses
   isComplete.value = state.isComplete
+  solution.value = state.solution
+
+  const started = state.guesses.length > 0 || state.isComplete
+  try {
+    const remote = await fetchWordleRemote(new Date())
+    remoteWordEntries.value = remote.wordEntries
+    const official = resolveWordleWord(getTodayId(), remote.dailyWord)
+    remoteExtraWords.value = [
+      ...remote.extraWords.map(w => w.toUpperCase()),
+      official
+    ]
+    if (!started) solution.value = official
+  } catch (_) {
+    if (!started) solution.value = getWordForDate(new Date())
+  }
+  solutionReady.value = true
+
   if (state.isComplete) {
     timer.read()
     if (timer.startedAt.value && !timer.finishedAt.value) timer.stop()
   } else if (!playedElsewhere.value && !howto.showIntro.value) {
     timer.loadOrStart()
   }
-  try {
-    const remote = await fetchWordleRemote(new Date())
-    remoteWordEntries.value = remote.wordEntries
-    remoteExtraWords.value = [
-      ...remote.extraWords.map(w => w.toUpperCase()),
-      ...(remote.dailyWord ? [remote.dailyWord.toUpperCase()] : [])
-    ]
-    if (!state.guesses.length && !state.isComplete) {
-      const next = remote.dailyWord || getWordForDate(new Date(), remote.extraWords)
-      if (next) solution.value = next
-    }
-  } catch (_) {}
 
   const onKeyDown = (e: KeyboardEvent) => {
     if (e.repeat) return
