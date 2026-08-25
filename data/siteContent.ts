@@ -9,8 +9,7 @@ import {
   IconMapPin,
   IconUsers
 } from '@tabler/icons-vue'
-import type { CommunityPromptContent, GameReleaseContent, HomeTileContent, NavItemContent, SevaTeamContent, SiteContentSettings, SiteIconKey, SiteSectionContent } from '~/types'
-import { DEFAULT_GAME_RELEASES, gameReleasesWritePayload } from '~/data/gameReleases'
+import type { CommunityPromptContent, HomeTileContent, NavItemContent, SevaTeamContent, SiteContentSettings, SiteIconKey, SiteSectionContent } from '~/types'
 import { DEFAULT_SITE_SECTIONS, siteSectionsWritePayload } from '~/data/siteSections'
 import {
   DEFAULT_SEVA_HEADING,
@@ -106,8 +105,7 @@ export const DEFAULT_SITE_CONTENT: SiteContentSettings = {
   sevaHeading: DEFAULT_SEVA_HEADING,
   sevaIntro: DEFAULT_SEVA_INTRO,
   sevaTeams: DEFAULT_SEVA_TEAMS,
-  sections: DEFAULT_SITE_SECTIONS,
-  gameReleases: DEFAULT_GAME_RELEASES
+  sections: DEFAULT_SITE_SECTIONS
 }
 
 function sortByOrder<T extends { order?: number }>(items: T[]) {
@@ -241,7 +239,6 @@ export function siteContentWritePayload(data: {
   sevaIntro?: string
   sevaTeams: SevaTeamContent[]
   sections?: SiteSectionContent[]
-  gameReleases?: GameReleaseContent[]
 }) {
   return {
     homeTiles: parseHomeTiles(data.homeTiles.length ? data.homeTiles : DEFAULT_HOME_TILES),
@@ -252,7 +249,6 @@ export function siteContentWritePayload(data: {
     sevaHeading: parseSevaHeading(data.sevaHeading),
     sevaIntro: parseSevaIntro(data.sevaIntro),
     sevaTeams: parseSevaTeams(data.sevaTeams.length ? data.sevaTeams : DEFAULT_SEVA_TEAMS),
-    sections: siteSectionsWritePayload(data.sections?.length ? data.sections : DEFAULT_SITE_SECTIONS),
-    gameReleases: gameReleasesWritePayload(data.gameReleases?.length ? data.gameReleases : DEFAULT_GAME_RELEASES)
+    sections: siteSectionsWritePayload(data.sections?.length ? data.sections : DEFAULT_SITE_SECTIONS)
   }
 }

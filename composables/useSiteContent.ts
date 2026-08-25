@@ -1,6 +1,6 @@
 import { getCurrentInstance } from 'vue'
 import { doc, getDoc, type Firestore } from 'firebase/firestore'
-import type { GameReleaseContent, SiteContentSettings, SiteSectionContent } from '~/types'
+import type { SiteContentSettings, SiteSectionContent } from '~/types'
 import {
   DEFAULT_SITE_CONTENT,
   communityPromptsFromSource,
@@ -13,12 +13,9 @@ import {
   SITE_CONTENT_DOC_ID
 } from '~/data/siteContent'
 import { linkIsVisible, sectionForPath, siteSectionsFromSource } from '~/data/siteSections'
-import { gameForPath, gameReleasesFromSource, isGameReleased } from '~/data/gameReleases'
 
-/** Where the gate slice is cached so a repeat visit hides things before Firestore answers. */
+/** Where the section switches are cached so a repeat visit hides things before Firestore answers. */
 const GATE_CACHE_KEY = 'bhaktiras:site-gates'
-/** Scheduled games unlock on the minute, without needing a reload. */
-const CLOCK_INTERVAL_MS = 60_000
 
 function getDb(): Firestore | null {
   if (import.meta.server) return null
@@ -30,11 +27,9 @@ function getDb(): Firestore | null {
  * moment wait on one request rather than the second returning early with defaults.
  */
 let inFlight: Promise<void> | null = null
-let clockStarted = false
 
 interface GateCache {
   sections: Array<{ id: string, visible: boolean }>
-  gameReleases: Array<{ slug: string, status: string, releaseAt: string | null }>
 }
 
 function readGateCache(): GateCache | null {
@@ -47,12 +42,11 @@ function readGateCache(): GateCache | null {
   }
 }
 
-function writeGateCache(sections: SiteSectionContent[], gameReleases: GameReleaseContent[]) {
+function writeGateCache(sections: SiteSectionContent[]) {
   if (import.meta.server || typeof localStorage === 'undefined') return
   try {
     localStorage.setItem(GATE_CACHE_KEY, JSON.stringify({
-      sections: sections.map(section => ({ id: section.id, visible: section.visible })),
-      gameReleases: gameReleases.map(entry => ({ slug: entry.slug, status: entry.status, releaseAt: entry.releaseAt }))
+      sections: sections.map(section => ({ id: section.id, visible: section.visible }))
     }))
   } catch {
     // A full or blocked store just means the first paint waits for Firestore.
@@ -63,8 +57,6 @@ export function useSiteContent() {
   const content = useState<SiteContentSettings>('site-content', () => ({ ...DEFAULT_SITE_CONTENT }))
   const loading = useState<boolean>('site-content-loading', () => false)
   const fromCms = useState<boolean>('site-content-from-cms', () => false)
-  /** Ticks so a scheduled game appears the minute it is due. */
-  const now = useState<number>('site-content-now', () => Date.now())
 
   async function fetchContent(force = false) {
     if (inFlight && !force) return inFlight
@@ -98,11 +90,10 @@ export function useSiteContent() {
           sevaIntro: parseSevaIntro(data.sevaIntro),
           sevaTeams: sevaTeamsFromSource(data.sevaTeams),
           sections: siteSectionsFromSource(data.sections),
-          gameReleases: gameReleasesFromSource(data.gameReleases),
           updatedAt: data.updatedAt
         }
         fromCms.value = true
-        writeGateCache(content.value.sections, content.value.gameReleases)
+        writeGateCache(content.value.sections)
       } catch {
         content.value = fallbackContent()
         fromCms.value = false
@@ -115,7 +106,7 @@ export function useSiteContent() {
   }
 
   /**
-   * Applies the last known section and game visibility straight from localStorage.
+   * Applies the last known section switches straight from localStorage.
    *
    * Without it a hidden section is on screen for as long as Firestore takes to
    * answer. Only the switches are cached — the content itself still comes from
@@ -127,8 +118,7 @@ export function useSiteContent() {
     if (!cache) return
     content.value = {
       ...content.value,
-      sections: siteSectionsFromSource(cache.sections),
-      gameReleases: gameReleasesFromSource(cache.gameReleases)
+      sections: siteSectionsFromSource(cache.sections)
     }
   }
 
@@ -142,13 +132,11 @@ export function useSiteContent() {
   function fallbackContent(): SiteContentSettings {
     return {
       ...DEFAULT_SITE_CONTENT,
-      sections: content.value.sections,
-      gameReleases: content.value.gameReleases
+      sections: content.value.sections
     }
   }
 
   const sections = computed(() => content.value.sections)
-  const gameReleases = computed(() => content.value.gameReleases)
 
   function isSectionVisible(id: string) {
     return sections.value.find(section => section.id === id)?.visible !== false
@@ -159,21 +147,10 @@ export function useSiteContent() {
     return sectionForPath(sections.value, path)
   }
 
-  function gameFor(path: string) {
-    return gameForPath(gameReleases.value, path)
-  }
-
-  function gameIsReleased(slug: string) {
-    const entry = gameReleases.value.find(game => game.slug === slug)
-    return !entry || isGameReleased(entry, now.value)
-  }
-
-  /** False when a route sits in a switched-off section, or is a game that is not out yet. */
+  /** False when a route sits in a switched-off section. */
   function pathIsVisible(path: string) {
     const section = sectionFor(path)
-    if (section && !section.visible) return false
-    const game = gameFor(path)
-    return !game || isGameReleased(game, now.value)
+    return !section || section.visible
   }
 
   const homeTiles = computed(() => content.value.homeTiles.filter(item =>
@@ -190,10 +167,6 @@ export function useSiteContent() {
   if (getCurrentInstance()) {
     onMounted(() => {
       applyCachedGates()
-      if (!clockStarted) {
-        clockStarted = true
-        setInterval(() => { now.value = Date.now() }, CLOCK_INTERVAL_MS)
-      }
       void fetchContent()
     })
   }
@@ -207,12 +180,8 @@ export function useSiteContent() {
     sevaIntro,
     sevaTeams,
     sections,
-    gameReleases,
-    now,
     isSectionVisible,
     sectionFor,
-    gameFor,
-    gameIsReleased,
     pathIsVisible,
     loading,
     fromCms,

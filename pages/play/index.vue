@@ -3,7 +3,7 @@
     <div class="max-w-3xl mx-auto">
       <PageHeader
         title="Games"
-        :subtitle="gamesSubtitle"
+        subtitle="Wordle and Crossword are live. More games unlock on the 30th of each month."
       />
 
       <section
@@ -46,9 +46,9 @@
       </p>
 
       <ul class="mt-10 divide-y divide-[hsl(var(--golden-200))] overflow-hidden rounded-2xl border border-[hsl(var(--golden-200))] bg-[hsl(var(--card))] shadow-[0_18px_40px_-32px_rgba(59,32,97,0.55)]">
-        <li v-for="game in listedGames" :key="game.slug">
+        <li v-for="game in games" :key="game.slug">
           <NuxtLink
-            v-if="!game.locked"
+            v-if="isLive(game.slug)"
             :to="game.href"
             class="flex items-center gap-3 px-3 py-4 transition-colors hover:bg-[hsl(var(--golden-50))] active:bg-[hsl(var(--golden-100))] sm:gap-4 sm:px-5"
             :class="done[game.slug] ? 'bg-emerald-50/60 hover:bg-emerald-50' : ''"
@@ -112,14 +112,11 @@
                 {{ game.description }}
               </p>
               <p class="mt-1.5 text-xs font-semibold text-zinc-500">
-                {{ game.releaseDay ? `Opens ${game.releaseDay}` : 'Releasing soon' }}
+                Opens {{ unlockLabel(game.slug) }}
               </p>
             </div>
-            <span
-              v-if="game.releaseAt"
-              class="shrink-0 rounded-full bg-zinc-300 px-3 py-2 text-center text-xs font-bold tabular-nums text-zinc-700 sm:px-4 sm:text-sm"
-            >
-              {{ countdownLabel(game.releaseAt) }}
+            <span class="shrink-0 rounded-full bg-zinc-300 px-3 py-2 text-center text-xs font-bold tabular-nums text-zinc-700 sm:px-4 sm:text-sm">
+              {{ countdownLabel(game.slug) }}
             </span>
           </div>
         </li>
@@ -143,8 +140,13 @@ import {
 import NectarIcon from '~/components/NectarIcon.vue'
 
 import type { PlayGameSlug } from '~/utils/playCompletion'
-import { formatReleaseDay, isGameComingSoon, isGameReleased } from '~/data/gameReleases'
-import { formatUnlockCountdown } from '~/utils/gameRelease'
+import {
+  formatUnlockCountdown,
+  formatUnlockLabel,
+  gameUnlockDateId,
+  isGameLive,
+  londonMidnightMs
+} from '~/utils/gameRelease'
 
 const auth = useAuth()
 const isLoggedIn = computed(() => !!auth.user.value)
@@ -171,14 +173,6 @@ const games: Array<{
 
 const { done, results } = usePlayCompletion(games.map(g => g.slug))
 
-/**
- * Release state, set in Admin -> Games -> Game releases.
- *
- * A released game is a normal row; one still waiting on its date is listed
- * greyed out, with the day it opens and a live countdown, so devotees can see
- * what is coming; a hidden game is not here at all.
- */
-const { gameReleases } = useSiteContent()
 const nowMs = ref(Date.now())
 
 onMounted(() => {
@@ -188,24 +182,19 @@ onMounted(() => {
   onUnmounted(() => window.clearInterval(tick))
 })
 
-const listedGames = computed(() => games.flatMap((game) => {
-  const release = gameReleases.value.find(entry => entry.slug === game.slug)
-  if (!release || isGameReleased(release, nowMs.value)) {
-    return [{ ...game, locked: false, releaseAt: null as string | null, releaseDay: '' }]
-  }
-  if (!isGameComingSoon(release, nowMs.value)) return []
-  return [{ ...game, locked: true, releaseAt: release.releaseAt, releaseDay: formatReleaseDay(release.releaseAt) }]
-}))
+function isLive(slug: PlayGameSlug) {
+  return isGameLive(slug)
+}
 
-const gamesSubtitle = computed(() => {
-  const next = listedGames.value.find(game => game.locked && game.releaseDay)
-  return next
-    ? `${listedGames.value.filter(game => !game.locked).length} games live now. ${next.title} opens ${next.releaseDay}.`
-    : 'Choose a game — a new puzzle in each one, every day.'
-})
+function unlockLabel(slug: PlayGameSlug) {
+  const dateId = gameUnlockDateId(slug)
+  return dateId ? formatUnlockLabel(dateId) : ''
+}
 
-function countdownLabel(releaseAt: string) {
-  return formatUnlockCountdown(new Date(releaseAt).getTime() - nowMs.value)
+function countdownLabel(slug: PlayGameSlug) {
+  const dateId = gameUnlockDateId(slug)
+  if (!dateId) return ''
+  return formatUnlockCountdown(londonMidnightMs(dateId) - nowMs.value)
 }
 
 function formatTime(ms: number) {

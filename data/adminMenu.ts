@@ -47,7 +47,6 @@ export const ADMIN_MENU_GROUPS: AdminMenuGroup[] = [
     id: 'games',
     label: 'Games',
     items: [
-      { label: 'Game releases', to: '/admin/games/releases', subtitle: 'Which games are out, and when the rest unlock' },
       { label: 'Game Word Bank', to: '/admin/games/word-bank', subtitle: 'Swaminarayan, Gujarati & basic Hindu words', collection: 'gameWords' },
       { label: 'Wordle', to: '/admin/games/wordle', subtitle: 'Plan daily words for the week or month', collection: 'wordleWords' },
       { label: 'Crossword', to: '/admin/games/crossword', subtitle: 'Quick timed crossword', collection: 'miniCrosswordPuzzles' },

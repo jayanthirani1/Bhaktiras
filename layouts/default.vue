@@ -2,14 +2,12 @@
   <div class="flex min-h-screen flex-col bg-[hsl(var(--background))]">
     <Navigation />
     <main class="flex-1">
-      <!-- A section an admin has switched off, or a game not out yet, never
-           mounts its page: the gate stands in its place. -->
+      <!-- A page whose section an admin has switched off never mounts:
+           the gate stands in its place. -->
       <ContentGate
         v-if="gate"
         :title="gate.title"
         :message="gate.message"
-        :release-label="gate.releaseLabel"
-        :coming-soon="gate.comingSoon"
         :back-to="gate.backTo"
         :back-label="gate.backLabel"
       />

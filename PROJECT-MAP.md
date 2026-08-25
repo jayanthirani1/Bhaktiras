@@ -50,7 +50,7 @@ Requires the **Blaze** plan (Functions + Storage).
 
 **Admin** — `/admin` plus `auth`, `timeline`, `events`, `niyam-challenges`, `yajman`,
 `notifications`, `legal`, `bugs`, `content/{index,homepage,community,navigation,seva,sections}`,
-`games/{wordle,crossword,mini-crossword,connections,one-percent,word-bank,releases}`
+`games/{wordle,crossword,mini-crossword,connections,one-percent,word-bank}`
 
 ## Sections
 
@@ -143,25 +143,17 @@ mobile-primary), community prompts, timeline, events, niyam challenges, yajman, 
 pages, push notifications, bug triage, and a per-game puzzle editor with a shared word
 bank.
 
-Two of those editors decide what the site shows at all, and both write to the same
-`siteContent/main` document as the rest of the CMS:
+**Content → Sections** (`/admin/content/sections`) switches a whole part of the app off,
+writing to the same `siteContent/main` document as the rest of the CMS. A hidden section
+drops out of the navigation and the homepage tiles, and its pages render a "not
+available" screen instead of mounting. The sections themselves are code
+(`data/siteSections.ts`) — Firestore stores only the switches, so a stored document can
+never resurrect a page this build does not have.
 
-- **Content → Sections** (`/admin/content/sections`) switches a whole part of the app
-  off. A hidden section drops out of the navigation and the homepage tiles, and its
-  pages render a "not available" screen instead of mounting. The sections themselves
-  are code (`data/siteSections.ts`) — Firestore stores only the switches, so a stored
-  document can never resurrect a page this build does not have.
-- **Games → Game releases** (`/admin/games/releases`) stages the games. Each is `live`,
-  `scheduled` with a date, or `hidden`. A scheduled game is listed on `/play` greyed out
-  with the day it opens and a live countdown, and unlocks itself on the minute, with no
-  deploy and nothing to do on the day. `data/gameReleases.ts` holds the catalogue and
-  seeds its defaults from the shipped launch plan in `utils/gameRelease.ts` — Wordle and
-  Crossword live, the rest one a month from `GAME_UNLOCK_START` at London midnight — so
-  the editor opens on the plan already in force and nothing moves until an admin edits it.
-
-Both gates are enforced in one place — `useContentGate` in `layouts/default.vue` — and
-the switches are cached in `localStorage`, so a repeat visitor never sees a hidden
-section flash up while Firestore answers.
+The gate is enforced in one place — `useContentGate` in `layouts/default.vue` — and the
+switches are cached in `localStorage`, so a repeat visitor never sees a hidden section
+flash up while Firestore answers. Game release scheduling is separate and lives in
+`utils/gameRelease.ts`; see **Games** above.
 
 Every admin page is listed once, in `data/adminMenu.ts`. The sidebar and the `/admin`
 dashboard cards are both generated from it, so a page cannot be reachable from one and

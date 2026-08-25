@@ -42,9 +42,7 @@
     </div>
 
     <p class="text-sm text-[hsl(var(--muted-foreground))]">
-      Hiding Games also hides every game, the streak leaderboard and achievements. To stagger
-      individual games instead, use
-      <NuxtLink to="/admin/games/releases" class="font-semibold text-[hsl(var(--golden-900))] underline">Game releases</NuxtLink>.
+      Hiding Games also hides every game, the streak leaderboard and achievements.
     </p>
 
     <button type="button" class="admin-btn" :disabled="saving" @click="saveSections">
