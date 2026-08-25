@@ -116,7 +116,8 @@ Utsav sponsorship opportunities with amounts and contact links, admin-managed.
 
 ### Games
 Four daily games — **Wordle, Mini Crossword, 1% Club, Connections** —
-with persistent timers that survive leaving the page, daily leaderboards, cross-device
+with active-play timers that pause when you leave the game and resume when you return,
+daily leaderboards, cross-device
 completion tracking (`playCompletions`), daily visit streaks, an achievements system, and
 all-time "crowns" for record holders. Achievements and crowns are awarded server-side by
 Cloud Functions. Puzzle content is admin-editable per game, with static fallbacks.
