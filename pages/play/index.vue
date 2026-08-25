@@ -3,7 +3,7 @@
     <div class="max-w-3xl mx-auto">
       <PageHeader
         title="Games"
-        subtitle="Choose a game — Wordle, Crossword, 1% Club, Surya Chandra, Ras Rani, and more."
+        :subtitle="gamesSubtitle"
       />
 
       <section
@@ -45,43 +45,29 @@
         to start a daily Games streak.
       </p>
 
-      <ul class="mt-10 divide-y divide-[hsl(var(--border))] overflow-hidden rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] shadow-[0_18px_40px_-32px_rgba(59,32,97,0.55)]">
+      <ul class="mt-10 divide-y divide-[hsl(var(--golden-200))] overflow-hidden rounded-2xl border border-[hsl(var(--golden-200))] bg-[hsl(var(--card))] shadow-[0_18px_40px_-32px_rgba(59,32,97,0.55)]">
         <li v-for="game in listedGames" :key="game.slug">
-          <!-- A game still waiting on its release date is listed, but is not a link. -->
-          <component
-            :is="game.locked ? 'div' : NuxtLink"
-            :to="game.locked ? undefined : game.href"
-            class="flex items-center gap-3 px-3 py-4 transition-colors sm:gap-4 sm:px-5"
-            :class="game.locked
-              ? 'cursor-default bg-[hsl(var(--muted))]/25'
-              : done[game.slug]
-                ? 'bg-emerald-50/60 hover:bg-emerald-50 active:bg-[hsl(var(--muted))]'
-                : 'hover:bg-[hsl(var(--muted))]/60 active:bg-[hsl(var(--muted))]'"
+          <NuxtLink
+            v-if="!game.locked"
+            :to="game.href"
+            class="flex items-center gap-3 px-3 py-4 transition-colors hover:bg-[hsl(var(--golden-50))] active:bg-[hsl(var(--golden-100))] sm:gap-4 sm:px-5"
+            :class="done[game.slug] ? 'bg-emerald-50/60 hover:bg-emerald-50' : ''"
           >
             <div
-              class="grid h-14 w-14 shrink-0 place-items-center rounded-2xl shadow-sm sm:h-16 sm:w-16"
-              :class="game.locked ? 'bg-[hsl(var(--muted))] text-[hsl(var(--muted-foreground))]' : game.tile"
+              class="grid h-14 w-14 shrink-0 place-items-center rounded-2xl shadow-sm ring-1 ring-[hsl(var(--golden-200))] sm:h-16 sm:w-16"
+              :class="game.tile"
             >
-              <component :is="game.locked ? IconLock : game.icon" class="h-7 w-7 sm:h-8 sm:w-8" stroke-width="1.9" />
+              <component :is="game.icon" class="h-7 w-7 sm:h-8 sm:w-8" stroke-width="1.9" />
             </div>
 
             <div class="min-w-0 flex-1">
               <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
-                <h3
-                  class="font-display text-base font-bold sm:text-lg"
-                  :class="game.locked ? 'text-[hsl(var(--muted-foreground))]' : 'text-[hsl(var(--foreground))]'"
-                >
+                <h3 class="font-display text-base font-bold text-[hsl(var(--primary))] sm:text-lg">
                   <RasRaniTitle v-if="game.slug === 'ras-rani'" honey />
                   <template v-else>{{ game.title }}</template>
                 </h3>
                 <span
-                  v-if="game.locked"
-                  class="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-800"
-                >
-                  Coming soon
-                </span>
-                <span
-                  v-else-if="done[game.slug]"
+                  v-if="done[game.slug]"
                   class="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-700"
                 >
                   <IconCheck class="h-3 w-3" stroke-width="3" />
@@ -89,10 +75,10 @@
                 </span>
               </div>
               <p class="mt-0.5 line-clamp-2 text-sm leading-snug text-[hsl(var(--muted-foreground))]">
-                {{ game.locked ? lockedLine(game.releaseLabel) : game.description }}
+                {{ game.description }}
               </p>
               <p
-                v-if="!game.locked && done[game.slug]"
+                v-if="done[game.slug]"
                 class="mt-1.5 text-xs font-semibold text-emerald-700"
               >
                 {{ resultLine(game.slug) }}
@@ -101,13 +87,41 @@
 
             <span
               class="shrink-0 rounded-full px-4 py-2 text-sm font-bold shadow-sm sm:px-5"
-              :class="game.locked
-                ? 'bg-[hsl(var(--muted))] text-[hsl(var(--muted-foreground))] shadow-none'
-                : done[game.slug] ? 'bg-emerald-700 text-white' : game.button"
+              :class="done[game.slug] ? 'bg-emerald-700 text-white' : game.button"
             >
-              {{ game.locked ? 'Locked' : done[game.slug] ? 'Results' : 'Play' }}
+              {{ done[game.slug] ? 'Results' : 'Play' }}
             </span>
-          </component>
+          </NuxtLink>
+
+          <div
+            v-else
+            class="flex cursor-default items-center gap-3 bg-zinc-100/80 px-3 py-4 grayscale sm:gap-4 sm:px-5"
+            aria-disabled="true"
+          >
+            <div
+              class="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-zinc-200 text-zinc-500 shadow-sm sm:h-16 sm:w-16"
+            >
+              <component :is="game.icon" class="h-7 w-7 sm:h-8 sm:w-8" stroke-width="1.9" />
+            </div>
+            <div class="min-w-0 flex-1">
+              <h3 class="font-display text-base font-bold text-zinc-600 sm:text-lg">
+                <RasRaniTitle v-if="game.slug === 'ras-rani'" honey />
+                <template v-else>{{ game.title }}</template>
+              </h3>
+              <p class="mt-0.5 line-clamp-2 text-sm leading-snug text-zinc-500">
+                {{ game.description }}
+              </p>
+              <p class="mt-1.5 text-xs font-semibold text-zinc-500">
+                {{ game.releaseDay ? `Opens ${game.releaseDay}` : 'Releasing soon' }}
+              </p>
+            </div>
+            <span
+              v-if="game.releaseAt"
+              class="shrink-0 rounded-full bg-zinc-300 px-3 py-2 text-center text-xs font-bold tabular-nums text-zinc-700 sm:px-4 sm:text-sm"
+            >
+              {{ countdownLabel(game.releaseAt) }}
+            </span>
+          </div>
         </li>
       </ul>
     </div>
@@ -116,23 +130,21 @@
 
 <script setup lang="ts">
 import type { Component } from 'vue'
-import { NuxtLink } from '#components'
 import {
   IconGrid3x3,
   IconTypography,
-  IconHexagon,
   IconChartBar,
   IconArrowRight,
   IconCheck,
   IconCirclesRelation,
   IconBrackets,
-  IconLock,
   IconSun
 } from '@tabler/icons-vue'
 import NectarIcon from '~/components/NectarIcon.vue'
 
 import type { PlayGameSlug } from '~/utils/playCompletion'
-import { formatReleaseAt, isGameComingSoon, isGameReleased } from '~/data/gameReleases'
+import { formatReleaseDay, isGameComingSoon, isGameReleased } from '~/data/gameReleases'
+import { formatUnlockCountdown } from '~/utils/gameRelease'
 
 const auth = useAuth()
 const isLoggedIn = computed(() => !!auth.user.value)
@@ -157,27 +169,44 @@ const games: Array<{
   { slug: 'ras-rani', title: 'Ras Rani 🍯', description: 'One nectar drop per row, column and colour. Tap once for a grey nectar mark, twice for a drop.', icon: NectarIcon, href: '/play/ras-rani', tile: 'bg-amber-100 text-amber-700', button: 'bg-amber-700 text-white' },
 ]
 
+const { done, results } = usePlayCompletion(games.map(g => g.slug))
+
 /**
  * Release state, set in Admin -> Games -> Game releases.
  *
- * A live game is a normal row; a scheduled one that is not out yet is listed
- * locked, with the date it opens, so devotees can see what is coming; a hidden
- * one is not here at all.
+ * A released game is a normal row; one still waiting on its date is listed
+ * greyed out, with the day it opens and a live countdown, so devotees can see
+ * what is coming; a hidden game is not here at all.
  */
-const { gameReleases, now } = useSiteContent()
+const { gameReleases } = useSiteContent()
+const nowMs = ref(Date.now())
+
+onMounted(() => {
+  const tick = window.setInterval(() => {
+    nowMs.value = Date.now()
+  }, 15_000)
+  onUnmounted(() => window.clearInterval(tick))
+})
 
 const listedGames = computed(() => games.flatMap((game) => {
   const release = gameReleases.value.find(entry => entry.slug === game.slug)
-  if (!release || isGameReleased(release, now.value)) return [{ ...game, locked: false, releaseLabel: '' }]
-  if (!isGameComingSoon(release, now.value)) return []
-  return [{ ...game, locked: true, releaseLabel: formatReleaseAt(release.releaseAt) }]
+  if (!release || isGameReleased(release, nowMs.value)) {
+    return [{ ...game, locked: false, releaseAt: null as string | null, releaseDay: '' }]
+  }
+  if (!isGameComingSoon(release, nowMs.value)) return []
+  return [{ ...game, locked: true, releaseAt: release.releaseAt, releaseDay: formatReleaseDay(release.releaseAt) }]
 }))
 
-function lockedLine(releaseLabel: string) {
-  return releaseLabel ? `Opens ${releaseLabel}.` : 'Releasing soon.'
-}
+const gamesSubtitle = computed(() => {
+  const next = listedGames.value.find(game => game.locked && game.releaseDay)
+  return next
+    ? `${listedGames.value.filter(game => !game.locked).length} games live now. ${next.title} opens ${next.releaseDay}.`
+    : 'Choose a game — a new puzzle in each one, every day.'
+})
 
-const { done, results } = usePlayCompletion(games.map(g => g.slug))
+function countdownLabel(releaseAt: string) {
+  return formatUnlockCountdown(new Date(releaseAt).getTime() - nowMs.value)
+}
 
 function formatTime(ms: number) {
   const total = Math.round(ms / 1000)

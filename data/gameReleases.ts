@@ -1,6 +1,7 @@
 import type { GameReleaseContent, GameReleaseStatus, GameReleaseStored } from '~/types'
 import type { PlayGameSlug } from '~/utils/playCompletion'
 import { pathMatchesPrefix } from '~/data/siteSections'
+import { gameUnlockDateId, londonMidnightMs } from '~/utils/gameRelease'
 
 export interface GameCatalogEntry {
   slug: PlayGameSlug
@@ -31,17 +32,24 @@ export const GAME_RELEASE_STATUSES: Array<{ value: GameReleaseStatus, label: str
 ]
 
 /**
- * Every game live by default, so a deploy never quietly removes a game that
- * devotees are already playing. Staggering the launch is an admin decision,
- * made once in Admin → Games → Game releases.
+ * The launch plan the app ships with: Wordle and Crossword live, the rest
+ * unlocking one a month from `GAME_UNLOCK_START`, each at London midnight.
+ *
+ * It is the same schedule `utils/gameRelease.ts` describes, read from there so
+ * the two can never drift. Storing it as ordinary release entries means the
+ * admin page opens pre-filled with the plan already in force: nothing changes
+ * on the site until someone edits it, and editing it needs no deploy.
  */
-export const DEFAULT_GAME_RELEASES: GameReleaseContent[] = GAME_CATALOG.map((game, index) => ({
-  ...game,
-  paths: [...game.paths],
-  status: 'live',
-  releaseAt: null,
-  order: index + 1
-}))
+export const DEFAULT_GAME_RELEASES: GameReleaseContent[] = GAME_CATALOG.map((game, index) => {
+  const unlockDateId = gameUnlockDateId(game.slug)
+  return {
+    ...game,
+    paths: [...game.paths],
+    status: unlockDateId ? 'scheduled' : 'live',
+    releaseAt: unlockDateId ? new Date(londonMidnightMs(unlockDateId)).toISOString() : null,
+    order: index + 1
+  }
+})
 
 function parseStatus(raw: unknown): GameReleaseStatus {
   const value = String(raw ?? '')
@@ -68,16 +76,14 @@ export function gameReleasesFromSource(raw: unknown): GameReleaseContent[] {
       })
     }
   }
-  return GAME_CATALOG.map((game, index) => {
-    const entry = stored.get(game.slug)
-    return {
-      ...game,
-      paths: [...game.paths],
-      status: entry?.status ?? 'live',
-      releaseAt: entry?.releaseAt ?? null,
-      order: index + 1
-    }
-  })
+  // A game with nothing stored against it keeps its place in the shipped plan,
+  // so a game added after the document was written arrives on schedule rather
+  // than appearing the moment it deploys.
+  return DEFAULT_GAME_RELEASES.map(game => ({
+    ...game,
+    paths: [...game.paths],
+    ...(stored.get(game.slug) ?? {})
+  }))
 }
 
 export function gameReleasesWritePayload(entries: GameReleaseContent[]): GameReleaseStored[] {
@@ -120,12 +126,21 @@ export function releasedGameSlugs(entries: GameReleaseContent[], now: number = D
   return entries.filter(entry => isGameReleased(entry, now)).map(entry => entry.slug)
 }
 
-/** "Sat 5 Sep, 9:00 am" — the whole promise, short enough for a badge. */
+/** "30 Sept" in London terms — what a locked row shows beside its countdown. */
+export function formatReleaseDay(iso: string | null): string {
+  if (!iso) return ''
+  const date = new Date(iso)
+  if (!Number.isFinite(date.getTime())) return ''
+  return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'Europe/London' })
+}
+
+/** "Sat 5 Sep, 9:00" — the whole promise, for the admin page and the locked game page. */
 export function formatReleaseAt(iso: string | null): string {
   if (!iso) return ''
   const date = new Date(iso)
   if (!Number.isFinite(date.getTime())) return ''
-  const day = date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
-  const time = date.toLocaleTimeString('en-GB', { hour: 'numeric', minute: '2-digit' })
+  const day = date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'Europe/London' })
+  // h23 so a midnight release reads "00:00" and is dropped, rather than "0:00".
+  const time = date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: 'Europe/London' })
   return time === '00:00' ? day : `${day}, ${time}`
 }

@@ -40,7 +40,7 @@ export const CHARITRA_BRACKET_CITY_PUZZLES: BracketCityPuzzle[] = [
     title: 'The Wishing Tree',
     credit: 'Ghanshyam Bal Charitra, Part 10',
     published: true,
-    source: 'Ghanshyam and his friends emptied the pot of [fruit his father had cut up to offer as [food given to God before it is shared out::prasad]::jackfruit], and [the sister-in-law who found the pot empty and told his mother::Suvasini] gave them away — but out in the garden the tree that had borne nothing all year hung heavy, and every branch his elder brother [who wished aloud for mangoes, pomegranates and grapes::Ramprasad] named bore a different fruit.'
+    source: 'Ghanshyam and his friends emptied the pot of [fruit his father had cut up to offer as [food given to God before it is shared out::prasad]::jackfruit], and [the sister-in-law who found the pot empty and told his mother::Suvasini] gave them away — but out in the garden the tree that had borne nothing all year hung heavy, and every branch his elder brother [who wished aloud for mangoes, pomegranates and grapes::Ramprasad|Rampratap|Ramapratap] named bore a different fruit.'
   },
   {
     id: 'charitra-10-mother-earth',
@@ -54,7 +54,7 @@ export const CHARITRA_BRACKET_CITY_PUZZLES: BracketCityPuzzle[] = [
     title: 'The Passing of Bhaktimata',
     credit: 'Ghanshyam Bal Charitra, Part 10',
     published: true,
-    source: 'Old and ailing in Ayodhya, [Ghanshyam’s mother::Bhaktimata] asked to be carried home to Chhapaiya, and made him promise to obey [the elder brother she left in charge of him::Rampratap] — then, as he recited [the scripture he spoke at her bedside::Bhagwad Gita|Gita] and showed her [the divine abode where she saw herself seated beside him::Akshardham], her soul left her body, and her sons lit the logs at [the lake where she was cremated::Narayan].'
+    source: 'Old and ailing in Ayodhya, [Ghanshyam’s mother::Bhaktimata] asked to be carried home to Chhapaiya, and made him promise to obey [the elder brother she left in charge of him::Ramprasad|Rampratap|Ramapratap] — then, as he recited [the scripture he spoke at her bedside::Bhagwad Gita|Gita] and showed her [the divine abode where she saw herself seated beside him::Akshardham], her soul left her body, and her sons lit the logs at [the lake where she was cremated::Narayan].'
   },
   {
     id: 'charitra-10-dharmadev',

@@ -21,7 +21,8 @@ satsang life.
 
 Two blocks in `scripts/generate_word_bank.py`:
 
-- `CURATED` — Bhaktiras-curated vocabulary (`source: "Bhaktiras curated"`).
+- `CURATED` — Bhaktiras-curated vocabulary (`source: "Bhaktiras curated"`), aligned with
+  [swaminarayan.faith scriptures](https://www.swaminarayan.faith/learning-resources/scriptures).
 - `VACHNAMRUT` — terms and proper nouns taken from the English Vachnamrut
   published by Shree Swaminarayan Mandir Bhuj
   (<https://www.swaminarayan.faith/scriptures/en/vachnamrut>) and its chapter

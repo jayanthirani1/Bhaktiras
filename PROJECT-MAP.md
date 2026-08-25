@@ -152,10 +152,12 @@ Two of those editors decide what the site shows at all, and both write to the sa
   are code (`data/siteSections.ts`) — Firestore stores only the switches, so a stored
   document can never resurrect a page this build does not have.
 - **Games → Game releases** (`/admin/games/releases`) stages the games. Each is `live`,
-  `scheduled` with a date, or `hidden`. A scheduled game is listed on `/play` as a
-  locked "Coming soon" row carrying its date and unlocks itself on the minute, with no
-  deploy and nothing to do on the day. `data/gameReleases.ts` holds the catalogue;
-  everything ships `live` by default, so staggering a launch is always a deliberate act.
+  `scheduled` with a date, or `hidden`. A scheduled game is listed on `/play` greyed out
+  with the day it opens and a live countdown, and unlocks itself on the minute, with no
+  deploy and nothing to do on the day. `data/gameReleases.ts` holds the catalogue and
+  seeds its defaults from the shipped launch plan in `utils/gameRelease.ts` — Wordle and
+  Crossword live, the rest one a month from `GAME_UNLOCK_START` at London midnight — so
+  the editor opens on the plan already in force and nothing moves until an admin edits it.
 
 Both gates are enforced in one place — `useContentGate` in `layouts/default.vue` — and
 the switches are cached in `localStorage`, so a repeat visitor never sees a hidden
