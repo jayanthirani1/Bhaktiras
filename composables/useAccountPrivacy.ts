@@ -41,7 +41,7 @@ export function useAccountPrivacy() {
     // `legacyNiyams` is the retired daily tracker. Nothing writes it any more;
     // it is read here so an export and a deletion still cover what it left
     // behind. Drop it once the collection has been cleared.
-    const [profile, admin, scores, legacyWordleScores, streak, legacyNiyams, completions, pushSubscriptions] = await Promise.all([
+    const [profile, admin, scores, legacyWordleScores, streak, legacyNiyams, completions, pushSubscriptions, mandirVisits] = await Promise.all([
       getDoc(doc(db, 'users', uid)),
       getDoc(doc(db, 'admins', uid)),
       getDocs(query(collection(db, 'gameScores'), where('userId', '==', uid))),
@@ -49,10 +49,11 @@ export function useAccountPrivacy() {
       getDoc(doc(db, 'playStreaks', uid)),
       getDoc(doc(db, 'niyamProgress', uid)),
       getDocs(collection(db, 'playCompletions', uid, 'days')),
-      getDocs(query(collection(db, 'pushSubscriptions'), where('userId', '==', uid)))
+      getDocs(query(collection(db, 'pushSubscriptions'), where('userId', '==', uid))),
+      getDocs(collection(db, 'mandirVisits', uid, 'visits'))
     ])
 
-    return { profile, admin, scores, legacyWordleScores, streak, legacyNiyams, completions, pushSubscriptions }
+    return { profile, admin, scores, legacyWordleScores, streak, legacyNiyams, completions, pushSubscriptions, mandirVisits }
   }
 
   async function exportMyData() {
@@ -82,6 +83,7 @@ export function useAccountPrivacy() {
           ...item.data(),
           token: '[redacted from export]'
         })),
+        mandirVisits: data.mandirVisits.docs.map(item => ({ id: item.id, ...item.data() })),
         notes: [
           'Anonymous community wall posts carry no link to your account and are not listed here. A signed post is linked and is included above.',
           'Community niyam challenge totals are combined figures and do not contain your user ID.'
@@ -142,7 +144,8 @@ export function useAccountPrivacy() {
         ...data.scores.docs.map(item => item.ref),
         ...data.legacyWordleScores.docs.map(item => item.ref),
         ...data.completions.docs.map(item => item.ref),
-        ...data.pushSubscriptions.docs.map(item => item.ref)
+        ...data.pushSubscriptions.docs.map(item => item.ref),
+        ...data.mandirVisits.docs.map(item => item.ref)
       ]
       if (data.profile.exists()) refs.push(data.profile.ref)
       if (data.streak.exists()) refs.push(data.streak.ref)

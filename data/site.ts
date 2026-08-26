@@ -21,3 +21,13 @@ export const SITE = {
   scripturesUrl: 'https://www.swaminarayan.faith/learning-resources/scriptures',
   scripturesHomeUrl: 'https://www.swaminarayan.faith/'
 }
+
+/** Mandir location for geofenced check-in. */
+export const MANDIR_LOCATION = {
+  name: 'Shree Kutch Satsang Swaminarayan Temple - Woolwich',
+  address: 'St. Margarets Grove, London, SE18 7RL',
+  lat: 51.482415,
+  lng: 0.074412,
+  /** Radius in metres within which a visit is recognised. */
+  radiusMeters: 100
+}

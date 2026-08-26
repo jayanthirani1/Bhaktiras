@@ -443,3 +443,22 @@ export interface AchievementCrownRecord {
   longestStreak?: number
   updatedAt?: { seconds?: number; nanoseconds?: number } | Date
 }
+
+/** A recorded mandir visit for the personal "Visit Mandir" niyam. */
+export interface MandirVisit {
+  id: string
+  userId: string
+  /** UK calendar day the visit was recorded, YYYY-MM-DD. */
+  dateKey: string
+  /** How the visit was recorded: auto (geolocation) or manual (button tap). */
+  source: 'auto' | 'manual'
+  createdAt?: FirestoreTimestampLike
+}
+
+/** User's location tracking preferences, stored in localStorage. */
+export interface LocationPreferences {
+  /** Whether the user has opted in to always-allow location for auto check-in. */
+  alwaysAllowLocation: boolean
+  /** Last date the permission prompt was shown (to avoid nagging). */
+  lastPromptDate?: string
+}
