@@ -24,6 +24,7 @@
             id="bug-title"
             v-model="form.title"
             required
+            minlength="3"
             maxlength="100"
             class="w-full rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--background))] px-4 py-3"
             placeholder="Short summary of the problem"
@@ -94,10 +95,32 @@ onMounted(() => {
   form.pageUrl = from || document.referrer || ''
 })
 
+/**
+ * The security rules only accept an absolute http(s) `pageUrl`, but the footer
+ * link fills this field from `route.fullPath` — a relative path like
+ * `/play/wordle`. Resolve relative paths against this origin so those reports
+ * are storable, and drop anything that is not http(s) rather than send a value
+ * the rules will reject. The rules stay strict: this is the convenience layer,
+ * not the security boundary.
+ */
+function toAbsoluteHttpUrl(value: string): string | null {
+  const raw = value.trim()
+  if (!raw) return null
+  try {
+    const url = new URL(raw, window.location.origin)
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return null
+    return url.href.slice(0, 300)
+  } catch {
+    return null
+  }
+}
+
 async function submit() {
   const title = form.title.trim()
   const description = form.description.trim()
-  if (!title || description.length < 10) return
+  // Mirrors the rule thresholds, so a short entry is caught here with a usable
+  // message instead of coming back as a permission error.
+  if (title.length < 3 || description.length < 10) return
 
   const db = useNuxtApp().$firebaseDb as Firestore | null
   if (!db) {
@@ -111,7 +134,7 @@ async function submit() {
     await addDoc(collection(db, 'bugReports'), {
       title,
       description,
-      pageUrl: form.pageUrl.trim().slice(0, 300) || null,
+      pageUrl: toAbsoluteHttpUrl(form.pageUrl),
       contactEmail: form.contactEmail.trim().toLowerCase().slice(0, 150) || null,
       status: 'open',
       createdAt: serverTimestamp()
