@@ -31,6 +31,7 @@ export const ADMIN_MENU_GROUPS: AdminMenuGroup[] = [
     label: 'Site content',
     items: [
       { label: 'Content settings', to: '/admin/content', subtitle: 'Jump to homepage, nav, community and seva editors' },
+      { label: 'Sections', to: '/admin/content/sections', subtitle: 'Show or hide whole parts of the app' },
       { label: 'Homepage tiles', to: '/admin/content/homepage', subtitle: 'Cards shown on the homepage grid' },
       { label: 'Navigation', to: '/admin/content/navigation', subtitle: 'Desktop nav, mobile tabs and More drawer' },
       { label: 'Community questions', to: '/admin/content/community', subtitle: 'Prompt chips above the wall form' },

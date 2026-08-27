@@ -49,7 +49,7 @@ Requires the **Blaze** plan (Functions + Storage).
 `one-percent`, `achievements`, `streaks`
 
 **Admin** — `/admin` plus `auth`, `timeline`, `events`, `niyam-challenges`, `yajman`,
-`notifications`, `legal`, `bugs`, `content/{index,homepage,community,navigation}`,
+`notifications`, `legal`, `bugs`, `content/{index,homepage,community,navigation,seva,sections}`,
 `games/{wordle,crossword,mini-crossword,connections,one-percent,word-bank}`
 
 ## Sections
@@ -142,6 +142,18 @@ The admin area is a full CMS: homepage tiles, navigation (including which items 
 mobile-primary), community prompts, timeline, events, niyam challenges, yajman, legal
 pages, push notifications, bug triage, and a per-game puzzle editor with a shared word
 bank.
+
+**Content → Sections** (`/admin/content/sections`) switches a whole part of the app off,
+writing to the same `siteContent/main` document as the rest of the CMS. A hidden section
+drops out of the navigation and the homepage tiles, and its pages render a "not
+available" screen instead of mounting. The sections themselves are code
+(`data/siteSections.ts`) — Firestore stores only the switches, so a stored document can
+never resurrect a page this build does not have.
+
+The gate is enforced in one place — `useContentGate` in `layouts/default.vue` — and the
+switches are cached in `localStorage`, so a repeat visitor never sees a hidden section
+flash up while Firestore answers. Game release scheduling is separate and lives in
+`utils/gameRelease.ts`; see **Games** above.
 
 Every admin page is listed once, in `data/adminMenu.ts`. The sidebar and the `/admin`
 dashboard cards are both generated from it, so a page cannot be reachable from one and

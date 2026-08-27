@@ -269,6 +269,23 @@ export interface SevaTeamContent {
   order?: number
 }
 
+/** An app section an admin can switch off, resolved against the code catalogue. */
+export interface SiteSectionContent {
+  id: string
+  label: string
+  description: string
+  /** Route prefixes this section owns — anything underneath one is gated with it. */
+  paths: string[]
+  visible: boolean
+  order: number
+}
+
+/** What is actually stored per section: the switch, nothing else. */
+export interface SiteSectionVisibility {
+  id: string
+  visible: boolean
+}
+
 export interface SiteContentSettings {
   id: string
   homeTiles: HomeTileContent[]
@@ -281,6 +298,8 @@ export interface SiteContentSettings {
   sevaHeading: string
   sevaIntro: string
   sevaTeams: SevaTeamContent[]
+  /** Which app sections are switched on. */
+  sections: SiteSectionContent[]
   updatedAt?: { seconds?: number; nanoseconds?: number } | Date
 }
 
