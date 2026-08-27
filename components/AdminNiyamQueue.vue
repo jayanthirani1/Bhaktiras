@@ -50,7 +50,7 @@
       >
         <div class="flex flex-wrap items-center gap-2">
           <span class="inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-[hsl(var(--primary))]">
-            <AdminNiyamIcon :name="challengeFor(entry)?.icon" class="h-3.5 w-3.5" />
+            <NiyamIcon :name="iconFor(challengeFor(entry))" class="h-3.5 w-3.5" />
             {{ challengeFor(entry)?.title || entry.challengeId }}
           </span>
           <span class="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-amber-800">
@@ -112,12 +112,13 @@
 
 <script setup lang="ts">
 import type { NiyamSubmission } from '~/types'
-import type { AdminNiyamChallenge, NiyamReviewContext } from '~/composables/useAdminNiyamChallenges'
-import { formatCount, unitLabel } from '~/utils/niyamChallenge'
+import type { NiyamChallenge } from '~/types'
+import type { NiyamReviewContext } from '~/composables/useAdminNiyamChallenges'
+import { formatCount, iconFor, unitLabel } from '~/utils/niyamChallenge'
 
 const props = defineProps<{
   rows: NiyamSubmission[]
-  challenges: AdminNiyamChallenge[]
+  challenges: NiyamChallenge[]
   contextFor: (entry: NiyamSubmission) => NiyamReviewContext
   reviewingId: string | null
   historyLoading: string | null
@@ -147,7 +148,7 @@ const groups = computed(() =>
   }))
 )
 
-function challengeFor(entry: NiyamSubmission): AdminNiyamChallenge | undefined {
+function challengeFor(entry: NiyamSubmission): NiyamChallenge | undefined {
   return byId.value.get(entry.challengeId)
 }
 

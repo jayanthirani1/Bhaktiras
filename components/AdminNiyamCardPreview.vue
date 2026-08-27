@@ -5,7 +5,7 @@
          tab stops between the fields an admin is actually filling in. -->
     <div class="rounded-2xl border border-[hsl(var(--golden-200))] bg-white">
       <div class="flex items-start gap-2 border-b border-[hsl(var(--border))] bg-[hsl(var(--golden-50))] px-4 py-3">
-        <AdminNiyamIcon :name="challenge.icon" class="mt-0.5 h-5 w-5 shrink-0 text-[hsl(var(--golden-900))]" />
+        <NiyamIcon :name="iconFor(challenge)" class="mt-0.5 h-5 w-5 shrink-0 text-[hsl(var(--golden-900))]" />
         <div class="min-w-0">
           <p class="font-display text-lg text-[hsl(var(--primary))]">{{ challenge.title || 'Untitled niyam' }}</p>
           <p v-if="challenge.detail" class="mt-0.5 text-sm text-[hsl(var(--muted-foreground))]">
@@ -78,12 +78,12 @@
 </template>
 
 <script setup lang="ts">
-import type { AdminNiyamChallenge } from '~/composables/useAdminNiyamChallenges'
+import type { NiyamChallenge } from '~/types'
 import { formatBigCount } from '~/composables/useAdminNiyamChallenges'
-import { formatCount, percentOf, unitLabel } from '~/utils/niyamChallenge'
+import { formatCount, iconFor, percentOf, unitLabel } from '~/utils/niyamChallenge'
 
 const props = withDefaults(defineProps<{
-  challenge: AdminNiyamChallenge
+  challenge: NiyamChallenge
   approvedTotal?: number
 }>(), { approvedTotal: 0 })
 

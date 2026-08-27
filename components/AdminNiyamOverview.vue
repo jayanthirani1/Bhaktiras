@@ -40,8 +40,8 @@
             class="flex min-h-[44px] items-start gap-2 text-left"
             @click="$emit('select', row.challenge.id)"
           >
-            <AdminNiyamIcon
-              :name="row.challenge.icon"
+            <NiyamIcon
+              :name="iconFor(row.challenge)"
               class="mt-0.5 h-5 w-5 shrink-0 text-[hsl(var(--golden-900))]"
             />
             <span class="font-semibold text-[hsl(var(--primary))] hover:underline">
@@ -122,7 +122,7 @@
 <script setup lang="ts">
 import type { NiyamOverviewRow, NiyamOverviewStatus } from '~/composables/useAdminNiyamChallenges'
 import { formatBigCount } from '~/composables/useAdminNiyamChallenges'
-import { formatCount } from '~/utils/niyamChallenge'
+import { formatCount, iconFor } from '~/utils/niyamChallenge'
 
 const props = defineProps<{
   rows: NiyamOverviewRow[]

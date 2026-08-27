@@ -17,10 +17,11 @@ import type {
   NiyamChallenge,
   NiyamChallengeStats,
   NiyamContributor,
+  NiyamIconKey,
   NiyamSubmission,
   NiyamSubmissionStatus
 } from '~/types'
-import { SITE } from '~/data/site'
+import { DEFAULT_NIYAM_CHALLENGES } from '~/data/niyamChallenges'
 import {
   buildSubmissionId,
   challengeWindow,
@@ -28,6 +29,8 @@ import {
   formatCount,
   DEFAULT_MAX_PER_SUBMISSION,
   isChallengeOpen,
+  isPublished,
+  mergeChallenges,
   percentOf,
   safeMemberName,
   sortChallenges,
@@ -51,159 +54,8 @@ const HISTORY_PAGE = 100
  */
 const CONTEXT_AUTO_LIMIT = 30
 
-/* ────────────────────────────────────────────────────────────────────────────
- * The five running niyams.
- *
- * These belong in `data/niyamChallenges.ts` with `mergeChallenges` / `isPublished`
- * in `utils/niyamChallenge.ts`; neither exists in this branch yet and both are
- * owned by another engineer, so the admin portal carries its own copy for now.
- * When theirs lands, delete this block and import from there — the shapes and
- * the slug ids are deliberately the same.
- * ──────────────────────────────────────────────────────────────────────────── */
-
-export type NiyamInputMode = 'count' | 'checkin'
-export type NiyamIconName = 'mala' | 'stotra' | 'mandir' | 'path' | 'dandvat' | 'niyam'
-
-export const NIYAM_ICON_NAMES: NiyamIconName[] = ['mala', 'stotra', 'mandir', 'path', 'dandvat', 'niyam']
-
-/** The fields `NiyamChallenge` is gaining. Intersected, never re-declared, so
- *  this stays compatible whether or not `types/index.ts` has them yet. */
-export interface NiyamChallengeExtras {
-  /** `count` asks for a number; `checkin` is a single "I was there" tap. */
-  inputMode?: NiyamInputMode
-  /** One-tap amounts on the devotee card. */
-  presets?: number[]
-  /** What counts as one, in the devotee's words. */
-  hint?: string
-  icon?: NiyamIconName
-  /** Whether this is a code default or a real Firestore document. */
-  origin?: 'default' | 'stored'
-}
-
-export type AdminNiyamChallenge = NiyamChallenge & NiyamChallengeExtras
-
-/** `dailyTotals` is written by a Cloud Function — read only, never written here. */
-export type AdminNiyamChallengeStats = NiyamChallengeStats & {
-  dailyTotals?: Record<string, number>
-}
-
-/** Every default runs to the end of the utsav unless an admin narrows it. */
-const DEFAULT_END = new Date(SITE.patotsavEnd)
-
-export const NIYAM_CHALLENGE_DEFAULTS: AdminNiyamChallenge[] = [
-  {
-    id: 'janmangal-stotra',
-    title: 'Janmangal Stotra',
-    detail: 'Every path of the Janmangal Namavali the sangat recites, counting towards one million together.',
-    unit: 'paths',
-    unitSingular: 'path',
-    target: 1_000_000,
-    startAt: null,
-    endAt: DEFAULT_END,
-    active: true,
-    order: 1,
-    autoApproveMax: 108,
-    maxPerSubmission: 5000,
-    inputMode: 'count',
-    presets: [1, 5, 11, 51],
-    hint: 'One complete recital of the Janmangal Stotra counts as one path.',
-    icon: 'stotra'
-  },
-  {
-    id: 'mala',
-    title: 'Mala',
-    detail: 'Malas turned at home, at sabha, on the way to work — all of them ladder up to one million.',
-    unit: 'malas',
-    unitSingular: 'mala',
-    target: 1_000_000,
-    startAt: null,
-    endAt: DEFAULT_END,
-    active: true,
-    order: 2,
-    autoApproveMax: 108,
-    maxPerSubmission: 5000,
-    inputMode: 'count',
-    presets: [1, 5, 11, 51],
-    hint: 'One full mala of 108 counts as one mala.',
-    icon: 'mala'
-  },
-  {
-    id: 'sabha-attendance',
-    title: 'Aarti, Chesta & Katha',
-    detail: 'Ten thousand sabhas attended — every aarti, chesta and katha you come to.',
-    unit: 'sabhas',
-    unitSingular: 'sabha',
-    target: 10_000,
-    startAt: null,
-    endAt: DEFAULT_END,
-    active: true,
-    order: 3,
-    autoApproveMax: 3,
-    maxPerSubmission: 30,
-    inputMode: 'checkin',
-    presets: [1],
-    hint: 'One sabha you attended — aarti, chesta or katha — counts as one.',
-    icon: 'mandir'
-  },
-  {
-    id: 'shanti-path',
-    title: 'Shanti Path',
-    detail: 'Ten thousand complete Shanti Paths for the peace of the sangat and the world.',
-    unit: 'paths',
-    unitSingular: 'path',
-    target: 10_000,
-    startAt: null,
-    endAt: DEFAULT_END,
-    active: true,
-    order: 4,
-    autoApproveMax: 21,
-    maxPerSubmission: 500,
-    inputMode: 'count',
-    presets: [1, 5, 11],
-    hint: 'One complete Shanti Path counts as one.',
-    icon: 'path'
-  },
-  {
-    id: 'dandvat-panchang-pranaam',
-    title: 'Dandvat & Panchang Pranaam',
-    detail: 'One million pranaams offered at the charnarvind of Ghanshyam Maharaj.',
-    unit: 'pranaams',
-    unitSingular: 'pranaam',
-    target: 1_000_000,
-    startAt: null,
-    endAt: DEFAULT_END,
-    active: true,
-    order: 5,
-    autoApproveMax: 108,
-    maxPerSubmission: 5000,
-    inputMode: 'count',
-    presets: [11, 51, 108],
-    hint: 'Each dandvat or panchang pranaam counts as one.',
-    icon: 'dandvat'
-  }
-]
-
-/** A default only renders; it cannot take entries until its document exists. */
-export function isPublished(challenge: AdminNiyamChallenge): boolean {
-  return challenge.origin !== 'default'
-}
-
-/** Defaults merged with what Firestore holds — a stored document always wins. */
-export function mergeChallenges(stored: AdminNiyamChallenge[]): AdminNiyamChallenge[] {
-  const byId = new Map<string, AdminNiyamChallenge>()
-  for (const challenge of NIYAM_CHALLENGE_DEFAULTS) {
-    byId.set(challenge.id, { ...challenge, origin: 'default' })
-  }
-  for (const challenge of stored) {
-    const id = String(challenge.id || '').trim()
-    if (!id) continue
-    const base = byId.get(id)
-    byId.set(id, { ...(base || {}), ...challenge, id, origin: 'stored' })
-  }
-  return sortChallenges([...byId.values()]) as AdminNiyamChallenge[]
-}
-
-/* ──────────────────────────────────────────────────────────────────────────── */
+/** The glyphs an admin can pick from, in the order the select offers them. */
+export const NIYAM_ICON_NAMES: NiyamIconKey[] = ['mala', 'stotra', 'mandir', 'path', 'dandvat', 'niyam']
 
 /**
  * 1,284 · 12.4K · 1.2M. A million malas written out in full stops being a
@@ -221,7 +73,7 @@ export function formatBigCount(value: number): string {
 export type NiyamOverviewStatus = 'unpublished' | 'open' | 'scheduled' | 'paused' | 'closed'
 
 export interface NiyamOverviewRow {
-  challenge: AdminNiyamChallenge
+  challenge: NiyamChallenge
   published: boolean
   status: NiyamOverviewStatus
   statusLabel: string
@@ -268,7 +120,7 @@ function mapContributor(id: string, data: Record<string, unknown>): NiyamContrib
   }
 }
 
-function emptyStats(challengeId: string): AdminNiyamChallengeStats {
+function emptyStats(challengeId: string): NiyamChallengeStats {
   return {
     challengeId,
     approvedTotal: 0,
@@ -305,17 +157,17 @@ function mapDailyTotals(value: unknown): Record<string, number> | undefined {
 export function useAdminNiyamChallenges() {
   const { user, userName } = useAuth()
 
-  const challenges = useAdminCollection<AdminNiyamChallenge>('niyamChallenges')
+  const challenges = useAdminCollection<NiyamChallenge>('niyamChallenges')
 
   const submissions = ref<NiyamSubmission[]>([])
   const contributors = ref<NiyamContributor[]>([])
-  const stats = ref<AdminNiyamChallengeStats | null>(null)
+  const stats = ref<NiyamChallengeStats | null>(null)
   const loadingSubmissions = ref(false)
   const reviewingId = ref<string | null>(null)
   const submissionError = ref('')
   const activeChallengeId = ref<string | null>(null)
 
-  const statsById = ref<Record<string, AdminNiyamChallengeStats>>({})
+  const statsById = ref<Record<string, NiyamChallengeStats>>({})
   const queue = ref<NiyamSubmission[]>([])
   const queueCapped = ref<Record<string, boolean>>({})
   const overviewLoading = ref(false)
@@ -335,15 +187,15 @@ export function useAdminNiyamChallenges() {
   const publishedChallenges = computed(() => allChallenges.value.filter(isPublished))
   const unpublishedDefaults = computed(() => allChallenges.value.filter(c => !isPublished(c)))
 
-  function statsFor(challengeId: string): AdminNiyamChallengeStats {
+  function statsFor(challengeId: string): NiyamChallengeStats {
     return statsById.value[challengeId] || emptyStats(challengeId)
   }
 
-  function challengeById(challengeId: string): AdminNiyamChallenge | null {
+  function challengeById(challengeId: string): NiyamChallenge | null {
     return allChallenges.value.find(c => c.id === challengeId) || null
   }
 
-  function overviewStatus(challenge: AdminNiyamChallenge): NiyamOverviewStatus {
+  function overviewStatus(challenge: NiyamChallenge): NiyamOverviewStatus {
     if (!isPublished(challenge)) return 'unpublished'
     if (!challenge.active) return 'paused'
     const range = challengeWindow(challenge)
@@ -458,7 +310,7 @@ export function useAdminNiyamChallenges() {
           try {
             const snap = await getDoc(doc(db, 'niyamChallengeStats', c.id))
             const data = snap.data() as Record<string, unknown> | undefined
-            const mapped = mapStats(c.id, data) as AdminNiyamChallengeStats
+            const mapped = mapStats(c.id, data) as NiyamChallengeStats
             const dailyTotals = mapDailyTotals(data?.dailyTotals)
             return [c.id, dailyTotals ? { ...mapped, dailyTotals } : mapped] as const
           } catch {
@@ -530,7 +382,7 @@ export function useAdminNiyamChallenges() {
         .map(d => mapContributor(d.id, d.data()))
         .sort((a, b) => b.approvedTotal - a.approvedTotal || a.userName.localeCompare(b.userName))
       const data = statsSnap.data() as Record<string, unknown> | undefined
-      const mapped = mapStats(challengeId, data) as AdminNiyamChallengeStats
+      const mapped = mapStats(challengeId, data) as NiyamChallengeStats
       const dailyTotals = mapDailyTotals(data?.dailyTotals)
       stats.value = dailyTotals ? { ...mapped, dailyTotals } : mapped
     } catch (e) {
@@ -545,7 +397,7 @@ export function useAdminNiyamChallenges() {
       const db = requireDb()
       const snap = await getDoc(doc(db, 'niyamChallengeStats', challengeId))
       const data = snap.data() as Record<string, unknown> | undefined
-      const mapped = mapStats(challengeId, data) as AdminNiyamChallengeStats
+      const mapped = mapStats(challengeId, data) as NiyamChallengeStats
       const dailyTotals = mapDailyTotals(data?.dailyTotals)
       statsById.value = {
         ...statsById.value,
@@ -640,7 +492,7 @@ export function useAdminNiyamChallenges() {
   }
 
   /** Everything a `niyamChallenges` document holds, defaults included. */
-  function challengeWritePayload(challenge: AdminNiyamChallenge) {
+  function challengeWritePayload(challenge: NiyamChallenge) {
     return {
       title: challenge.title,
       detail: challenge.detail,
@@ -666,7 +518,7 @@ export function useAdminNiyamChallenges() {
    * show the niyam twice.
    */
   async function publishDefault(challengeId: string) {
-    const challenge = NIYAM_CHALLENGE_DEFAULTS.find(c => c.id === challengeId)
+    const challenge = DEFAULT_NIYAM_CHALLENGES.find(c => c.id === challengeId)
     if (!challenge) throw new Error('No default with that id')
     await challenges.setItem(challenge.id, challengeWritePayload(challenge))
   }
@@ -690,7 +542,7 @@ export function useAdminNiyamChallenges() {
    * queue — which is why the caller is handed the status back.
    */
   async function logMandirEntry(
-    challenge: AdminNiyamChallenge,
+    challenge: NiyamChallenge,
     input: { amount: number; name: string; note: string; dayKey?: string }
   ): Promise<{ status: NiyamSubmissionStatus; amount: number; id: string }> {
     mandirError.value = ''

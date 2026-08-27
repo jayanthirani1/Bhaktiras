@@ -225,9 +225,11 @@ export function inputModeFor(challenge: NiyamChallenge): NiyamInputMode {
   return challenge.inputMode === 'checkin' ? 'checkin' : 'count'
 }
 
-export function iconFor(challenge: NiyamChallenge): NiyamIconKey {
+/** Falls back to the diya for a missing or unrecognised icon. */
+export function iconFor(challenge: NiyamChallenge | null | undefined): NiyamIconKey {
   const keys: NiyamIconKey[] = ['mala', 'stotra', 'mandir', 'path', 'dandvat', 'niyam']
-  return keys.includes(challenge.icon as NiyamIconKey) ? (challenge.icon as NiyamIconKey) : 'niyam'
+  const icon = challenge?.icon as NiyamIconKey | undefined
+  return icon && keys.includes(icon) ? icon : 'niyam'
 }
 
 /**

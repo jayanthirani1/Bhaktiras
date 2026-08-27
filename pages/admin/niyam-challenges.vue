@@ -45,7 +45,7 @@
           :key="challenge.id"
           class="flex flex-wrap items-center gap-3 py-3"
         >
-          <AdminNiyamIcon :name="challenge.icon" class="h-5 w-5 shrink-0 text-[hsl(var(--golden-900))]" />
+          <NiyamIcon :name="iconFor(challenge)" class="h-5 w-5 shrink-0 text-[hsl(var(--golden-900))]" />
           <div class="min-w-[12rem] flex-1">
             <p class="font-semibold text-[hsl(var(--foreground))]">{{ challenge.title }}</p>
             <p class="text-xs text-[hsl(var(--muted-foreground))]">
@@ -111,7 +111,7 @@
         >
           <div class="flex items-start justify-between gap-2">
             <p class="flex items-center gap-2 font-semibold text-[hsl(var(--primary))]">
-              <AdminNiyamIcon :name="c.icon" class="h-4 w-4 shrink-0 text-[hsl(var(--golden-900))]" />
+              <NiyamIcon :name="iconFor(c)" class="h-4 w-4 shrink-0 text-[hsl(var(--golden-900))]" />
               {{ c.title }}
             </p>
             <span
@@ -248,7 +248,7 @@
                 <div>
                   <label :for="`${uid}-icon`" class="admin-label">Icon</label>
                   <div class="flex items-center gap-2">
-                    <AdminNiyamIcon :name="form.icon" class="h-5 w-5 shrink-0 text-[hsl(var(--golden-900))]" />
+                    <NiyamIcon :name="form.icon" class="h-5 w-5 shrink-0 text-[hsl(var(--golden-900))]" />
                     <select :id="`${uid}-icon`" v-model="form.icon" class="admin-input">
                       <option v-for="name in iconOptions" :key="name" :value="name">{{ name }}</option>
                     </select>
@@ -587,8 +587,9 @@
 <script setup lang="ts">
 import { Timestamp } from 'firebase/firestore'
 import type { NiyamSubmission, NiyamSubmissionStatus } from '~/types'
-import type { AdminNiyamChallenge, NiyamIconName, NiyamInputMode } from '~/composables/useAdminNiyamChallenges'
-import { formatBigCount, isPublished, NIYAM_ICON_NAMES } from '~/composables/useAdminNiyamChallenges'
+import type { NiyamChallenge, NiyamIconKey, NiyamInputMode } from '~/types'
+import { formatBigCount, NIYAM_ICON_NAMES } from '~/composables/useAdminNiyamChallenges'
+import { iconFor, isPublished } from '~/utils/niyamChallenge'
 import {
   DEFAULT_AUTO_APPROVE_MAX,
   DEFAULT_MAX_PER_SUBMISSION,
@@ -679,7 +680,7 @@ const form = reactive({
   inputMode: 'count' as NiyamInputMode,
   presets: '',
   hint: '',
-  icon: 'niyam' as NiyamIconName
+  icon: 'niyam' as NiyamIconKey
 })
 
 const mandir = reactive({
@@ -726,7 +727,7 @@ const presetNumbers = computed(() =>
 )
 
 /** The form as a challenge, for the preview and for the open/closed checks. */
-const previewChallenge = computed<AdminNiyamChallenge>(() => ({
+const previewChallenge = computed<NiyamChallenge>(() => ({
   id: editingId.value || 'preview',
   title: form.title,
   detail: form.detail,
@@ -779,12 +780,12 @@ const rejectBody = computed(() => {
 onMounted(loadOverview)
 
 /** `YYYY-MM-DD` for a date input, in UK time so it matches what admins see. */
-function dateInputValue(value: AdminNiyamChallenge['startAt']): string {
+function dateInputValue(value: NiyamChallenge['startAt']): string {
   const ms = toMillis(value)
   return ms ? ukDateId(new Date(ms)) : ''
 }
 
-function dateLabel(value: AdminNiyamChallenge['endAt']): string {
+function dateLabel(value: NiyamChallenge['endAt']): string {
   const ms = toMillis(value)
   return ms ? formatUkDateLabel(ukDateId(new Date(ms))) : 'no end date'
 }
@@ -800,13 +801,13 @@ function toTimestamp(dateString: string, edge: 'start' | 'end'): Timestamp | nul
   return Timestamp.fromDate(date)
 }
 
-function listChipLabel(challenge: AdminNiyamChallenge) {
+function listChipLabel(challenge: NiyamChallenge) {
   if (!isPublished(challenge)) return 'Not published'
   if (isChallengeOpen(challenge)) return 'Open'
   return challenge.active ? 'Scheduled' : 'Paused'
 }
 
-function listChipClass(challenge: AdminNiyamChallenge) {
+function listChipClass(challenge: NiyamChallenge) {
   if (!isPublished(challenge)) return 'bg-amber-50 text-amber-800'
   if (isChallengeOpen(challenge)) return 'bg-[hsl(var(--golden-50))] text-[hsl(var(--primary))]'
   return 'bg-[hsl(var(--muted))] text-[hsl(var(--muted-foreground))]'
@@ -848,7 +849,7 @@ function openNew() {
   resetMandirForm()
 }
 
-async function openEdit(challenge: AdminNiyamChallenge) {
+async function openEdit(challenge: NiyamChallenge) {
   const id = String(challenge.id || '').trim()
   if (!id) {
     error.value = 'This niyam is missing a document id.'
