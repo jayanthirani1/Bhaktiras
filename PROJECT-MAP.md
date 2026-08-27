@@ -81,11 +81,51 @@ WhatsApp community invite (live link in `data/site.ts`) plus 12 volunteer teams 
 responsibilities from `data/sevaTeams.ts`. No hour logging.
 
 ### Our Niyams
-`/niyams` is the challenges: admin-set community goals with a target and a deadline
-("10,000 malas in three months"). A devotee submits how many they have done;
-approved entries from every devotee ladder up into one shared total on a
-progress bar. Admin side is `/admin/niyam-challenges`: create the challenge,
-then review the queue and see everyone's entries and per-person totals.
+`/niyams` runs **five niyams at once** until the Patotsav — Janmangal Stotra and
+Mala at 10 Lakh each, Dandvat & Panchang Pranaam at 10 Lakh, and Aarti/Chesta/Katha
+attendance and Shanti Path at 10,000. A devotee logs what they have done; approved
+entries from everyone ladder up into one shared total per niyam.
+
+The five live in `data/niyamChallenges.ts` as **defaults**, the same static-plus-Firestore
+shape as `data/timeline.ts`: they render so the page is never blank, and an admin
+publishing one writes a real `niyamChallenges/{id}` document that then wins on every
+field. Ids are stable slugs so a published document collapses onto its default rather
+than doubling it. `mergeChallenges()` does the merge and tags each with an `origin`;
+**until the document exists the niyam cannot take entries**, because the rules require
+it, so `isPublished()` gates the UI rather than letting a submit fail.
+
+Beyond target and deadline, a niyam carries how it is logged (`inputMode`: a count, or a
+one-tap check-in for attendance), its quick-add `presets`, a `hint` saying what counts as
+one, and an `icon`.
+
+The page is a **sangat board**: five compact rows, each with the counted total, the next
+milestone and a `+ Log` pill; input happens in a bottom sheet (`NiyamLogSheet`), never
+inline — five inline forms was the thing that did not scale. Tapping a row body opens the
+detail sheet instead. The private "Visit Mandir" streak card still sits below the board,
+and both it and the board read one shared `useMandirVisit` instance.
+
+Rendering targets this large took some care, and the helpers carry the reasoning:
+`formatTarget` says "10 Lakh" rather than seven digits, `percentLabel` keeps a decimal
+below 10%, `barPercent` clamps to a visible sliver, and `milestoneFor` gives the next
+marker. Twelve thousand malas against ten lakh otherwise renders as a flat "0%" and an
+empty bar, which reads as nothing happening.
+`syncNiyamChallengeTotals` also keeps a fortnight of per-day totals in
+`niyamChallengeStats.dailyTotals`, attributed to the day the sadhana was done rather than
+the day it was approved, which is what the "the sangat added N today" strip reads from.
+**That line stays hidden until the functions deploy carrying it has run.**
+
+Admin side is `/admin/niyam-challenges`: a cross-niyam overview, a **combined approval
+queue across all five** (an admin should not have to open each niyam to find what is
+waiting), one-tap publishing of the defaults, the editor with a live preview of the
+devotee card, and per-challenge entries, filters and per-person totals.
+
+It also has "log on behalf of the mandir", for counts gathered on paper at sabha. The
+rules only let a signed-in user create a submission under their **own** `userId`, so this
+writes under the admin's uid with an attributed `userName` ("Mandir sabha") and a note.
+It needs no rules change and gets no special treatment — the same ceiling and the same
+auto-approve rule apply. The wrinkle to know: those counts and that admin's personal
+counts share one contributor rollup, so their per-person total mixes the two. Separating
+them properly would need a rules change allowing a synthetic account.
 
 The integrity model is worth knowing before changing anything here:
 
@@ -184,7 +224,7 @@ and the game banks (`connectionsPuzzles`, `miniCrossword`,
 `miniCrosswordPuzzles` `connectionsPuzzles` `onePercentQuestions`
 
 **Niyams** — `niyamChallenges` (+ `contributors` subcollection)
-`niyamChallengeStats` `niyamSubmissions`. `niyamProgress`, `niyams` and
+`niyamChallengeStats` `niyamSubmissions` `mandirVisits`. `niyamProgress`, `niyams` and
 `niyamStats` are retired leftovers of the personal tracker, not written any more.
 
 **Push** — `pushSubscriptions` `pushMessages`
@@ -204,7 +244,8 @@ Recorded so the divergence is deliberate rather than forgotten:
 |---|---|
 | Wall strictly anonymous, no author stored | Optional name, defaults to Anonymous |
 | Wall pre-moderated (approve before showing) | Publishes immediately, admins remove after |
-| Niyams a daily check-in with streaks | Shared challenges with a moderated total; the personal checklist was built, then dropped |
+| Niyams a daily check-in with streaks | Five shared niyams with moderated totals, plus a private mandir-visit streak; the 12-item personal checklist was built, then dropped |
+| One niyam challenge at a time | Five running together, seeded from code defaults an admin publishes |
 | Darshan and Legacy dropped | Both retained |
 | Journey spans 39 years | 2017–2027, ten years |
 | Moderation-only admin UI | Full CMS |
