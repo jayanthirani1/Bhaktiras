@@ -39,7 +39,7 @@ export const ADMIN_MENU_GROUPS: AdminMenuGroup[] = [
       { label: 'Timeline', to: '/admin/timeline', subtitle: 'Journey moments on Our Journey', collection: 'timeline' },
       { label: 'Events', to: '/admin/events', subtitle: 'Title, date, description and poster', collection: 'events' },
       { label: 'Yajman opportunities', to: '/admin/yajman', subtitle: 'Utsav Yajman opportunities shown on the site', collection: 'yajmanOpportunities' },
-      { label: 'Niyam challenges', to: '/admin/niyam-challenges', subtitle: 'Set a shared goal and approve the entries devotees submit', collection: 'niyamChallenges' },
+      { label: 'Niyams', to: '/admin/niyam-challenges', subtitle: 'The five shared goals, and the entries waiting for your approval', collection: 'niyamChallenges' },
       { label: 'Privacy & Policy', to: '/admin/legal', subtitle: 'Footer legal pages', collection: 'sitePages' }
     ]
   },
