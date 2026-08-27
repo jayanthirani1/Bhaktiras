@@ -131,17 +131,6 @@ function emptyStats(challengeId: string): NiyamChallengeStats {
   }
 }
 
-/** `dailyTotals` is a plain map of UK day → approved amount when the function has written one. */
-function mapDailyTotals(value: unknown): Record<string, number> | undefined {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined
-  const out: Record<string, number> = {}
-  for (const [day, amount] of Object.entries(value as Record<string, unknown>)) {
-    const n = Number(amount)
-    if (Number.isFinite(n)) out[day] = Math.max(0, Math.round(n))
-  }
-  return Object.keys(out).length ? out : undefined
-}
-
 /**
  * Admin view of the niyams: what needs attention across all of them, the
  * combined review queue, and the per-challenge entries, rollups and controls.
@@ -310,9 +299,7 @@ export function useAdminNiyamChallenges() {
           try {
             const snap = await getDoc(doc(db, 'niyamChallengeStats', c.id))
             const data = snap.data() as Record<string, unknown> | undefined
-            const mapped = mapStats(c.id, data) as NiyamChallengeStats
-            const dailyTotals = mapDailyTotals(data?.dailyTotals)
-            return [c.id, dailyTotals ? { ...mapped, dailyTotals } : mapped] as const
+            return [c.id, mapStats(c.id, data)] as const
           } catch {
             return [c.id, emptyStats(c.id)] as const
           }
@@ -381,10 +368,7 @@ export function useAdminNiyamChallenges() {
       contributors.value = contributorSnap.docs
         .map(d => mapContributor(d.id, d.data()))
         .sort((a, b) => b.approvedTotal - a.approvedTotal || a.userName.localeCompare(b.userName))
-      const data = statsSnap.data() as Record<string, unknown> | undefined
-      const mapped = mapStats(challengeId, data) as NiyamChallengeStats
-      const dailyTotals = mapDailyTotals(data?.dailyTotals)
-      stats.value = dailyTotals ? { ...mapped, dailyTotals } : mapped
+      stats.value = mapStats(challengeId, statsSnap.data() as Record<string, unknown> | undefined)
     } catch (e) {
       submissionError.value = (e as Error).message
     } finally {
@@ -396,12 +380,9 @@ export function useAdminNiyamChallenges() {
     try {
       const db = requireDb()
       const snap = await getDoc(doc(db, 'niyamChallengeStats', challengeId))
-      const data = snap.data() as Record<string, unknown> | undefined
-      const mapped = mapStats(challengeId, data) as NiyamChallengeStats
-      const dailyTotals = mapDailyTotals(data?.dailyTotals)
       statsById.value = {
         ...statsById.value,
-        [challengeId]: dailyTotals ? { ...mapped, dailyTotals } : mapped
+        [challengeId]: mapStats(challengeId, snap.data() as Record<string, unknown> | undefined)
       }
     } catch {
       /* the overview keeps the figures it already has */
