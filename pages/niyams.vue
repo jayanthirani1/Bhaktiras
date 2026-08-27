@@ -6,23 +6,37 @@
         subtitle="Goals we keep together. Add what you have done and watch the sangat's total climb."
       />
 
-      <p v-if="challengeError" class="mb-4 text-sm text-red-600">{{ challengeError }}</p>
-      <p v-if="challengesLoading" class="text-sm text-[hsl(var(--muted-foreground))]">
-        Loading challenges…
-      </p>
+      <!-- Personal Niyams Section -->
+      <section class="mb-8">
+        <h2 class="mb-4 text-center text-[11px] font-semibold uppercase tracking-[0.2em] text-[hsl(var(--golden-900))]">
+          Personal niyams
+        </h2>
+        <MandirVisitCard />
+      </section>
 
-      <div
-        v-else-if="!openChallenges.length && !closedChallenges.length"
-        class="card-surface p-6 text-center"
-      >
-        <p class="font-semibold text-[hsl(var(--primary))]">No challenge running right now</p>
-        <p class="mt-2 text-sm text-[hsl(var(--muted-foreground))]">
-          When the mandir sets one — like ten thousand malas before Patotsav — it will appear here
-          and everyone's count will add up towards it.
+      <!-- Community Challenges Section -->
+      <section>
+        <h2 class="mb-4 text-center text-[11px] font-semibold uppercase tracking-[0.2em] text-[hsl(var(--golden-900))]">
+          Community challenges
+        </h2>
+
+        <p v-if="challengeError" class="mb-4 text-sm text-red-600">{{ challengeError }}</p>
+        <p v-if="challengesLoading" class="text-sm text-[hsl(var(--muted-foreground))]">
+          Loading challenges…
         </p>
-      </div>
 
-      <div v-else class="space-y-6">
+        <div
+          v-else-if="!openChallenges.length && !closedChallenges.length"
+          class="card-surface p-6 text-center"
+        >
+          <p class="font-semibold text-[hsl(var(--primary))]">No challenge running right now</p>
+          <p class="mt-2 text-sm text-[hsl(var(--muted-foreground))]">
+            When the mandir sets one — like ten thousand malas before Patotsav — it will appear here
+            and everyone's count will add up towards it.
+          </p>
+        </div>
+
+        <div v-else class="space-y-6">
         <NiyamChallengeCard
           v-for="challenge in openChallenges"
           :key="challenge.id"
@@ -58,6 +72,7 @@
           </div>
         </div>
       </div>
+      </section>
     </div>
   </div>
 </template>
