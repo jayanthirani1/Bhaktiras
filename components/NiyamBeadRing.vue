@@ -7,7 +7,7 @@
         :cx="bead.x"
         :cy="bead.y"
         :r="bead.filled ? 3.8 : 3"
-        :class="bead.filled ? 'fill-[hsl(var(--golden-500))]' : 'fill-[hsl(var(--muted))]'"
+        :class="bead.filled ? 'fill-[hsl(var(--golden-500))]' : 'fill-[hsl(var(--golden-200))]'"
       />
       <!-- Sumeru, the bead you never cross. -->
       <circle cx="100" cy="14" r="6.5" class="fill-[hsl(var(--primary))]" />

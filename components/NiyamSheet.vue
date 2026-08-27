@@ -8,12 +8,11 @@
 
       <div
         ref="panel"
-        class="relative flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-3xl border border-[hsl(var(--golden-200))] bg-white shadow-[0_-16px_50px_-20px_rgba(56,32,97,0.4)] sm:max-h-[85vh] sm:max-w-md sm:rounded-3xl"
+        class="relative flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-3xl border border-[hsl(var(--golden-200))] bg-white shadow-[0_-16px_50px_-20px_rgba(56,32,97,0.4)] focus-visible:outline-none sm:max-h-[85vh] sm:max-w-md sm:rounded-3xl"
         role="dialog"
         aria-modal="true"
         :aria-labelledby="titleId"
         tabindex="-1"
-        @keydown="onKeydown"
       >
         <div class="relative shrink-0 border-b border-[hsl(var(--border))] bg-[hsl(var(--golden-50))] px-5 pb-4 pt-5">
           <span
@@ -82,8 +81,13 @@ function focusable(): HTMLElement[] {
     .filter(el => el.offsetParent !== null || el === panel.value)
 }
 
-/** Tab must not walk out of the sheet while the page behind it is inert to the eye. */
+/**
+ * Bound to the document, not the panel: a control that unmounts under the
+ * cursor — the Undo button when its 30 seconds run out — drops focus back to
+ * the body, and a panel-bound handler would stop answering Escape from there.
+ */
 function onKeydown(event: KeyboardEvent) {
+  if (!props.open) return
   if (event.key === 'Escape') {
     event.preventDefault()
     emit('close')
@@ -91,6 +95,8 @@ function onKeydown(event: KeyboardEvent) {
   }
   if (event.key !== 'Tab') return
   const items = focusable()
+  const active = document.activeElement as HTMLElement | null
+  const inside = !!panel.value && !!active && panel.value.contains(active)
   if (!items.length) {
     event.preventDefault()
     panel.value?.focus()
@@ -98,8 +104,10 @@ function onKeydown(event: KeyboardEvent) {
   }
   const first = items[0]
   const last = items[items.length - 1]
-  const active = document.activeElement as HTMLElement | null
-  if (event.shiftKey && (active === first || active === panel.value)) {
+  if (!inside) {
+    event.preventDefault()
+    ;(event.shiftKey ? last : first).focus()
+  } else if (event.shiftKey && (active === first || active === panel.value)) {
     event.preventDefault()
     last.focus()
   } else if (!event.shiftKey && active === last) {
@@ -107,6 +115,13 @@ function onKeydown(event: KeyboardEvent) {
     first.focus()
   }
 }
+
+/** Lets a sheet's contents pull focus back after a section of it is replaced. */
+function focusPanel() {
+  panel.value?.focus()
+}
+
+defineExpose({ focusPanel })
 
 /**
  * Our own lock rather than the navigation drawer's: that one sets
@@ -141,9 +156,11 @@ watch(() => props.open, async (isOpen) => {
   if (isOpen) {
     openerElement = (document.activeElement as HTMLElement | null) ?? null
     lockScroll()
+    document.addEventListener('keydown', onKeydown, true)
     await nextTick()
     panel.value?.focus()
   } else {
+    document.removeEventListener('keydown', onKeydown, true)
     unlockScroll()
     openerElement?.focus?.()
     openerElement = null
@@ -151,6 +168,8 @@ watch(() => props.open, async (isOpen) => {
 })
 
 onBeforeUnmount(() => {
-  if (props.open) unlockScroll()
+  if (!props.open) return
+  document.removeEventListener('keydown', onKeydown, true)
+  unlockScroll()
 })
 </script>

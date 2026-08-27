@@ -1,5 +1,6 @@
 <template>
   <NiyamSheet
+    ref="sheet"
     :open="open"
     :title="challenge?.title || ''"
     :subtitle="sheetSubtitle"
@@ -77,19 +78,9 @@
           You're at the mandir
         </p>
 
-        <button
-          type="button"
-          class="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-[hsl(var(--primary))] px-4 py-6 font-display text-lg font-semibold text-white transition-colors hover:bg-[hsl(var(--primary))]/90 disabled:opacity-50"
-          :disabled="submitting"
-          @click="commit(1)"
-        >
-          <IconMapPin class="h-5 w-5" aria-hidden="true" />
-          {{ submitting ? 'Adding…' : 'I was at the sabha' }}
-        </button>
-
         <p
           v-if="todayCount > 0"
-          class="mt-4 flex items-start gap-2 rounded-xl bg-[hsl(var(--muted))] px-3 py-2.5 text-left text-sm"
+          class="mt-5 flex items-start gap-2 rounded-xl bg-[hsl(var(--muted))] px-3 py-2.5 text-left text-sm"
         >
           <IconInfoCircle class="mt-0.5 h-4 w-4 shrink-0 text-[hsl(var(--golden-900))]" aria-hidden="true" />
           <span>
@@ -97,8 +88,8 @@
             {{ unitLabel(challenge, todayCount) }} today. Only add another if you attended a second sabha.
           </span>
         </p>
-        <p v-else class="mt-4 text-xs text-[hsl(var(--muted-foreground))]">
-          One tap adds one sabha. Please only add sabhas you attended in person.
+        <p v-else class="mt-5 text-sm text-[hsl(var(--muted-foreground))]">
+          One tap adds one sabha. Please only add sabhas you were at in person.
         </p>
       </div>
 
@@ -273,9 +264,16 @@
         {{ commitLabel }}
       </button>
 
-      <p v-else class="text-center text-xs text-[hsl(var(--muted-foreground))]">
-        Nothing is recorded until you tap the button above.
-      </p>
+      <button
+        v-else
+        type="button"
+        class="flex w-full items-center justify-center gap-2 rounded-xl bg-[hsl(var(--primary))] px-4 py-5 font-display text-lg font-semibold text-white transition-colors hover:bg-[hsl(var(--primary))]/90 disabled:opacity-50"
+        :disabled="submitting"
+        @click="commit(1)"
+      >
+        <IconMapPin class="h-5 w-5" aria-hidden="true" />
+        {{ submitting ? 'Adding…' : 'I was at the sabha' }}
+      </button>
       </div>
     </template>
   </NiyamSheet>
@@ -349,6 +347,13 @@ const totalBefore = ref(0)
 const undoSeconds = ref(0)
 const numberId = useId()
 const numberInput = ref<HTMLInputElement | null>(null)
+const sheet = useTemplateRef<{ focusPanel: () => void }>('sheet')
+
+/** The controls that had focus are gone once the sheet swaps state; take it back. */
+async function reclaimFocus() {
+  await nextTick()
+  sheet.value?.focusPanel()
+}
 
 /** A chip sets the value the first time and adds after that, so +11 twice reads 22. */
 let chipUsed = false
@@ -479,6 +484,7 @@ function commit(amount: number) {
       result.value = payload
       phase.value = 'done'
       startUndoTimer()
+      reclaimFocus()
     },
     fail: (message) => {
       localError.value = message
@@ -492,6 +498,7 @@ function undo() {
   stopUndoTimer()
   phase.value = 'undone'
   emit('withdraw', submission)
+  reclaimFocus()
 }
 
 watch(() => props.open, (isOpen) => {

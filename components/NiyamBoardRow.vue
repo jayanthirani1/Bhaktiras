@@ -21,10 +21,10 @@
       <div class="min-w-0 flex-1">
         <div class="flex items-start justify-between gap-3">
           <div class="min-w-0">
-            <h3 class="truncate font-display text-base font-semibold text-[hsl(var(--primary))]">
+            <h3 class="font-display text-base font-semibold leading-tight text-[hsl(var(--primary))]">
               {{ challenge.title }}
             </h3>
-            <p class="mt-0.5 truncate text-xs text-[hsl(var(--muted-foreground))]">{{ gloss }}</p>
+            <p class="mt-0.5 text-xs leading-snug text-[hsl(var(--muted-foreground))]">{{ gloss }}</p>
           </div>
 
           <div class="pointer-events-auto shrink-0">
