@@ -71,8 +71,15 @@ export function mapChallenge(id: string, data: Record<string, unknown>): NiyamCh
 
 export function mapStats(id: string, data: Record<string, unknown> | undefined): NiyamChallengeStats {
   if (!data) return emptyStats(id)
+  const daily = data.dailyTotals && typeof data.dailyTotals === 'object'
+    ? Object.fromEntries(
+        Object.entries(data.dailyTotals as Record<string, unknown>)
+          .map(([day, value]) => [day, Math.max(0, Number(value) || 0)])
+      )
+    : undefined
   return {
     challengeId: id,
+    dailyTotals: daily,
     approvedTotal: Math.max(0, Number(data.approvedTotal) || 0),
     pendingTotal: Math.max(0, Number(data.pendingTotal) || 0),
     approvedCount: Math.max(0, Number(data.approvedCount) || 0),

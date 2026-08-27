@@ -22,10 +22,10 @@ export type NiyamChallengeSeed = Omit<NiyamChallenge, 'origin' | 'createdAt' | '
 const NIYAM_END = new Date(SITE.patotsavEnd)
 
 /**
- * Bead-count amounts. 108 is a full mala, and 11 / 21 / 51 are the counts the
- * sangat already thinks in, so the chips match how someone would say it aloud.
+ * The counts the sangat already thinks in — a sankalp is taken as 11 or 21,
+ * never as 10 or 20 — with 1 first for whoever recites one a day.
  */
-const DEVOTIONAL_PRESETS = [1, 5, 11, 21, 51, 108]
+const DEVOTIONAL_PRESETS = [1, 5, 11, 21]
 
 export const DEFAULT_NIYAM_CHALLENGES: NiyamChallengeSeed[] = [
   {
@@ -41,7 +41,7 @@ export const DEFAULT_NIYAM_CHALLENGES: NiyamChallengeSeed[] = [
     active: true,
     order: 1,
     autoApproveMax: 108,
-    maxPerSubmission: 5000,
+    maxPerSubmission: 1000,
     inputMode: 'count',
     presets: DEVOTIONAL_PRESETS,
     hint: 'One complete recitation of the Janmangal Namavali is one stotra.',
@@ -58,10 +58,10 @@ export const DEFAULT_NIYAM_CHALLENGES: NiyamChallengeSeed[] = [
     endAt: NIYAM_END,
     active: true,
     order: 2,
-    autoApproveMax: 108,
-    maxPerSubmission: 5000,
+    autoApproveMax: 21,
+    maxPerSubmission: 108,
     inputMode: 'count',
-    presets: DEVOTIONAL_PRESETS,
+    presets: [1, 2, 5, 11],
     hint: 'One full round of 108 beads is one mala.',
     icon: 'mala'
   },
@@ -76,10 +76,10 @@ export const DEFAULT_NIYAM_CHALLENGES: NiyamChallengeSeed[] = [
     endAt: NIYAM_END,
     active: true,
     order: 3,
-    autoApproveMax: 3,
-    maxPerSubmission: 30,
+    autoApproveMax: 1,
+    maxPerSubmission: 3,
     inputMode: 'checkin',
-    presets: [1, 2, 3],
+    presets: [1],
     hint: 'One sabha you attended in person — Aarti, Chesta or Katha.',
     icon: 'mandir'
   },
@@ -94,10 +94,10 @@ export const DEFAULT_NIYAM_CHALLENGES: NiyamChallengeSeed[] = [
     endAt: NIYAM_END,
     active: true,
     order: 4,
-    autoApproveMax: 11,
-    maxPerSubmission: 500,
+    autoApproveMax: 5,
+    maxPerSubmission: 40,
     inputMode: 'count',
-    presets: [1, 2, 5, 11],
+    presets: [1, 2, 3, 5],
     hint: 'Only complete paths count — all five chapters.',
     icon: 'path'
   },
@@ -113,9 +113,9 @@ export const DEFAULT_NIYAM_CHALLENGES: NiyamChallengeSeed[] = [
     active: true,
     order: 5,
     autoApproveMax: 108,
-    maxPerSubmission: 5000,
+    maxPerSubmission: 1008,
     inputMode: 'count',
-    presets: DEVOTIONAL_PRESETS,
+    presets: [11, 21, 51, 108],
     hint: 'One dandvat or one panchang pranaam is one.',
     icon: 'dandvat'
   }

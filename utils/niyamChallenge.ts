@@ -7,6 +7,7 @@ import type {
   NiyamSubmissionStatus
 } from '~/types'
 import { DEFAULT_NIYAM_CHALLENGES } from '~/data/niyamChallenges'
+import { addUkDays, ukDateId } from '~/utils/gameDay'
 
 export const SUBMISSION_NOTE_MAX = 240
 export const SUBMISSION_NAME_MAX = 32
@@ -148,6 +149,61 @@ export function percentLabel(total: number, target: number): string {
 export function barPercent(total: number, target: number): number {
   if (!target || target <= 0 || total <= 0) return 0
   return Math.min(100, Math.max(0.75, (total / target) * 100))
+}
+
+export interface NiyamMilestone {
+  /** The next round number the sangat is heading for. */
+  value: number
+  remaining: number
+  /** Every marker on the bar, as a fraction of the target, for the tick marks. */
+  ticks: number[]
+  reached: boolean
+}
+
+/**
+ * Ten lakh is too far away to pull anybody along, so the bar is read against
+ * the *next* marker instead — a tenth of the target at a time. "12,520 to go"
+ * is a number a person can act on this week; "987,520 to go" is not.
+ */
+export function milestoneFor(total: number, target: number): NiyamMilestone {
+  const step = Math.max(1, Math.round(target / 10))
+  const ticks = Array.from({ length: 9 }, (_, i) => ((i + 1) * step) / target).filter(t => t < 1)
+  const next = Math.min(target, (Math.floor(total / step) + 1) * step)
+  return {
+    value: next,
+    remaining: Math.max(0, next - total),
+    ticks,
+    reached: total >= target
+  }
+}
+
+/** Approved amounts for the last `days` UK days, newest day first. */
+export function recentDailyTotals(
+  stats: { dailyTotals?: Record<string, number> } | null | undefined,
+  days: number,
+  today: string = ukDateId()
+): number[] {
+  const map = stats?.dailyTotals
+  if (!map) return []
+  const out: number[] = []
+  for (let i = 0; i < days; i++) {
+    out.push(Math.max(0, Number(map[addUkDays(today, -i)]) || 0))
+  }
+  return out
+}
+
+export function addedToday(
+  stats: { dailyTotals?: Record<string, number> } | null | undefined,
+  today: string = ukDateId()
+): number {
+  return recentDailyTotals(stats, 1, today)[0] || 0
+}
+
+export function addedThisWeek(
+  stats: { dailyTotals?: Record<string, number> } | null | undefined,
+  today: string = ukDateId()
+): number {
+  return recentDailyTotals(stats, 7, today).reduce((sum, n) => sum + n, 0)
 }
 
 const FALLBACK_PRESETS = [1, 5, 11, 21, 51, 108]

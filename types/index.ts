@@ -223,6 +223,13 @@ export interface NiyamChallengeStats {
   approvedCount: number
   pendingCount: number
   participants: number
+  /**
+   * Approved amount per UK day, `YYYY-MM-DD` → count, kept for the last two
+   * weeks by the trigger. It is what "the sangat added 1,240 today" is read
+   * from: against a ten lakh target the all-time total barely moves, and this
+   * is the number that visibly does. Absent until the trigger has written once.
+   */
+  dailyTotals?: Record<string, number>
   updatedAt?: FirestoreTimestampLike
 }
 
