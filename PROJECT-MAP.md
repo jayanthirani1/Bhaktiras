@@ -152,8 +152,7 @@ never resurrect a page this build does not have.
 
 The gate is enforced in one place — `useContentGate` in `layouts/default.vue` — and the
 switches are cached in `localStorage`, so a repeat visitor never sees a hidden section
-flash up while Firestore answers. Game release scheduling is separate and lives in
-`utils/gameRelease.ts`; see **Games** above.
+flash up while Firestore answers.
 
 Every admin page is listed once, in `data/adminMenu.ts`. The sidebar and the `/admin`
 dashboard cards are both generated from it, so a page cannot be reachable from one and
