@@ -1,9 +1,13 @@
 import type {
   FirestoreTimestampLike,
   NiyamChallenge,
+  NiyamIconKey,
+  NiyamInputMode,
   NiyamSubmission,
   NiyamSubmissionStatus
 } from '~/types'
+import { DEFAULT_NIYAM_CHALLENGES } from '~/data/niyamChallenges'
+import { addUkDays, ukDateId } from '~/utils/gameDay'
 
 export const SUBMISSION_NOTE_MAX = 240
 export const SUBMISSION_NAME_MAX = 32
@@ -98,9 +102,167 @@ export function formatCount(value: number): string {
   return new Intl.NumberFormat('en-GB').format(Math.max(0, Math.round(Number(value) || 0)))
 }
 
+/**
+ * "10 Lakh" for 1,000,000 — how the sangat says these targets out loud, and far
+ * easier to hold in the head than seven digits. Returns null when the number is
+ * not a clean lakh or crore, so the caller falls back to `formatCount`.
+ */
+export function indianScaleLabel(value: number): string | null {
+  const n = Math.round(Number(value) || 0)
+  if (n >= 10_000_000 && n % 10_000_000 === 0) {
+    const crore = n / 10_000_000
+    return `${crore} ${crore === 1 ? 'Crore' : 'Crore'}`
+  }
+  if (n >= 100_000 && n % 100_000 === 0) return `${n / 100_000} Lakh`
+  return null
+}
+
+/** The target as a devotee would read it: "10 Lakh", or the digits if it is not round. */
+export function formatTarget(value: number): string {
+  return indianScaleLabel(value) || formatCount(value)
+}
+
 export function percentOf(total: number, target: number): number {
   if (!target || target <= 0) return 0
   return Math.min(100, Math.round((total / target) * 100))
+}
+
+/**
+ * Percent with enough precision to be worth reading. Against a ten lakh target
+ * the first months all round to "0%", which reads as "nothing is happening" when
+ * thousands of malas have in fact been turned — so keep a decimal until 10%.
+ */
+export function percentLabel(total: number, target: number): string {
+  if (!target || target <= 0) return '0%'
+  const raw = Math.min(100, (total / target) * 100)
+  if (raw === 0) return '0%'
+  if (raw < 1) return `${raw.toFixed(2)}%`
+  if (raw < 10) return `${raw.toFixed(1)}%`
+  return `${Math.round(raw)}%`
+}
+
+/**
+ * Bar width. A real total should never render as an invisible bar, so anything
+ * above zero keeps a sliver — otherwise the first ten thousand malas of a ten
+ * lakh goal look identical to none at all.
+ */
+export function barPercent(total: number, target: number): number {
+  if (!target || target <= 0 || total <= 0) return 0
+  return Math.min(100, Math.max(0.75, (total / target) * 100))
+}
+
+export interface NiyamMilestone {
+  /** The next round number the sangat is heading for. */
+  value: number
+  remaining: number
+  /** Every marker on the bar, as a fraction of the target, for the tick marks. */
+  ticks: number[]
+  reached: boolean
+}
+
+/**
+ * Ten lakh is too far away to pull anybody along, so the bar is read against
+ * the *next* marker instead — a tenth of the target at a time. "12,520 to go"
+ * is a number a person can act on this week; "987,520 to go" is not.
+ */
+export function milestoneFor(total: number, target: number): NiyamMilestone {
+  const step = Math.max(1, Math.round(target / 10))
+  const ticks = Array.from({ length: 9 }, (_, i) => ((i + 1) * step) / target).filter(t => t < 1)
+  const next = Math.min(target, (Math.floor(total / step) + 1) * step)
+  return {
+    value: next,
+    remaining: Math.max(0, next - total),
+    ticks,
+    reached: total >= target
+  }
+}
+
+/** Approved amounts for the last `days` UK days, newest day first. */
+export function recentDailyTotals(
+  stats: { dailyTotals?: Record<string, number> } | null | undefined,
+  days: number,
+  today: string = ukDateId()
+): number[] {
+  const map = stats?.dailyTotals
+  if (!map) return []
+  const out: number[] = []
+  for (let i = 0; i < days; i++) {
+    out.push(Math.max(0, Number(map[addUkDays(today, -i)]) || 0))
+  }
+  return out
+}
+
+export function addedToday(
+  stats: { dailyTotals?: Record<string, number> } | null | undefined,
+  today: string = ukDateId()
+): number {
+  return recentDailyTotals(stats, 1, today)[0] || 0
+}
+
+export function addedThisWeek(
+  stats: { dailyTotals?: Record<string, number> } | null | undefined,
+  today: string = ukDateId()
+): number {
+  return recentDailyTotals(stats, 7, today).reduce((sum, n) => sum + n, 0)
+}
+
+const FALLBACK_PRESETS = [1, 5, 11, 21, 51, 108]
+
+/**
+ * The one-tap amounts on a card. Anything above the hard per-entry limit is
+ * dropped rather than offered and then refused.
+ */
+export function presetsFor(challenge: NiyamChallenge): number[] {
+  const cap = Math.max(1, Number(challenge.maxPerSubmission) || 1)
+  const source = challenge.presets?.length ? challenge.presets : FALLBACK_PRESETS
+  return [...new Set(source.map(n => Math.floor(Number(n) || 0)))]
+    .filter(n => n >= 1 && n <= cap)
+    .sort((a, b) => a - b)
+    .slice(0, 6)
+}
+
+export function inputModeFor(challenge: NiyamChallenge): NiyamInputMode {
+  return challenge.inputMode === 'checkin' ? 'checkin' : 'count'
+}
+
+/** Falls back to the diya for a missing or unrecognised icon. */
+export function iconFor(challenge: NiyamChallenge | null | undefined): NiyamIconKey {
+  const keys: NiyamIconKey[] = ['mala', 'stotra', 'mandir', 'path', 'dandvat', 'niyam']
+  const icon = challenge?.icon as NiyamIconKey | undefined
+  return icon && keys.includes(icon) ? icon : 'niyam'
+}
+
+/**
+ * A niyam that only exists as a default in `data/niyamChallenges.ts`. It shows
+ * on the page so the section is never empty, but the security rules will refuse
+ * a submission until an admin publishes it, so the form has to say so.
+ */
+export function isPublished(challenge: NiyamChallenge): boolean {
+  return challenge.origin !== 'default'
+}
+
+/** A default seed read as a full challenge — runtime only, never written back. */
+export function defaultChallengeAsChallenge(
+  seed: (typeof DEFAULT_NIYAM_CHALLENGES)[number]
+): NiyamChallenge {
+  return { ...seed, origin: 'default' }
+}
+
+/**
+ * The five niyams plus whatever the admins have added, with a published
+ * document always winning over its default. Ids are stable slugs, so a
+ * published `mala` collapses onto the default `mala` rather than doubling it.
+ */
+export function mergeChallenges(stored: NiyamChallenge[]): NiyamChallenge[] {
+  const byId = new Map<string, NiyamChallenge>()
+  for (const seed of DEFAULT_NIYAM_CHALLENGES) {
+    byId.set(seed.id, defaultChallengeAsChallenge(seed))
+  }
+  for (const challenge of stored) {
+    if (!challenge.id) continue
+    byId.set(challenge.id, { ...challenge, origin: 'stored' })
+  }
+  return sortChallenges([...byId.values()])
 }
 
 /**

@@ -19,8 +19,9 @@ import type {
 import {
   buildSubmissionId,
   isChallengeOpen,
+  isPublished,
+  mergeChallenges,
   safeMemberName,
-  sortChallenges,
   sortSubmissionsNewestFirst,
   statusForAmount,
   statusKey,
@@ -42,6 +43,9 @@ function emptyStats(challengeId: string): NiyamChallengeStats {
 }
 
 export function mapChallenge(id: string, data: Record<string, unknown>): NiyamChallenge {
+  const presets = Array.isArray(data.presets)
+    ? (data.presets as unknown[]).map(n => Math.floor(Number(n) || 0)).filter(n => n >= 1)
+    : undefined
   return {
     id,
     title: String(data.title || ''),
@@ -55,6 +59,11 @@ export function mapChallenge(id: string, data: Record<string, unknown>): NiyamCh
     order: Number(data.order) || 0,
     autoApproveMax: Math.max(0, Number(data.autoApproveMax) || 0),
     maxPerSubmission: Math.max(1, Number(data.maxPerSubmission) || 1),
+    inputMode: data.inputMode === 'checkin' ? 'checkin' : 'count',
+    presets: presets?.length ? presets : undefined,
+    hint: data.hint ? String(data.hint) : undefined,
+    icon: (data.icon as NiyamChallenge['icon']) || undefined,
+    origin: 'stored',
     createdAt: data.createdAt as NiyamChallenge['createdAt'],
     updatedAt: data.updatedAt as NiyamChallenge['updatedAt']
   }
@@ -62,8 +71,15 @@ export function mapChallenge(id: string, data: Record<string, unknown>): NiyamCh
 
 export function mapStats(id: string, data: Record<string, unknown> | undefined): NiyamChallengeStats {
   if (!data) return emptyStats(id)
+  const daily = data.dailyTotals && typeof data.dailyTotals === 'object'
+    ? Object.fromEntries(
+        Object.entries(data.dailyTotals as Record<string, unknown>)
+          .map(([day, value]) => [day, Math.max(0, Number(value) || 0)])
+      )
+    : undefined
   return {
     challengeId: id,
+    dailyTotals: daily,
     approvedTotal: Math.max(0, Number(data.approvedTotal) || 0),
     pendingTotal: Math.max(0, Number(data.pendingTotal) || 0),
     approvedCount: Math.max(0, Number(data.approvedCount) || 0),
@@ -143,23 +159,31 @@ export function useNiyamChallenges() {
       .reduce((sum, s) => sum + s.amount, 0)
   }
 
+  /**
+   * The five defaults merged with whatever is published. Without Firebase — a
+   * dev server with no credentials — the defaults alone still render, so the
+   * page can be looked at end to end; they just cannot take entries.
+   */
   async function fetchChallenges() {
     const db = getDb()
     if (!db) {
-      challenges.value = []
+      challenges.value = mergeChallenges([])
       return
     }
     const snap = await getDocs(collection(db, 'niyamChallenges'))
-    challenges.value = sortChallenges(
+    challenges.value = mergeChallenges(
       snap.docs.map(d => mapChallenge(d.id, d.data())).filter(c => c.title)
     )
   }
 
+  /** Only published niyams have totals or entries to read. */
+  const publishedChallenges = computed(() => challenges.value.filter(isPublished))
+
   async function fetchStats() {
     const db = getDb()
-    if (!db || !challenges.value.length) return
+    if (!db || !publishedChallenges.value.length) return
     const entries = await Promise.all(
-      challenges.value.map(async (c) => {
+      publishedChallenges.value.map(async (c) => {
         try {
           const snap = await getDoc(doc(db, 'niyamChallengeStats', c.id))
           return [c.id, mapStats(c.id, snap.data() as Record<string, unknown> | undefined)] as const
@@ -174,7 +198,7 @@ export function useNiyamChallenges() {
   async function fetchMySubmissions() {
     const db = getDb()
     const uid = user.value?.uid
-    if (!db || !uid || !challenges.value.length) {
+    if (!db || !uid || !publishedChallenges.value.length) {
       mySubmissions.value = []
       return
     }
@@ -182,7 +206,7 @@ export function useNiyamChallenges() {
     // Filtering on userId and challengeId separately would need a composite
     // index, and the deploy service account is not allowed to create those.
     const results = await Promise.all(
-      challenges.value.map(async (c) => {
+      publishedChallenges.value.map(async (c) => {
         try {
           const snap = await getDocs(query(
             collection(db, 'niyamSubmissions'),
@@ -225,6 +249,9 @@ export function useNiyamChallenges() {
     const uid = user.value?.uid
     if (!db) throw new Error('Firebase is not configured')
     if (!uid) throw new Error('Sign in to add to this challenge')
+    if (!isPublished(challenge)) {
+      throw new Error('This niyam has not been opened by the mandir yet')
+    }
     if (!isChallengeOpen(challenge)) throw new Error('This challenge is closed')
 
     const amount = Math.floor(Number(amountInput) || 0)
@@ -286,6 +313,7 @@ export function useNiyamChallenges() {
 
   return {
     challenges,
+    publishedChallenges,
     openChallenges,
     closedChallenges,
     stats,
