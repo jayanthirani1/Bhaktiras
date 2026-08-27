@@ -41,20 +41,29 @@ function savePrefs(prefs: LocationPreferences) {
   localStorage.setItem(PREFS_KEY, JSON.stringify(prefs))
 }
 
+/**
+ * The location poll and the visit reads are shared, not per-caller: the niyams
+ * page mounts the visit card and also asks whether you are at the mandir from
+ * the sangat board, and two independent instances would mean two geolocation
+ * polls every thirty seconds and two copies of the same Firestore reads.
+ */
+let checkIntervalId: ReturnType<typeof setInterval> | null = null
+let consumers = 0
+
 export function useMandirVisit() {
   const { $firebaseDb } = useNuxtApp()
   const { user, isLoggedIn } = useAuth()
 
   const geo = useGeolocation()
 
-  const prefs = ref<LocationPreferences>(loadPrefs())
-  const todayVisit = ref<MandirVisit | null>(null)
-  const recentVisits = ref<MandirVisit[]>([])
-  const loading = ref(true)
-  const checking = ref(false)
-  const error = ref<string | null>(null)
-
-  let checkIntervalId: ReturnType<typeof setInterval> | null = null
+  const prefs = useState<LocationPreferences>('mandir-visit-prefs', () => loadPrefs())
+  const todayVisit = useState<MandirVisit | null>('mandir-visit-today', () => null)
+  const recentVisits = useState<MandirVisit[]>('mandir-visit-recent', () => [])
+  const loading = useState<boolean>('mandir-visit-loading', () => true)
+  const checking = useState<boolean>('mandir-visit-checking', () => false)
+  const error = useState<string | null>('mandir-visit-error', () => null)
+  /** `{uid}:{day}` already fetched, so a second caller does not re-read. */
+  const loadedFor = useState<string>('mandir-visit-loaded-for', () => '')
 
   function getDb(): Firestore | null {
     if (import.meta.server) return null
@@ -268,7 +277,10 @@ export function useMandirVisit() {
     }
   }
 
-  async function refresh() {
+  async function refresh(force = true) {
+    const key = `${user.value?.uid || ''}:${ukDateId()}`
+    if (!force && loadedFor.value === key) return
+    loadedFor.value = key
     loading.value = true
     error.value = null
     prefs.value = loadPrefs()
@@ -287,10 +299,15 @@ export function useMandirVisit() {
     }
   }
 
-  onMounted(refresh)
+  onMounted(() => {
+    consumers += 1
+    refresh(false)
+  })
 
+  // The poll belongs to the page, not to whichever component unmounts first.
   onUnmounted(() => {
-    stopPeriodicChecks()
+    consumers = Math.max(0, consumers - 1)
+    if (!consumers) stopPeriodicChecks()
   })
 
   watch(() => user.value?.uid, async (uid, prev) => {
