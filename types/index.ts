@@ -133,6 +133,26 @@ export type FirestoreTimestampLike = { seconds: number; nanoseconds: number } | 
 export type NiyamSubmissionStatus = 'approved' | 'pending' | 'rejected'
 
 /**
+ * How a devotee adds to a niyam.
+ *
+ * - `count` — a number they have done since last time (malas, stotras).
+ * - `checkin` — one tap is one attendance; a number field would be silly for
+ *   "I came to the mandir".
+ */
+export type NiyamInputMode = 'count' | 'checkin'
+
+/** Which glyph `NiyamIcon` draws for a niyam. */
+export type NiyamIconKey = 'mala' | 'stotra' | 'mandir' | 'path' | 'dandvat' | 'niyam'
+
+/**
+ * Where a challenge in the list came from. `default` means it is one of the
+ * five niyams in `data/niyamChallenges.ts` that no admin has published to
+ * Firestore yet — it renders so the page is never blank, but it cannot take
+ * entries, because the security rules require the challenge document to exist.
+ */
+export type NiyamChallengeOrigin = 'default' | 'stored'
+
+/**
  * An admin-set community goal — "10,000 malas between now and Patotsav".
  * Every devotee submits what they have actually done and the approved entries
  * ladder up into one shared total, so the sangat finishes the goal together.
@@ -158,6 +178,15 @@ export interface NiyamChallenge {
   autoApproveMax: number
   /** Hard ceiling — the form and the security rules both refuse anything above it. */
   maxPerSubmission: number
+  /** How the add-form behaves. Defaults to `count`. */
+  inputMode?: NiyamInputMode
+  /** One-tap amounts offered above the number field, smallest first. */
+  presets?: number[]
+  /** What counts as one — "all five chapters make one full path". */
+  hint?: string
+  icon?: NiyamIconKey
+  /** Runtime only; never written to Firestore. */
+  origin?: NiyamChallengeOrigin
   createdAt?: FirestoreTimestampLike
   updatedAt?: FirestoreTimestampLike
 }
