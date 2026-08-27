@@ -59,7 +59,8 @@
             </p>
           </div>
           <p class="max-w-[52%] text-right text-[11px] leading-snug text-[hsl(var(--muted-foreground))]">
-            <template v-if="!published">Waiting for the mandir to open it</template>
+            <!-- The "Not open yet" chip beside the name already says this. -->
+            <template v-if="!published" />
             <template v-else-if="stats.approvedTotal <= 0">Nothing counted yet</template>
             <template v-else-if="milestone.reached">
               <span class="font-semibold text-[hsl(var(--golden-900))]">Goal reached — Jay Swaminarayan</span>
