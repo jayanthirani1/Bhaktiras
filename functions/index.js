@@ -1378,9 +1378,41 @@ function readNiyamSubmission(snap) {
     challengeId,
     userId,
     userName: cleanText(data.userName, 32) || 'Devotee',
+    dayKey: typeof data.dayKey === 'string' ? data.dayKey.trim() : '',
     amount,
     status
   }
+}
+
+/** How much of the per-day breakdown is kept. Two weeks covers "today" and "this week". */
+const NIYAM_DAILY_WINDOW_DAYS = 14
+
+/**
+ * The per-day slice of a challenge's approved total.
+ *
+ * Against a ten lakh target the all-time number barely visibly moves, so the
+ * page reads "the sangat added 1,240 today" from this instead. The day is the
+ * one the devotee did the sadhana on (`dayKey`), not the day an admin got round
+ * to approving it — which also means an approval, a rejection and a withdrawal
+ * all unwind from the same bucket they were added to.
+ *
+ * Returned as a patch rather than a whole map because a merging `set` merges
+ * maps key by key: days that have fallen out of the window have to be deleted
+ * explicitly or they accumulate forever. An entry whose day is already outside
+ * the window — approved a fortnight late — is left out of the breakdown
+ * entirely; `approvedTotal` still carries it, which is the number that counts.
+ */
+function dailyTotalsPatch(current, dayKey, delta) {
+  const window = new Set(recentDateIds(NIYAM_DAILY_WINDOW_DAYS))
+  const patch = {}
+  for (const day of Object.keys(current || {})) {
+    if (!window.has(day)) patch[day] = FieldValue.delete()
+  }
+  if (delta && dayKey && window.has(dayKey)) {
+    const updated = Math.max(0, niyamCounters((current || {})[dayKey]) + delta)
+    patch[dayKey] = updated > 0 ? updated : FieldValue.delete()
+  }
+  return patch
 }
 
 function niyamDelta(before, after) {
@@ -1400,7 +1432,7 @@ function isEmptyNiyamDelta(delta) {
   return Object.values(delta).every(value => value === 0)
 }
 
-async function applyNiyamDelta(db, { challengeId, userId, userName }, delta) {
+async function applyNiyamDelta(db, { challengeId, userId, userName, dayKey }, delta) {
   if (isEmptyNiyamDelta(delta)) return
   const statsRef = db.doc(`niyamChallengeStats/${challengeId}`)
   const contributorRef = db.doc(`niyamChallenges/${challengeId}/contributors/${userId}`)
@@ -1421,6 +1453,8 @@ async function applyNiyamDelta(db, { challengeId, userId, userName }, delta) {
     if (prevApproved <= 0 && nextApproved > 0) participantsDelta = 1
     else if (prevApproved > 0 && nextApproved <= 0) participantsDelta = -1
 
+    const dailyPatch = dailyTotalsPatch(stats.dailyTotals, dayKey, delta.approvedTotal)
+
     tx.set(statsRef, {
       challengeId,
       approvedTotal: Math.max(0, niyamCounters(stats.approvedTotal) + delta.approvedTotal),
@@ -1428,6 +1462,7 @@ async function applyNiyamDelta(db, { challengeId, userId, userName }, delta) {
       approvedCount: Math.max(0, niyamCounters(stats.approvedCount) + delta.approvedCount),
       pendingCount: Math.max(0, niyamCounters(stats.pendingCount) + delta.pendingCount),
       participants: Math.max(0, niyamCounters(stats.participants) + participantsDelta),
+      ...(Object.keys(dailyPatch).length ? { dailyTotals: dailyPatch } : {}),
       updatedAt: FieldValue.serverTimestamp()
     }, { merge: true })
 
