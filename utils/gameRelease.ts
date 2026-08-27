@@ -45,9 +45,8 @@ export function gameUnlockDateId(slug: PlayGameSlug): string | null {
   return addUtcMonths(GAME_UNLOCK_START, index)
 }
 
-export function isGameLive(slug: PlayGameSlug, today = ukDateId()): boolean {
-  const unlock = gameUnlockDateId(slug)
-  return !unlock || today >= unlock
+export function isGameLive(_slug: PlayGameSlug, _today = ukDateId()): boolean {
+  return true
 }
 
 /** Instant London clocks read 00:00 on `dateId`. */
