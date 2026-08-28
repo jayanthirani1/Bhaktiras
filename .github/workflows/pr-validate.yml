@@ -1,0 +1,75 @@
+name: Validate pull request
+
+# The deploy workflow only runs on push to main, so its typecheck gate fires
+# after a change has already landed. It stops a broken deploy but not a broken
+# main — which is how "main sat broken for several commits before anyone
+# noticed" happened in the first place. This runs the same checks while the
+# change is still on its branch, where a fix is one more commit.
+#
+# It deliberately holds no credentials and deploys nothing.
+on:
+  pull_request
+
+# A second push to the same PR makes the first run pointless.
+concurrency:
+  group: validate-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: "22"
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Also in the deploy workflow, but that catches it only once it is on
+      # main — and a committed .output can carry real API keys.
+      - name: Ensure build artifacts not committed
+        run: |
+          if git ls-files .nuxt .output 2>/dev/null | grep -q .; then
+            echo "::error::.nuxt or .output must not be committed—they can expose API keys. Add them to .gitignore."
+            exit 1
+          fi
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      # nuxt.config.ts calls writeFirebaseMessagingSw() on every nuxt command,
+      # and that script throws in CI when the Firebase config is empty — by
+      # design, so a blank push service worker can never ship. This job has no
+      # secrets, so it supplies placeholders purely to get past that check.
+      #
+      # Safe because these six values are public either way: they are baked
+      # into the client bundle at build time, as .env.example says. The service
+      # worker written here is gitignored and this job deploys nothing, so the
+      # placeholders cannot reach production. Only the deploy workflow, with
+      # the real secrets, produces a service worker anyone will ever load.
+      - name: Create placeholder .env for the build
+        run: |
+          cat > .env <<'ENV'
+          NUXT_PUBLIC_FIREBASE_API_KEY=placeholder
+          NUXT_PUBLIC_FIREBASE_AUTH_DOMAIN=placeholder.firebaseapp.com
+          NUXT_PUBLIC_FIREBASE_PROJECT_ID=placeholder
+          NUXT_PUBLIC_FIREBASE_STORAGE_BUCKET=placeholder.firebasestorage.app
+          NUXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=000000000000
+          NUXT_PUBLIC_FIREBASE_APP_ID=1:000000000000:web:placeholder
+          ENV
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      # Nuxt's build does not run vue-tsc, and typecheck does not catch every
+      # way a build can fail, so both earn their place.
+      - name: Build
+        run: npm run build
