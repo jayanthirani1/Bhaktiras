@@ -56,6 +56,9 @@ async function logout() {
   await signOut()
   await navigateTo('/admin/auth')
 }
+
+// The whole admin area, in one place, so no admin page can be indexed.
+useNoIndex()
 </script>
 
 <style>

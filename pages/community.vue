@@ -180,4 +180,6 @@ async function onSubmit() {
     errors.message = (e as Error).message
   }
 }
+
+usePageSeo('Our Community', 'Share a memory, a prayer or a word of gratitude on the Bhaktiras community wall.')
 </script>

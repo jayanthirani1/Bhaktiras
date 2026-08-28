@@ -182,4 +182,6 @@ async function handleGoogleSignUp() {
     googleLoading.value = false
   }
 }
+
+usePageSeo('Create an account', 'Create a Bhaktiras account to log your niyams, keep your game streaks and post to the community wall.')
 </script>

@@ -173,4 +173,6 @@ async function handlePasswordReset() {
     resetSending.value = false
   }
 }
+
+usePageSeo('Sign in', 'Sign in to log your niyams, keep your game streaks and manage your Bhaktiras account.')
 </script>

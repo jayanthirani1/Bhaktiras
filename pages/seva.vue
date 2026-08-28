@@ -34,4 +34,6 @@
 import { SITE } from '~/data/site'
 
 const { sevaHeading, sevaIntro, sevaTeams } = useSiteContent()
+
+usePageSeo('Seva', 'Join a seva team for the Bhaktiras Patotsav — twelve teams, and a WhatsApp community to sign up through.')
 </script>

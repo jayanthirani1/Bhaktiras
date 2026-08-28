@@ -36,3 +36,21 @@ env:
     secret: NUXT_PUBLIC_FIREBASE_APP_ID
     availability:
       - BUILD
+  # Web Push certificate key pair. Without it the browser cannot request a push
+  # token, so the notification opt-in fails silently — no build error and no
+  # runtime warning on the site. CI injects it for the Hosting build; App
+  # Hosting is the live deploy and was missing it entirely.
+  - variable: NUXT_PUBLIC_FIREBASE_VAPID_KEY
+    secret: NUXT_PUBLIC_FIREBASE_VAPID_KEY
+    availability:
+      - BUILD
+  # Flickr, for the event and darshan galleries. useFlickr() returns nothing at
+  # all when the key is absent, so the albums render empty rather than broken.
+  - variable: NUXT_PUBLIC_FLICKR_API_KEY
+    secret: NUXT_PUBLIC_FLICKR_API_KEY
+    availability:
+      - BUILD
+  - variable: NUXT_PUBLIC_FLICKR_USER_ID
+    secret: NUXT_PUBLIC_FLICKR_USER_ID
+    availability:
+      - BUILD

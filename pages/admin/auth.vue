@@ -68,7 +68,7 @@ async function enterIfAdmin() {
   await refreshAdmin()
   if (!isAdminUser.value) {
     await signOut()
-    error.value = 'This account is not an admin. Add admins/{your Auth UID} with name, role, and active: true.'
+    error.value = 'This account is not an admin. Add admins/{your Auth UID} with name and active: true.'
     return false
   }
   await navigateTo('/admin')

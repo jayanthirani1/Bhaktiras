@@ -10,7 +10,6 @@ export interface AdminRecord {
   /** Document ID = Firebase Auth UID (userRef) */
   id: string
   name: string
-  role: 'admin' | 'guest'
   active: boolean
 }
 

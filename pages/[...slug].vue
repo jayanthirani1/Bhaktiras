@@ -12,3 +12,16 @@
     </div>
   </div>
 </template>
+
+<script setup lang="ts">
+/**
+ * This catch-all rendered a 404 page under an HTTP 200 — a soft 404, which
+ * search engines index as a real page and monitoring cannot distinguish from
+ * a healthy response. Send the status the page is actually reporting.
+ */
+const event = useRequestEvent()
+if (event) setResponseStatus(event, 404)
+
+usePageSeo('Page not found')
+useNoIndex()
+</script>
