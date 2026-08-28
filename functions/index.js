@@ -559,7 +559,9 @@ exports.getPushAudience = onCall(
  */
 async function announceRecords({ db, name, uid, claimedCrowns }) {
   const broken = claimedCrowns.filter(crown =>
-    crown.previousHolderId && crown.previousHolderId !== uid)
+    crown.id !== 'streak-longest'
+    && crown.previousHolderId
+    && crown.previousHolderId !== uid)
   if (!broken.length) return
 
   logger.info('Record broken', {
