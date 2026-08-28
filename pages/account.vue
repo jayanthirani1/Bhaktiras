@@ -465,4 +465,6 @@ function linkFriendlyError(value: unknown) {
 }
 
 useHead({ title: 'Your account · Bhaktiras' })
+
+useNoIndex()
 </script>

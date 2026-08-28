@@ -50,17 +50,30 @@ export function mondayOfWordleWeek(id: string): string {
   return dt.toISOString().slice(0, 10)
 }
 
+function plannedWordleWord(raw: string | null | undefined): string | null {
+  const word = String(raw || '').trim().toUpperCase()
+  return word.length === WORD_LEN && /^[A-Z]+$/.test(word) ? word : null
+}
+
 /**
- * Same word for everyone for the given UK calendar day, unless admin set a daily override.
+ * Rotation word for a UK calendar day.
+ *
+ * Extra Firestore words used to be mixed into this list, which shifted every
+ * day's hash and made the admin calendar disagree with the live puzzle. The
+ * rotation is the built-in bank only; scheduled words override via
+ * `resolveWordleWord`.
  */
-export function getWordForDate(date: Date, extraWords: string[] = []): string {
-  const extra = extraWords.map(w => w.toUpperCase().slice(0, WORD_LEN)).filter(w => w.length === WORD_LEN)
-  const all = Array.from(new Set([...WORDS_LIST, ...extra]))
+export function getWordForDate(date: Date, _extraWords: string[] = []): string {
   const dateString = wordleDateId(date)
-  const index = hashString(dateString) % Math.max(all.length, 1)
-  return all[index] ?? WORDS_LIST[0] ?? 'BHAKT'
+  const index = hashString(dateString) % Math.max(WORDS_LIST.length, 1)
+  return WORDS_LIST[index] ?? 'BHAKT'
 }
 
 export function getWordForDateId(id: string, extraWords: string[] = []): string {
   return getWordForDate(new Date(`${id}T12:00:00Z`), extraWords)
+}
+
+/** What players actually get: the admin schedule, or the rotation on a blank day. */
+export function resolveWordleWord(dateId: string, dailyWord?: string | null): string {
+  return plannedWordleWord(dailyWord) ?? getWordForDateId(dateId)
 }

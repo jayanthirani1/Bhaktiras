@@ -27,7 +27,7 @@
       <div class="mb-4 hidden md:block">
         <PageHeader
           title="Crossword"
-          subtitle="A quick grid — race the clock. Your timer keeps ticking if you leave."
+          subtitle="A quick grid — race the clock. Your timer pauses if you leave and picks up when you return."
         />
       </div>
       <h1 class="mb-3 text-center font-display text-xl font-semibold text-[hsl(var(--primary))] md:hidden">
@@ -209,7 +209,7 @@
 
         <GameHowTo>
           <ol class="list-decimal space-y-2 pl-5">
-            <li>Tap a square and type letters. The timer keeps running if you leave.</li>
+            <li>Tap a square and type letters. The timer pauses if you leave and picks up when you return.</li>
             <li>Use the clues across and down. Check answers when you think you’re done.</li>
             <li>Hints add time: a letter costs 5 seconds, a whole word costs 20.</li>
           </ol>

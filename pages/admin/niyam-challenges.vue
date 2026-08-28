@@ -1,34 +1,124 @@
 <template>
-  <div class="space-y-4">
-    <p v-if="error" class="text-sm text-red-600">{{ error }}</p>
-    <p v-if="submissionError" class="text-sm text-red-600">{{ submissionError }}</p>
+  <div class="space-y-6">
+    <p v-for="message in problems" :key="message" class="text-sm text-red-600">{{ message }}</p>
+
+    <!-- ── Every niyam at a glance ────────────────────────────────── -->
+    <AdminNiyamOverview
+      :rows="overview"
+      :awaiting-total="awaitingTotal"
+      :loading="overviewLoading"
+      :publishing="!!publishingId"
+      :publishing-id="publishingId"
+      @select="selectChallenge"
+      @review="goToQueue"
+      @publish="onPublish"
+      @refresh="loadOverview"
+    />
+
+    <!-- ── The five defaults that are not documents yet ───────────── -->
+    <section
+      v-if="unpublishedDefaults.length"
+      aria-labelledby="niyam-publish-heading"
+      class="admin-panel space-y-3"
+    >
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <h2 id="niyam-publish-heading" class="font-display text-xl font-semibold text-[hsl(var(--primary))]">
+          Not published yet ({{ unpublishedDefaults.length }})
+        </h2>
+        <button
+          type="button"
+          class="admin-btn min-h-[44px]"
+          :disabled="!!publishingId"
+          @click="onPublishAll"
+        >
+          {{ publishingId === ALL ? 'Publishing…' : `Publish all ${unpublishedDefaults.length}` }}
+        </button>
+      </div>
+      <p class="text-sm text-[hsl(var(--muted-foreground))]">
+        These niyams already show on <code>/niyams</code>, but nobody can add to them: a devotee's
+        entry is only allowed once the niyam exists as a document. Publishing writes it at its own
+        slug id with the values below, and it becomes editable like any other.
+      </p>
+      <ul class="divide-y divide-[hsl(var(--border))]">
+        <li
+          v-for="challenge in unpublishedDefaults"
+          :key="challenge.id"
+          class="flex flex-wrap items-center gap-3 py-3"
+        >
+          <NiyamIcon :name="iconFor(challenge)" class="h-5 w-5 shrink-0 text-[hsl(var(--golden-900))]" />
+          <div class="min-w-[12rem] flex-1">
+            <p class="font-semibold text-[hsl(var(--foreground))]">{{ challenge.title }}</p>
+            <p class="text-xs text-[hsl(var(--muted-foreground))]">
+              {{ formatCount(challenge.target) }} {{ challenge.unit }} ·
+              auto-approve up to {{ formatCount(challenge.autoApproveMax) }} ·
+              hard limit {{ formatCount(challenge.maxPerSubmission) }} ·
+              <code>{{ challenge.id }}</code>
+            </p>
+          </div>
+          <button
+            type="button"
+            class="admin-btn-secondary min-h-[44px]"
+            @click="selectChallenge(challenge.id)"
+          >
+            Review values
+          </button>
+          <button
+            type="button"
+            class="admin-btn min-h-[44px]"
+            :disabled="!!publishingId"
+            @click="onPublish(challenge.id)"
+          >
+            {{ publishingId === challenge.id ? 'Publishing…' : 'Publish' }}
+          </button>
+        </li>
+      </ul>
+    </section>
+
+    <!-- ── One queue across all niyams ────────────────────────────── -->
+    <div ref="queueEl">
+      <AdminNiyamQueue
+        :rows="queue"
+        :challenges="allChallenges"
+        :context-for="queueContextFor"
+        :reviewing-id="reviewingId"
+        :history-loading="historyLoading"
+        :filter-id="queueFilter"
+        :loading="overviewLoading"
+        :capped="anyQueueCapped"
+        @approve="approve"
+        @reject="askReject"
+        @filter="queueFilter = $event"
+        @load-history="loadHistory"
+      />
+    </div>
 
     <AdminEditorLayout
-      :count-label="`${sorted.length} challenge${sorted.length === 1 ? '' : 's'}`"
-      create-label="New challenge"
-      empty-label="No challenges yet. Set one — a target, a deadline, and everyone's entries ladder up to it."
+      :count-label="countLabel"
+      create-label="New niyam"
+      empty-label="No niyams yet."
       :loading="loading"
-      :empty="!sorted.length"
+      :empty="!allChallenges.length"
       @create="openNew"
     >
       <template #list>
         <button
-          v-for="c in sorted"
+          v-for="c in allChallenges"
           :key="c.id"
           type="button"
-          class="admin-row"
+          class="admin-row min-h-[44px]"
           :class="editingId === c.id ? 'admin-row-active' : ''"
           @click="openEdit(c)"
         >
           <div class="flex items-start justify-between gap-2">
-            <p class="font-semibold text-[hsl(var(--primary))]">{{ c.title }}</p>
+            <p class="flex items-center gap-2 font-semibold text-[hsl(var(--primary))]">
+              <NiyamIcon :name="iconFor(c)" class="h-4 w-4 shrink-0 text-[hsl(var(--golden-900))]" />
+              {{ c.title }}
+            </p>
             <span
               class="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em]"
-              :class="isChallengeOpen(c)
-                ? 'bg-[hsl(var(--golden-50))] text-[hsl(var(--primary))]'
-                : 'bg-[hsl(var(--muted))] text-[hsl(var(--muted-foreground))]'"
+              :class="listChipClass(c)"
             >
-              {{ isChallengeOpen(c) ? 'Open' : c.active ? 'Scheduled' : 'Paused' }}
+              {{ listChipLabel(c) }}
             </span>
           </div>
           <p class="mt-1 text-sm text-[hsl(var(--muted-foreground))]">
@@ -39,25 +129,39 @@
 
       <template #form>
         <div v-if="showForm" class="space-y-6">
-          <!-- ── Challenge settings ──────────────────────────────── -->
+          <!-- ── Niyam settings ──────────────────────────────────── -->
           <form class="space-y-4" @submit.prevent="save">
             <div class="flex items-center justify-between gap-3">
               <h2 class="font-display text-xl font-semibold text-[hsl(var(--primary))]">
-                {{ editingId ? 'Edit challenge' : 'New challenge' }}
+                {{ editingId ? 'Edit niyam' : 'New niyam' }}
               </h2>
-              <button v-if="editingId" type="button" class="admin-btn-danger" @click="onDelete">
+              <button
+                v-if="editingId && editingPublished"
+                type="button"
+                class="admin-btn-danger min-h-[44px]"
+                @click="confirmDelete = true"
+              >
                 Delete
               </button>
             </div>
 
+            <p
+              v-if="editingId && !editingPublished"
+              class="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800"
+            >
+              Not published yet. Saving writes it at <code>{{ editingId }}</code> and devotees can
+              start adding to it straight away.
+            </p>
+
             <div>
-              <label class="admin-label">Title</label>
-              <input v-model="form.title" required class="admin-input" placeholder="10,000 Malas for Patotsav">
+              <label :for="`${uid}-title`" class="admin-label">Title</label>
+              <input :id="`${uid}-title`" v-model="form.title" required class="admin-input" placeholder="Mala">
             </div>
 
             <div>
-              <label class="admin-label">Detail</label>
+              <label :for="`${uid}-detail`" class="admin-label">Detail</label>
               <textarea
+                :id="`${uid}-detail`"
                 v-model="form.detail"
                 rows="2"
                 class="admin-input"
@@ -67,27 +171,106 @@
 
             <div class="grid gap-3 sm:grid-cols-3">
               <div>
-                <label class="admin-label">Target</label>
-                <input v-model.number="form.target" type="number" min="1" step="1" class="admin-input">
+                <label :for="`${uid}-target`" class="admin-label">Target</label>
+                <input :id="`${uid}-target`" v-model.number="form.target" type="number" min="1" step="1" class="admin-input">
               </div>
               <div>
-                <label class="admin-label">Unit (plural)</label>
-                <input v-model="form.unit" class="admin-input" placeholder="malas">
+                <label :for="`${uid}-unit`" class="admin-label">Unit (plural)</label>
+                <input :id="`${uid}-unit`" v-model="form.unit" class="admin-input" placeholder="malas">
               </div>
               <div>
-                <label class="admin-label">Unit (singular)</label>
-                <input v-model="form.unitSingular" class="admin-input" placeholder="mala">
+                <label :for="`${uid}-unit-singular`" class="admin-label">Unit (singular)</label>
+                <input :id="`${uid}-unit-singular`" v-model="form.unitSingular" class="admin-input" placeholder="mala">
               </div>
             </div>
 
             <div class="grid gap-3 sm:grid-cols-2">
               <div>
-                <label class="admin-label">Starts</label>
-                <input v-model="form.startDate" type="date" class="admin-input">
+                <label :for="`${uid}-start`" class="admin-label">Starts</label>
+                <input :id="`${uid}-start`" v-model="form.startDate" type="date" class="admin-input">
               </div>
               <div>
-                <label class="admin-label">Closes (end of that day)</label>
-                <input v-model="form.endDate" type="date" class="admin-input">
+                <label :for="`${uid}-end`" class="admin-label">Closes (end of that day)</label>
+                <input :id="`${uid}-end`" v-model="form.endDate" type="date" class="admin-input">
+              </div>
+            </div>
+
+            <!-- ── How the devotee's card behaves ───────────────── -->
+            <div class="rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--muted))]/40 p-3">
+              <p class="text-sm font-semibold text-[hsl(var(--primary))]">The devotee's card</p>
+
+              <fieldset class="mt-3">
+                <legend class="admin-label">How an entry is made</legend>
+                <div class="flex flex-wrap gap-2">
+                  <label
+                    v-for="mode in inputModes"
+                    :key="mode.id"
+                    class="flex min-h-[44px] flex-1 cursor-pointer items-start gap-2 rounded-lg border bg-white px-3 py-2 text-sm"
+                    :class="form.inputMode === mode.id
+                      ? 'border-[hsl(var(--primary))] ring-2 ring-[hsl(var(--primary))]/10'
+                      : 'border-[hsl(var(--border))]'"
+                  >
+                    <input
+                      v-model="form.inputMode"
+                      type="radio"
+                      :value="mode.id"
+                      :name="`${uid}-input-mode`"
+                      class="mt-1 h-4 w-4"
+                    >
+                    <span>
+                      <span class="block font-semibold text-[hsl(var(--foreground))]">{{ mode.label }}</span>
+                      <span class="block text-xs text-[hsl(var(--muted-foreground))]">{{ mode.hint }}</span>
+                    </span>
+                  </label>
+                </div>
+              </fieldset>
+
+              <div class="mt-3 grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label :for="`${uid}-presets`" class="admin-label">One-tap amounts</label>
+                  <input
+                    :id="`${uid}-presets`"
+                    v-model="form.presets"
+                    class="admin-input"
+                    :disabled="form.inputMode === 'checkin'"
+                    placeholder="1, 5, 11, 51"
+                  >
+                  <p class="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
+                    <template v-if="form.inputMode === 'checkin'">
+                      Not used for a check-in — one tap is always one {{ form.unitSingular || 'entry' }}.
+                    </template>
+                    <template v-else>
+                      Up to six, separated by commas. Buttons on the card, in this order:
+                      {{ presetNumbers.length ? presetNumbers.join(' · ') : 'none' }}.
+                    </template>
+                  </p>
+                </div>
+                <div>
+                  <label :for="`${uid}-icon`" class="admin-label">Icon</label>
+                  <div class="flex items-center gap-2">
+                    <NiyamIcon :name="form.icon" class="h-5 w-5 shrink-0 text-[hsl(var(--golden-900))]" />
+                    <select :id="`${uid}-icon`" v-model="form.icon" class="admin-input">
+                      <option v-for="name in iconOptions" :key="name" :value="name">{{ name }}</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-3">
+                <label :for="`${uid}-hint`" class="admin-label">Hint — what counts as one</label>
+                <input
+                  :id="`${uid}-hint`"
+                  v-model="form.hint"
+                  class="admin-input"
+                  placeholder="One full mala of 108 counts as one mala."
+                >
+              </div>
+
+              <div class="mt-4">
+                <AdminNiyamCardPreview
+                  :challenge="previewChallenge"
+                  :approved-total="stats?.approvedTotal || 0"
+                />
               </div>
             </div>
 
@@ -100,20 +283,20 @@
               </p>
               <div class="mt-3 grid gap-3 sm:grid-cols-2">
                 <div>
-                  <label class="admin-label">Auto-approve up to</label>
-                  <input v-model.number="form.autoApproveMax" type="number" min="0" step="1" class="admin-input">
+                  <label :for="`${uid}-auto`" class="admin-label">Auto-approve up to</label>
+                  <input :id="`${uid}-auto`" v-model.number="form.autoApproveMax" type="number" min="0" step="1" class="admin-input">
                 </div>
                 <div>
-                  <label class="admin-label">Hard limit per entry</label>
-                  <input v-model.number="form.maxPerSubmission" type="number" min="1" step="1" class="admin-input">
+                  <label :for="`${uid}-max`" class="admin-label">Hard limit per entry</label>
+                  <input :id="`${uid}-max`" v-model.number="form.maxPerSubmission" type="number" min="1" step="1" class="admin-input">
                 </div>
               </div>
             </div>
 
             <div class="grid gap-3 sm:grid-cols-2">
               <div>
-                <label class="admin-label">Order</label>
-                <input v-model.number="form.order" type="number" min="0" class="admin-input max-w-[8rem]">
+                <label :for="`${uid}-order`" class="admin-label">Order</label>
+                <input :id="`${uid}-order`" v-model.number="form.order" type="number" min="0" class="admin-input max-w-[8rem]">
               </div>
               <label class="flex items-end gap-2 pb-2 text-sm font-semibold text-[hsl(var(--foreground))]">
                 <input v-model="form.active" type="checkbox" class="h-4 w-4 rounded border-[hsl(var(--border))]">
@@ -122,26 +305,32 @@
             </div>
 
             <div class="flex gap-2">
-              <button type="submit" class="admin-btn" :disabled="saving">{{ saving ? 'Saving…' : 'Save' }}</button>
-              <button type="button" class="admin-btn-secondary" @click="closeForm">Cancel</button>
+              <button type="submit" class="admin-btn min-h-[44px]" :disabled="saving">
+                {{ saving ? 'Saving…' : editingId && !editingPublished ? 'Publish niyam' : 'Save' }}
+              </button>
+              <button type="button" class="admin-btn-secondary min-h-[44px]" @click="closeForm">Cancel</button>
             </div>
           </form>
 
           <!-- ── Live totals ─────────────────────────────────────── -->
-          <div v-if="editingId" class="border-t border-[hsl(var(--border))] pt-5">
+          <div v-if="editingId && editingPublished" class="border-t border-[hsl(var(--border))] pt-5">
             <h3 class="font-display text-lg font-semibold text-[hsl(var(--primary))]">Progress</h3>
             <p class="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
               Counted from approved entries by the <code>syncNiyamChallengeTotals</code> function.
-              Approving or rejecting below updates it within a second or two.
+              Approving or rejecting updates it within a second or two.
             </p>
             <dl class="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
               <div class="rounded-xl bg-[hsl(var(--muted))]/60 px-3 py-2">
                 <dt class="text-[10px] font-semibold uppercase tracking-[0.12em] text-[hsl(var(--golden-900))]">Counted</dt>
-                <dd class="font-display text-lg text-[hsl(var(--primary))]">{{ formatCount(stats?.approvedTotal || 0) }}</dd>
+                <dd class="font-display text-lg text-[hsl(var(--primary))]" :title="formatCount(stats?.approvedTotal || 0)">
+                  {{ formatBigCount(stats?.approvedTotal || 0) }}
+                </dd>
               </div>
               <div class="rounded-xl bg-amber-50 px-3 py-2">
                 <dt class="text-[10px] font-semibold uppercase tracking-[0.12em] text-amber-800">Held</dt>
-                <dd class="font-display text-lg text-amber-800">{{ formatCount(stats?.pendingTotal || 0) }}</dd>
+                <dd class="font-display text-lg text-amber-800" :title="formatCount(stats?.pendingTotal || 0)">
+                  {{ formatBigCount(stats?.pendingTotal || 0) }}
+                </dd>
               </div>
               <div class="rounded-xl bg-[hsl(var(--muted))]/60 px-3 py-2">
                 <dt class="text-[10px] font-semibold uppercase tracking-[0.12em] text-[hsl(var(--golden-900))]">Devotees</dt>
@@ -152,64 +341,107 @@
                 <dd class="font-display text-lg text-[hsl(var(--primary))]">{{ formatCount(submissions.length) }}</dd>
               </div>
             </dl>
+            <p v-if="lastDays.length" class="mt-3 text-xs text-[hsl(var(--muted-foreground))]">
+              Recent days:
+              <span v-for="day in lastDays" :key="day.dayKey" class="mr-2 inline-block">
+                {{ formatUkDateLabel(day.dayKey) }} · {{ formatCount(day.amount) }}
+              </span>
+            </p>
           </div>
 
-          <!-- ── Needs approval ──────────────────────────────────── -->
-          <div v-if="editingId" class="border-t border-[hsl(var(--border))] pt-5">
+          <!-- ── Logging on behalf of the mandir ─────────────────── -->
+          <div v-if="editingId && editingPublished" class="border-t border-[hsl(var(--border))] pt-5">
             <h3 class="font-display text-lg font-semibold text-[hsl(var(--primary))]">
-              Waiting for you ({{ pending.length }})
+              Add a count on behalf of the mandir
             </h3>
-            <p v-if="loadingSubmissions" class="mt-2 text-sm text-[hsl(var(--muted-foreground))]">Loading entries…</p>
-            <p v-else-if="!pending.length" class="mt-2 text-sm text-[hsl(var(--muted-foreground))]">
-              Nothing held back. Entries above
-              {{ formatCount(form.autoApproveMax) }} {{ form.unit }} will land here.
+            <p class="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
+              For what the sangat did together — the collective Janmangal, a sheet of counts gathered
+              at sabha. It is written as an ordinary entry under <strong>your own admin account</strong>,
+              because an entry can only be created under the account making it; the name below is what
+              everyone will see against it. The niyam's hard limit and auto-approve figure apply exactly
+              as they do to anyone else, so a large count will be held for review — yours to approve, in
+              the queue above.
             </p>
-            <ul v-else class="mt-3 space-y-3">
-              <li
-                v-for="entry in pending"
-                :key="entry.id"
-                class="rounded-xl border border-amber-200 bg-amber-50/60 p-3"
+            <form class="mt-3 space-y-3" @submit.prevent="onLogMandir">
+              <div class="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label :for="`${uid}-mandir-amount`" class="admin-label">
+                    How many {{ form.unit }}?
+                  </label>
+                  <input
+                    :id="`${uid}-mandir-amount`"
+                    v-model.number="mandir.amount"
+                    type="number"
+                    inputmode="numeric"
+                    min="1"
+                    :max="form.maxPerSubmission"
+                    step="1"
+                    class="admin-input"
+                  >
+                </div>
+                <div>
+                  <label :for="`${uid}-mandir-day`" class="admin-label">Day it was done</label>
+                  <input :id="`${uid}-mandir-day`" v-model="mandir.dayKey" type="date" class="admin-input">
+                </div>
+              </div>
+              <div class="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label :for="`${uid}-mandir-name`" class="admin-label">Shown as (max 32 characters)</label>
+                  <input
+                    :id="`${uid}-mandir-name`"
+                    v-model="mandir.name"
+                    type="text"
+                    :maxlength="SUBMISSION_NAME_MAX"
+                    class="admin-input"
+                    placeholder="Mandir sabha"
+                  >
+                </div>
+                <div>
+                  <label :for="`${uid}-mandir-note`" class="admin-label">Where the count came from</label>
+                  <input
+                    :id="`${uid}-mandir-note`"
+                    v-model="mandir.note"
+                    type="text"
+                    :maxlength="SUBMISSION_NOTE_MAX"
+                    class="admin-input"
+                    placeholder="Counted on paper at Sunday sabha"
+                  >
+                </div>
+              </div>
+              <p class="text-xs text-[hsl(var(--muted-foreground))]">
+                {{ mandirOutlook }}
+              </p>
+              <div class="flex flex-wrap items-center gap-2">
+                <button type="submit" class="admin-btn min-h-[44px]" :disabled="mandirSaving || !isChallengeOpen(previewChallenge)">
+                  {{ mandirSaving ? 'Adding…' : 'Add to this niyam' }}
+                </button>
+                <span v-if="!isChallengeOpen(previewChallenge)" class="text-xs text-amber-800">
+                  This niyam is not open, so no entry can be created against it.
+                </span>
+              </div>
+            </form>
+            <p v-if="mandirError" class="mt-2 text-sm text-red-600">{{ mandirError }}</p>
+            <p
+              v-else-if="mandirResult"
+              class="mt-2 rounded-lg px-3 py-2 text-sm"
+              :class="mandirResult.held
+                ? 'bg-amber-50 text-amber-800'
+                : 'bg-[hsl(var(--golden-50))] text-[hsl(var(--primary))]'"
+            >
+              {{ mandirResult.message }}
+              <button
+                v-if="mandirResult.held"
+                type="button"
+                class="font-semibold underline underline-offset-2"
+                @click="goToQueue(editingId || '')"
               >
-                <div class="flex flex-wrap items-baseline justify-between gap-2">
-                  <p class="font-semibold text-[hsl(var(--foreground))]">
-                    {{ entry.userName }}
-                    <span class="text-[hsl(var(--primary))]">
-                      · {{ formatCount(entry.amount) }} {{ form.unit }}
-                    </span>
-                  </p>
-                  <p class="text-xs text-[hsl(var(--muted-foreground))]">{{ formatUkDateLabel(entry.dayKey) }}</p>
-                </div>
-                <p v-if="entry.note" class="mt-1 text-sm text-[hsl(var(--muted-foreground))]">“{{ entry.note }}”</p>
-
-                <!-- The judgement context: what this person has done already. -->
-                <p class="mt-2 text-xs text-[hsl(var(--muted-foreground))]">
-                  {{ personSummary(entry) }}
-                </p>
-
-                <div class="mt-3 flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    class="admin-btn"
-                    :disabled="!!reviewingId"
-                    @click="approve(entry)"
-                  >
-                    {{ reviewingId === entry.id ? 'Saving…' : 'Approve' }}
-                  </button>
-                  <button
-                    type="button"
-                    class="admin-btn-secondary"
-                    :disabled="!!reviewingId"
-                    @click="onReject(entry)"
-                  >
-                    Reject
-                  </button>
-                </div>
-              </li>
-            </ul>
+                Approve it in the queue
+              </button>
+            </p>
           </div>
 
           <!-- ── Everyone's entries ──────────────────────────────── -->
-          <div v-if="editingId" class="border-t border-[hsl(var(--border))] pt-5">
+          <div v-if="editingId && editingPublished" class="border-t border-[hsl(var(--border))] pt-5">
             <div class="flex flex-wrap items-center justify-between gap-2">
               <h3 class="font-display text-lg font-semibold text-[hsl(var(--primary))]">All entries</h3>
               <div class="inline-flex rounded-lg border border-[hsl(var(--border))] bg-white p-0.5 text-xs">
@@ -217,7 +449,7 @@
                   v-for="option in filters"
                   :key="option.id"
                   type="button"
-                  class="rounded-md px-2.5 py-1 font-semibold transition-colors"
+                  class="min-h-[36px] rounded-md px-2.5 py-1 font-semibold transition-colors"
                   :class="filter === option.id
                     ? 'bg-[hsl(var(--primary))] text-white'
                     : 'text-[hsl(var(--muted-foreground))]'"
@@ -228,7 +460,8 @@
               </div>
             </div>
 
-            <p v-if="!filtered.length" class="mt-3 text-sm text-[hsl(var(--muted-foreground))]">
+            <p v-if="loadingSubmissions" class="mt-3 text-sm text-[hsl(var(--muted-foreground))]">Loading entries…</p>
+            <p v-else-if="!filtered.length" class="mt-3 text-sm text-[hsl(var(--muted-foreground))]">
               No entries to show.
             </p>
             <div v-else class="mt-3 overflow-x-auto">
@@ -247,6 +480,10 @@
                     <td class="py-2 pr-3">
                       <span class="font-semibold text-[hsl(var(--foreground))]">{{ entry.userName }}</span>
                       <span v-if="entry.note" class="block text-xs text-[hsl(var(--muted-foreground))]">{{ entry.note }}</span>
+                      <!-- Judgement context, free here because the whole list is loaded. -->
+                      <span v-if="entry.status === 'pending'" class="block text-xs text-[hsl(var(--muted-foreground))]">
+                        {{ personSummary(entry) }}
+                      </span>
                     </td>
                     <td class="py-2 pr-3 font-semibold text-[hsl(var(--primary))]">{{ formatCount(entry.amount) }}</td>
                     <td class="py-2 pr-3 text-xs text-[hsl(var(--muted-foreground))]">{{ formatUkDateLabel(entry.dayKey) }}</td>
@@ -260,7 +497,7 @@
                         <button
                           v-if="entry.status !== 'approved'"
                           type="button"
-                          class="text-xs font-semibold text-[hsl(var(--primary))] hover:underline disabled:opacity-40"
+                          class="min-h-[36px] text-xs font-semibold text-[hsl(var(--primary))] hover:underline disabled:opacity-40"
                           :disabled="!!reviewingId"
                           @click="approve(entry)"
                         >
@@ -269,7 +506,7 @@
                         <button
                           v-if="entry.status === 'approved'"
                           type="button"
-                          class="text-xs font-semibold text-amber-700 hover:underline disabled:opacity-40"
+                          class="min-h-[36px] text-xs font-semibold text-amber-700 hover:underline disabled:opacity-40"
                           :disabled="!!reviewingId"
                           @click="hold(entry)"
                         >
@@ -278,9 +515,9 @@
                         <button
                           v-if="entry.status !== 'rejected'"
                           type="button"
-                          class="text-xs font-semibold text-red-600 hover:underline disabled:opacity-40"
+                          class="min-h-[36px] text-xs font-semibold text-red-600 hover:underline disabled:opacity-40"
                           :disabled="!!reviewingId"
-                          @click="onReject(entry)"
+                          @click="askReject(entry)"
                         >
                           Reject
                         </button>
@@ -317,51 +554,98 @@
         </div>
 
         <p v-else class="text-sm text-[hsl(var(--muted-foreground))]">
-          Select a challenge to edit and review its entries, or create a new one.
+          Select a niyam to edit it and review its entries, or create a new one.
         </p>
       </template>
     </AdminEditorLayout>
+
+    <AdminConfirmDialog
+      :open="!!rejectTarget"
+      title="Not counting this entry"
+      :body="rejectBody"
+      confirm-label="Reject entry"
+      with-reason
+      danger
+      reason-label="Why is it not being counted? (optional)"
+      reason-placeholder="e.g. counted twice — the same malas are already in Sunday's entry"
+      @confirm="onRejectConfirm"
+      @cancel="rejectTarget = null"
+    />
+
+    <AdminConfirmDialog
+      :open="confirmDelete"
+      title="Delete this niyam?"
+      body="Every entry devotees have submitted towards it is deleted too, and its total is unwound."
+      confirm-label="Delete niyam and entries"
+      danger
+      @confirm="onDelete"
+      @cancel="confirmDelete = false"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { Timestamp } from 'firebase/firestore'
-import type { NiyamChallenge, NiyamSubmission, NiyamSubmissionStatus } from '~/types'
+import type { NiyamSubmission, NiyamSubmissionStatus } from '~/types'
+import type { NiyamChallenge, NiyamIconKey, NiyamInputMode } from '~/types'
+import { formatBigCount, NIYAM_ICON_NAMES } from '~/composables/useAdminNiyamChallenges'
+import { iconFor, isPublished } from '~/utils/niyamChallenge'
 import {
   DEFAULT_AUTO_APPROVE_MAX,
   DEFAULT_MAX_PER_SUBMISSION,
   formatCount,
   isChallengeOpen,
-  sortChallenges,
-  toMillis
+  needsReview,
+  SUBMISSION_NAME_MAX,
+  SUBMISSION_NOTE_MAX,
+  toMillis,
+  unitLabel
 } from '~/utils/niyamChallenge'
 
 definePageMeta({ layout: 'admin', middleware: 'admin' })
 
 const {
-  items,
+  allChallenges,
+  unpublishedDefaults,
+  overview,
+  awaitingTotal,
+  overviewLoading,
+  overviewError,
+  queue,
+  queueCapped,
+  loadOverview,
+  refreshChallenge,
+  historyLoading,
+  loadHistory,
   loading,
   saving,
   error,
-  fetchAll,
   create,
+  setItem,
   updateItem,
   submissions,
   contributors,
   stats,
-  pending,
   loadingSubmissions,
   reviewingId,
   submissionError,
   contextFor,
+  queueContextFor,
   loadChallengeDetail,
   approve,
   reject,
   hold,
+  publishDefault,
+  publishAllDefaults,
+  logMandirEntry,
+  mandirSaving,
+  mandirError,
   purgeChallenge
 } = useAdminNiyamChallenges()
 
 type FilterId = 'all' | 'pending' | 'approved' | 'rejected'
+
+const ALL = '__all__'
 
 const filters: { id: FilterId; label: string }[] = [
   { id: 'all', label: 'All' },
@@ -370,9 +654,16 @@ const filters: { id: FilterId; label: string }[] = [
   { id: 'rejected', label: 'Rejected' }
 ]
 
+const uid = useId()
 const filter = ref<FilterId>('all')
 const showForm = ref(false)
 const editingId = ref<string | null>(null)
+const editingPublished = ref(false)
+const queueFilter = ref('')
+const queueEl = ref<HTMLElement | null>(null)
+const publishingId = ref<string | null>(null)
+const rejectTarget = ref<NiyamSubmission | null>(null)
+const confirmDelete = ref(false)
 
 const form = reactive({
   title: '',
@@ -385,10 +676,39 @@ const form = reactive({
   active: true,
   order: 0,
   autoApproveMax: DEFAULT_AUTO_APPROVE_MAX,
-  maxPerSubmission: DEFAULT_MAX_PER_SUBMISSION
+  maxPerSubmission: DEFAULT_MAX_PER_SUBMISSION,
+  inputMode: 'count' as NiyamInputMode,
+  presets: '',
+  hint: '',
+  icon: 'niyam' as NiyamIconKey
 })
 
-const sorted = computed(() => sortChallenges(items.value))
+const mandir = reactive({
+  amount: '' as number | string,
+  name: 'Mandir sabha',
+  note: '',
+  dayKey: ''
+})
+const mandirResult = ref<{ held: boolean; message: string } | null>(null)
+
+const iconOptions = NIYAM_ICON_NAMES
+const inputModes: { id: NiyamInputMode; label: string; hint: string }[] = [
+  { id: 'count', label: 'Count', hint: 'The devotee enters how many they have done.' },
+  { id: 'checkin', label: 'Check-in', hint: 'One tap adds a single entry — no number to type.' }
+]
+
+/** Three sources of failure, one banner — and never the same sentence twice. */
+const problems = computed(() =>
+  [...new Set([error.value, overviewError.value, submissionError.value].filter(Boolean))]
+)
+
+const countLabel = computed(() => {
+  const total = allChallenges.value.length
+  const waiting = unpublishedDefaults.value.length
+  return waiting
+    ? `${total} niyams · ${waiting} not published`
+    : `${total} niyam${total === 1 ? '' : 's'}`
+})
 
 const filtered = computed(() =>
   filter.value === 'all'
@@ -396,7 +716,68 @@ const filtered = computed(() =>
     : submissions.value.filter(s => s.status === filter.value)
 )
 
-onMounted(fetchAll)
+const anyQueueCapped = computed(() => Object.values(queueCapped.value).some(Boolean))
+
+const presetNumbers = computed(() =>
+  form.presets
+    .split(/[,\s]+/)
+    .map(part => Math.floor(Number(part)))
+    .filter(n => Number.isFinite(n) && n > 0)
+    .slice(0, 6)
+)
+
+/** The form as a challenge, for the preview and for the open/closed checks. */
+const previewChallenge = computed<NiyamChallenge>(() => ({
+  id: editingId.value || 'preview',
+  title: form.title,
+  detail: form.detail,
+  unit: form.unit.trim() || 'entries',
+  unitSingular: form.unitSingular.trim() || form.unit.trim() || 'entry',
+  target: Math.max(1, Math.floor(Number(form.target) || 0)),
+  startAt: form.startDate ? toTimestamp(form.startDate, 'start') : null,
+  endAt: form.endDate ? toTimestamp(form.endDate, 'end') : null,
+  active: !!form.active,
+  order: form.order,
+  autoApproveMax: Math.max(0, Math.floor(Number(form.autoApproveMax) || 0)),
+  maxPerSubmission: Math.max(1, Math.floor(Number(form.maxPerSubmission) || 1)),
+  inputMode: form.inputMode,
+  presets: presetNumbers.value,
+  hint: form.hint,
+  icon: form.icon
+}))
+
+/** Says up front whether this mandir entry will count or wait for approval. */
+const mandirOutlook = computed(() => {
+  const amount = Math.floor(Number(mandir.amount) || 0)
+  const unit = unitLabel(previewChallenge.value, amount || 2)
+  if (amount < 1) return `Recorded as “${mandir.name.trim() || 'Mandir sabha'}”, with your account behind it.`
+  if (amount > previewChallenge.value.maxPerSubmission) {
+    return `Over the hard limit of ${formatCount(previewChallenge.value.maxPerSubmission)} ${unit} — Firestore will refuse it. Split it across entries.`
+  }
+  return needsReview(previewChallenge.value, amount)
+    ? `${formatCount(amount)} ${unit} is above the auto-approve figure, so it will be held and you will need to approve it in the queue.`
+    : `${formatCount(amount)} ${unit} counts towards the total straight away.`
+})
+
+/** The last few days the Cloud Function has rolled up, when it has written any. */
+const lastDays = computed(() => {
+  const daily = stats.value?.dailyTotals
+  if (!daily) return []
+  return Object.entries(daily)
+    .sort((a, b) => b[0].localeCompare(a[0]))
+    .slice(0, 5)
+    .map(([dayKey, amount]) => ({ dayKey, amount }))
+})
+
+const rejectBody = computed(() => {
+  const entry = rejectTarget.value
+  if (!entry) return ''
+  const challenge = allChallenges.value.find(c => c.id === entry.challengeId)
+  const unit = challenge ? unitLabel(challenge, entry.amount) : 'entries'
+  return `${entry.userName} · ${formatCount(entry.amount)} ${unit} on ${challenge?.title || entry.challengeId}. It stays on their card, marked not counted, with your reason.`
+})
+
+onMounted(loadOverview)
 
 /** `YYYY-MM-DD` for a date input, in UK time so it matches what admins see. */
 function dateInputValue(value: NiyamChallenge['startAt']): string {
@@ -420,8 +801,30 @@ function toTimestamp(dateString: string, edge: 'start' | 'end'): Timestamp | nul
   return Timestamp.fromDate(date)
 }
 
+function listChipLabel(challenge: NiyamChallenge) {
+  if (!isPublished(challenge)) return 'Not published'
+  if (isChallengeOpen(challenge)) return 'Open'
+  return challenge.active ? 'Scheduled' : 'Paused'
+}
+
+function listChipClass(challenge: NiyamChallenge) {
+  if (!isPublished(challenge)) return 'bg-amber-50 text-amber-800'
+  if (isChallengeOpen(challenge)) return 'bg-[hsl(var(--golden-50))] text-[hsl(var(--primary))]'
+  return 'bg-[hsl(var(--muted))] text-[hsl(var(--muted-foreground))]'
+}
+
+function resetMandirForm() {
+  mandir.amount = ''
+  mandir.name = 'Mandir sabha'
+  mandir.note = ''
+  mandir.dayKey = ukDateId()
+  mandirResult.value = null
+  mandirError.value = ''
+}
+
 function openNew() {
   editingId.value = null
+  editingPublished.value = false
   Object.assign(form, {
     title: '',
     detail: '',
@@ -431,23 +834,29 @@ function openNew() {
     startDate: ukDateId(),
     endDate: addUkDays(ukDateId(), 90),
     active: true,
-    order: items.value.length + 1,
+    order: allChallenges.value.length + 1,
     autoApproveMax: DEFAULT_AUTO_APPROVE_MAX,
-    maxPerSubmission: DEFAULT_MAX_PER_SUBMISSION
+    maxPerSubmission: DEFAULT_MAX_PER_SUBMISSION,
+    inputMode: 'count',
+    presets: '1, 5, 11',
+    hint: '',
+    icon: 'niyam'
   })
   showForm.value = true
   submissions.value = []
   contributors.value = []
   stats.value = null
+  resetMandirForm()
 }
 
 async function openEdit(challenge: NiyamChallenge) {
   const id = String(challenge.id || '').trim()
   if (!id) {
-    error.value = 'This challenge is missing a document id.'
+    error.value = 'This niyam is missing a document id.'
     return
   }
   editingId.value = id
+  editingPublished.value = isPublished(challenge)
   Object.assign(form, {
     title: challenge.title,
     detail: challenge.detail,
@@ -459,11 +868,32 @@ async function openEdit(challenge: NiyamChallenge) {
     active: challenge.active !== false,
     order: challenge.order ?? 0,
     autoApproveMax: challenge.autoApproveMax ?? DEFAULT_AUTO_APPROVE_MAX,
-    maxPerSubmission: challenge.maxPerSubmission ?? DEFAULT_MAX_PER_SUBMISSION
+    maxPerSubmission: challenge.maxPerSubmission ?? DEFAULT_MAX_PER_SUBMISSION,
+    inputMode: challenge.inputMode || 'count',
+    presets: (challenge.presets || []).join(', '),
+    hint: challenge.hint || '',
+    icon: challenge.icon || 'niyam'
   })
   showForm.value = true
   filter.value = 'all'
-  await loadChallengeDetail(id)
+  resetMandirForm()
+  if (editingPublished.value) {
+    await loadChallengeDetail(id)
+  } else {
+    submissions.value = []
+    contributors.value = []
+    stats.value = null
+  }
+}
+
+function selectChallenge(challengeId: string) {
+  const challenge = allChallenges.value.find(c => c.id === challengeId)
+  if (challenge) openEdit(challenge)
+}
+
+function goToQueue(challengeId: string) {
+  queueFilter.value = challengeId
+  nextTick(() => queueEl.value?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
 }
 
 function closeForm() {
@@ -475,7 +905,7 @@ async function save() {
   if (saving.value) return
   const title = form.title.trim()
   if (!title) {
-    error.value = 'Give the challenge a title.'
+    error.value = 'Give the niyam a title.'
     return
   }
   const target = Math.max(1, Math.floor(Number(form.target) || 0))
@@ -493,28 +923,94 @@ async function save() {
     active: !!form.active,
     order: Math.max(0, Math.floor(Number(form.order) || 0)),
     autoApproveMax,
-    maxPerSubmission
+    maxPerSubmission,
+    inputMode: form.inputMode,
+    presets: presetNumbers.value,
+    hint: form.hint.trim(),
+    icon: form.icon
   }
 
   try {
-    if (editingId.value) {
+    if (editingId.value && editingPublished.value) {
       await updateItem(editingId.value, payload)
+    } else if (editingId.value) {
+      // An unpublished default: write it at its own slug id, never a new one.
+      await setItem(editingId.value, payload)
+      editingPublished.value = true
+      await loadChallengeDetail(editingId.value)
     } else {
       const id = await create(payload)
       editingId.value = id || null
+      editingPublished.value = !!id
       if (id) await loadChallengeDetail(id)
     }
     form.autoApproveMax = autoApproveMax
     form.maxPerSubmission = maxPerSubmission
+    // `items` already refreshed inside the write, so only this niyam's
+    // totals and held entries still need re-reading.
+    if (editingId.value) await refreshChallenge(editingId.value)
   } catch {
     /* error already set by the composable */
   }
 }
 
+async function onPublish(challengeId: string) {
+  if (publishingId.value) return
+  publishingId.value = challengeId
+  try {
+    await publishDefault(challengeId)
+    await refreshChallenge(challengeId)
+  } catch (e) {
+    error.value = (e as Error).message
+  } finally {
+    publishingId.value = null
+  }
+}
+
+async function onPublishAll() {
+  if (publishingId.value) return
+  publishingId.value = ALL
+  try {
+    await publishAllDefaults()
+  } catch (e) {
+    error.value = (e as Error).message
+  } finally {
+    publishingId.value = null
+  }
+}
+
+async function onLogMandir() {
+  const challenge = allChallenges.value.find(c => c.id === editingId.value)
+  if (!challenge) return
+  mandirResult.value = null
+  try {
+    const result = await logMandirEntry(challenge, {
+      amount: Number(mandir.amount) || 0,
+      name: mandir.name,
+      note: mandir.note,
+      dayKey: mandir.dayKey || ukDateId()
+    })
+    const unit = unitLabel(challenge, result.amount)
+    mandirResult.value = result.status === 'pending'
+      ? {
+          held: true,
+          message: `${formatCount(result.amount)} ${unit} recorded as “${mandir.name.trim() || 'Mandir sabha'}” and held for review — it is over the auto-approve figure, so it is not in the total yet.`
+        }
+      : {
+          held: false,
+          message: `${formatCount(result.amount)} ${unit} added to the total as “${mandir.name.trim() || 'Mandir sabha'}”.`
+        }
+    mandir.amount = ''
+    mandir.note = ''
+  } catch {
+    /* mandirError is already set by the composable */
+  }
+}
+
 async function onDelete() {
   const id = editingId.value
+  confirmDelete.value = false
   if (!id) return
-  if (!confirm('Delete this challenge? Every entry devotees have submitted towards it is deleted too.')) return
   try {
     await purgeChallenge(id)
     closeForm()
@@ -523,17 +1019,18 @@ async function onDelete() {
   }
 }
 
-/**
- * Rejecting without a word back is a dead end for the devotee, so offer a
- * reason. Cancelling the prompt cancels the rejection; an empty reason is fine.
- */
-function onReject(entry: NiyamSubmission) {
-  const reason = prompt(`Why is ${entry.userName}'s entry of ${formatCount(entry.amount)} ${form.unit} not being counted? (optional)`)
-  if (reason === null) return
-  reject(entry, reason)
+/** Rejecting without a word back is a dead end for the devotee, so offer a reason. */
+function askReject(entry: NiyamSubmission) {
+  rejectTarget.value = entry
 }
 
-/** One line an admin can judge a held entry against. */
+function onRejectConfirm(reason: string) {
+  const entry = rejectTarget.value
+  rejectTarget.value = null
+  if (entry) reject(entry, reason)
+}
+
+/** One line an admin can judge a held entry against, inside the loaded challenge. */
 function personSummary(entry: NiyamSubmission): string {
   const context = contextFor(entry)
   const parts = [
@@ -559,5 +1056,5 @@ function chipClass(status: NiyamSubmissionStatus) {
   return 'bg-amber-50 text-amber-800'
 }
 
-useHead({ title: 'Niyam challenges · Admin' })
+useHead({ title: 'Niyams · Admin' })
 </script>

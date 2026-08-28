@@ -4,6 +4,11 @@
 Only curated Swaminarayan, Gujarati and basic Hinduism terms are included —
 no Sahasranama or obscure Sanskrit name dumps.
 
+Doctrinal wording follows Shree Swaminarayan Mandir Bhuj:
+https://www.swaminarayan.faith/learning-resources/scriptures
+(Vachnamrut, Shikshapatri, Satsangi Jeevan). Do not import BAPS guru-lineage
+titles, “Bapa” as a name for the guru, or later BAPS pilgrimage centres.
+
 The generated JSON is committed so the games do not need network access.
 Run this script only when intentionally refreshing the bank.
 
@@ -25,31 +30,30 @@ OUTPUT = ROOT / "data" / "satsangWordBank.json"
 CURATED = """
 Aarti|Worship ceremony performed with lighted lamps|worship
 Abhishek|Ritual bathing of a sacred murti|worship
-Acharya|A spiritual teacher or guide|satsang
+Acharya|The hereditary spiritual head of a Swaminarayan gadi|satsang
 Agna|A spiritual command or instruction|satsang
 Ahmedabad|Gujarat city home to the first Swaminarayan mandir|place
 Ahinsa|The principle of non-violence|value
-Akshar|The eternal abode and ideal devotee of Purushottam|swaminarayan
+Akshar|The eternal, unchanging reality; one of the five tattvas in the Vachnamrut|swaminarayan
 Akshardham|The divine abode of Bhagvan Swaminarayan|swaminarayan
 Amrut|Nectar or that which is immortal|satsang
 Anand|Spiritual bliss or joy|hinduism
 Anjali|A gesture of reverence with joined palms|worship
-Anuvrutti|Following the inner wish of the guru|satsang
+Anuvrutti|Following the inner wish of Bhagvan or a sant|satsang
 Arjun|Warrior taught by Krishna in the Bhagavad Gita|hinduism
 Arti|Lamp ceremony, spelled this way in the Vachnamrut|worship
 Ashirwad|A blessing|worship
 Ashram|A place for spiritual practice and community|community
-Atladra|Swaminarayan pilgrimage centre near Vadodara|place
 Atma|The eternal self or soul|hinduism
-Atmabuddhi|Deep identification and oneness with the Satpurush|swaminarayan
+Atmabuddhi|Firm identification of oneself as the atma, not the body|swaminarayan
 Avatar|A divine manifestation on earth|hinduism
 Ayodhya|Sacred birthplace of Bhagvan Ram|place
 Badrinath|Himalayan pilgrimage shrine dedicated to Vishnu|place
 Balak|A child|community
 Balika|A young girl in satsang|community
 Bal Mandal|A satsang group for children|community
-Bapa|An affectionate form of address for a revered guru|swaminarayan
-Bapu|Affectionate Gujarati address for a respected elder or guru|gujarati
+Bapa|Gujarati word for father|gujarati
+Bapu|Affectionate Gujarati address for a respected elder|gujarati
 Barfi|A milk-based Indian sweet often offered as prasad|food
 Shreemad Bhagvat|Puran the Vachnamrut quotes on Bhagvan's true form|scripture
 Bhagvan|The supreme Lord|hinduism
@@ -62,7 +66,6 @@ Bhima|One of the Pandava brothers known for strength|hinduism
 Bhog|Food prepared as an offering to God|worship
 Bhumi|The earth, revered as a divine mother|hinduism
 Bhuj|Town in Kutch with a historic Swaminarayan mandir|place
-Bochasan|Swaminarayan pilgrimage town in Gujarat|place
 Brahma|The deity associated with creation|hinduism
 Brahm-charya|Self-restraint and purity|hinduism
 Chaas|Gujarati buttermilk drink|food
@@ -94,7 +97,7 @@ Dhoti|Traditional lower garment worn by men|gujarati
 Dhun|Repetitive chanting of God's name|worship
 Dhyan|Meditation and focused remembrance|worship
 Diksha|Formal spiritual initiation|satsang
-Divyabhav|Seeing the divine qualities of God and the Satpurush|swaminarayan
+Divyabhav|Seeing the divine nature of Bhagvan and His sants|swaminarayan
 Diwali|The Hindu festival of lights|festival
 Draupadi|Wife of the Pandavs in the Mahabharat|hinduism
 Durga|The powerful mother goddess|hinduism
@@ -119,7 +122,6 @@ Geeta|Sacred dialogue between Shree Krishna Bhagvan and Arjun|scripture
 Gnan|Spiritual knowledge|hinduism
 Gokul|Village associated with Krishna's childhood|place
 Golok|The divine abode associated with Krishna|place
-Gondal|Gujarat town with a Swaminarayan mandir|place
 Gopi|A devotee remembered for pure love of Krishna|hinduism
 Gopuram|Monumental gateway of a Hindu temple|worship
 Govardhan|The sacred hill lifted by Krishna|place
@@ -127,7 +129,7 @@ Govinda|A beloved name of Krishna|hinduism
 Grahastha|A householder devotee, as distinct from a tyagi|hinduism
 Gujarat|Western Indian state of Swaminarayan origins|place
 Gunatit|Beyond the three gunas|swaminarayan
-Gunatitanand|The first spiritual successor of Bhagvan Swaminarayan|swaminarayan
+Gunatitanand|A senior paramhansa saint of Bhagvan Swaminarayan|swaminarayan
 Guru|A spiritual teacher who dispels ignorance|satsang
 Guru Bhakti|Devotion to the spiritual guru|swaminarayan
 Guru Purnima|Festival honouring the spiritual teacher|festival
@@ -212,9 +214,7 @@ Parikrama|Walking reverently around a sacred object or shrine|worship
 Parshad|An initiated renunciant dressed in white|swaminarayan
 Pedha|A milk sweet often offered as prasad|food
 Pradakshina|Clockwise circumambulation during worship|worship
-Pragat|Manifest and present|swaminarayan
-Pramukh|One who leads or presides|swaminarayan
-Pramukh Swami|Fifth spiritual successor of Bhagvan Swaminarayan|swaminarayan
+Pragat|Manifest before the eyes — Bhagvan present in His murti|swaminarayan
 Prarthana|A heartfelt prayer|worship
 Prasad|Food sanctified by offering it to God|worship
 Prasadi|Something sanctified through association with God|swaminarayan
@@ -251,7 +251,7 @@ Sanstha|An organised religious fellowship|community
 Sarangpur|Major Swaminarayan pilgrimage centre in Gujarat|place
 Saraswati|Goddess associated with learning and the arts|hinduism
 Sarovar|A sacred lake or reservoir|place
-Satpurush|The God-realised saint who guides seekers|swaminarayan
+Satpurush|A God-realised sant, as described in the Vachnamrut|swaminarayan
 Satsang|Holy fellowship and association with truth|swaminarayan
 Satsangi|A member of the satsang fellowship|community
 Satya|Truth|value
@@ -293,7 +293,6 @@ Thepla|Spiced Gujarati flatbread|food
 Tilak|The U-shaped sacred mark worn on the forehead|swaminarayan
 Tilak Chandlo|The forehead marks worn by Swaminarayan devotees|swaminarayan
 Tirth|A sacred pilgrimage place|place
-Tithal|Coastal Swaminarayan pilgrimage place in Gujarat|place
 Torana|Decorative gateway or auspicious door hanging|festival
 Tridev|The divine triad of Brahma, Vishnu and Shiv|hinduism
 Trishul|The trident associated with Shiv|hinduism
@@ -323,7 +322,6 @@ Yashoda|Krishna's loving foster mother|hinduism
 Yatra|A sacred pilgrimage journey|worship
 Yog|A disciplined path toward spiritual union|hinduism
 Yogi|One who practises yog and spiritual discipline|satsang
-Yogiji Maharaj|Fourth spiritual successor of Bhagvan Swaminarayan|swaminarayan
 Yug|A great age in the Hindu cycle of time|hinduism
 Yuvak|A young man in satsang|community
 Yuvati|A young woman in satsang|community
@@ -398,7 +396,7 @@ Avgun|Fault-finding — seeing flaws in a sant or devotee|satsang
 Badrikashram|Himalayan ashram of Nar-Narayan Dev|place
 Bhadarva|The month in which Jal-jhilani and Ganesh Chaturthi fall|festival
 Bharat-Khand|The land in which human birth and kalyan are possible|place
-Brahm|The eternal, all-pervading abode and ideal devotee|swaminarayan
+Brahm|The eternal abode of Purushottam, one of the five tattvas|swaminarayan
 Brahm-Chari|A celibate attendant who serves the murti|satsang
 Brahmand|One of the countless cosmic spheres of creation|hinduism
 Bhugol Khugol|Vachnamrut chapter on the structure of the cosmos|scripture
@@ -556,7 +554,7 @@ Tamasi|Of the quality of tamas, dull and inert|hinduism
 Treta-Yug|The age of Ram Bhagvan|hinduism
 Trushna|Craving that keeps the jeev bound|value
 Tulsidas|The poet-saint of the Ram tradition|hinduism
-Vadodara|Gujarat city near Atladra|place
+Vadodara|Gujarat city, historically called Baroda|place
 Vadvanal|The submarine fire burning in the ocean|hinduism
 Valmiki|The rushi who composed the Ramayan|hinduism
 Vaman|The dwarf avatar of Vishnu|hinduism
@@ -614,7 +612,7 @@ Premavati|A devotee whose story is told in the Satsangi Jeevan|scripture
 Pundra|The upright tilak mark worn on the forehead|worship
 Purascharan|A sustained repetition of a mantra as a vow|worship
 Raghuvirji|The acharya Maharaj appointed to the Vadtal gadi|swaminarayan
-Ramapratap|The elder brother of Bhagvan Swaminarayan|swaminarayan
+Ramprasad|The elder brother of Bhagvan Swaminarayan|swaminarayan
 Sanyasi|One who has taken the fourth and final ashram|satsang
 Saptami|The seventh tithi of the lunar fortnight|festival
 Sarayu|The river at Ayodhya|place

@@ -33,21 +33,6 @@
         </div>
       </section>
 
-      <div class="mb-6 flex flex-wrap justify-center gap-2">
-        <button
-          v-for="p in prompts"
-          :key="p"
-          type="button"
-          class="max-w-full rounded-full px-3 py-1.5 text-left text-xs font-medium transition-colors sm:text-sm"
-          :class="form.prompt === p
-            ? 'bg-[hsl(var(--primary))] text-white'
-            : 'bg-[hsl(var(--muted))] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--primary))]'"
-          @click="form.prompt = p; isFormOpen = isLoggedIn"
-        >
-          {{ p }}
-        </button>
-      </div>
-
       <div class="text-center mb-10">
         <button
           v-if="isLoggedIn"
@@ -55,7 +40,7 @@
           class="btn-primary text-sm"
           @click="isFormOpen = !isFormOpen"
         >
-          Leave a message
+          Post message
         </button>
         <div v-else class="card-surface mx-auto max-w-md p-6">
           <p class="text-sm leading-relaxed text-[hsl(var(--muted-foreground))]">
@@ -68,13 +53,25 @@
         </div>
       </div>
 
-      <div v-show="isFormOpen && isLoggedIn" class="mb-12">
+      <div v-if="isFormOpen && isLoggedIn" class="mb-12">
         <div class="card-surface mx-auto max-w-lg p-6 sm:p-8">
-          <h3 class="text-center font-display text-xl font-semibold">{{ form.prompt || 'Your message' }}</h3>
+          <h3 class="text-center font-display text-xl font-semibold text-[hsl(var(--primary))]">Your message</h3>
           <p class="mt-1 text-center text-xs text-[hsl(var(--muted-foreground))]">
             Leave the name blank to post anonymously.
           </p>
           <form class="mt-6 space-y-4" @submit.prevent="onSubmit">
+            <div v-if="prompts.length">
+              <label class="mb-1 block text-sm font-medium" for="community-prompt">Prompt</label>
+              <select
+                id="community-prompt"
+                v-model="form.prompt"
+                class="w-full rounded-xl border border-[hsl(var(--golden-200))] bg-[hsl(var(--muted))]/40 px-4 py-2.5 text-sm"
+              >
+                <option value="" disabled>Choose a prompt…</option>
+                <option v-for="p in prompts" :key="p" :value="p">{{ p }}</option>
+              </select>
+              <p v-if="errors.prompt" class="mt-1 text-sm text-red-600">{{ errors.prompt }}</p>
+            </div>
             <div>
               <label class="mb-1 block text-sm font-medium">Your name</label>
               <input
@@ -140,7 +137,7 @@ const { communityPrompts } = useSiteContent()
 const prompts = communityPrompts
 const isFormOpen = ref(false)
 const form = reactive({ prompt: '', message: '', name: '' })
-const errors = reactive<{ message?: string }>({})
+const errors = reactive<{ message?: string; prompt?: string }>({})
 const pending = computed(() => createMessage.isPending.value)
 
 watch(
@@ -152,15 +149,16 @@ watch(
 )
 
 watch(prompts, (value) => {
-  if (!value.length) {
-    form.prompt = ''
-    return
-  }
-  if (!value.includes(form.prompt)) form.prompt = value[0]
+  if (!value.includes(form.prompt)) form.prompt = ''
 }, { immediate: true })
 
 async function onSubmit() {
   errors.message = undefined
+  errors.prompt = undefined
+  if (prompts.value.length && !form.prompt) {
+    errors.prompt = 'Please choose a prompt.'
+    return
+  }
   if (form.message.trim().length < 5) {
     errors.message = 'A few more words, please (5+ characters).'
     return
@@ -175,10 +173,13 @@ async function onSubmit() {
     })
     await refetch()
     form.message = ''
+    form.prompt = ''
     form.name = isLoggedIn.value && userName.value ? userName.value : ''
     isFormOpen.value = false
   } catch (e) {
     errors.message = (e as Error).message
   }
 }
+
+usePageSeo('Our Community', 'Share a memory, a prayer or a word of gratitude on the Bhaktiras community wall.')
 </script>

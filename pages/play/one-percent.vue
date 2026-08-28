@@ -43,7 +43,7 @@
       >
         <ol class="list-decimal space-y-2 pl-5">
           <li>Answer each question before the clock runs away. One wrong answer ends the run.</li>
-          <li>The timer starts when you tap <span class="font-semibold text-[hsl(var(--foreground))]">Start game</span> — it keeps running if you leave.</li>
+          <li>The timer starts when you tap <span class="font-semibold text-[hsl(var(--foreground))]">Start game</span> — it pauses if you leave.</li>
           <li>A new prakaran ladder arrives each day. Reach 1% to join the club.</li>
         </ol>
       </GameHowTo>
@@ -55,7 +55,7 @@
         </p>
         <p class="font-display text-xl font-semibold text-[hsl(var(--primary))]">{{ pack.title }}</p>
         <p class="text-sm text-[hsl(var(--muted-foreground))]">
-          Answer each Vachnamrut question before the clock beats you to the bottom. A new prakaran ladder arrives each day. The timer keeps running even if you leave.
+          Answer each Vachnamrut question before the clock beats you to the bottom. A new prakaran ladder arrives each day. The timer pauses if you leave and picks up when you return.
         </p>
         <button type="button" class="btn-primary" @click="startRun">Start today’s climb</button>
         <p v-if="finished" class="text-sm text-emerald-700">
@@ -122,7 +122,7 @@
       <GameHowTo>
         <ol class="list-decimal space-y-2 pl-5">
           <li>Answer each question before the clock runs away. One wrong answer ends the run.</li>
-          <li>The timer keeps running if you leave the page.</li>
+          <li>The timer pauses if you leave the page and picks up when you return.</li>
           <li>A new prakaran ladder arrives each day. Reach 1% to join the club.</li>
         </ol>
       </GameHowTo>

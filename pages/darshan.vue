@@ -58,4 +58,6 @@ function handleSankalpSubmit() {
   // In a real app: save to Firebase or call API
   sankalpName.value = ''
 }
+
+usePageSeo('Darshan', 'Darshan of Ghanshyam Maharaj and photographs from Shree KS Swaminarayan Temple Woolwich.')
 </script>

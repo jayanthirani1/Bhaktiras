@@ -35,9 +35,18 @@
           />
         </g>
 
-        <path :d="areaPath" :fill="`hsl(var(--primary) / 0.10)`" />
+        <!-- One path per unbroken run of recorded days. A day with no record is
+             a gap in the line, never a dive to zero — zero is a real reading. -->
         <path
-          :d="linePath"
+          v-for="(shape, index) in areaPaths"
+          :key="`area-${index}`"
+          :d="shape"
+          :fill="`hsl(var(--primary) / 0.10)`"
+        />
+        <path
+          v-for="(shape, index) in linePaths"
+          :key="`line-${index}`"
+          :d="shape"
           fill="none"
           stroke="hsl(var(--primary))"
           stroke-width="2"
@@ -66,6 +75,15 @@
         class="pointer-events-none absolute left-0 text-[10px] tabular-nums text-[hsl(var(--muted-foreground))]"
         :style="{ top: `${(tick.y / H) * 100}%`, transform: 'translate(calc(-100% - 0.5rem), -50%)' }"
       >{{ tick.value }}</span>
+
+      <!-- A recorded day with no recorded neighbour has no line to sit on, so it
+           is drawn as a dot instead of vanishing. -->
+      <span
+        v-for="dot in lonePoints"
+        :key="`dot-${dot.dateId}`"
+        class="pointer-events-none absolute h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[hsl(var(--primary))]"
+        :style="{ left: `${dot.leftPct}%`, top: `${(dot.y / H) * 100}%` }"
+      />
 
       <!-- 2px ring in the surface colour, not a stroke around the mark. Drawn in
            HTML because the stretched viewBox would flatten an SVG circle. -->
@@ -106,7 +124,7 @@
           <tbody>
             <tr v-for="point in [...points].reverse()" :key="point.dateId" class="border-t border-[hsl(var(--border))]">
               <td class="py-1">{{ shortDate(point.dateId) }}</td>
-              <td class="py-1 text-right tabular-nums">{{ point.value }}</td>
+              <td class="py-1 text-right tabular-nums">{{ point.value ?? '—' }}</td>
             </tr>
           </tbody>
         </table>
@@ -116,10 +134,11 @@
 </template>
 
 <script setup lang="ts">
+/** A null value is a day with no measurement — distinct from a measured zero. */
 const props = defineProps<{
   caption: string
   seriesLabel: string
-  points: Array<{ dateId: string; value: number }>
+  points: Array<{ dateId: string; value: number | null }>
 }>()
 
 const W = 300
@@ -128,7 +147,9 @@ const H = 100
 const frame = ref<HTMLElement | null>(null)
 const hoverIndex = ref<number | null>(null)
 
-const values = computed(() => props.points.map(point => point.value))
+const values = computed(() => props.points
+  .map(point => point.value)
+  .filter((value): value is number => value != null))
 const max = computed(() => Math.max(1, ...values.value))
 const average = computed(() => {
   if (!values.value.length) return 0
@@ -153,30 +174,67 @@ function xOf(index: number) {
   return (index / (props.points.length - 1)) * W
 }
 
+function leftPctOf(index: number) {
+  if (props.points.length < 2) return 50
+  return (index / (props.points.length - 1)) * 100
+}
+
 function yOf(value: number) {
   return H - (value / top.value) * H
 }
 
-const linePath = computed(() => props.points
-  .map((point, index) => `${index === 0 ? 'M' : 'L'}${xOf(index).toFixed(2)},${yOf(point.value).toFixed(2)}`)
-  .join(' '))
+type Run = Array<{ index: number; value: number }>
 
-const areaPath = computed(() => {
-  if (!props.points.length) return ''
-  return `${linePath.value} L${W},${H} L0,${H} Z`
+/** Consecutive measured days, split wherever the record has a hole. */
+const runs = computed(() => {
+  const found: Run[] = []
+  let current: Run = []
+  props.points.forEach((point, index) => {
+    if (point.value == null) {
+      if (current.length) found.push(current)
+      current = []
+      return
+    }
+    current.push({ index, value: point.value })
+  })
+  if (current.length) found.push(current)
+  return found
 })
+
+function pathOf(run: Run) {
+  return run
+    .map((point, position) =>
+      `${position === 0 ? 'M' : 'L'}${xOf(point.index).toFixed(2)},${yOf(point.value).toFixed(2)}`)
+    .join(' ')
+}
+
+const linePaths = computed(() => runs.value.filter(run => run.length > 1).map(pathOf))
+
+const areaPaths = computed(() => runs.value.filter(run => run.length > 1).map((run) => {
+  const first = run[0]
+  const last = run[run.length - 1]
+  return `${pathOf(run)} L${xOf(last.index).toFixed(2)},${H} L${xOf(first.index).toFixed(2)},${H} Z`
+}))
+
+const lonePoints = computed(() => runs.value
+  .filter(run => run.length === 1)
+  .map(([point]) => ({
+    dateId: props.points[point.index]!.dateId,
+    leftPct: leftPctOf(point.index),
+    y: yOf(point.value)
+  })))
 
 const active = computed(() => {
   const index = hoverIndex.value
-  if (index == null || !props.points[index]) return null
+  if (index == null) return null
   const point = props.points[index]
+  // Nothing to read out on an unrecorded day, so it gets no marker either.
+  if (!point || point.value == null) return null
   return {
     x: xOf(index),
     y: yOf(point.value),
-    leftPct: props.points.length < 2 ? 50 : (index / (props.points.length - 1)) * 100,
-    tooltipPct: props.points.length < 2
-      ? 50
-      : Math.min(92, Math.max(8, (index / (props.points.length - 1)) * 100)),
+    leftPct: leftPctOf(index),
+    tooltipPct: Math.min(92, Math.max(8, leftPctOf(index))),
     value: point.value,
     label: shortDate(point.dateId)
   }

@@ -1,0 +1,25 @@
+---
+description: All satsang content must follow swaminarayan.faith (Bhuj / SKSS scriptures)
+alwaysApply: true
+---
+
+# Scripture and satsang source
+
+Player-facing and admin-authored **satsang content** (word-bank clues, Bracket City, 1% Club, quotes, connections, charitra, legal/spiritual copy) must follow:
+
+- https://www.swaminarayan.faith/
+- https://www.swaminarayan.faith/learning-resources/scriptures
+
+Authoritative texts on that site: **Vachnamrut**, **Shikshapatri**, **Satsangi Jeevan**, and the related Hindu scriptures they publish. Spellings follow the Bhuj English translations (see `data/SATSANG_WORD_BANK.md`).
+
+## Do not use
+
+- BAPS guru lineage or titles (Pramukh Swami, Yogiji Maharaj, Shastriji Maharaj as “successors”, “Bapa” / “Bapa Shree” as a name for the guru)
+- BAPS-only pilgrimage centres as if they were SKSS yatra sites (Bochasan, Atladra, Tithal, Gondal as BAPS mandirs)
+- Akshar-Purushottam wording that treats Akshar as a living guru or “ideal devotee” person
+- Any teaching that cannot be traced to the Bhuj scriptures above
+
+## Do use
+
+- Bhagvan Swaminarayan, the two Acharya gadis (Ahmedabad Nar-Narayan, Vadtal Lakshmi-Narayan), paramhansas named in the Vachnamrut, and places that appear in those shastras (Gadhada, Vadtal, Sarangpur as a *prakaran*, Loj, Chhapaiya, etc.)
+- `SITE.scripturesUrl` when linking out to learning resources

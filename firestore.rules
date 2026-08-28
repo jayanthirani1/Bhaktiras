@@ -11,7 +11,14 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.active != false;
     }
 
-    // Doc ID = Auth UID. Fields: name, role (admin|guest), active.
+    // Doc ID = Auth UID. Fields: name, active.
+    //
+    // isAdmin() above is the whole model: the document exists and is active.
+    // There is no privilege tier — an admins document grants every write path
+    // in this file, including creating further admins. Documents used to carry
+    // a `role` of 'admin' or 'guest' and nothing ever read it, so the field has
+    // been dropped from the app rather than left implying a limit. A read-only
+    // tier has to start here, in the rules, before any UI can offer it.
     match /admins/{uid} {
       allow read: if isSignedIn() && (request.auth.uid == uid || isAdmin());
       allow create, update, delete: if isAdmin();
@@ -560,6 +567,24 @@ service cloud.firestore {
     match /siteContent/{id} {
       allow read: if true;
       allow create, update, delete: if isAdmin();
+    }
+
+    // Personal mandir visits for the "Visit Mandir" niyam. Private to the user.
+    // Document ID is the UK date (YYYY-MM-DD), so one visit per day is enforced
+    // by design — writing the same date twice is an update, not a duplicate.
+    match /mandirVisits/{uid}/visits/{dateKey} {
+      allow read, delete: if isSignedIn() && request.auth.uid == uid;
+      allow create: if isSignedIn()
+        && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['userId', 'dateKey', 'source', 'createdAt'])
+        && request.resource.data.keys().hasAll(['userId', 'dateKey', 'source', 'createdAt'])
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.dateKey == dateKey
+        && request.resource.data.dateKey.matches('^20[2-9][0-9]-[0-1][0-9]-[0-3][0-9]$')
+        && request.resource.data.source in ['auto', 'manual']
+        && request.resource.data.createdAt == request.time;
+      // Updates not allowed — a visit is immutable once recorded.
+      allow update: if false;
     }
   }
 }

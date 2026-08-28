@@ -26,7 +26,7 @@
     "id": "word-0003",
     "answer": "ACHARYA",
     "display": "Acharya",
-    "clue": "A spiritual teacher or guide",
+    "clue": "The hereditary spiritual head of a Swaminarayan gadi",
     "category": "satsang",
     "source": "Bhaktiras curated",
     "games": [
@@ -70,7 +70,7 @@
     "id": "word-0007",
     "answer": "AKSHAR",
     "display": "Akshar",
-    "clue": "The eternal abode and ideal devotee of Purushottam",
+    "clue": "The eternal, unchanging reality; one of the five tattvas in the Vachnamrut",
     "category": "swaminarayan",
     "source": "Bhaktiras curated",
     "games": [
@@ -127,7 +127,7 @@
     "id": "word-0012",
     "answer": "ANUVRUTTI",
     "display": "Anuvrutti",
-    "clue": "Following the inner wish of the guru",
+    "clue": "Following the inner wish of Bhagvan or a sant",
     "category": "satsang",
     "source": "Bhaktiras curated",
     "games": [
@@ -180,17 +180,6 @@
     ]
   },
   {
-    "id": "word-0017",
-    "answer": "ATLADRA",
-    "display": "Atladra",
-    "clue": "Swaminarayan pilgrimage centre near Vadodara",
-    "category": "place",
-    "source": "Bhaktiras curated",
-    "games": [
-      "crossword"
-    ]
-  },
-  {
     "id": "word-0018",
     "answer": "ATMA",
     "display": "Atma",
@@ -205,7 +194,7 @@
     "id": "word-0019",
     "answer": "ATMABUDDHI",
     "display": "Atmabuddhi",
-    "clue": "Deep identification and oneness with the Satpurush",
+    "clue": "Firm identification of oneself as the atma, not the body",
     "category": "swaminarayan",
     "source": "Bhaktiras curated",
     "games": [
@@ -283,8 +272,8 @@
     "id": "word-0026",
     "answer": "BAPA",
     "display": "Bapa",
-    "clue": "An affectionate form of address for a revered guru",
-    "category": "swaminarayan",
+    "clue": "Gujarati word for father",
+    "category": "gujarati",
     "source": "Bhaktiras curated",
     "games": [
       "crossword"
@@ -294,7 +283,7 @@
     "id": "word-0027",
     "answer": "BAPU",
     "display": "Bapu",
-    "clue": "Affectionate Gujarati address for a respected elder or guru",
+    "clue": "Affectionate Gujarati address for a respected elder",
     "category": "gujarati",
     "source": "Bhaktiras curated",
     "games": [
@@ -430,17 +419,6 @@
     "answer": "BHUJ",
     "display": "Bhuj",
     "clue": "Town in Kutch with a historic Swaminarayan mandir",
-    "category": "place",
-    "source": "Bhaktiras curated",
-    "games": [
-      "crossword"
-    ]
-  },
-  {
-    "id": "word-0040",
-    "answer": "BOCHASAN",
-    "display": "Bochasan",
-    "clue": "Swaminarayan pilgrimage town in Gujarat",
     "category": "place",
     "source": "Bhaktiras curated",
     "games": [
@@ -795,7 +773,7 @@
     "id": "word-0072",
     "answer": "DIVYABHAV",
     "display": "Divyabhav",
-    "clue": "Seeing the divine qualities of God and the Satpurush",
+    "clue": "Seeing the divine nature of Bhagvan and His sants",
     "category": "swaminarayan",
     "source": "Bhaktiras curated",
     "games": [
@@ -1074,17 +1052,6 @@
     ]
   },
   {
-    "id": "word-0097",
-    "answer": "GONDAL",
-    "display": "Gondal",
-    "clue": "Gujarat town with a Swaminarayan mandir",
-    "category": "place",
-    "source": "Bhaktiras curated",
-    "games": [
-      "crossword"
-    ]
-  },
-  {
     "id": "word-0098",
     "answer": "GOPI",
     "display": "Gopi",
@@ -1165,7 +1132,7 @@
     "id": "word-0105",
     "answer": "GUNATITANAND",
     "display": "Gunatitanand",
-    "clue": "The first spiritual successor of Bhagvan Swaminarayan",
+    "clue": "A senior paramhansa saint of Bhagvan Swaminarayan",
     "category": "swaminarayan",
     "source": "Bhaktiras curated",
     "games": [
@@ -2115,29 +2082,7 @@
     "id": "word-0190",
     "answer": "PRAGAT",
     "display": "Pragat",
-    "clue": "Manifest and present",
-    "category": "swaminarayan",
-    "source": "Bhaktiras curated",
-    "games": [
-      "crossword"
-    ]
-  },
-  {
-    "id": "word-0191",
-    "answer": "PRAMUKH",
-    "display": "Pramukh",
-    "clue": "One who leads or presides",
-    "category": "swaminarayan",
-    "source": "Bhaktiras curated",
-    "games": [
-      "crossword"
-    ]
-  },
-  {
-    "id": "word-0192",
-    "answer": "PRAMUKHSWAMI",
-    "display": "Pramukh Swami",
-    "clue": "Fifth spiritual successor of Bhagvan Swaminarayan",
+    "clue": "Manifest before the eyes — Bhagvan present in His murti",
     "category": "swaminarayan",
     "source": "Bhaktiras curated",
     "games": [
@@ -2550,7 +2495,7 @@
     "id": "word-0229",
     "answer": "SATPURUSH",
     "display": "Satpurush",
-    "clue": "The God-realised saint who guides seekers",
+    "clue": "A God-realised sant, as described in the Vachnamrut",
     "category": "swaminarayan",
     "source": "Bhaktiras curated",
     "games": [
@@ -3017,17 +2962,6 @@
     ]
   },
   {
-    "id": "word-0271",
-    "answer": "TITHAL",
-    "display": "Tithal",
-    "clue": "Coastal Swaminarayan pilgrimage place in Gujarat",
-    "category": "place",
-    "source": "Bhaktiras curated",
-    "games": [
-      "crossword"
-    ]
-  },
-  {
     "id": "word-0272",
     "answer": "TORANA",
     "display": "Torana",
@@ -3346,17 +3280,6 @@
     "display": "Yogi",
     "clue": "One who practises yog and spiritual discipline",
     "category": "satsang",
-    "source": "Bhaktiras curated",
-    "games": [
-      "crossword"
-    ]
-  },
-  {
-    "id": "word-0301",
-    "answer": "YOGIJIMAHARAJ",
-    "display": "Yogiji Maharaj",
-    "clue": "Fourth spiritual successor of Bhagvan Swaminarayan",
-    "category": "swaminarayan",
     "source": "Bhaktiras curated",
     "games": [
       "crossword"
@@ -4104,7 +4027,7 @@
     "id": "word-0368",
     "answer": "BRAHM",
     "display": "Brahm",
-    "clue": "The eternal, all-pervading abode and ideal devotee",
+    "clue": "The eternal abode of Purushottam, one of the five tattvas",
     "category": "swaminarayan",
     "source": "Vachnamrut (Bhuj edition)",
     "games": [
@@ -5844,7 +5767,7 @@
     "id": "word-0525",
     "answer": "VADODARA",
     "display": "Vadodara",
-    "clue": "Gujarat city near Atladra",
+    "clue": "Gujarat city, historically called Baroda",
     "category": "place",
     "source": "Vachnamrut (Bhuj edition)",
     "games": [
@@ -6374,8 +6297,8 @@
   },
   {
     "id": "word-0573",
-    "answer": "RAMAPRATAP",
-    "display": "Ramapratap",
+    "answer": "RAMPRASAD",
+    "display": "Ramprasad",
     "clue": "The elder brother of Bhagvan Swaminarayan",
     "category": "swaminarayan",
     "source": "Satsangi Jeevan (Bhuj edition)",

@@ -49,25 +49,22 @@
 
       <section class="admin-panel">
         <AdminTrendChart
-          v-if="trendPoints.length"
+          v-if="trendPoints.length > 1"
           :caption="trendCaption"
-          :series-label="trendSeriesLabel"
+          series-label="Active members"
           :points="trendPoints"
         />
         <p v-else class="text-sm text-[hsl(var(--muted-foreground))]">
-          No activity history yet.
+          Not enough history to chart yet — {{ recordedDays }} night{{ recordedDays === 1 ? '' : 's' }}
+          recorded so far. The line appears from the second one.
         </p>
         <p class="mt-3 text-xs leading-relaxed text-[hsl(var(--muted-foreground))]">
-          <span v-if="!usingMeasured">
-            Site-wide active members cannot be worked out retrospectively — an account records only
-            the most recent time it was used, so past days are unrecoverable. A nightly snapshot now
-            records it, and this chart switches over once a fortnight of nights has built up
-            ({{ data.history?.measured ?? 0 }} so far). Until then it shows daily unique players, which
-            game scores do record historically.
-          </span>
-          <span v-else>
-            Recorded nightly from {{ data.history?.measured ?? 0 }} daily snapshots.
-          </span>
+          Today is counted live; every earlier day comes from a nightly snapshot
+          <span v-if="recordedFrom">({{ recordedDays }} recorded, from {{ recordedFrom }})</span>
+          <span v-else>({{ recordedDays }} recorded)</span>.
+          Active members cannot be worked out retrospectively — an account records only the most
+          recent time it was used — so days before the nightly snapshot began are left off the chart
+          rather than drawn as zero.
         </p>
       </section>
 
@@ -192,7 +189,7 @@ type Overview = {
   policy: { profiles: number; versions: Record<string, number> }
   history: {
     measured: number
-    points: Array<{ dateId: string; players: number; activeMembers: number | null }>
+    points: Array<{ dateId: string; activeMembers: number | null }>
   }
   errors?: Array<{ section: string; message: string }>
   computedAt: number
@@ -247,19 +244,30 @@ const gameRows = computed(() => {
     .sort((a, b) => b.value - a.value)
 })
 
-/** Prefer the real measurement, but only once there is enough of it to read. */
-const MEASURED_MINIMUM = 14
-const usingMeasured = computed(() => (data.value?.history?.measured ?? 0) >= MEASURED_MINIMUM)
+const recordedDays = computed(() => data.value?.history?.measured ?? 0)
 
-const trendPoints = computed(() => (data.value?.history?.points ?? []).map(point => ({
-  dateId: point.dateId,
-  value: usingMeasured.value ? (point.activeMembers ?? 0) : point.players
-})))
+/**
+ * The chart starts at the first day the nightly snapshot recorded. Before that
+ * the figure is genuinely unknown — plotting it as zero drew a flat, dead line
+ * across most of the month and buried the days that do have a reading.
+ */
+const trendPoints = computed(() => {
+  const points = data.value?.history?.points ?? []
+  const first = points.findIndex(point => point.activeMembers != null)
+  if (first === -1) return []
+  return points.slice(first).map(point => ({ dateId: point.dateId, value: point.activeMembers }))
+})
 
-const trendSeriesLabel = computed(() => usingMeasured.value ? 'Active members' : 'Players')
-const trendCaption = computed(() => usingMeasured.value
-  ? 'Active members, last 30 days'
-  : 'Daily unique players, last 30 days')
+/** The window is however much has been recorded, not a flat 30 days. */
+const trendCaption = computed(() => `Active members, last ${trendPoints.value.length} days`)
+
+const recordedFrom = computed(() => {
+  const dateId = trendPoints.value[0]?.dateId
+  if (!dateId) return ''
+  const [year, month, day] = dateId.split('-').map(Number)
+  return new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' })
+    .format(new Date(year, month - 1, day))
+})
 
 const onCurrentPolicy = computed(() => data.value?.policy.versions[currentPolicyVersion] || 0)
 const behindPolicy = computed(() => {

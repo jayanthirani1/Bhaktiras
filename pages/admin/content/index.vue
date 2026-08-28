@@ -19,9 +19,10 @@
 definePageMeta({ layout: 'admin', middleware: 'admin' })
 
 const cards = [
+  { title: 'Sections', desc: 'Show or hide whole parts of the app, like Niyams or Games.', to: '/admin/content/sections' },
   { title: 'Homepage tiles', desc: 'Edit the homepage grid cards and links.', to: '/admin/content/homepage' },
   { title: 'Navigation', desc: 'Manage desktop nav, mobile tabs and the More drawer.', to: '/admin/content/navigation' },
-  { title: 'Community questions', desc: 'Edit the prompt chips shown above the wall form.', to: '/admin/content/community' },
+  { title: 'Community questions', desc: 'Edit the prompt list shown in the post-message dropdown.', to: '/admin/content/community' },
   { title: 'Seva teams', desc: 'Edit volunteer team names, gold captions and descriptions.', to: '/admin/content/seva' }
 ]
 

@@ -3,7 +3,7 @@
     <div class="max-w-3xl mx-auto">
       <PageHeader
         title="Games"
-        subtitle="Choose a game — Wordle, Crossword, 1% Club, Surya Chandra, Ras Rani, and more."
+        subtitle="Daily puzzles to test your satsang knowledge."
       />
 
       <section
@@ -45,15 +45,15 @@
         to start a daily Games streak.
       </p>
 
-      <ul class="mt-10 divide-y divide-[hsl(var(--border))] overflow-hidden rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] shadow-[0_18px_40px_-32px_rgba(59,32,97,0.55)]">
+      <ul class="mt-10 divide-y divide-[hsl(var(--golden-200))] overflow-hidden rounded-2xl border border-[hsl(var(--golden-200))] bg-[hsl(var(--card))] shadow-[0_18px_40px_-32px_rgba(59,32,97,0.55)]">
         <li v-for="game in games" :key="game.slug">
           <NuxtLink
             :to="game.href"
-            class="flex items-center gap-3 px-3 py-4 transition-colors hover:bg-[hsl(var(--muted))]/60 active:bg-[hsl(var(--muted))] sm:gap-4 sm:px-5"
+            class="flex items-center gap-3 px-3 py-4 transition-colors hover:bg-[hsl(var(--golden-50))] active:bg-[hsl(var(--golden-100))] sm:gap-4 sm:px-5"
             :class="done[game.slug] ? 'bg-emerald-50/60 hover:bg-emerald-50' : ''"
           >
             <div
-              class="grid h-14 w-14 shrink-0 place-items-center rounded-2xl shadow-sm sm:h-16 sm:w-16"
+              class="grid h-14 w-14 shrink-0 place-items-center rounded-2xl shadow-sm ring-1 ring-[hsl(var(--golden-200))] sm:h-16 sm:w-16"
               :class="game.tile"
             >
               <component :is="game.icon" class="h-7 w-7 sm:h-8 sm:w-8" stroke-width="1.9" />
@@ -61,7 +61,7 @@
 
             <div class="min-w-0 flex-1">
               <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
-                <h3 class="font-display text-base font-bold text-[hsl(var(--foreground))] sm:text-lg">
+                <h3 class="font-display text-base font-bold text-[hsl(var(--primary))] sm:text-lg">
                   <RasRaniTitle v-if="game.slug === 'ras-rani'" honey />
                   <template v-else>{{ game.title }}</template>
                 </h3>
@@ -102,7 +102,6 @@ import type { Component } from 'vue'
 import {
   IconGrid3x3,
   IconTypography,
-  IconHexagon,
   IconChartBar,
   IconArrowRight,
   IconCheck,
@@ -128,7 +127,7 @@ const games: Array<{
   tile: string
   button: string
 }> = [
-  { slug: 'wordle', title: 'Wordle', description: 'Guess the word in six tries — timer keeps going if you leave.', icon: IconTypography, href: '/play/wordle', tile: 'bg-emerald-100 text-emerald-700', button: 'bg-emerald-700 text-white' },
+  { slug: 'wordle', title: 'Wordle', description: 'Guess the word in six tries — the timer pauses if you leave.', icon: IconTypography, href: '/play/wordle', tile: 'bg-emerald-100 text-emerald-700', button: 'bg-emerald-700 text-white' },
   { slug: 'mini-crossword', title: 'Crossword', description: 'A quick Telegraph-style grid. Beat the clock.', icon: IconGrid3x3, href: '/play/crossword', tile: 'bg-sky-100 text-sky-700', button: 'bg-sky-700 text-white' },
   { slug: 'one-percent', title: '1% Club', description: 'Daily Vachnamrut climb from 90% to 1%. One wrong answer ends your run.', icon: IconChartBar, href: '/play/one-percent', tile: 'bg-orange-100 text-orange-700', button: 'bg-orange-800 text-white' },
   { slug: 'connections', title: 'Connections', description: 'Find four groups of four satsang-related words.', icon: IconCirclesRelation, href: '/play/connections', tile: 'bg-fuchsia-100 text-fuchsia-700', button: 'bg-fuchsia-600 text-white' },
@@ -153,4 +152,6 @@ function resultLine(slug: PlayGameSlug) {
   if (typeof entry?.timeMs === 'number') parts.push(formatTime(entry.timeMs))
   return parts.length ? parts.join(' · ') : 'Come back tomorrow for a new challenge'
 }
+
+usePageSeo('Games', 'Daily satsang games — Wordle, Crossword, Connections, 1% Club, Bracket City, Surya Chandra and Ras Rani.')
 </script>

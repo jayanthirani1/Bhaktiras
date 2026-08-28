@@ -2,7 +2,9 @@
   <div>
     <p v-if="error" class="mb-3 text-sm text-red-600">{{ error }}</p>
     <p class="mb-4 text-sm text-[hsl(var(--muted-foreground))]">
-      The live game is Vachnamrut-based (Bhuj edition) and picks a new prakaran ladder each UK day.
+      The live game is drawn from the Bhuj Vachnamrut on
+      <a class="font-semibold underline" href="https://www.swaminarayan.faith/learning-resources/scriptures" target="_blank" rel="noopener noreferrer">swaminarayan.faith</a>
+      and picks a new prakaran ladder each UK day.
       Import the default packs below, or add a dated override with today’s date id.
     </p>
     <div class="mb-4">

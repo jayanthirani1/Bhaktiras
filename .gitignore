@@ -17,3 +17,6 @@ dist
 # .env could overwrite it with empty strings and ship push that silently never
 # fires. CI generates it, and refuses to build if the config is missing.
 public/firebase-messaging-sw.js
+
+# Scratch git worktrees used by background agents — never part of the app.
+.claude/worktrees/

@@ -29,16 +29,16 @@
         class="mb-6"
       />
 
-      <p v-else-if="!howto.ready.value" class="mt-8 text-center text-sm text-[hsl(var(--muted-foreground))]">
+      <p v-else-if="!howto.ready.value || !solutionReady" class="mt-8 text-center text-sm text-[hsl(var(--muted-foreground))]">
         Loading Wordle…
       </p>
 
-      <div v-if="!playedElsewhere && howto.ready.value" class="mb-4 flex items-center justify-center gap-2 text-sm font-semibold text-[hsl(var(--primary))]">
+      <div v-if="!playedElsewhere && howto.ready.value && solutionReady" class="mb-4 flex items-center justify-center gap-2 text-sm font-semibold text-[hsl(var(--primary))]">
         <span class="rounded-full bg-[hsl(var(--muted))] px-3 py-1 tabular-nums">⏱ {{ timer.display.value }}</span>
       </div>
 
       <GameHowTo
-        v-if="!playedElsewhere && howto.showIntro.value"
+        v-if="!playedElsewhere && solutionReady && howto.showIntro.value"
         intro
         title="Guess the word in six tries."
         class="mb-6"
@@ -47,12 +47,12 @@
         <ol class="list-decimal space-y-2 pl-5">
           <li>Type a five-letter word and press Enter. The timer starts when you tap <span class="font-semibold text-[hsl(var(--foreground))]">Start game</span>.</li>
           <li><span class="font-semibold text-[hsl(var(--foreground))]">Green</span> is the right letter in the right spot. <span class="font-semibold text-[hsl(var(--foreground))]">Amber</span> is in the word, but elsewhere. Grey is not in the word.</li>
-          <li>You have six guesses. The clock keeps running if you leave the page.</li>
+          <li>You have six guesses. The clock pauses if you leave the page and picks up when you return.</li>
         </ol>
       </GameHowTo>
 
       <div
-        v-if="isComplete && !playedElsewhere && howto.ready.value && !howto.showIntro.value"
+        v-if="isComplete && !playedElsewhere && howto.ready.value && solutionReady && !howto.showIntro.value"
         class="mb-6 rounded-2xl border border-[hsl(var(--golden-200))] bg-[hsl(var(--card))] p-5 text-center"
       >
         <p class="font-display text-xl font-semibold text-[hsl(var(--primary))]">Today’s Wordle complete</p>
@@ -126,7 +126,7 @@
       </div>
 
       <!-- Grid -->
-      <div v-if="!playedElsewhere && howto.ready.value && !howto.showIntro.value" class="flex flex-col gap-2 mb-8" role="grid" aria-label="Wordle guesses">
+      <div v-if="!playedElsewhere && howto.ready.value && solutionReady && !howto.showIntro.value" class="flex flex-col gap-2 mb-8" role="grid" aria-label="Wordle guesses">
         <div
           v-for="(row, rowIndex) in rows"
           :key="rowIndex"
@@ -157,7 +157,7 @@
       </div>
 
       <!-- Keyboard -->
-      <div v-if="!isComplete && !playedElsewhere && howto.ready.value && !howto.showIntro.value" class="flex flex-col gap-1.5 touch-manipulation">
+      <div v-if="!isComplete && !playedElsewhere && howto.ready.value && solutionReady && !howto.showIntro.value" class="flex flex-col gap-1.5 touch-manipulation">
         <div class="flex justify-center gap-1">
           <button
             v-for="k in KEYBOARD_TOP"
@@ -225,14 +225,6 @@
         </div>
       </div>
 
-      <GameHowTo v-if="!playedElsewhere && howto.ready.value && !howto.showIntro.value" class="mb-6">
-        <ol class="list-decimal space-y-2 pl-5">
-          <li>Type a five-letter word and press Enter.</li>
-          <li><span class="font-semibold text-[hsl(var(--foreground))]">Green</span> is the right letter in the right spot. <span class="font-semibold text-[hsl(var(--foreground))]">Amber</span> is in the word, but elsewhere. Grey is not in the word.</li>
-          <li>You have six guesses. The clock keeps running if you leave the page.</li>
-        </ol>
-      </GameHowTo>
-
       <GameCrowns :ids="['wordle-fastest', 'wordle-fewest-guesses']" />
 
       <GameLeaderboard
@@ -253,6 +245,17 @@
           Your score is on the board.
         </template>
       </GameLeaderboard>
+
+      <GameHowTo
+        v-if="!playedElsewhere && howto.ready.value && !howto.showIntro.value"
+        class="mt-10"
+      >
+        <ol class="list-decimal space-y-2 pl-5">
+          <li>Type a five-letter word and press Enter.</li>
+          <li><span class="font-semibold text-[hsl(var(--foreground))]">Green</span> is the right letter in the right spot. <span class="font-semibold text-[hsl(var(--foreground))]">Amber</span> is in the word, but elsewhere. Grey is not in the word.</li>
+          <li>You have six guesses. The clock pauses if you leave the page and picks up when you return.</li>
+        </ol>
+      </GameHowTo>
 
       <!-- Result modal -->
       <Teleport to="body">
@@ -386,7 +389,7 @@
 
 <script setup lang="ts">
 import { IconArrowLeft, IconCrown } from '@tabler/icons-vue'
-import { getWordForDate, wordleDateId } from '~/utils/wordleDaily'
+import { getWordForDate, resolveWordleWord, wordleDateId } from '~/utils/wordleDaily'
 import { isStaleGameDay } from '~/utils/gameDay'
 import { getFeedback } from '~/utils/wordle'
 import { findGameWord } from '~/utils/gameWordBank'
@@ -406,6 +409,7 @@ const howto = useHowToPlay('wordle', ['wordle-daily', 'wordle-timer:'])
 
 const remoteExtraWords = ref<string[]>([])
 const remoteWordEntries = ref<GameWordEntry[]>([])
+const solutionReady = ref(false)
 
 function getTodayId(): string {
   return wordleDateId()
@@ -793,6 +797,7 @@ watch([isComplete, isWin, isLose, guesses], () => {
 }, { deep: true })
 
 watch([solution, guesses, isComplete, scoreSubmitted], () => {
+  if (!solutionReady.value) return
   saveDailyState(solution.value, guesses.value, isComplete.value, scoreSubmitted.value)
 }, { deep: true })
 
@@ -807,10 +812,14 @@ watch(
 )
 
 watch([isComplete, isWin, () => auth.user.value?.uid], ([complete, won, uid]) => {
-  if (complete && won && uid && !scoreSubmitted.value && !submittingScore.value) {
-    void submitToLeaderboard()
+  if (!complete || !won || !uid || scoreSubmitted.value || submittingScore.value) return
+  // Reload can set isComplete before the timer is read from storage — never submit 0 ms.
+  if (!timer.finishedAt.value && timer.elapsedMs.value <= 0) {
+    timer.read()
+    if (!timer.finishedAt.value && timer.elapsedMs.value <= 0) return
   }
-}, { immediate: true })
+  void submitToLeaderboard()
+})
 
 async function submitToLeaderboard() {
   if (!auth.user.value || !isWin.value || scoreSubmitted.value || submittingScore.value) return
@@ -818,6 +827,10 @@ async function submitToLeaderboard() {
   // yesterday would land on today's leaderboard — and this runs off a watcher,
   // which a resumed page can fire without anyone touching a key.
   if (isStaleGameDay(boardDate.value)) return
+  if (!timer.finishedAt.value && timer.elapsedMs.value <= 0) {
+    timer.read()
+    if (!timer.finishedAt.value && timer.elapsedMs.value <= 0) return
+  }
   submitError.value = ''
   submittingScore.value = true
   try {
@@ -912,27 +925,34 @@ onMounted(async () => {
   hasRecordedResult.value = state.isComplete
   scoreSubmitted.value = false
   showResultModal.value = false
-  solution.value = state.solution
   guesses.value = state.guesses
-  isComplete.value = state.isComplete
-  if (state.isComplete) {
+  solution.value = state.solution
+
+  // Hydrate the timer before isComplete can trigger a leaderboard auto-submit.
+  if (state.isComplete || state.guesses.length > 0) {
     timer.read()
-    if (timer.startedAt.value && !timer.finishedAt.value) timer.stop()
-  } else if (!playedElsewhere.value && !howto.showIntro.value) {
-    timer.loadOrStart()
+    if (state.isComplete && timer.startedAt.value && !timer.finishedAt.value) timer.stop()
   }
+  isComplete.value = state.isComplete
+
+  const started = state.guesses.length > 0 || state.isComplete
   try {
     const remote = await fetchWordleRemote(new Date())
     remoteWordEntries.value = remote.wordEntries
+    const official = resolveWordleWord(getTodayId(), remote.dailyWord)
     remoteExtraWords.value = [
       ...remote.extraWords.map(w => w.toUpperCase()),
-      ...(remote.dailyWord ? [remote.dailyWord.toUpperCase()] : [])
+      official
     ]
-    if (!state.guesses.length && !state.isComplete) {
-      const next = remote.dailyWord || getWordForDate(new Date(), remote.extraWords)
-      if (next) solution.value = next
-    }
-  } catch (_) {}
+    if (!started) solution.value = official
+  } catch (_) {
+    if (!started) solution.value = getWordForDate(new Date())
+  }
+  solutionReady.value = true
+
+  if (!state.isComplete && !playedElsewhere.value && !howto.showIntro.value) {
+    timer.loadOrStart()
+  }
 
   const onKeyDown = (e: KeyboardEvent) => {
     if (e.repeat) return
@@ -961,4 +981,6 @@ watch(showResultModal, (open) => {
     })
   }
 })
+
+usePageSeo('Wordle', 'Guess the daily satsang word in six tries.')
 </script>

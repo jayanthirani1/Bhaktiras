@@ -153,4 +153,6 @@ function formatDate(d: string) {
   if (Number.isNaN(date.getTime())) return d
   return date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
 }
+
+usePageSeo('Our Events', 'Upcoming and past events at Shree KS Swaminarayan Temple Woolwich, with photographs from each celebration.')
 </script>

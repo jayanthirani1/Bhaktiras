@@ -559,7 +559,9 @@ exports.getPushAudience = onCall(
  */
 async function announceRecords({ db, name, uid, claimedCrowns }) {
   const broken = claimedCrowns.filter(crown =>
-    crown.previousHolderId && crown.previousHolderId !== uid)
+    crown.id !== 'streak-longest'
+    && crown.previousHolderId
+    && crown.previousHolderId !== uid)
   if (!broken.length) return
 
   logger.info('Record broken', {
@@ -705,28 +707,30 @@ async function collectPushStats(db) {
 }
 
 /**
- * A single 30-day range read serves today's figures, the week's, and the trend.
+ * A single 7-day range read serves today's figures and the week's.
  * dateId is a sortable YYYY-MM-DD string, so a >= range needs only the automatic
  * single-field index.
+ *
+ * This used to read 30 days to feed the trend chart as well, which was wasted
+ * work: pruneOldGameScores clears every finished day for the daily-reset games
+ * each morning, so there is no history in here to read.
  */
-async function collectGameStats(db, days) {
-  const ids = recentDateIds(days)
+async function collectGameStats(db) {
+  const ids = recentDateIds(7)
   const today = ids[0]
   const earliest = ids[ids.length - 1]
-  const week = new Set(recentDateIds(7))
+  const week = new Set(ids)
   const snap = await db.collection('gameScores').where('dateId', '>=', earliest).get()
 
   const todayPlayers = new Set()
   const weekPlayers = new Set()
   const playsPerGame = {}
-  const playersByDay = new Map(ids.map(id => [id, new Set()]))
   let playsThisWeek = 0
 
   snap.docs.forEach((docSnap) => {
     const data = docSnap.data()
     const dateId = String(data.dateId || '')
     const userId = data.userId ? String(data.userId) : null
-    if (userId) playersByDay.get(dateId)?.add(userId)
     if (week.has(dateId)) {
       playsThisWeek += 1
       if (userId) weekPlayers.add(userId)
@@ -741,22 +745,30 @@ async function collectGameStats(db, days) {
     playersToday: todayPlayers.size,
     playersThisWeek: weekPlayers.size,
     playsThisWeek,
-    playsPerGame,
-    playersByDay
+    playsPerGame
   }
 }
 
 /**
- * The 30-day trend.
+ * The 30-day active-members trend, read from the nightly dailyStats snapshots.
  *
  * Site-wide active members cannot be reconstructed from auth records: each one
  * carries a single lastRefreshTime, so bucketing them by day would show "last
  * seen", not who was active on each day. recordDailyStats snapshots the real
- * figure nightly; until enough nights have accrued, the chart falls back to
- * daily unique players, which gameScores does record historically.
+ * figure nightly, and that snapshot is the only history there is.
+ *
+ * Two rules keep the chart honest:
+ *
+ * - A day with no snapshot is null, never zero. Zero says "nobody opened
+ *   Bhaktiras that day"; the days before the snapshot job existed are simply
+ *   unrecorded, and drawing them as zero flattened the whole chart.
+ * - Today has no snapshot yet — it is written late in the evening — so it is
+ *   filled from the live count this same request has already worked out.
+ *   Without it the series stopped at yesterday and plunged to zero for today.
  */
-async function collectHistory(db, days, playersByDay) {
+async function collectHistory(db, days, activeToday) {
   const ids = recentDateIds(days).reverse()
+  const today = ids[ids.length - 1]
   // Fetched by document reference, not by query. Ordering a query by document
   // id descending is not covered by Firestore's automatic single-field indexes
   // and needs a composite one — which the deploy service account has no
@@ -766,15 +778,16 @@ async function collectHistory(db, days, playersByDay) {
     snaps.filter(docSnap => docSnap.exists).map(docSnap => [docSnap.id, docSnap.data()])
   )
 
+  function recorded(dateId) {
+    const value = snapshots.get(dateId)?.activeMembers
+    return value == null ? null : Number(value) || 0
+  }
+
   const points = ids.map(dateId => ({
     dateId,
-    players: playersByDay.get(dateId)?.size ?? 0,
-    activeMembers: snapshots.has(dateId)
-      ? Number(snapshots.get(dateId).activeMembers) || 0
-      : null
+    activeMembers: dateId === today && activeToday != null ? activeToday : recorded(dateId)
   }))
-  const measured = points.filter(point => point.activeMembers != null).length
-  return { points, measured }
+  return { points, measured: ids.filter(dateId => recorded(dateId) != null).length }
 }
 
 /**
@@ -814,8 +827,7 @@ function emptyGames() {
     playersToday: 0,
     playersThisWeek: 0,
     playsThisWeek: 0,
-    playsPerGame: {},
-    playersByDay: new Map()
+    playsPerGame: {}
   }
 }
 function emptyPolicy() {
@@ -860,17 +872,20 @@ exports.getAdminOverview = onCall(
     const [accounts, push, games, policy] = await Promise.all([
       section('Members', emptyAccounts, () => collectAccountStats(), errors),
       section('Notification reach', emptyPush, () => collectPushStats(db), errors),
-      section('Games', emptyGames, () => collectGameStats(db, HISTORY_DAYS), errors),
+      section('Games', emptyGames, () => collectGameStats(db), errors),
       section('Privacy policy', emptyPolicy, () => collectPolicyStats(db), errors)
     ])
 
+    // Today's point comes from the live count above — but only if it was
+    // actually counted. If the Members section failed, its zeroed fallback is
+    // not a measurement, and charting it would invent a dead day.
+    const membersFailed = errors.some(item => item.section === 'Members')
     const history = await section(
       'Activity trend',
       emptyHistory,
-      () => collectHistory(db, HISTORY_DAYS, games.playersByDay),
+      () => collectHistory(db, HISTORY_DAYS, membersFailed ? null : accounts.activeLast1),
       errors
     )
-    delete games.playersByDay
 
     const payload = { accounts, push, games, policy, history, errors, computedAt: Date.now() }
     // A failed run is not cached, so refreshing actually retries.
@@ -1365,9 +1380,41 @@ function readNiyamSubmission(snap) {
     challengeId,
     userId,
     userName: cleanText(data.userName, 32) || 'Devotee',
+    dayKey: typeof data.dayKey === 'string' ? data.dayKey.trim() : '',
     amount,
     status
   }
+}
+
+/** How much of the per-day breakdown is kept. Two weeks covers "today" and "this week". */
+const NIYAM_DAILY_WINDOW_DAYS = 14
+
+/**
+ * The per-day slice of a challenge's approved total.
+ *
+ * Against a ten lakh target the all-time number barely visibly moves, so the
+ * page reads "the sangat added 1,240 today" from this instead. The day is the
+ * one the devotee did the sadhana on (`dayKey`), not the day an admin got round
+ * to approving it — which also means an approval, a rejection and a withdrawal
+ * all unwind from the same bucket they were added to.
+ *
+ * Returned as a patch rather than a whole map because a merging `set` merges
+ * maps key by key: days that have fallen out of the window have to be deleted
+ * explicitly or they accumulate forever. An entry whose day is already outside
+ * the window — approved a fortnight late — is left out of the breakdown
+ * entirely; `approvedTotal` still carries it, which is the number that counts.
+ */
+function dailyTotalsPatch(current, dayKey, delta) {
+  const window = new Set(recentDateIds(NIYAM_DAILY_WINDOW_DAYS))
+  const patch = {}
+  for (const day of Object.keys(current || {})) {
+    if (!window.has(day)) patch[day] = FieldValue.delete()
+  }
+  if (delta && dayKey && window.has(dayKey)) {
+    const updated = Math.max(0, niyamCounters((current || {})[dayKey]) + delta)
+    patch[dayKey] = updated > 0 ? updated : FieldValue.delete()
+  }
+  return patch
 }
 
 function niyamDelta(before, after) {
@@ -1387,7 +1434,7 @@ function isEmptyNiyamDelta(delta) {
   return Object.values(delta).every(value => value === 0)
 }
 
-async function applyNiyamDelta(db, { challengeId, userId, userName }, delta) {
+async function applyNiyamDelta(db, { challengeId, userId, userName, dayKey }, delta) {
   if (isEmptyNiyamDelta(delta)) return
   const statsRef = db.doc(`niyamChallengeStats/${challengeId}`)
   const contributorRef = db.doc(`niyamChallenges/${challengeId}/contributors/${userId}`)
@@ -1408,6 +1455,8 @@ async function applyNiyamDelta(db, { challengeId, userId, userName }, delta) {
     if (prevApproved <= 0 && nextApproved > 0) participantsDelta = 1
     else if (prevApproved > 0 && nextApproved <= 0) participantsDelta = -1
 
+    const dailyPatch = dailyTotalsPatch(stats.dailyTotals, dayKey, delta.approvedTotal)
+
     tx.set(statsRef, {
       challengeId,
       approvedTotal: Math.max(0, niyamCounters(stats.approvedTotal) + delta.approvedTotal),
@@ -1415,6 +1464,7 @@ async function applyNiyamDelta(db, { challengeId, userId, userName }, delta) {
       approvedCount: Math.max(0, niyamCounters(stats.approvedCount) + delta.approvedCount),
       pendingCount: Math.max(0, niyamCounters(stats.pendingCount) + delta.pendingCount),
       participants: Math.max(0, niyamCounters(stats.participants) + participantsDelta),
+      ...(Object.keys(dailyPatch).length ? { dailyTotals: dailyPatch } : {}),
       updatedAt: FieldValue.serverTimestamp()
     }, { merge: true })
 

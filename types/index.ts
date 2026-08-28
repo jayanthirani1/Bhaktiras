@@ -10,7 +10,6 @@ export interface AdminRecord {
   /** Document ID = Firebase Auth UID (userRef) */
   id: string
   name: string
-  role: 'admin' | 'guest'
   active: boolean
 }
 
@@ -133,6 +132,26 @@ export type FirestoreTimestampLike = { seconds: number; nanoseconds: number } | 
 export type NiyamSubmissionStatus = 'approved' | 'pending' | 'rejected'
 
 /**
+ * How a devotee adds to a niyam.
+ *
+ * - `count` — a number they have done since last time (malas, stotras).
+ * - `checkin` — one tap is one attendance; a number field would be silly for
+ *   "I came to the mandir".
+ */
+export type NiyamInputMode = 'count' | 'checkin'
+
+/** Which glyph `NiyamIcon` draws for a niyam. */
+export type NiyamIconKey = 'mala' | 'stotra' | 'mandir' | 'path' | 'dandvat' | 'niyam'
+
+/**
+ * Where a challenge in the list came from. `default` means it is one of the
+ * five niyams in `data/niyamChallenges.ts` that no admin has published to
+ * Firestore yet — it renders so the page is never blank, but it cannot take
+ * entries, because the security rules require the challenge document to exist.
+ */
+export type NiyamChallengeOrigin = 'default' | 'stored'
+
+/**
  * An admin-set community goal — "10,000 malas between now and Patotsav".
  * Every devotee submits what they have actually done and the approved entries
  * ladder up into one shared total, so the sangat finishes the goal together.
@@ -158,6 +177,15 @@ export interface NiyamChallenge {
   autoApproveMax: number
   /** Hard ceiling — the form and the security rules both refuse anything above it. */
   maxPerSubmission: number
+  /** How the add-form behaves. Defaults to `count`. */
+  inputMode?: NiyamInputMode
+  /** One-tap amounts offered above the number field, smallest first. */
+  presets?: number[]
+  /** What counts as one — "all five chapters make one full path". */
+  hint?: string
+  icon?: NiyamIconKey
+  /** Runtime only; never written to Firestore. */
+  origin?: NiyamChallengeOrigin
   createdAt?: FirestoreTimestampLike
   updatedAt?: FirestoreTimestampLike
 }
@@ -194,6 +222,13 @@ export interface NiyamChallengeStats {
   approvedCount: number
   pendingCount: number
   participants: number
+  /**
+   * Approved amount per UK day, `YYYY-MM-DD` → count, kept for the last two
+   * weeks by the trigger. It is what "the sangat added 1,240 today" is read
+   * from: against a ten lakh target the all-time total barely moves, and this
+   * is the number that visibly does. Absent until the trigger has written once.
+   */
+  dailyTotals?: Record<string, number>
   updatedAt?: FirestoreTimestampLike
 }
 
@@ -269,6 +304,23 @@ export interface SevaTeamContent {
   order?: number
 }
 
+/** An app section an admin can switch off, resolved against the code catalogue. */
+export interface SiteSectionContent {
+  id: string
+  label: string
+  description: string
+  /** Route prefixes this section owns — anything underneath one is gated with it. */
+  paths: string[]
+  visible: boolean
+  order: number
+}
+
+/** What is actually stored per section: the switch, nothing else. */
+export interface SiteSectionVisibility {
+  id: string
+  visible: boolean
+}
+
 export interface SiteContentSettings {
   id: string
   homeTiles: HomeTileContent[]
@@ -281,6 +333,8 @@ export interface SiteContentSettings {
   sevaHeading: string
   sevaIntro: string
   sevaTeams: SevaTeamContent[]
+  /** Which app sections are switched on. */
+  sections: SiteSectionContent[]
   updatedAt?: { seconds?: number; nanoseconds?: number } | Date
 }
 
@@ -442,4 +496,23 @@ export interface AchievementCrownRecord {
   score?: number
   longestStreak?: number
   updatedAt?: { seconds?: number; nanoseconds?: number } | Date
+}
+
+/** A recorded mandir visit for the personal "Visit Mandir" niyam. */
+export interface MandirVisit {
+  id: string
+  userId: string
+  /** UK calendar day the visit was recorded, YYYY-MM-DD. */
+  dateKey: string
+  /** How the visit was recorded: auto (geolocation) or manual (button tap). */
+  source: 'auto' | 'manual'
+  createdAt?: FirestoreTimestampLike
+}
+
+/** User's location tracking preferences, stored in localStorage. */
+export interface LocationPreferences {
+  /** Whether the user has opted in to always-allow location for auto check-in. */
+  alwaysAllowLocation: boolean
+  /** Last date the permission prompt was shown (to avoid nagging). */
+  lastPromptDate?: string
 }
