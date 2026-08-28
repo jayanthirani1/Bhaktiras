@@ -36,6 +36,7 @@
                   <p class="mt-3 whitespace-pre-line text-sm leading-relaxed text-[hsl(var(--muted-foreground))]">
                     {{ event.description }}
                   </p>
+                  <EventActions :event="event" allow-calendar />
                 </div>
                 <EventFlickrAlbum
                   v-if="event.flickrAlbumId"
@@ -73,6 +74,7 @@
                   <p class="mt-3 whitespace-pre-line text-sm leading-relaxed text-[hsl(var(--muted-foreground))]">
                     {{ event.description }}
                   </p>
+                  <EventActions :event="event" />
                 </div>
                 <EventFlickrAlbum
                   v-if="event.flickrAlbumId"
@@ -100,6 +102,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatEventDateLong } from '~/utils/eventSharing'
 import type { Event } from '~/types'
 
 const { events, isLoading } = useEvents()
@@ -147,12 +150,7 @@ const past = computed(() =>
     .sort((a, b) => eventTime(b) - eventTime(a))
 )
 
-function formatDate(d: string) {
-  if (!d) return ''
-  const date = new Date(`${d}T00:00:00`)
-  if (Number.isNaN(date.getTime())) return d
-  return date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
-}
+const formatDate = formatEventDateLong
 
 usePageSeo('Our Events', 'Upcoming and past events at Shree KS Swaminarayan Temple Woolwich, with photographs from each celebration.')
 </script>
