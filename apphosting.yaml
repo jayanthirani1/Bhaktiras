@@ -46,11 +46,14 @@ env:
       - BUILD
   # Flickr, for the event and darshan galleries. useFlickr() returns nothing at
   # all when the key is absent, so the albums render empty rather than broken.
+  #
+  # NUXT_PUBLIC_FLICKR_USER_ID is deliberately absent: nothing reads it. The
+  # only Flickr call the app makes is flickr.photosets.getPhotos, and a
+  # photoset id is globally unique, so it needs no owner. The variable is
+  # declared in nuxt.config.ts and injected by the Hosting workflow, but no
+  # code consumes it — so requiring a Secret Manager entry for it would be
+  # asking for a secret to feed a value that is never read.
   - variable: NUXT_PUBLIC_FLICKR_API_KEY
     secret: NUXT_PUBLIC_FLICKR_API_KEY
-    availability:
-      - BUILD
-  - variable: NUXT_PUBLIC_FLICKR_USER_ID
-    secret: NUXT_PUBLIC_FLICKR_USER_ID
     availability:
       - BUILD
