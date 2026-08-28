@@ -66,7 +66,8 @@
 
     <div class="border-t border-[hsl(var(--border))] p-4">
       <p class="truncate text-sm font-medium text-[hsl(var(--primary))]">{{ adminRecord?.name || 'Admin' }}</p>
-      <p class="mb-3 truncate text-xs text-[hsl(var(--muted-foreground))]">{{ adminRecord?.role || 'admin' }}</p>
+      <!-- Every admins document is full access; there is no tier to display. -->
+      <p class="mb-3 truncate text-xs text-[hsl(var(--muted-foreground))]">Full access</p>
       <button type="button" class="admin-btn-danger w-full" @click="$emit('logout')">
         Sign out
       </button>

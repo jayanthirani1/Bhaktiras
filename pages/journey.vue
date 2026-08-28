@@ -172,4 +172,6 @@ function itemMedia(item: TimelineItem): TimelineMedia[] {
   if (item.videoUrl) out.push({ type: 'video', url: item.videoUrl })
   return out
 }
+
+usePageSeo('Our Journey', 'Ten years with Ghanshyam Maharaj at Shree KS Swaminarayan Temple Woolwich, year by year, from 2017 to the Patotsav in 2027.')
 </script>

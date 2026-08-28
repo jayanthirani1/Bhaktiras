@@ -92,4 +92,6 @@ async function handleSubmit() {
     submitError.value = msg
   }
 }
+
+usePageSeo('Legacy', 'The legacy of Shree KS Swaminarayan Temple Woolwich and the sangat that built it.')
 </script>

@@ -47,4 +47,6 @@ async function unlock() {
     loading.value = false
   }
 }
+
+useNoIndex()
 </script>

@@ -937,4 +937,6 @@ watch(showResultModal, (open) => {
     })
   }
 })
+
+usePageSeo('Wordle', 'Guess the daily satsang word in six tries.')
 </script>

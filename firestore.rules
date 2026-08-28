@@ -11,7 +11,14 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.active != false;
     }
 
-    // Doc ID = Auth UID. Fields: name, role (admin|guest), active.
+    // Doc ID = Auth UID. Fields: name, active.
+    //
+    // isAdmin() above is the whole model: the document exists and is active.
+    // There is no privilege tier — an admins document grants every write path
+    // in this file, including creating further admins. Documents used to carry
+    // a `role` of 'admin' or 'guest' and nothing ever read it, so the field has
+    // been dropped from the app rather than left implying a limit. A read-only
+    // tier has to start here, in the rules, before any UI can offer it.
     match /admins/{uid} {
       allow read: if isSignedIn() && (request.auth.uid == uid || isAdmin());
       allow create, update, delete: if isAdmin();

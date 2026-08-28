@@ -152,4 +152,6 @@ function resultLine(slug: PlayGameSlug) {
   if (typeof entry?.timeMs === 'number') parts.push(formatTime(entry.timeMs))
   return parts.length ? parts.join(' · ') : 'Come back tomorrow for a new challenge'
 }
+
+usePageSeo('Games', 'Daily satsang games — Wordle, Crossword, Connections, 1% Club, Bracket City, Surya Chandra and Ras Rani.')
 </script>
