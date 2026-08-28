@@ -1,25 +1,12 @@
 /**
- * Personal "Visit Mandir" niyam tracker with geolocation-based auto check-in.
+ * Mandir geolocation for the shared Aarti / Chesta / Katha check-in.
  *
- * Records visits to the mandir in Firestore for persistence across devices.
- * Location is only used client-side; no GPS coordinates are stored.
+ * Location is only used client-side; no GPS coordinates are stored. Auto
+ * check-in is opt-in and only records towards the sangat's mandir-darshan goal.
  */
 
-import {
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  orderBy,
-  query,
-  serverTimestamp,
-  setDoc,
-  limit,
-  type Firestore
-} from 'firebase/firestore'
-import type { MandirVisit, LocationPreferences } from '~/types'
+import type { LocationPreferences } from '~/types'
 import { MANDIR_LOCATION } from '~/data/site'
-import { ukDateId } from '~/utils/gameDay'
 import { haversineDistance, useGeolocation } from '~/composables/useGeolocation'
 
 const PREFS_KEY = 'bhaktiras-mandir-location-prefs'
@@ -41,34 +28,27 @@ function savePrefs(prefs: LocationPreferences) {
   localStorage.setItem(PREFS_KEY, JSON.stringify(prefs))
 }
 
+function distanceFromMandir(lat: number, lng: number): number {
+  return haversineDistance(lat, lng, MANDIR_LOCATION.lat, MANDIR_LOCATION.lng)
+}
+
+function isWithinMandir(lat: number, lng: number): boolean {
+  return distanceFromMandir(lat, lng) <= MANDIR_LOCATION.radiusMeters
+}
+
 /**
- * The location poll and the visit reads are shared, not per-caller: the niyams
- * page mounts the visit card and also asks whether you are at the mandir from
- * the sangat board, and two independent instances would mean two geolocation
- * polls every thirty seconds and two copies of the same Firestore reads.
+ * Shared location poll: the niyams page and the check-in sheet both ask whether
+ * you are at the mandir, and two independent instances would mean two polls.
  */
 let checkIntervalId: ReturnType<typeof setInterval> | null = null
 let consumers = 0
 
 export function useMandirVisit() {
-  const { $firebaseDb } = useNuxtApp()
-  const { user, isLoggedIn } = useAuth()
-
   const geo = useGeolocation()
 
   const prefs = useState<LocationPreferences>('mandir-visit-prefs', () => loadPrefs())
-  const todayVisit = useState<MandirVisit | null>('mandir-visit-today', () => null)
-  const recentVisits = useState<MandirVisit[]>('mandir-visit-recent', () => [])
-  const loading = useState<boolean>('mandir-visit-loading', () => true)
   const checking = useState<boolean>('mandir-visit-checking', () => false)
   const error = useState<string | null>('mandir-visit-error', () => null)
-  /** `{uid}:{day}` already fetched, so a second caller does not re-read. */
-  const loadedFor = useState<string>('mandir-visit-loaded-for', () => '')
-
-  function getDb(): Firestore | null {
-    if (import.meta.server) return null
-    return ($firebaseDb as Firestore | null) ?? null
-  }
 
   const alwaysAllowLocation = computed({
     get: () => prefs.value.alwaysAllowLocation,
@@ -78,179 +58,55 @@ export function useMandirVisit() {
     }
   })
 
-  const visitedToday = computed(() => !!todayVisit.value)
-
   const isAtMandir = computed(() => {
     if (!geo.position.value) return false
-    const distance = haversineDistance(
-      geo.position.value.lat,
-      geo.position.value.lng,
-      MANDIR_LOCATION.lat,
-      MANDIR_LOCATION.lng
-    )
-    return distance <= MANDIR_LOCATION.radiusMeters
+    return isWithinMandir(geo.position.value.lat, geo.position.value.lng)
   })
 
   const distanceToMandir = computed(() => {
     if (!geo.position.value) return null
-    return haversineDistance(
-      geo.position.value.lat,
-      geo.position.value.lng,
-      MANDIR_LOCATION.lat,
-      MANDIR_LOCATION.lng
-    )
+    return distanceFromMandir(geo.position.value.lat, geo.position.value.lng)
   })
 
-  const currentStreak = computed(() => {
-    if (!recentVisits.value.length) return 0
-    let streak = 0
-    const today = ukDateId()
-    let expectedDate = today
-
-    for (const visit of recentVisits.value) {
-      if (visit.dateKey === expectedDate) {
-        streak++
-        expectedDate = addDays(expectedDate, -1)
-      } else if (visit.dateKey < expectedDate) {
-        break
-      }
-    }
-    return streak
-  })
-
-  function addDays(dateStr: string, days: number): string {
-    const date = new Date(dateStr + 'T12:00:00Z')
-    date.setUTCDate(date.getUTCDate() + days)
-    return date.toISOString().split('T')[0]
-  }
-
-  async function fetchTodayVisit() {
-    const db = getDb()
-    const uid = user.value?.uid
-    if (!db || !uid) {
-      todayVisit.value = null
-      return
-    }
-
-    const today = ukDateId()
-    try {
-      const snap = await getDoc(doc(db, 'mandirVisits', uid, 'visits', today))
-      if (snap.exists()) {
-        todayVisit.value = { id: snap.id, ...snap.data() } as MandirVisit
-      } else {
-        todayVisit.value = null
-      }
-    } catch (e) {
-      console.error('Failed to fetch today visit:', e)
-      todayVisit.value = null
-    }
-  }
-
-  async function fetchRecentVisits() {
-    const db = getDb()
-    const uid = user.value?.uid
-    if (!db || !uid) {
-      recentVisits.value = []
-      return
-    }
-
-    try {
-      const snap = await getDocs(
-        query(
-          collection(db, 'mandirVisits', uid, 'visits'),
-          orderBy('dateKey', 'desc'),
-          limit(30)
-        )
-      )
-      recentVisits.value = snap.docs.map(d => ({ id: d.id, ...d.data() } as MandirVisit))
-    } catch (e) {
-      console.error('Failed to fetch recent visits:', e)
-      recentVisits.value = []
-    }
-  }
-
-  async function recordVisit(source: 'auto' | 'manual') {
-    const db = getDb()
-    const uid = user.value?.uid
-    if (!db || !uid) {
-      error.value = 'Sign in to record your visit'
-      return false
-    }
-
-    if (visitedToday.value) {
-      return true
-    }
-
-    const today = ukDateId()
-    error.value = null
-
-    try {
-      await setDoc(doc(db, 'mandirVisits', uid, 'visits', today), {
-        userId: uid,
-        dateKey: today,
-        source,
-        createdAt: serverTimestamp()
-      })
-
-      todayVisit.value = {
-        id: today,
-        userId: uid,
-        dateKey: today,
-        source
-      }
-
-      await fetchRecentVisits()
-      return true
-    } catch (e) {
-      console.error('Failed to record visit:', e)
-      error.value = 'Could not record your visit'
-      return false
-    }
-  }
-
-  async function checkInManually() {
-    return recordVisit('manual')
-  }
-
-  async function checkLocationAndRecord() {
-    if (!alwaysAllowLocation.value || !isLoggedIn.value || visitedToday.value) {
-      return
-    }
-
+  async function refreshPosition(fresh = false): Promise<boolean> {
     checking.value = true
     error.value = null
-
     try {
-      await geo.getCurrentPosition()
-      if (isAtMandir.value) {
-        await recordVisit('auto')
-      }
+      await geo.getCurrentPosition(fresh ? { maximumAge: 0 } : undefined)
+      return isAtMandir.value
     } catch (e) {
       const err = e as GeolocationPositionError
       if (err.code === err.PERMISSION_DENIED) {
-        alwaysAllowLocation.value = false
         error.value = 'Location permission denied'
+      } else {
+        error.value = 'Could not get your location'
       }
+      return false
     } finally {
       checking.value = false
     }
   }
 
+  /** Fresh GPS read before a manual check-in — honour system is not enough here. */
+  async function confirmAtMandir(): Promise<boolean> {
+    const ok = await refreshPosition(true)
+    if (!ok && !error.value) {
+      error.value = 'You\'re not at the Mandir. Try again when you arrive.'
+    }
+    return ok
+  }
+
   async function enableLocationTracking() {
     error.value = null
-
     try {
       await geo.getCurrentPosition()
       alwaysAllowLocation.value = true
-      if (isAtMandir.value && !visitedToday.value) {
-        await recordVisit('auto')
-      }
       startPeriodicChecks()
       return true
     } catch (e) {
       const err = e as GeolocationPositionError
       if (err.code === err.PERMISSION_DENIED) {
-        error.value = 'Please allow location access to use auto check-in'
+        error.value = 'Location permission denied'
         alwaysAllowLocation.value = false
       } else {
         error.value = 'Could not get your location'
@@ -265,9 +121,14 @@ export function useMandirVisit() {
     geo.stopWatching()
   }
 
+  async function pollLocation() {
+    if (!alwaysAllowLocation.value) return
+    await refreshPosition()
+  }
+
   function startPeriodicChecks() {
     if (checkIntervalId) return
-    checkIntervalId = setInterval(checkLocationAndRecord, CHECK_INTERVAL_MS)
+    checkIntervalId = setInterval(pollLocation, CHECK_INTERVAL_MS)
   }
 
   function stopPeriodicChecks() {
@@ -277,67 +138,36 @@ export function useMandirVisit() {
     }
   }
 
-  async function refresh(force = true) {
-    const key = `${user.value?.uid || ''}:${ukDateId()}`
-    if (!force && loadedFor.value === key) return
-    loadedFor.value = key
-    loading.value = true
-    error.value = null
+  function init() {
     prefs.value = loadPrefs()
-
-    try {
-      await Promise.all([fetchTodayVisit(), fetchRecentVisits()])
-
-      if (alwaysAllowLocation.value && isLoggedIn.value && !visitedToday.value) {
-        startPeriodicChecks()
-        checkLocationAndRecord()
-      }
-    } catch (e) {
-      error.value = (e as Error).message
-    } finally {
-      loading.value = false
+    void geo.checkPermission()
+    if (alwaysAllowLocation.value) {
+      startPeriodicChecks()
+      void pollLocation()
     }
   }
 
   onMounted(() => {
     consumers += 1
-    refresh(false)
+    init()
   })
 
-  // The poll belongs to the page, not to whichever component unmounts first.
   onUnmounted(() => {
     consumers = Math.max(0, consumers - 1)
     if (!consumers) stopPeriodicChecks()
   })
 
-  watch(() => user.value?.uid, async (uid, prev) => {
-    if (uid === prev) return
-    await refresh()
-  })
-
   return {
-    // State
-    todayVisit,
-    recentVisits,
-    loading,
     checking,
     error,
-
-    // Computed
-    visitedToday,
     isAtMandir,
     distanceToMandir,
-    currentStreak,
     alwaysAllowLocation,
-
-    // Geolocation state (pass-through)
     permissionState: geo.permissionState,
     isGeolocationSupported: geo.isSupported,
-
-    // Actions
-    checkInManually,
+    confirmAtMandir,
     enableLocationTracking,
     disableLocationTracking,
-    refresh
+    refreshPosition
   }
 }

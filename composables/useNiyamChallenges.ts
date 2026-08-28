@@ -18,8 +18,11 @@ import type {
 } from '~/types'
 import {
   buildSubmissionId,
+  inputModeFor,
   isChallengeOpen,
   isPublished,
+  mandirCheckinBlockedMessage,
+  mandirCheckinCooldown,
   mergeChallenges,
   safeMemberName,
   sortSubmissionsNewestFirst,
@@ -258,6 +261,13 @@ export function useNiyamChallenges() {
     if (amount < 1) throw new Error('Enter how many you have done')
     if (amount > challenge.maxPerSubmission) {
       throw new Error(`The most you can add in one entry is ${challenge.maxPerSubmission}`)
+    }
+
+    if (inputModeFor(challenge) === 'checkin') {
+      const cooldown = mandirCheckinCooldown(submissionsFor(challenge.id))
+      if (cooldown.blocked) {
+        throw new Error(mandirCheckinBlockedMessage(cooldown.remainingMs))
+      }
     }
 
     const status = statusForAmount(challenge, amount)

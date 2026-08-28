@@ -286,6 +286,42 @@ export function sortSubmissionsNewestFirst(list: NiyamSubmission[]): NiyamSubmis
   return [...list].sort((a, b) => toMillis(b.createdAt) - toMillis(a.createdAt) || a.id.localeCompare(b.id))
 }
 
+/** Minimum gap between mandir attendance check-ins for the same person. */
+export const MANDIR_CHECKIN_COOLDOWN_MS = 4 * 60 * 60 * 1000
+
+export interface MandirCheckinCooldown {
+  blocked: boolean
+  nextAt: number
+  remainingMs: number
+}
+
+export function mandirCheckinCooldown(
+  submissions: NiyamSubmission[],
+  now: number = Date.now()
+): MandirCheckinCooldown {
+  const latest = sortSubmissionsNewestFirst(
+    submissions.filter(s => s.status !== 'rejected')
+  )[0]
+  const lastMs = toMillis(latest?.createdAt)
+  if (!lastMs) return { blocked: false, nextAt: 0, remainingMs: 0 }
+  const nextAt = lastMs + MANDIR_CHECKIN_COOLDOWN_MS
+  const remainingMs = Math.max(0, nextAt - now)
+  return { blocked: remainingMs > 0, nextAt, remainingMs }
+}
+
+export function formatCheckinCooldownRemaining(remainingMs: number): string {
+  const totalMinutes = Math.ceil(remainingMs / 60_000)
+  const hours = Math.floor(totalMinutes / 60)
+  const minutes = totalMinutes % 60
+  if (hours > 0 && minutes > 0) return `${hours}h ${minutes}m`
+  if (hours > 0) return `${hours}h`
+  return `${minutes}m`
+}
+
+export function mandirCheckinBlockedMessage(remainingMs: number): string {
+  return `You checked in recently. You can check in again in ${formatCheckinCooldownRemaining(remainingMs)}.`
+}
+
 /** Trim a client-supplied display name the same way the leaderboard does. */
 export function safeMemberName(name: string | null | undefined): string {
   const cleaned = (name || '')

@@ -15,7 +15,7 @@
           id="sangat-board"
           class="mb-3 text-center text-[11px] font-semibold uppercase tracking-[0.2em] text-[hsl(var(--golden-900))]"
         >
-          The sangat's count
+          Niyams done badha saathe (together)
         </h2>
 
         <p v-if="challengesLoading" class="card-surface px-5 py-6 text-center text-sm text-[hsl(var(--muted-foreground))]">
@@ -45,29 +45,6 @@
           sangat's shared total.
         </p>
       </section>
-
-      <section class="mt-10" aria-labelledby="personal-niyams">
-        <h2
-          id="personal-niyams"
-          class="text-center text-[11px] font-semibold uppercase tracking-[0.2em] text-[hsl(var(--golden-900))]"
-        >
-          Just for you
-        </h2>
-        <p class="mx-auto mb-4 mt-2 max-w-md text-center text-sm text-[hsl(var(--muted-foreground))]">
-          Above is the sangat's shared count. Below is your own record — your streak and your
-          entries, kept private to you.
-        </p>
-
-        <MandirVisitCard />
-
-        <NiyamYourSadhana
-          class="mt-6"
-          :rows="sadhanaRows"
-          :submissions="mySubmissions"
-          :is-logged-in="isLoggedIn"
-          @withdraw="withdraw"
-        />
-      </section>
     </div>
 
     <NiyamLogSheet
@@ -78,9 +55,16 @@
       :is-logged-in="isLoggedIn"
       :submitting="submitting"
       :at-mandir="isAtMandir"
+      :checking-location="checkingLocation"
+      :location-error="locationError"
+      :auto-check-in-enabled="alwaysAllowLocation"
+      :geolocation-supported="isGeolocationSupported"
+      :location-permission="permissionState"
       @close="closeSheet"
       @submit="onSubmit"
       @withdraw="withdraw"
+      @enable-auto-check-in="enableLocationTracking"
+      @disable-auto-check-in="disableLocationTracking"
     />
 
     <NiyamDetailSheet
@@ -98,6 +82,9 @@
 <script setup lang="ts">
 import type { NiyamChallenge, NiyamChallengeStats, NiyamSubmission, NiyamSubmissionStatus } from '~/types'
 import { ukDateId } from '~/utils/gameDay'
+import { inputModeFor, isChallengeOpen, isPublished, mandirCheckinBlockedMessage, mandirCheckinCooldown, type MandirCheckinCooldown } from '~/utils/niyamChallenge'
+
+const MANDIR_CHALLENGE_ID = 'mandir-darshan'
 
 const {
   challenges,
@@ -110,20 +97,25 @@ const {
   submissionsFor,
   myApprovedTotal,
   myPendingTotal,
-  mySubmissions,
   submit,
   withdraw
 } = useNiyamChallenges()
 
-/**
- * Only for the "You're at the mandir" reassurance in the check-in sheet.
- * `MandirVisitCard` owns the streak and every write; nothing here records a
- * visit, and the shared sabha count and the private streak stay separate.
- */
-const { isAtMandir } = useMandirVisit()
+const {
+  isAtMandir,
+  checking: checkingLocation,
+  error: locationError,
+  alwaysAllowLocation,
+  isGeolocationSupported,
+  permissionState,
+  confirmAtMandir,
+  enableLocationTracking,
+  disableLocationTracking
+} = useMandirVisit()
 
 const sheet = ref<'none' | 'log' | 'detail'>('none')
 const activeId = ref('')
+const autoCheckInBusy = ref(false)
 
 const activeChallenge = computed<NiyamChallenge | null>(
   () => challenges.value.find(c => c.id === activeId.value) ?? null
@@ -141,16 +133,41 @@ const EMPTY_STATS: NiyamChallengeStats = {
 const activeStats = computed(() => (activeId.value ? statsFor(activeId.value) : EMPTY_STATS))
 const activeSubmissions = computed(() => (activeId.value ? submissionsFor(activeId.value) : []))
 
-/** The pulse strip only has something to say once the totals trigger has run. */
 const pulseStats = computed(() => publishedChallenges.value.map(c => statsFor(c.id)))
 
-const sadhanaRows = computed(() =>
-  challenges.value.map(challenge => ({
-    challenge,
-    approved: myApprovedTotal(challenge.id),
-    pending: myPendingTotal(challenge.id)
-  }))
-)
+const mandirChallenge = computed(() => challenges.value.find(c => c.id === MANDIR_CHALLENGE_ID) ?? null)
+
+function mandirCheckinBlocked(): MandirCheckinCooldown {
+  return mandirCheckinCooldown(submissionsFor(MANDIR_CHALLENGE_ID))
+}
+
+async function tryAutoCheckIn() {
+  if (
+    autoCheckInBusy.value
+    || !alwaysAllowLocation.value
+    || !isAtMandir.value
+    || !isLoggedIn.value
+    || mandirCheckinBlocked().blocked
+  ) {
+    return
+  }
+
+  const challenge = mandirChallenge.value
+  if (!challenge || !isPublished(challenge) || !isChallengeOpen(challenge)) return
+
+  autoCheckInBusy.value = true
+  try {
+    await submit(challenge, 1)
+  } catch {
+    // A failed write should not block a later manual check-in.
+  } finally {
+    autoCheckInBusy.value = false
+  }
+}
+
+watch([isAtMandir, alwaysAllowLocation, isLoggedIn, mandirChallenge], () => {
+  void tryAutoCheckIn()
+})
 
 function openLog(challenge: NiyamChallenge) {
   activeId.value = challenge.id
@@ -166,7 +183,6 @@ function closeSheet() {
   sheet.value = 'none'
 }
 
-/** Let the detail sheet close — and hand focus back — before the log sheet claims it. */
 async function switchToLog() {
   sheet.value = 'none'
   await nextTick()
@@ -181,10 +197,25 @@ async function onSubmit(payload: {
 }) {
   const challenge = activeChallenge.value
   if (!challenge) return
+
+  if (inputModeFor(challenge) === 'checkin') {
+    const cooldown = mandirCheckinCooldown(submissionsFor(challenge.id))
+    if (cooldown.blocked) {
+      payload.fail(mandirCheckinBlockedMessage(cooldown.remainingMs))
+      return
+    }
+    locationError.value = null
+    const atMandir = await confirmAtMandir()
+    if (!atMandir) {
+      payload.fail(
+        locationError.value || 'You\'re not at the Mandir. Try again when you arrive.'
+      )
+      return
+    }
+  }
+
   try {
     const status = await submit(challenge, payload.amount, payload.note)
-    // `submit` refreshes the entry list, and it is sorted newest first, so the
-    // newest entry matching what was just sent is the one Undo has to remove.
     const today = ukDateId()
     const created = submissionsFor(challenge.id)
       .find(s => s.amount === payload.amount && s.dayKey === today) ?? null

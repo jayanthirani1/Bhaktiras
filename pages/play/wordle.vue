@@ -225,14 +225,6 @@
         </div>
       </div>
 
-      <GameHowTo v-if="!playedElsewhere && howto.ready.value && !howto.showIntro.value" class="mb-6">
-        <ol class="list-decimal space-y-2 pl-5">
-          <li>Type a five-letter word and press Enter.</li>
-          <li><span class="font-semibold text-[hsl(var(--foreground))]">Green</span> is the right letter in the right spot. <span class="font-semibold text-[hsl(var(--foreground))]">Amber</span> is in the word, but elsewhere. Grey is not in the word.</li>
-          <li>You have six guesses. The clock pauses if you leave the page and picks up when you return.</li>
-        </ol>
-      </GameHowTo>
-
       <GameCrowns :ids="['wordle-fastest', 'wordle-fewest-guesses']" />
 
       <GameLeaderboard
@@ -253,6 +245,17 @@
           Your score is on the board.
         </template>
       </GameLeaderboard>
+
+      <GameHowTo
+        v-if="!playedElsewhere && howto.ready.value && !howto.showIntro.value"
+        class="mt-10"
+      >
+        <ol class="list-decimal space-y-2 pl-5">
+          <li>Type a five-letter word and press Enter.</li>
+          <li><span class="font-semibold text-[hsl(var(--foreground))]">Green</span> is the right letter in the right spot. <span class="font-semibold text-[hsl(var(--foreground))]">Amber</span> is in the word, but elsewhere. Grey is not in the word.</li>
+          <li>You have six guesses. The clock pauses if you leave the page and picks up when you return.</li>
+        </ol>
+      </GameHowTo>
 
       <!-- Result modal -->
       <Teleport to="body">
@@ -770,13 +773,21 @@ watch(
 )
 
 watch([isComplete, isWin, () => auth.user.value?.uid], ([complete, won, uid]) => {
-  if (complete && won && uid && !scoreSubmitted.value && !submittingScore.value) {
-    void submitToLeaderboard()
+  if (!complete || !won || !uid || scoreSubmitted.value || submittingScore.value) return
+  // Reload can set isComplete before the timer is read from storage — never submit 0 ms.
+  if (!timer.finishedAt.value && timer.elapsedMs.value <= 0) {
+    timer.read()
+    if (!timer.finishedAt.value && timer.elapsedMs.value <= 0) return
   }
-}, { immediate: true })
+  void submitToLeaderboard()
+})
 
 async function submitToLeaderboard() {
   if (!auth.user.value || !isWin.value || scoreSubmitted.value || submittingScore.value) return
+  if (!timer.finishedAt.value && timer.elapsedMs.value <= 0) {
+    timer.read()
+    if (!timer.finishedAt.value && timer.elapsedMs.value <= 0) return
+  }
   submitError.value = ''
   submittingScore.value = true
   try {
@@ -871,8 +882,14 @@ onMounted(async () => {
   scoreSubmitted.value = false
   showResultModal.value = false
   guesses.value = state.guesses
-  isComplete.value = state.isComplete
   solution.value = state.solution
+
+  // Hydrate the timer before isComplete can trigger a leaderboard auto-submit.
+  if (state.isComplete || state.guesses.length > 0) {
+    timer.read()
+    if (state.isComplete && timer.startedAt.value && !timer.finishedAt.value) timer.stop()
+  }
+  isComplete.value = state.isComplete
 
   const started = state.guesses.length > 0 || state.isComplete
   try {
@@ -889,10 +906,7 @@ onMounted(async () => {
   }
   solutionReady.value = true
 
-  if (state.isComplete) {
-    timer.read()
-    if (timer.startedAt.value && !timer.finishedAt.value) timer.stop()
-  } else if (!playedElsewhere.value && !howto.showIntro.value) {
+  if (!state.isComplete && !playedElsewhere.value && !howto.showIntro.value) {
     timer.loadOrStart()
   }
 

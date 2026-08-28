@@ -75,25 +75,53 @@
           class="mt-4 inline-flex items-center gap-1.5 rounded-full bg-[hsl(var(--golden-50))] px-3 py-1.5 text-xs font-semibold text-[hsl(var(--golden-900))]"
         >
           <IconMapPin class="h-3.5 w-3.5" aria-hidden="true" />
-          You're at the mandir
+          You're at the Mandir
         </p>
 
+        <div
+          v-if="geolocationSupported"
+          class="mt-5 rounded-xl border border-[hsl(var(--border))] px-4 py-4 text-left"
+        >
+          <div class="flex items-center justify-between gap-4">
+            <div>
+              <p class="text-sm font-semibold text-[hsl(var(--foreground))]">Auto check-in</p>
+              <p class="mt-0.5 text-xs text-[hsl(var(--muted-foreground))]">
+                Record a sabha automatically when you arrive at the Mandir
+              </p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              :aria-checked="autoCheckInEnabled"
+              class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[hsl(var(--primary))] focus:ring-offset-2"
+              :class="autoCheckInEnabled ? 'bg-[hsl(var(--primary))]' : 'bg-[hsl(var(--muted))]'"
+              @click="toggleAutoCheckIn"
+            >
+              <span
+                class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+                :class="autoCheckInEnabled ? 'translate-x-5' : 'translate-x-0'"
+              />
+            </button>
+          </div>
+          <p
+            v-if="permissionDenied"
+            class="mt-3 text-xs text-amber-700"
+          >
+            Location access was denied. Enable it in your browser settings to use auto check-in.
+          </p>
+        </div>
+
         <p
-          v-if="todayCount > 0"
+          v-if="checkinCooldown.blocked"
           class="mt-5 flex items-start gap-2 rounded-xl bg-[hsl(var(--muted))] px-3 py-2.5 text-left text-sm"
         >
           <IconInfoCircle class="mt-0.5 h-4 w-4 shrink-0 text-[hsl(var(--golden-900))]" aria-hidden="true" />
-          <span>
-            You have already added {{ formatCount(todayCount) }}
-            {{ unitLabel(challenge, todayCount) }} today. Only add another if you attended a second sabha.
-          </span>
+          <span>{{ mandirCheckinBlockedMessage(checkinCooldown.remainingMs) }}</span>
         </p>
-        <p v-else class="mt-5 text-sm text-[hsl(var(--muted-foreground))]">
-          One tap adds one sabha. Please only add sabhas you were at in person.
+        <p v-else-if="atMandir" class="mt-5 text-sm text-[hsl(var(--muted-foreground))]">
+          One tap adds one sabha — Aarti, Chesta or Katha you attended in person.
         </p>
       </div>
-
-      <!-- Counted niyams -->
       <div v-else>
         <p class="text-center text-sm text-[hsl(var(--muted-foreground))]">
           {{ challenge.hint || challenge.detail }}
@@ -264,16 +292,20 @@
         {{ commitLabel }}
       </button>
 
-      <button
-        v-else
-        type="button"
-        class="flex w-full items-center justify-center gap-2 rounded-xl bg-[hsl(var(--primary))] px-4 py-5 font-display text-lg font-semibold text-white transition-colors hover:bg-[hsl(var(--primary))]/90 disabled:opacity-50"
-        :disabled="submitting"
-        @click="commit(1)"
-      >
-        <IconMapPin class="h-5 w-5" aria-hidden="true" />
-        {{ submitting ? 'Adding…' : 'I was at the sabha' }}
-      </button>
+      <div v-else-if="isCheckin" class="space-y-2">
+        <button
+          type="button"
+          class="flex w-full items-center justify-center gap-2 rounded-xl bg-[hsl(var(--primary))] px-4 py-5 font-display text-lg font-semibold text-white transition-colors hover:bg-[hsl(var(--primary))]/90 disabled:opacity-50"
+          :disabled="submitting || checkingLocation || checkinCooldown.blocked"
+          @click="commit(1)"
+        >
+          <IconMapPin class="h-5 w-5" aria-hidden="true" />
+          {{ checkinButtonLabel }}
+        </button>
+        <p class="text-center text-xs text-[hsl(var(--muted-foreground))]">
+          You can check in when you are at mandir
+        </p>
+      </div>
       </div>
     </template>
   </NiyamSheet>
@@ -293,12 +325,14 @@ import {
   IconPlus
 } from '@tabler/icons-vue'
 import type { NiyamChallenge, NiyamChallengeStats, NiyamSubmission, NiyamSubmissionStatus } from '~/types'
-import { ukDateId } from '~/utils/gameDay'
 import {
   formatCount,
   formatTarget,
   inputModeFor,
   isPublished,
+  mandirCheckinBlockedMessage,
+  mandirCheckinCooldown,
+  formatCheckinCooldownRemaining,
   needsReview,
   presetsFor,
   reviewReason,
@@ -319,6 +353,11 @@ const props = defineProps<{
   isLoggedIn: boolean
   submitting: boolean
   atMandir?: boolean
+  checkingLocation?: boolean
+  locationError?: string | null
+  autoCheckInEnabled?: boolean
+  geolocationSupported?: boolean
+  locationPermission?: string
 }>()
 
 const emit = defineEmits<{
@@ -330,9 +369,14 @@ const emit = defineEmits<{
     fail: (message: string) => void
   }]
   withdraw: [submission: NiyamSubmission]
+  'enable-auto-check-in': []
+  'disable-auto-check-in': []
 }>()
 
 const UNDO_SECONDS = 30
+
+const now = ref(Date.now())
+let cooldownTimer: ReturnType<typeof setInterval> | null = null
 
 const value = ref(0)
 const note = ref('')
@@ -364,6 +408,26 @@ let undoTimer: ReturnType<typeof setInterval> | null = null
 const published = computed(() => !!props.challenge && isPublished(props.challenge))
 const isCheckin = computed(() => !!props.challenge && inputModeFor(props.challenge) === 'checkin')
 const presets = computed(() => (props.challenge ? presetsFor(props.challenge) : []))
+const permissionDenied = computed(() => props.locationPermission === 'denied')
+
+const checkinCooldown = computed(() => {
+  if (!isCheckin.value) return { blocked: false, nextAt: 0, remainingMs: 0 }
+  return mandirCheckinCooldown(props.mySubmissions, now.value)
+})
+
+const checkinButtonLabel = computed(() => {
+  if (props.submitting) return 'Adding…'
+  if (props.checkingLocation) return 'Checking location…'
+  if (checkinCooldown.value.blocked) {
+    return `Check in again in ${formatCheckinCooldownRemaining(checkinCooldown.value.remainingMs)}`
+  }
+  return 'Manually check in'
+})
+
+function toggleAutoCheckIn() {
+  if (props.autoCheckInEnabled) emit('disable-auto-check-in')
+  else emit('enable-auto-check-in')
+}
 
 const sheetSubtitle = computed(() => {
   if (!props.challenge) return ''
@@ -372,12 +436,34 @@ const sheetSubtitle = computed(() => {
   return 'How many have you done?'
 })
 
-const todayCount = computed(() => {
-  const today = ukDateId()
-  return props.mySubmissions
-    .filter(s => s.dayKey === today && s.status !== 'rejected')
-    .reduce((sum, s) => sum + s.amount, 0)
-})
+function startCooldownTimer() {
+  stopCooldownTimer()
+  now.value = Date.now()
+  cooldownTimer = setInterval(() => {
+    now.value = Date.now()
+  }, 60_000)
+}
+
+function stopCooldownTimer() {
+  if (cooldownTimer) clearInterval(cooldownTimer)
+  cooldownTimer = null
+}
+
+function reset() {
+  stopRepeat()
+  stopUndoTimer()
+  chipUsed = false
+  value.value = 0
+  numberText.value = ''
+  note.value = ''
+  showNumber.value = false
+  showNote.value = false
+  localError.value = ''
+  phase.value = 'input'
+  result.value = null
+  committed.value = 0
+  undoSeconds.value = 0
+}
 
 const commitLabel = computed(() => {
   if (!props.challenge) return 'Add'
@@ -437,22 +523,6 @@ async function toggleNumber() {
   numberInput.value?.focus()
 }
 
-function reset() {
-  stopRepeat()
-  stopUndoTimer()
-  chipUsed = false
-  value.value = 0
-  numberText.value = ''
-  note.value = ''
-  showNumber.value = false
-  showNote.value = false
-  localError.value = ''
-  phase.value = 'input'
-  result.value = null
-  committed.value = 0
-  undoSeconds.value = 0
-}
-
 function stopUndoTimer() {
   if (undoTimer) clearInterval(undoTimer)
   undoTimer = null
@@ -468,7 +538,7 @@ function startUndoTimer() {
 }
 
 function commit(amount: number) {
-  if (!props.challenge || props.submitting) return
+  if (!props.challenge || props.submitting || props.checkingLocation || checkinCooldown.value.blocked) return
   localError.value = ''
   const requested = clamp(amount)
   if (requested < 1) {
@@ -502,12 +572,18 @@ function undo() {
 }
 
 watch(() => props.open, (isOpen) => {
-  if (isOpen) reset()
-  else stopUndoTimer()
+  if (isOpen) {
+    reset()
+    startCooldownTimer()
+  } else {
+    stopUndoTimer()
+    stopCooldownTimer()
+  }
 })
 
 onBeforeUnmount(() => {
   stopRepeat()
   stopUndoTimer()
+  stopCooldownTimer()
 })
 </script>
