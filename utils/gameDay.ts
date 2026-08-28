@@ -21,3 +21,14 @@ export function addUkDays(id: string, days: number): string {
   date.setUTCDate(date.getUTCDate() + days)
   return date.toISOString().slice(0, 10)
 }
+
+/**
+ * True once the UK calendar day has moved past the day something was built for.
+ *
+ * Every daily puzzle pins its storage keys, its timer and its leaderboard to
+ * the day the page mounted. An app that is minimised overnight never mounts
+ * again, so those stay pinned to yesterday while `ukDateId()` has moved on.
+ */
+export function isStaleGameDay(dateId: string): boolean {
+  return !!dateId && dateId !== ukDateId()
+}

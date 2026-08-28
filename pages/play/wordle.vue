@@ -387,6 +387,7 @@
 <script setup lang="ts">
 import { IconArrowLeft, IconCrown } from '@tabler/icons-vue'
 import { getWordForDate, wordleDateId } from '~/utils/wordleDaily'
+import { isStaleGameDay } from '~/utils/gameDay'
 import { getFeedback } from '~/utils/wordle'
 import { findGameWord } from '~/utils/gameWordBank'
 import { isValidWord } from '~/data/wordleGuessList'
@@ -410,24 +411,52 @@ function getTodayId(): string {
   return wordleDateId()
 }
 
-function loadDailyState(): { solution: string; guesses: string[]; isComplete: boolean; scoreSubmitted: boolean } {
-  if (import.meta.server) {
-    return { solution: getWordForDate(new Date()), guesses: [], isComplete: false, scoreSubmitted: false }
+/**
+ * The day the board on screen belongs to.
+ *
+ * Every other game carries its day in the storage key. Wordle keeps one key
+ * and writes the day inside it, so the day has to be remembered rather than
+ * re-read: stamping a fresh `getTodayId()` on save meant that a board built
+ * last night, saved once after midnight, came back from storage looking like
+ * today's puzzle.
+ */
+const boardDate = ref(getTodayId())
+
+type DailyState = {
+  date: string
+  solution: string
+  guesses: string[]
+  isComplete: boolean
+  scoreSubmitted: boolean
+}
+
+function freshDailyState(): DailyState {
+  return {
+    date: getTodayId(),
+    solution: getWordForDate(new Date()),
+    guesses: [],
+    isComplete: false,
+    scoreSubmitted: false
   }
+}
+
+function loadDailyState(): DailyState {
+  if (import.meta.server) return freshDailyState()
   try {
     const raw = localStorage.getItem(DAILY_STORAGE_KEY)
-    if (!raw) return { solution: getWordForDate(new Date()), guesses: [], isComplete: false, scoreSubmitted: false }
+    if (!raw) return freshDailyState()
     const { date, solution, guesses, isComplete, scoreSubmitted } = JSON.parse(raw)
     const today = getTodayId()
-    if (date !== today) return { solution: getWordForDate(new Date()), guesses: [], isComplete: false, scoreSubmitted: false }
+    if (date !== today) return freshDailyState()
     return {
+      date: today,
       solution,
       guesses: guesses ?? [],
       isComplete: isComplete ?? false,
       scoreSubmitted: scoreSubmitted ?? false
     }
   } catch {
-    return { solution: getWordForDate(new Date()), guesses: [], isComplete: false, scoreSubmitted: false }
+    return freshDailyState()
   }
 }
 
@@ -435,7 +464,7 @@ function saveDailyState(solution: string, guesses: string[], isComplete: boolean
   if (import.meta.server) return
   try {
     localStorage.setItem(DAILY_STORAGE_KEY, JSON.stringify({
-      date: getTodayId(),
+      date: boardDate.value,
       solution,
       guesses,
       isComplete,
@@ -630,6 +659,15 @@ function pressKeyVisual(key: string) {
 }
 
 function runKey(key: string) {
+  // This page can outlive the day it was opened on: a phone left minimised
+  // overnight never remounts, so the board, the timer and the leaderboard all
+  // stay pinned to yesterday. `game-day-rollover` normally catches that on
+  // resume — if it did not, refuse the keystroke rather than let yesterday's
+  // game be finished into today's record.
+  if (isStaleGameDay(boardDate.value)) {
+    window.location.reload()
+    return
+  }
   const k = key.toUpperCase()
   if (!keyTap.allow(k)) return
   if (k === 'ENTER') {
@@ -733,6 +771,7 @@ function removeLetter() {
 function reset() {
   // Only allow reset for a new day (handled by loadDailyState). Same-day replay is not allowed.
   const state = loadDailyState()
+  boardDate.value = state.date
   solution.value = state.solution
   guesses.value = [...state.guesses]
   currentGuess.value = ''
@@ -775,6 +814,10 @@ watch([isComplete, isWin, () => auth.user.value?.uid], ([complete, won, uid]) =>
 
 async function submitToLeaderboard() {
   if (!auth.user.value || !isWin.value || scoreSubmitted.value || submittingScore.value) return
+  // `submitScore` stamps a fresh `ukDateId()`, so a board left over from
+  // yesterday would land on today's leaderboard — and this runs off a watcher,
+  // which a resumed page can fire without anyone touching a key.
+  if (isStaleGameDay(boardDate.value)) return
   submitError.value = ''
   submittingScore.value = true
   try {
@@ -865,6 +908,7 @@ function beginAfterHowTo() {
 
 onMounted(async () => {
   const state = loadDailyState()
+  boardDate.value = state.date
   hasRecordedResult.value = state.isComplete
   scoreSubmitted.value = false
   showResultModal.value = false
