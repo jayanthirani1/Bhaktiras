@@ -5,7 +5,7 @@ import type { PlayGameSlug } from '~/utils/playCompletion'
  * When the shared word bank changes, bump WORD_BANK_VERSION so browsers
  * drop cached daily progress that still points at old answers/puzzles.
  */
-export const WORD_BANK_VERSION = 6
+export const WORD_BANK_VERSION = 7
 
 const VERSION_KEY = 'bhaktiras-word-bank-version'
 
