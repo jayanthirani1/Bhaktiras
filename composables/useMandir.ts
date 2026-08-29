@@ -13,6 +13,7 @@ import {
   type Firestore
 } from 'firebase/firestore'
 import type { TimelineItem, TimelineMedia, Event, GratitudeMessage, VolunteerRole, TimeCapsuleMessage } from '~/types'
+import { compareTimelineItems } from '~/data/timeline'
 
 /** Newest notes shown on the community wall in one page. */
 const GRATITUDE_PAGE_SIZE = 60
@@ -70,11 +71,7 @@ export function useTimeline() {
           videoUrl: data.videoUrl ?? null,
           media
         })
-      }).sort((a, b) => {
-        const y = String(a.year).localeCompare(String(b.year))
-        if (y !== 0) return y
-        return (a.date || '').localeCompare(b.date || '')
-      })
+      }).sort(compareTimelineItems)
     } catch (e) {
       error.value = e as Error
       items.value = []

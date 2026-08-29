@@ -51,7 +51,10 @@
             </div>
             <div>
               <label class="admin-label">Date label</label>
-              <input v-model="form.date" class="admin-input" placeholder="2027 or 14 Aug 2027">
+              <input v-model="form.date" class="admin-input" placeholder="August, or 14 Aug 2027">
+              <p class="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
+                Month alone is fine — the year above is used for ordering.
+              </p>
             </div>
           </div>
           <div>
@@ -83,7 +86,7 @@
 
 <script setup lang="ts">
 import type { TimelineItem } from '~/types'
-import { journeyYears } from '~/data/timeline'
+import { compareTimelineItems, journeyYears } from '~/data/timeline'
 
 definePageMeta({ layout: 'admin', middleware: 'admin' })
 
@@ -107,7 +110,7 @@ const sorted = computed(() =>
   [...items.value].sort((a, b) => {
     const yearDiff = yearSortValue(yearKey(a)) - yearSortValue(yearKey(b))
     if (yearDiff) return yearDiff
-    return String(a.date || a.title).localeCompare(String(b.date || b.title), undefined, { numeric: true })
+    return compareTimelineItems(a, b)
   })
 )
 

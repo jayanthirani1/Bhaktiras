@@ -104,7 +104,7 @@
 <script setup lang="ts">
 import { IconChevronLeft, IconChevronRight } from '@tabler/icons-vue'
 import type { TimelineItem, TimelineMedia } from '~/types'
-import { journeyYears } from '~/data/timeline'
+import { compareTimelineItems, journeyYears } from '~/data/timeline'
 
 const { timeline, isLoading } = useTimeline()
 const years = journeyYears()
@@ -112,7 +112,10 @@ const nowYear = new Date().getFullYear()
 const selectedYear = ref(String(years.includes(nowYear) ? nowYear : years[years.length - 1]))
 
 const yearMoments = computed(() =>
-  timeline.value.filter(t => t.year === selectedYear.value)
+  timeline.value
+    .filter(t => String(t.year) === selectedYear.value)
+    .slice()
+    .sort(compareTimelineItems)
 )
 
 const yearRow = ref<HTMLElement | null>(null)
