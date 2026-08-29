@@ -19,12 +19,13 @@
       </div>
     </div>
 
-    <!-- Mobile bottom nav -->
+    <!-- Mobile bottom nav. Tab row stays a full 4rem; home-indicator inset is
+         extra padding under it so icons are not crushed into the top of h-16. -->
     <div
       v-if="!isGamePage"
-      class="fixed bottom-0 left-0 right-0 z-50 bg-[hsl(var(--card))]/95 backdrop-blur-md border-t border-[hsl(var(--border))] md:hidden"
+      class="fixed bottom-0 left-0 right-0 z-50 border-t border-[hsl(var(--border))] bg-[hsl(var(--card))]/95 pb-[env(safe-area-inset-bottom,0px)] backdrop-blur-md md:hidden"
     >
-      <div class="flex items-center h-16 px-2 safe-bottom">
+      <div class="flex h-16 items-center px-2">
         <NuxtLink
           v-for="item in mobilePrimaryItems"
           :key="item.href"

@@ -17,7 +17,7 @@
           <IconEye v-if="kind === 'letter'" class="h-5 w-5" aria-hidden="true" />
           <IconHelp v-else class="h-5 w-5" aria-hidden="true" />
         </div>
-        <h2 :id="titleId" class="font-display text-xl font-semibold text-[hsl(var(--foreground))]">
+        <h2 :id="titleId" class="font-display text-xl font-semibold text-[hsl(var(--primary))]">
           {{ kind === 'letter' ? 'Reveal a letter?' : 'Reveal this word?' }}
         </h2>
         <p class="mt-2 text-sm text-[hsl(var(--muted-foreground))]">

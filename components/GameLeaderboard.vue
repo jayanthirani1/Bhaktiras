@@ -1,6 +1,6 @@
 <template>
   <div class="mt-12">
-    <h3 class="text-lg font-bold text-[hsl(var(--foreground))] mb-1">
+    <h3 class="text-lg font-bold text-[hsl(var(--primary))] mb-1">
       {{ allTime ? 'All-time leaderboard' : 'Today’s leaderboard' }}
     </h3>
     <p class="text-sm text-[hsl(var(--muted-foreground))] mb-3">

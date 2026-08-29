@@ -277,7 +277,7 @@
           >
             <div v-if="isWin" class="text-4xl mb-4" aria-hidden="true">🎉</div>
             <div v-else class="text-4xl mb-4" aria-hidden="true">🙏</div>
-            <h2 id="wordle-result-title" class="text-2xl font-bold text-[hsl(var(--foreground))] mb-2">
+            <h2 id="wordle-result-title" class="text-2xl font-bold text-[hsl(var(--primary))] mb-2">
               {{ isWin ? 'Well done!' : 'Next time' }}
             </h2>
             <p id="wordle-result-desc" class="sr-only" aria-live="polite">

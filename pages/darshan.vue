@@ -28,7 +28,7 @@
       </div>
 
       <div class="bg-[hsl(var(--card))] rounded-3xl p-8 shadow-sm border border-[hsl(var(--golden-200))] max-w-lg mx-auto text-center">
-        <h3 class="text-2xl font-display font-bold text-[hsl(var(--foreground))] mb-2">Submit Sankalp</h3>
+        <h3 class="text-2xl font-display font-bold text-[hsl(var(--primary))] mb-2">Submit Sankalp</h3>
         <p class="text-[hsl(var(--muted-foreground))] mb-6 text-sm">Offer a prayer request for the evening Aarti.</p>
         <form class="space-y-4" @submit.prevent="handleSankalpSubmit">
           <input

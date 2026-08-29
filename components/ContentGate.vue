@@ -4,7 +4,7 @@
       <div class="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-[hsl(var(--muted))] text-[hsl(var(--primary))]">
         <IconLock class="h-8 w-8" stroke-width="1.7" />
       </div>
-      <h1 class="mt-6 font-display text-2xl font-bold text-[hsl(var(--foreground))]">
+      <h1 class="mt-6 font-display text-2xl font-bold text-[hsl(var(--primary))]">
         {{ title }}
       </h1>
       <p class="mt-3 text-sm leading-relaxed text-[hsl(var(--muted-foreground))]">

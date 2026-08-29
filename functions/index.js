@@ -1516,3 +1516,80 @@ exports.syncNiyamChallengeTotals = onDocumentWritten(
     }
   }
 )
+
+/**
+ * One-shot wipe before public launch: clears every player's game scores,
+ * streaks, completions, achievements/crowns, and every niyam submission and
+ * shared total. Content (puzzles, challenges, timeline, events) is untouched.
+ *
+ * Requires the typed phrase so a stray admin click cannot empty the boards.
+ */
+const LAUNCH_RESET_PHRASE = 'RESET FOR LAUNCH'
+const LAUNCH_RESET_FLAT = [
+  'gameScores',
+  'wordleScores',
+  'playStreaks',
+  'userAchievements',
+  'achievementCrowns',
+  'niyamSubmissions',
+  'niyamChallengeStats'
+]
+const LAUNCH_RESET_NESTED = [
+  'playCompletions',
+  'mandirVisits'
+]
+
+async function deleteFlatCollection(db, name) {
+  let deleted = 0
+  while (true) {
+    const snap = await db.collection(name).limit(PRUNE_BATCH_SIZE).get()
+    if (snap.empty) break
+    const batch = db.batch()
+    snap.docs.forEach(doc => batch.delete(doc.ref))
+    await batch.commit()
+    deleted += snap.size
+    if (snap.size < PRUNE_BATCH_SIZE) break
+  }
+  return deleted
+}
+
+/** Parents that carry day/visit subcollections — recursive delete each doc. */
+async function deleteNestedCollection(db, name) {
+  let deleted = 0
+  while (true) {
+    const snap = await db.collection(name).limit(50).get()
+    if (snap.empty) break
+    for (const doc of snap.docs) {
+      await db.recursiveDelete(doc.ref)
+      deleted += 1
+    }
+    if (snap.size < 50) break
+  }
+  return deleted
+}
+
+exports.wipeLaunchPlayerData = onCall(
+  { region: 'europe-west2', timeoutSeconds: 540 },
+  async (request) => {
+    const uid = await requireAdmin(request)
+    const phrase = String(request.data?.confirm || '').trim()
+    if (phrase !== LAUNCH_RESET_PHRASE) {
+      throw new HttpsError(
+        'invalid-argument',
+        `Type ${LAUNCH_RESET_PHRASE} to confirm this irreversible wipe.`
+      )
+    }
+
+    const db = getFirestore()
+    const removed = {}
+    for (const name of LAUNCH_RESET_FLAT) {
+      removed[name] = await deleteFlatCollection(db, name)
+    }
+    for (const name of LAUNCH_RESET_NESTED) {
+      removed[name] = await deleteNestedCollection(db, name)
+    }
+
+    logger.warn('Launch player data wiped', { by: uid, removed })
+    return { ok: true, removed }
+  }
+)

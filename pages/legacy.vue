@@ -14,7 +14,7 @@
           <div class="w-20 h-20 bg-[hsl(var(--primary))]/10 rounded-full flex items-center justify-center mx-auto mb-6 text-[hsl(var(--primary))]">
             <IconLock class="w-10 h-10" />
           </div>
-          <h3 class="text-2xl font-bold text-[hsl(var(--foreground))] mb-4">Message Sealed Securely</h3>
+          <h3 class="text-2xl font-bold text-[hsl(var(--primary))] mb-4">Message Sealed Securely</h3>
           <p class="text-[hsl(var(--muted-foreground))] leading-relaxed">
             Thank you for contributing to our legacy. Your words have been preserved
             and will inspire future generations when revealed in 2036.
