@@ -235,6 +235,17 @@ Beyond the six `NUXT_PUBLIC_FIREBASE_*` values, the app needs
 `NUXT_PUBLIC_FIREBASE_VAPID_KEY` (web push) and `NUXT_PUBLIC_FLICKR_API_KEY` /
 `NUXT_PUBLIC_FLICKR_USER_ID` (event albums). See `.env.example`.
 
+## Promo video
+
+`scripts/promo/` renders a promo film of the app out of the app itself: real
+screens, photographed from the deployed site, panned inside a handset over the
+brand purple and gold, with title cards at either end. It has its own
+`package.json` — Playwright and ffmpeg are heavy and have nothing to do with the
+site build, so they stay out of the app's dependency tree.
+
+The edit is `scripts/promo/scenes.mjs`; `scripts/promo/README.md` covers running
+it and what to check before publishing.
+
 ## Superseded planning decisions
 
 An earlier version of this document recorded decisions that the build settled differently.

@@ -1,0 +1,327 @@
+<!--
+  The compositor.
+
+  Every visible property is set explicitly by `paint()` from a state object, and
+  nothing here animates on its own: no CSS transitions, no keyframes, no
+  requestAnimationFrame. Motion is a pure function of the frame number, which is
+  what makes a render reproducible and lets a screenshot pass take as long as it
+  needs per frame without the footage speeding up.
+-->
+<title>Bhaktiras promo stage</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link
+  rel="stylesheet"
+  href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap">
+<style>
+  :root {
+    --purple: #3b2061;
+    --deep: #1c0e33;
+    --gold: #d9ae30;
+    --cream: #fbf9f4;
+    --ink: #241443;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { background: #000; overflow: hidden; }
+
+  #stage {
+    position: relative;
+    overflow: hidden;
+    background: var(--cream);
+  }
+  #stage > * { position: absolute; }
+
+  /* ---- backgrounds ------------------------------------------------------ */
+
+  .fill { inset: 0; }
+
+  #cream {
+    background:
+      radial-gradient(120% 80% at 50% -10%, rgba(217, 174, 48, 0.16), transparent 60%),
+      radial-gradient(90% 60% at 50% 110%, rgba(59, 32, 97, 0.08), transparent 65%),
+      var(--cream);
+  }
+
+  #purple {
+    background:
+      radial-gradient(70% 45% at 50% 8%, rgba(217, 174, 48, 0.22), transparent 62%),
+      linear-gradient(168deg, #46276f 0%, #33195a 45%, var(--deep) 100%);
+  }
+
+  /* A slow-drifting warm bloom, so a held shot never looks like a still. */
+  #bloom {
+    width: 140%;
+    height: 90%;
+    left: -20%;
+    background: radial-gradient(closest-side, rgba(217, 174, 48, 0.20), transparent 70%);
+    filter: blur(4px);
+  }
+
+  /* The halo the handset sits in — a mandir arch, abstracted to one ring. */
+  #halo {
+    border: 1px solid rgba(217, 174, 48, 0.35);
+    border-radius: 50% 50% 46% 46% / 55% 55% 45% 45%;
+  }
+
+  #vignette {
+    inset: 0;
+    background: radial-gradient(120% 75% at 50% 45%, transparent 45%, rgba(12, 6, 24, 0.45) 100%);
+  }
+
+  /* ---- handset ---------------------------------------------------------- */
+
+  #phone {
+    transform-origin: 50% 50%;
+    border-radius: calc(var(--bezel) * 3.4);
+    padding: var(--bezel);
+    background: linear-gradient(150deg, #120a22, #2c1a4c 45%, #0e0719);
+    box-shadow:
+      0 0 0 1px rgba(217, 174, 48, 0.30),
+      0 60px 120px -40px rgba(0, 0, 0, 0.75),
+      0 8px 30px -10px rgba(0, 0, 0, 0.5);
+  }
+
+  #screen {
+    position: relative;
+    overflow: hidden;
+    border-radius: calc(var(--bezel) * 2.6);
+    background: var(--cream);
+    width: var(--screen-w);
+    height: var(--screen-h);
+  }
+  #screen img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  /* The speaker slot, so the bezel reads as hardware rather than a border. */
+  #notch {
+    top: calc(var(--bezel) * 1.6);
+    left: 50%;
+    width: calc(var(--screen-w) * 0.16);
+    height: calc(var(--bezel) * 0.5);
+    margin-left: calc(var(--screen-w) * -0.08);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.10);
+  }
+
+  /* Warm reflection across the glass, angled the way a held phone catches a
+     window. Kept faint: it must not compete with the app's own type. */
+  #glare {
+    inset: 0;
+    background: linear-gradient(112deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.04) 22%, transparent 46%);
+    mix-blend-mode: screen;
+    pointer-events: none;
+  }
+
+  /* ---- captions --------------------------------------------------------- */
+
+  #text { text-align: center; }
+  #kicker {
+    font-family: 'DM Sans', 'Segoe UI', sans-serif;
+    font-weight: 600;
+    color: var(--gold);
+    text-transform: uppercase;
+  }
+  #caption {
+    font-family: 'Cinzel', serif;
+    font-weight: 600;
+    color: var(--cream);
+    line-height: 1.22;
+  }
+
+  /* ---- title cards ------------------------------------------------------ */
+
+  #card { text-align: center; }
+  #card img { display: block; margin: 0 auto; }
+  #rule {
+    height: 1px;
+    margin: 0 auto;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  }
+  #heading {
+    font-family: 'Cinzel', serif;
+    font-weight: 700;
+    color: var(--ink);
+    line-height: 1.1;
+  }
+  #sub {
+    font-family: 'DM Sans', 'Segoe UI', sans-serif;
+    font-weight: 500;
+    color: rgba(36, 20, 67, 0.66);
+  }
+  #cta {
+    display: inline-block;
+    font-family: 'DM Sans', 'Segoe UI', sans-serif;
+    font-weight: 600;
+    color: var(--cream);
+    background: var(--purple);
+    border-radius: 999px;
+  }
+</style>
+
+<div id="stage">
+  <div id="cream" class="fill"></div>
+  <div id="purple" class="fill"></div>
+  <div id="bloom"></div>
+  <div id="halo"></div>
+  <div id="phone">
+    <div id="screen">
+      <img id="screenA" alt="">
+      <img id="screenB" alt="">
+      <div id="glare"></div>
+    </div>
+  </div>
+  <div id="notch"></div>
+  <div id="vignette"></div>
+  <div id="text">
+    <div id="kicker"></div>
+    <div id="caption"></div>
+  </div>
+  <div id="card">
+    <img id="mark" alt="">
+    <div id="rule"></div>
+    <div id="heading"></div>
+    <div id="sub"></div>
+    <div id="cta"></div>
+  </div>
+</div>
+
+<script>
+  const el = id => document.getElementById(id)
+  const stage = el('stage')
+
+  /** Geometry that depends only on the output shape, applied once per render. */
+  window.layout = format => {
+    const { width, height, phone, layout } = format
+    stage.style.width = width + 'px'
+    stage.style.height = height + 'px'
+    document.body.style.width = width + 'px'
+    document.body.style.height = height + 'px'
+
+    const bezel = Math.round(phone * 0.0115)
+    const screenH = phone - bezel * 2
+    const screenW = Math.round(screenH * 390 / 844)
+    stage.style.setProperty('--bezel', bezel + 'px')
+    stage.style.setProperty('--screen-w', screenW + 'px')
+    stage.style.setProperty('--screen-h', screenH + 'px')
+
+    const phoneW = screenW + bezel * 2
+    const unit = Math.min(width, height) / 100
+
+    // Where the handset and the words sit is the only real difference between
+    // the two shapes: stacked puts the caption above the phone, side-by-side
+    // puts it alongside.
+    const box = layout === 'stacked'
+      ? { phoneX: (width - phoneW) / 2, phoneY: height - phone - unit * 9, textX: 0, textW: width, textY: unit * 7 }
+      : { phoneX: width * 0.60, phoneY: (height - phone) / 2, textX: width * 0.08, textW: width * 0.44, textY: height * 0.34 }
+
+    Object.assign(el('phone').style, { left: box.phoneX + 'px', top: box.phoneY + 'px' })
+    Object.assign(el('notch').style, { left: box.phoneX + phoneW / 2 + 'px', top: box.phoneY + 'px' })
+    Object.assign(el('text').style, {
+      left: box.textX + 'px',
+      top: box.textY + 'px',
+      width: box.textW + 'px',
+      textAlign: layout === 'stacked' ? 'center' : 'left'
+    })
+
+    el('kicker').style.fontSize = unit * 2.1 + 'px'
+    el('kicker').style.letterSpacing = unit * 0.42 + 'px'
+    el('kicker').style.marginBottom = unit * 2.2 + 'px'
+    el('caption').style.fontSize = unit * (layout === 'stacked' ? 4.6 : 5.2) + 'px'
+    el('caption').style.paddingInline = layout === 'stacked' ? unit * 12 + 'px' : '0'
+
+    // Halo: a ring a little wider than the handset, centred on it.
+    Object.assign(el('halo').style, {
+      left: box.phoneX + phoneW / 2 - phoneW * 0.95 + 'px',
+      top: box.phoneY - phone * 0.06 + 'px',
+      width: phoneW * 1.9 + 'px',
+      height: phone * 1.12 + 'px'
+    })
+
+    const card = el('card')
+    Object.assign(card.style, { left: 0, top: 0, width: width + 'px', height: height + 'px' })
+    card.style.display = 'flex'
+    card.style.flexDirection = 'column'
+    card.style.alignItems = 'center'
+    card.style.justifyContent = 'center'
+    card.style.gap = unit * 3 + 'px'
+
+    el('mark').style.width = unit * (layout === 'stacked' ? 54 : 30) + 'px'
+    el('rule').style.width = unit * 30 + 'px'
+    el('heading').style.fontSize = unit * 7.2 + 'px'
+    el('sub').style.fontSize = unit * 2.9 + 'px'
+    el('cta').style.fontSize = unit * 2.3 + 'px'
+    el('cta').style.padding = unit * 1.6 + 'px ' + unit * 3.4 + 'px'
+    el('cta').style.marginTop = unit * 2 + 'px'
+
+    window.__unit = unit
+    window.__box = box
+  }
+
+  /** Swaps an image only when the source actually changes, then waits for it. */
+  async function setImage(node, src) {
+    if (!src) { node.style.opacity = 0; return }
+    if (node.dataset.src !== src) {
+      node.dataset.src = src
+      node.src = src
+      try { await node.decode() } catch { /* a broken frame should not stop the render */ }
+    }
+    // Restore visibility: a layer parked at zero by an earlier frame must come
+    // back when it is given something to show. Callers that cross-fade set their
+    // own opacity straight after.
+    node.style.opacity = 1
+  }
+
+  /**
+   * Draws one frame. Awaited by the renderer, so the screenshot is never taken
+   * against a half-decoded image.
+   */
+  window.paint = async state => {
+    const unit = window.__unit
+    const box = window.__box
+
+    el('purple').style.opacity = state.purple
+    el('vignette').style.opacity = state.purple * 0.9
+
+    const bloom = el('bloom')
+    bloom.style.opacity = state.purple
+    bloom.style.top = -10 + state.drift * 14 + '%'
+    bloom.style.transform = `translateX(${(state.drift - 0.5) * unit * 10}px)`
+
+    el('halo').style.opacity = state.purple * 0.5
+
+    const phone = el('phone')
+    phone.style.opacity = state.phone.opacity
+    phone.style.transform =
+      `translateY(${state.phone.y}px) scale(${state.phone.scale}) rotate(${state.phone.rotate}deg)`
+    el('notch').style.opacity = state.phone.opacity
+    el('notch').style.transform = phone.style.transform
+
+    await setImage(el('screenA'), state.phone.a?.src)
+    await setImage(el('screenB'), state.phone.b?.src)
+    el('screenA').style.opacity = state.phone.a?.opacity ?? 0
+    el('screenB').style.opacity = state.phone.b?.opacity ?? 0
+
+    const text = el('text')
+    text.style.opacity = state.text.opacity
+    text.style.transform = `translateY(${state.text.y}px)`
+    el('kicker').textContent = state.text.kicker || ''
+    el('caption').textContent = state.text.caption || ''
+
+    const card = el('card')
+    card.style.opacity = state.card.opacity
+    card.style.transform = `translateY(${state.card.y}px) scale(${state.card.scale})`
+    el('heading').textContent = state.card.heading || ''
+    el('sub').textContent = state.card.sub || ''
+    el('cta').textContent = state.card.cta || ''
+    el('cta').style.display = state.card.cta ? 'inline-block' : 'none'
+    el('rule').style.display = state.card.sub ? 'block' : 'none'
+    await setImage(el('mark'), state.card.mark)
+    el('mark').style.display = state.card.mark ? 'block' : 'none'
+  }
+</script>

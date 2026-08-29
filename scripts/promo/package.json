@@ -1,0 +1,13 @@
+{
+  "name": "bhaktiras-promo",
+  "private": true,
+  "type": "module",
+  "description": "Standalone renderer for the Bhaktiras promo video. Kept out of the app's dependency tree on purpose.",
+  "scripts": {
+    "render": "node render.mjs"
+  },
+  "dependencies": {
+    "playwright": "^1.49.0",
+    "ffmpeg-static": "^5.2.0"
+  }
+}

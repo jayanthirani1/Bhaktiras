@@ -20,3 +20,8 @@ public/firebase-messaging-sw.js
 
 # Scratch git worktrees used by background agents — never part of the app.
 .claude/worktrees/
+
+# Promo renderer working files: hundreds of megabytes of app screenshots and
+# the encoded videos. `scripts/promo/README.md` says how to regenerate both.
+scripts/promo/.cache/
+scripts/promo/out/
