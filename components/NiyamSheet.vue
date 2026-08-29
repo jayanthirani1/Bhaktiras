@@ -4,21 +4,29 @@
       v-if="open"
       class="fixed inset-0 z-[60] flex items-end justify-center sm:items-center sm:p-4"
     >
-      <div class="absolute inset-0 bg-[hsl(var(--primary))]/40" @click="emit('close')" />
+      <div class="absolute inset-0 bg-[hsl(var(--primary))]/40" @click="safeClose" />
 
       <div
         ref="panel"
-        class="relative flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-3xl border border-[hsl(var(--golden-200))] bg-white shadow-[0_-16px_50px_-20px_rgba(56,32,97,0.4)] focus-visible:outline-none sm:max-h-[85vh] sm:max-w-md sm:rounded-3xl"
+        class="relative flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-3xl border border-[hsl(var(--golden-200))] bg-white shadow-[0_-16px_50px_-20px_rgba(56,32,97,0.4)] focus-visible:outline-none sm:max-h-[85vh] sm:max-w-md sm:rounded-3xl sm:transition-none"
         role="dialog"
         aria-modal="true"
         :aria-labelledby="titleId"
         tabindex="-1"
+        :style="sheetStyle"
       >
-        <div class="relative shrink-0 border-b border-[hsl(var(--border))] bg-[hsl(var(--golden-50))] px-5 pb-4 pt-5">
-          <span
-            class="absolute left-1/2 top-2 h-1 w-10 -translate-x-1/2 rounded-full bg-[hsl(var(--golden-300))] sm:hidden"
-            aria-hidden="true"
-          />
+        <!-- Drag handle: tap or swipe down to close (mobile). -->
+        <button
+          type="button"
+          class="flex w-full shrink-0 touch-none flex-col items-center pb-1 pt-3 sm:hidden"
+          aria-label="Swipe down or tap to close"
+          @pointerdown="onHandleDown"
+          @click="onHandleClick"
+        >
+          <span class="h-1.5 w-12 rounded-full bg-[#D9AE30]" aria-hidden="true" />
+        </button>
+
+        <div class="relative shrink-0 border-b border-[hsl(var(--border))] bg-[hsl(var(--golden-50))] px-5 pb-4 pt-2 sm:pt-5">
           <div class="flex items-start justify-between gap-3">
             <div class="min-w-0">
               <h2 :id="titleId" class="font-display text-xl text-[hsl(var(--primary))]">{{ title }}</h2>
@@ -26,11 +34,12 @@
             </div>
             <button
               type="button"
-              class="-mr-1 -mt-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[hsl(var(--muted-foreground))] hover:bg-white hover:text-[hsl(var(--primary))]"
-              @click="emit('close')"
+              class="-mr-1 -mt-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[#D9AE30] hover:bg-white"
+              aria-label="Close"
+              @pointerdown.stop
+              @click.stop="safeClose"
             >
               <IconX class="h-5 w-5" aria-hidden="true" />
-              <span class="sr-only">Close</span>
             </button>
           </div>
         </div>
@@ -66,6 +75,15 @@ const titleId = useId()
 const panel = ref<HTMLElement | null>(null)
 let openerElement: HTMLElement | null = null
 
+const sheetOffset = ref(0)
+const sheetStyle = computed(() => {
+  if (!sheetOffset.value) return undefined
+  return {
+    transform: `translateY(${sheetOffset.value}px)`,
+    transition: draggingHandle ? 'none' : 'transform 0.2s ease-out'
+  }
+})
+
 const FOCUSABLE = [
   'a[href]',
   'button:not([disabled])',
@@ -90,7 +108,7 @@ function onKeydown(event: KeyboardEvent) {
   if (!props.open) return
   if (event.key === 'Escape') {
     event.preventDefault()
-    emit('close')
+    safeClose()
     return
   }
   if (event.key !== 'Tab') return
@@ -152,9 +170,76 @@ function unlockScroll() {
   window.scrollTo(0, lockedScrollY)
 }
 
+/**
+ * Closing unmounts the sheet under the finger; the same tap then hits the
+ * row underneath and can reopen it. A brief full-screen shield eats that tap.
+ */
+function safeClose() {
+  emit('close')
+  if (import.meta.server || typeof document === 'undefined') return
+  const shield = document.createElement('div')
+  shield.setAttribute('aria-hidden', 'true')
+  shield.style.cssText = 'position:fixed;inset:0;z-index:10000;touch-action:none;'
+  document.body.appendChild(shield)
+  const remove = () => {
+    shield.remove()
+  }
+  shield.addEventListener('pointerup', remove, { once: true })
+  shield.addEventListener('click', remove, { once: true })
+  window.setTimeout(remove, 400)
+}
+
+let handleStartY = 0
+let draggingHandle = false
+let swipedHandle = false
+
+function onHandleClick() {
+  if (swipedHandle) {
+    swipedHandle = false
+    return
+  }
+  safeClose()
+}
+
+function onHandleDown(event: PointerEvent) {
+  if (event.button != null && event.button !== 0) return
+  draggingHandle = true
+  swipedHandle = false
+  handleStartY = event.clientY
+  sheetOffset.value = 0
+  ;(event.currentTarget as HTMLElement).setPointerCapture?.(event.pointerId)
+
+  function onMove(moveEvent: PointerEvent) {
+    if (!draggingHandle) return
+    moveEvent.preventDefault()
+    const dy = Math.max(0, moveEvent.clientY - handleStartY)
+    if (dy > 10) swipedHandle = true
+    sheetOffset.value = dy
+  }
+
+  function onUp() {
+    const shouldClose = sheetOffset.value > 56
+    draggingHandle = false
+    window.removeEventListener('pointermove', onMove)
+    window.removeEventListener('pointerup', onUp)
+    window.removeEventListener('pointercancel', onUp)
+    if (shouldClose) {
+      sheetOffset.value = 0
+      safeClose()
+    } else {
+      sheetOffset.value = 0
+    }
+  }
+
+  window.addEventListener('pointermove', onMove, { passive: false })
+  window.addEventListener('pointerup', onUp)
+  window.addEventListener('pointercancel', onUp)
+}
+
 watch(() => props.open, async (isOpen) => {
   if (isOpen) {
     openerElement = (document.activeElement as HTMLElement | null) ?? null
+    sheetOffset.value = 0
     lockScroll()
     document.addEventListener('keydown', onKeydown, true)
     await nextTick()

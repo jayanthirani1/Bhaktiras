@@ -67,7 +67,7 @@ export const DEFAULT_NIYAM_CHALLENGES: NiyamChallengeSeed[] = [
   },
   {
     id: 'mandir-darshan',
-    title: 'Aarti, Chesta & Katha',
+    title: 'Daily Darshan',
     detail: 'Come to the mandir for Aarti, Chesta or Katha and add each sabha you attend.',
     unit: 'sabhas',
     unitSingular: 'sabha',

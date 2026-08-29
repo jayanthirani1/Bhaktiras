@@ -12,7 +12,7 @@
           <BhaktirasLogo size="lg" animate />
         </div>
 
-        <p class="reveal reveal-delay-2 mt-6 text-sm font-medium tracking-wide text-[hsl(var(--primary))]">
+        <p class="reveal reveal-after-logo mt-4 patotsav-date">
           {{ SITE.patotsavDateLabel }}
         </p>
 
@@ -79,11 +79,16 @@
       </div>
     </section>
 
-    <footer class="mt-16 px-6 pb-10 text-center md:mt-24">
+    <footer class="mt-16 px-6 pb-4 text-center md:mt-24 md:pb-6">
       <div class="mx-auto mb-5 h-px w-16 bg-gradient-to-r from-transparent via-[hsl(var(--golden-300))] to-transparent" />
-      <blockquote class="font-display text-lg italic text-[hsl(var(--primary))]/80 md:text-2xl">
-        “In the joy of others, lies our own.”
-      </blockquote>
+      <p class="font-display text-xl text-[hsl(var(--primary))] md:text-2xl">
+        सर्वजीवहितवहा
+      </p>
+      <p class="mx-auto mt-3 max-w-xl space-y-1 text-sm leading-relaxed text-[hsl(var(--muted-foreground))] md:text-base">
+        <span class="block">सर्व (Sarva) All</span>
+        <span class="block">जीव (Jiva) Living beings / souls</span>
+        <span class="block">हितवहा (Hitavaha) Bringer of good / benefit</span>
+      </p>
     </footer>
   </div>
 </template>

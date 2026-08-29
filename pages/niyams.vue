@@ -10,14 +10,7 @@
 
       <NiyamPulse :stats="pulseStats" class="mb-4" />
 
-      <section aria-labelledby="sangat-board">
-        <h2
-          id="sangat-board"
-          class="mb-3 text-center text-[11px] font-semibold uppercase tracking-[0.2em] text-[hsl(var(--golden-900))]"
-        >
-          Niyams done badha saathe (together)
-        </h2>
-
+      <section aria-label="Niyams">
         <p v-if="challengesLoading" class="card-surface px-5 py-6 text-center text-sm text-[hsl(var(--muted-foreground))]">
           Loading the niyams…
         </p>
@@ -42,7 +35,7 @@
 
         <p class="mt-3 text-center text-xs text-[hsl(var(--muted-foreground))]">
           Tap a niyam to see how it is going. Nobody's individual count is ever shown — only the
-          sangat's shared total.
+          shared total.
         </p>
       </section>
     </div>

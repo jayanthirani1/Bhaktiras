@@ -32,7 +32,7 @@
           :target="item.external ? '_blank' : undefined"
           :rel="item.external ? 'noopener noreferrer' : undefined"
           class="flex min-w-0 flex-1 flex-col items-center justify-center space-y-0.5 rounded-xl p-2 transition-colors"
-          :class="isActive(item.href) ? 'text-[hsl(var(--primary))]' : 'text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--primary))]'"
+          :class="isActive(item.href) ? 'text-[#D9AE30]' : 'text-[hsl(var(--muted-foreground))] hover:text-[#D9AE30] active:text-[#D9AE30]'"
           @click="closeDrawer"
         >
           <component :is="item.icon" class="h-5 w-5 shrink-0" />
@@ -41,7 +41,7 @@
         <button
           type="button"
           class="flex min-w-0 flex-1 flex-col items-center justify-center space-y-0.5 rounded-xl p-2 transition-colors"
-          :class="drawerOpen ? 'text-[hsl(var(--primary))]' : 'text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--primary))]'"
+          :class="drawerOpen ? 'text-[#D9AE30]' : 'text-[hsl(var(--muted-foreground))] hover:text-[#D9AE30] active:text-[#D9AE30]'"
           aria-label="Open more navigation"
           :aria-expanded="drawerOpen"
           @click="drawerOpen = !drawerOpen"
@@ -60,7 +60,7 @@
     >
       <div class="absolute inset-0 bg-black/30" @click="closeDrawer" />
       <div
-        class="absolute inset-x-0 bottom-0 rounded-t-[28px] border-t border-[hsl(var(--border))] bg-[hsl(var(--card))]/98 px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-1 shadow-2xl backdrop-blur-xl"
+        class="absolute inset-x-0 bottom-0 rounded-t-[28px] border border-[hsl(var(--golden-200))] border-b-0 bg-white px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-1 shadow-2xl"
         :style="sheetOffset ? { transform: `translateY(${sheetOffset}px)` } : undefined"
         @pointerdown="onDrawerHandleDown"
         @touchmove.prevent
@@ -71,15 +71,16 @@
           aria-label="Close menu"
           @click="onDrawerHandleClick"
         >
-          <span class="h-1.5 w-12 rounded-full bg-[hsl(var(--border))]" />
+          <span class="h-1.5 w-12 rounded-full bg-[#D9AE30]" />
         </button>
         <div class="mb-4 flex items-center justify-between">
           <h2 class="font-display text-lg font-semibold text-[hsl(var(--primary))]">More</h2>
           <button
             type="button"
-            class="rounded-full p-2 text-[hsl(var(--muted-foreground))] transition-colors hover:bg-[hsl(var(--muted))] hover:text-[hsl(var(--primary))]"
+            class="rounded-full p-2 text-[#D9AE30] transition-colors hover:bg-[hsl(var(--golden-50))]"
             aria-label="Close menu"
-            @click="closeDrawer"
+            @pointerdown.stop
+            @click.stop="closeDrawer"
           >
             <IconX class="h-5 w-5" />
           </button>
@@ -91,20 +92,20 @@
             :to="item.href"
             :target="item.external ? '_blank' : undefined"
             :rel="item.external ? 'noopener noreferrer' : undefined"
-            class="flex items-center gap-3 rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--background))] px-4 py-3 transition-colors"
-            :class="isActive(item.href) ? 'text-[hsl(var(--primary))] border-[hsl(var(--primary))]/30' : 'text-[hsl(var(--foreground))] hover:border-[hsl(var(--primary))]/20 hover:text-[hsl(var(--primary))]'"
+            class="flex items-center gap-3 rounded-2xl border border-[hsl(var(--golden-200))] bg-white px-4 py-3 text-[hsl(var(--primary))] transition-colors hover:border-[#D9AE30] hover:bg-[hsl(var(--golden-50))]"
+            :class="isActive(item.href) ? 'border-[#D9AE30] bg-[hsl(var(--golden-50))]' : ''"
             @click="closeDrawer"
           >
-            <component :is="item.icon" class="h-5 w-5 shrink-0" />
+            <component :is="item.icon" class="h-5 w-5 shrink-0 text-[hsl(var(--primary))]" />
             <span class="min-w-0 text-sm font-medium">{{ item.label }}</span>
           </NuxtLink>
           <NuxtLink
             :to="accountItem.href"
-            class="flex items-center gap-3 rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--background))] px-4 py-3 transition-colors"
-            :class="isActive(accountItem.href) ? 'text-[hsl(var(--primary))] border-[hsl(var(--primary))]/30' : 'text-[hsl(var(--foreground))] hover:border-[hsl(var(--primary))]/20 hover:text-[hsl(var(--primary))]'"
+            class="flex items-center gap-3 rounded-2xl border border-[hsl(var(--golden-200))] bg-white px-4 py-3 text-[hsl(var(--primary))] transition-colors hover:border-[#D9AE30] hover:bg-[hsl(var(--golden-50))]"
+            :class="isActive(accountItem.href) ? 'border-[#D9AE30] bg-[hsl(var(--golden-50))]' : ''"
             @click="closeDrawer"
           >
-            <component :is="accountItem.icon" class="h-5 w-5 shrink-0" />
+            <component :is="accountItem.icon" class="h-5 w-5 shrink-0 text-[hsl(var(--primary))]" />
             <span class="min-w-0 text-sm font-medium">{{ accountItem.label }}</span>
           </NuxtLink>
         </div>
@@ -201,6 +202,16 @@ function isActive(href: string) {
 function closeDrawer() {
   drawerOpen.value = false
   sheetOffset.value = 0
+  if (import.meta.server || typeof document === 'undefined') return
+  // Closing under a tap must not reopen More via the tab underneath.
+  const shield = document.createElement('div')
+  shield.setAttribute('aria-hidden', 'true')
+  shield.style.cssText = 'position:fixed;inset:0;z-index:10000;touch-action:none;'
+  document.body.appendChild(shield)
+  const remove = () => shield.remove()
+  shield.addEventListener('pointerup', remove, { once: true })
+  shield.addEventListener('click', remove, { once: true })
+  window.setTimeout(remove, 400)
 }
 
 const SCROLL_LOCK_CLASS = 'drawer-scroll-lock'

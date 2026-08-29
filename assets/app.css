@@ -37,8 +37,8 @@
   --input: 40 12% 56%;
   --ring: 262 50% 25%;
   --radius: 1rem;
-  --font-sans: 'DM Sans', 'Segoe UI', sans-serif;
-  --font-display: 'Cinzel', serif;
+  --font-sans: 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
+  --font-display: 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   /**
    * Declared explicitly so Chrome and Android WebView's automatic dark theme
@@ -72,6 +72,7 @@
   body {
     @apply bg-[hsl(var(--background))] text-[hsl(var(--foreground))];
     font-family: var(--font-sans);
+    font-optical-sizing: auto;
     -webkit-font-smoothing: antialiased;
   }
   html.drawer-scroll-lock,
@@ -84,6 +85,15 @@
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-display);
     @apply font-semibold tracking-tight text-[hsl(var(--foreground))];
+  }
+  .patotsav-date {
+    font-family: 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    font-variation-settings: 'wght' 700, 'opsz' 8;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #D9AE30;
   }
 }
 
@@ -465,6 +475,8 @@
 .reveal-delay-1 { animation-delay: 0.12s; }
 .reveal-delay-2 { animation-delay: 0.22s; }
 .reveal-delay-3 { animation-delay: 0.32s; }
+/** After the homepage logo lockup (type + droplet + splash) has finished. */
+.reveal-after-logo { animation-delay: 6.6s; }
 
 /* Wordle */
 @keyframes shake {

@@ -2,8 +2,8 @@
   <div v-if="isLoggedIn" ref="root" class="relative">
     <button
       type="button"
-      class="relative grid h-11 w-11 place-items-center rounded-full text-[hsl(var(--muted-foreground))] transition-colors hover:bg-[hsl(var(--muted))] hover:text-[hsl(var(--primary))]"
-      :class="open ? 'bg-[hsl(var(--muted))] text-[hsl(var(--primary))]' : ''"
+      class="relative grid h-11 w-11 place-items-center rounded-full text-[hsl(var(--muted-foreground))] transition-colors hover:bg-[hsl(var(--muted))] hover:text-[#D9AE30]"
+      :class="open ? 'bg-[hsl(var(--muted))] text-[#D9AE30]' : ''"
       :aria-label="unreadCount ? `Notifications, ${unreadCount} unread` : 'Notifications'"
       :aria-expanded="open"
       aria-haspopup="dialog"
@@ -33,17 +33,19 @@
           :class="isMobile
             ? 'fixed inset-x-0 bottom-0 z-[81] max-h-[80vh] rounded-t-[28px] border-t pb-[env(safe-area-inset-bottom)]'
             : 'absolute right-0 z-[70] mt-2 max-h-[70vh] w-[22rem] rounded-2xl border'"
+          :style="isMobile && sheetOffset ? { transform: `translateY(${sheetOffset}px)` } : undefined"
           role="dialog"
           aria-label="Notifications"
         >
           <button
             v-if="isMobile"
             type="button"
-            class="flex w-full flex-col items-center py-3"
-            aria-label="Close notifications"
-            @click="close"
+            class="flex w-full touch-none flex-col items-center py-3"
+            aria-label="Swipe down or tap to close"
+            @pointerdown="onSheetHandleDown"
+            @click="onSheetHandleClick"
           >
-            <span class="h-1.5 w-12 rounded-full bg-[hsl(var(--border))]" />
+            <span class="h-1.5 w-12 rounded-full bg-[#D9AE30]" />
           </button>
 
           <div class="flex shrink-0 items-center justify-between gap-3 border-b border-[hsl(var(--border))] px-4 py-3">
@@ -222,8 +224,54 @@ async function toggle() {
 
 function close() {
   open.value = false
+  sheetOffset.value = 0
   clearViewedUnread()
   flushUndo()
+}
+
+const sheetOffset = ref(0)
+let handleStartY = 0
+let draggingHandle = false
+let swipedHandle = false
+
+function onSheetHandleClick() {
+  if (swipedHandle) {
+    swipedHandle = false
+    return
+  }
+  close()
+}
+
+function onSheetHandleDown(event: PointerEvent) {
+  if (!isMobile.value) return
+  if (event.button != null && event.button !== 0) return
+  draggingHandle = true
+  swipedHandle = false
+  handleStartY = event.clientY
+  sheetOffset.value = 0
+  ;(event.currentTarget as HTMLElement).setPointerCapture?.(event.pointerId)
+
+  function onMove(moveEvent: PointerEvent) {
+    if (!draggingHandle) return
+    moveEvent.preventDefault()
+    const dy = Math.max(0, moveEvent.clientY - handleStartY)
+    if (dy > 10) swipedHandle = true
+    sheetOffset.value = dy
+  }
+
+  function onUp() {
+    const shouldClose = sheetOffset.value > 56
+    draggingHandle = false
+    window.removeEventListener('pointermove', onMove)
+    window.removeEventListener('pointerup', onUp)
+    window.removeEventListener('pointercancel', onUp)
+    if (shouldClose) close()
+    else sheetOffset.value = 0
+  }
+
+  window.addEventListener('pointermove', onMove, { passive: false })
+  window.addEventListener('pointerup', onUp)
+  window.addEventListener('pointercancel', onUp)
 }
 
 let undoTimer: ReturnType<typeof setTimeout> | null = null

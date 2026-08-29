@@ -3,7 +3,7 @@
     v-if="visible"
     class="rounded-2xl border border-[hsl(var(--golden-200))] bg-[hsl(var(--golden-50))] px-4 py-3 text-center text-sm text-[hsl(var(--foreground))]"
   >
-    Badha Saathe (together),
+    Together,
     <span class="font-display text-base font-semibold text-[hsl(var(--primary))]">{{ formatCount(today) }}</span>
     added today
     <span class="px-1 text-[hsl(var(--golden-900))]" aria-hidden="true">·</span>

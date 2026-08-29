@@ -60,8 +60,8 @@ export default {
         DEFAULT: 'var(--radius)'
       },
       fontFamily: {
-        sans: ['DM Sans', 'Segoe UI', 'sans-serif'],
-        display: ['Cinzel', 'serif']
+        sans: ['"Segoe UI Variable"', 'Segoe UI', 'system-ui', 'sans-serif'],
+        display: ['"Segoe UI Variable"', 'Segoe UI', 'system-ui', 'sans-serif']
       },
       transitionTimingFunction: {
         'out-expo': 'var(--ease-out-expo)'
