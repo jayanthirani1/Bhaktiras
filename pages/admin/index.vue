@@ -33,8 +33,6 @@
       </div>
     </section>
 
-    <AdminLaunchReset />
-
     <AdminGameReset />
   </div>
 </template>
