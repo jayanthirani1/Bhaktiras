@@ -1,0 +1,254 @@
+<meta charset="utf-8">
+<title>Bhaktiras promo</title>
+<link rel="stylesheet" href="fonts/fonts-local.css">
+<style>
+  /* Brand tokens lifted verbatim from assets/app.css so the film cannot drift
+     from the app: --purple 262 50% 25%, --gold 45 69% 52%. */
+  :root {
+    --purple: #3b2061;
+    --purple-deep: #26123f;
+    --gold: #d9ae30;
+    --gold-soft: #e8cf8a;
+    --cream: #fdfcf9;
+    --ink: #241539;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { background: #000; overflow: hidden; }
+
+  #stage {
+    position: relative; overflow: hidden;
+    background: var(--cream);
+    font-family: 'DM Sans', system-ui, sans-serif;
+    color: var(--ink);
+  }
+  .scene { position: absolute; inset: 0; display: flex; flex-direction: column;
+           align-items: center; justify-content: center; opacity: 0; will-change: opacity, transform;
+           /* Keeps long display lines off the frame edge in the vertical cut,
+              where "Daily satsang puzzles" otherwise runs to the bleed. */
+           padding: 0 6%; }
+
+  /* A soft radial warmth behind everything, the same trick the app's hero uses. */
+  #glow { position: absolute; inset: 0; pointer-events: none;
+          background: radial-gradient(60% 45% at 50% 38%, rgba(217,174,48,.16), transparent 70%); }
+
+  .kicker { font-weight: 600; color: var(--gold); text-transform: uppercase; }
+  .display { font-family: 'Cinzel', serif; font-weight: 700; color: var(--purple); line-height: 1.05; text-align: center; }
+  .body { color: #5a4a72; text-align: center; line-height: 1.45; }
+
+  /* Phone chrome drawn in CSS rather than composited from a photo — keeps the
+     edges crisp at any output size and needs no mockup asset. */
+  .phone { position: relative; border-radius: 12% / 5.6%; background: #1b1030;
+           box-shadow: 0 4rem 8rem rgba(59,32,97,.34), 0 0 0 .12rem rgba(217,174,48,.5); overflow: hidden; }
+  .phone img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top center; }
+  .laptop { position: relative; border-radius: 1.2%; background: #1b1030; overflow: hidden;
+            box-shadow: 0 4rem 9rem rgba(59,32,97,.32), 0 0 0 .1rem rgba(217,174,48,.42); }
+  .laptop img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top center; }
+
+  .rule { height: 1px; background: linear-gradient(90deg, transparent, var(--gold), transparent); }
+
+  .count { display: flex; gap: 1.4em; }
+  .cell { border: 1px solid rgba(217,174,48,.55); border-radius: .5em; background: #fff;
+          display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .cell b { font-family: 'Cinzel', serif; color: var(--purple); line-height: 1; }
+  .cell span { color: #6b5b83; text-transform: uppercase; letter-spacing: .12em; }
+
+  /* Final card inverts to the brand purple so the CTA lands. */
+  .invert { background: var(--purple-deep); }
+  .invert .display { color: #fff; }
+  .invert .body { color: #d9cdea; }
+  /* The mark is drawn in purple and gold, so on the dark card it needs a light
+     ground behind it or the figure disappears into the background. */
+  #s6logo { background: var(--cream); border-radius: 22%; padding: 4%;
+            box-shadow: 0 0 0 1px rgba(217,174,48,.5), 0 2rem 5rem rgba(0,0,0,.35); }
+</style>
+
+<div id="stage">
+  <div id="glow"></div>
+
+  <!-- 1 — logo -->
+  <div class="scene" id="s1">
+    <div class="kicker" id="s1k">Jay Swaminarayan</div>
+    <img id="s1logo" src="../../assets/logos/bhaktiras-main.svg" alt="">
+  </div>
+
+  <!-- 2 — ten years + countdown -->
+  <div class="scene" id="s2">
+    <div class="display" id="s2h">Celebrating 10 years<br>with Ghanshyam Maharaj</div>
+    <div class="rule" id="s2r"></div>
+    <div class="body" id="s2d">Saturday 14th – Sunday 22nd August 2027</div>
+    <div class="count" id="s2c"></div>
+  </div>
+
+  <!-- 3 — the app in the hand -->
+  <div class="scene" id="s3">
+    <div class="display" id="s3h">The whole utsav,<br>in your pocket</div>
+    <div class="phone" id="s3p"><img id="s3img" src="" alt=""></div>
+  </div>
+
+  <!-- 4 — games -->
+  <div class="scene" id="s4">
+    <div class="display" id="s4h">Daily satsang puzzles</div>
+    <div class="body" id="s4b">Wordle, Connections, Crossword — a new one every day.</div>
+    <div class="phone" id="s4p"><img id="s4img" src="" alt=""></div>
+  </div>
+
+  <!-- 5 — niyams and seva -->
+  <div class="scene" id="s5">
+    <div class="display" id="s5h">Niyams together.<br>Seva as a team.</div>
+    <div class="phone" id="s5p"><img id="s5img" src="" alt=""></div>
+  </div>
+
+  <!-- 6 — call to action -->
+  <div class="scene invert" id="s6">
+    <!-- The full lockup already carries the wordmark, so the card does not
+         repeat "Bhaktiras" underneath it. -->
+    <img id="s6logo" src="../../assets/logos/bhaktiras-main.svg" alt="">
+    <div class="body" id="s6b">14 – 22 August 2027<br>Shree KS Swaminarayan Temple Woolwich</div>
+  </div>
+</div>
+
+<script>
+// ---------------------------------------------------------------------------
+// Deterministic timeline. Nothing here uses requestAnimationFrame or CSS
+// animation: the renderer calls seek(t) for each frame and screenshots the
+// result, so the film is identical on every run and cannot half-finish a
+// transition when the shutter fires.
+// ---------------------------------------------------------------------------
+const clamp01 = x => Math.max(0, Math.min(1, x));
+const outCubic = u => 1 - Math.pow(1 - u, 3);
+const win = (t, s, e) => clamp01((t - s) / (e - s));
+/** Fade envelope: rises over `fi`, holds, falls over `fo`. */
+const env = (t, s, e, fi = 0.55, fo = 0.55) =>
+  Math.min(outCubic(win(t, s, s + fi)), 1 - outCubic(win(t, e - fo, e)));
+
+const V = new URLSearchParams(location.search).get('format') === 'landscape'
+  ? { w: 1920, h: 1080, land: true }
+  : { w: 1080, h: 1920, land: false };
+
+const stage = document.getElementById('stage');
+stage.style.width = V.w + 'px';
+stage.style.height = V.h + 'px';
+// One type scale driven off the short edge keeps both cuts visually identical.
+// Every size below is expressed in these units and converted through S(), so a
+// number in this file always means "percent of the short edge".
+const U = Math.min(V.w, V.h) / 100;
+const S = n => (n * U).toFixed(2) + 'px';
+stage.style.fontSize = U + 'px';
+
+const SHOTS = window.PROMO_SHOTS;   // injected by the renderer
+
+// ---- static layout, applied once -----------------------------------------
+function layout() {
+  // The wide cut sets its display type beside the screenshot in a fixed column,
+  // so it needs a smaller size than the vertical cut to break into two or three
+  // lines rather than four or five.
+  const D = V.land ? 6.0 : 8.0;          // display type size, in U
+  document.querySelectorAll('.display').forEach(e => { e.style.fontSize = S(D); });
+  document.querySelectorAll('.body').forEach(e => { e.style.fontSize = S(V.land ? 2.5 : 3.1); });
+  document.querySelectorAll('.kicker').forEach(e => {
+    e.style.fontSize = S(V.land ? 2.1 : 2.7);
+    e.style.letterSpacing = '.42em';
+  });
+
+  document.getElementById('s1logo').style.width = S(V.land ? 34 : 62);
+  document.getElementById('s1').style.gap = S(5);
+
+  document.getElementById('s2').style.gap = S(3.4);
+  const rule = document.getElementById('s2r');
+  rule.style.width = S(V.land ? 40 : 62);
+  const cells = ['349 days', '09 hours', '23 mins', '06 secs'].map(v => {
+    const [n, l] = v.split(' ');
+    return `<div class="cell" style="width:${S(V.land ? 11 : 17)};height:${S(V.land ? 11 : 15)}">
+              <b style="font-size:${S(V.land ? 4.4 : 6)}">${n}</b>
+              <span style="font-size:${S(V.land ? 1.35 : 1.8)}">${l}</span></div>`;
+  }).join('');
+  document.getElementById('s2c').innerHTML = cells;
+  document.getElementById('s2c').style.gap = S(1.6);
+
+  // Screens: phone portrait for the vertical cut, laptop landscape for the wide one.
+  for (const [scene, shot] of [['s3', 'home'], ['s4', 'connections'], ['s5', 'niyams']]) {
+    const holder = document.getElementById(scene + 'p');
+    const img = document.getElementById(scene + 'img');
+    if (V.land) {
+      holder.className = 'laptop';
+      holder.style.width = S(52);
+      holder.style.height = S(32.5);
+      img.src = SHOTS['desktop-' + shot];
+    } else {
+      holder.className = 'phone';
+      holder.style.width = S(42);
+      holder.style.height = S(88);
+      img.src = SHOTS['phone-' + shot];
+    }
+    const sc = document.getElementById(scene);
+    sc.style.gap = S(V.land ? 3.2 : 3.4);
+    // Wide cut reads better with the copy beside the screen than stacked above
+    // it; the text column is boxed so long lines wrap instead of squeezing the
+    // screenshot.
+    if (V.land) {
+      sc.style.flexDirection = 'row';
+      sc.style.gap = S(6);
+      sc.style.padding = `0 ${S(6)}`;
+      const col = document.createElement('div');
+      col.style.cssText = `display:flex;flex-direction:column;gap:${S(2.2)};width:${S(52)};flex:none`;
+      const disp = sc.querySelector('.display');
+      const body = sc.querySelector('.body');
+      disp.style.textAlign = 'left';
+      if (body) body.style.textAlign = 'left';
+      sc.insertBefore(col, sc.firstChild);
+      col.appendChild(disp);
+      if (body) col.appendChild(body);
+    }
+  }
+  document.getElementById('s6').style.gap = S(3);
+  document.getElementById('s6logo').style.width = S(V.land ? 26 : 48);
+  document.getElementById('s4').style.gap = S(V.land ? 6 : 2.6);
+}
+
+// ---- per-frame ------------------------------------------------------------
+const BEATS = {
+  s1: [0.0, 4.2],
+  s2: [4.0, 8.6],
+  s3: [8.4, 12.8],
+  s4: [12.6, 17.0],
+  s5: [16.8, 20.6],
+  s6: [20.4, 24.0],
+};
+window.PROMO_DURATION = 24.0;
+
+function seek(t) {
+  for (const [id, [s, e]] of Object.entries(BEATS)) {
+    const el = document.getElementById(id);
+    const a = env(t, s, e);
+    el.style.opacity = a.toFixed(4);
+    // A slow push-in across each beat; the eye reads it as camera movement
+    // rather than a slideshow.
+    const p = win(t, s, e);
+    el.style.transform = `scale(${(1.0 + 0.045 * p).toFixed(4)})`;
+  }
+
+  // Scene 1: the mark settles up into place and the kicker tracks open.
+  const p1 = outCubic(win(t, 0.1, 2.2));
+  document.getElementById('s1logo').style.transform =
+    `translateY(${S(3.2 * (1 - p1))}) scale(${(0.93 + 0.07 * p1).toFixed(4)})`;
+  document.getElementById('s1k').style.letterSpacing = `${(0.20 + 0.22 * p1).toFixed(3)}em`;
+
+  // Scene 2: countdown cells lift in one after another.
+  document.querySelectorAll('#s2c .cell').forEach((c, i) => {
+    const u = outCubic(win(t, 5.0 + i * 0.16, 5.9 + i * 0.16));
+    c.style.transform = `translateY(${S(2.4 * (1 - u))})`;
+    c.style.opacity = u.toFixed(3);
+  });
+
+  // Screens rise as their scene opens.
+  for (const [id, s] of [['s3p', 8.4], ['s4p', 12.6], ['s5p', 16.8]]) {
+    const u = outCubic(win(t, s + 0.15, s + 1.5));
+    document.getElementById(id).style.transform =
+      `translateY(${S(6 * (1 - u))}) scale(${(0.97 + 0.03 * u).toFixed(4)})`;
+  }
+}
+
+layout();
+window.seek = seek;
+window.__ready = true;
+</script>

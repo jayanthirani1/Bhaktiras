@@ -20,3 +20,8 @@ public/firebase-messaging-sw.js
 
 # Scratch git worktrees used by background agents — never part of the app.
 .claude/worktrees/
+
+# Promo film working directory. Everything in here is derived: app screenshots,
+# the per-frame PNGs (~435MB for a 24s cut in two aspect ratios) and the encoded
+# MP4s. The sources that produce it are committed under scripts/promo/.
+.promo/
