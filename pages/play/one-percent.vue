@@ -100,7 +100,7 @@
             {{ index + 1 }} / {{ ladder.length }}
           </p>
         </div>
-        <h2 class="font-display text-xl font-semibold text-[hsl(var(--foreground))]">{{ current.question }}</h2>
+        <h2 class="font-display text-xl font-semibold text-[hsl(var(--primary))]">{{ current.question }}</h2>
         <div class="grid gap-2">
           <button
             v-for="opt in current.options"

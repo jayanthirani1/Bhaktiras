@@ -1,7 +1,7 @@
 <template>
   <div class="flex min-h-screen items-center justify-center bg-[hsl(var(--background))] px-4 py-12">
     <div class="w-full max-w-sm text-center">
-      <h1 class="font-display text-2xl font-bold text-[hsl(var(--foreground))]">Bhaktiras</h1>
+      <h1 class="font-display text-2xl font-bold text-[hsl(var(--primary))]">Bhaktiras</h1>
       <p class="mt-2 text-sm text-[hsl(var(--muted-foreground))]">
         This site is not public yet. Enter the preview password.
       </p>

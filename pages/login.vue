@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-screen bg-[hsl(var(--background))] flex items-center justify-center px-4 py-12">
     <div class="w-full max-w-sm">
-      <h1 class="text-2xl font-bold text-[hsl(var(--foreground))] text-center mb-2">Sign in</h1>
+      <h1 class="text-2xl font-bold text-[hsl(var(--primary))] text-center mb-2">Sign in</h1>
       <p class="text-sm text-[hsl(var(--muted-foreground))] text-center mb-6">
         Sign in to save your scores and personalise your experience.
       </p>

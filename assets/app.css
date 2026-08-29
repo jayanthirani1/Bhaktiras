@@ -84,7 +84,7 @@
   }
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-display);
-    @apply font-semibold tracking-tight text-[hsl(var(--foreground))];
+    @apply font-semibold tracking-tight text-[hsl(var(--primary))];
   }
   .patotsav-date {
     font-family: 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
@@ -162,15 +162,26 @@
 
 @layer utilities {
   /**
-   * Keeps a fixed bottom element clear of the iPhone home indicator.
-   *
-   * `components/Navigation.vue` has referenced this class since the bottom bar
-   * was written, but it was never defined anywhere — so the app's primary
-   * navigation sat under the gesture bar on every iPhone. `viewport-fit=cover`
-   * is already set in `nuxt.config.ts`, which is what makes the inset non-zero.
+   * Extra bottom padding for the iPhone home indicator.
+   * Put this on the outer fixed bar — not on a fixed-height row — or the
+   * inset eats into the row and leaves a blank strip under the icons.
    */
   .safe-bottom {
     padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /**
+   * Clears the fixed mobile tab bar (4rem) plus the home indicator.
+   * Use instead of a bare `pb-24` on page roots so content is not covered
+   * when the bar grows for the safe area.
+   */
+  .pb-mobile-nav {
+    padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+  }
+  @media (min-width: 768px) {
+    .pb-mobile-nav {
+      padding-bottom: 2.5rem;
+    }
   }
 }
 

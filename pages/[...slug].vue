@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-screen bg-[hsl(var(--background))] flex items-center justify-center px-4">
     <div class="text-center">
-      <h1 class="text-4xl font-bold text-[hsl(var(--foreground))] mb-2">Page not found</h1>
+      <h1 class="text-4xl font-bold text-[hsl(var(--primary))] mb-2">Page not found</h1>
       <p class="text-[hsl(var(--muted-foreground))] mb-6">The page you're looking for doesn't exist.</p>
       <NuxtLink
         to="/"
