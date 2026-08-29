@@ -235,6 +235,10 @@ Beyond the six `NUXT_PUBLIC_FIREBASE_*` values, the app needs
 `NUXT_PUBLIC_FIREBASE_VAPID_KEY` (web push) and `NUXT_PUBLIC_FLICKR_API_KEY` /
 `NUXT_PUBLIC_FLICKR_USER_ID` (event albums). See `.env.example`.
 
+`HIGGSFIELD_CREDENTIALS_JSON` and `HIGGSFIELD_WORKSPACE_ID` are separate from
+all of the above — they belong to the marketing-asset tooling, not the app, and
+are set in the remote environment rather than `.env`. See `HIGGSFIELD.md`.
+
 ## Superseded planning decisions
 
 An earlier version of this document recorded decisions that the build settled differently.
