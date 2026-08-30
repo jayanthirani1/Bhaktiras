@@ -74,7 +74,7 @@
             Yours
           </dt>
           <dd class="mt-1 font-display text-lg text-[hsl(var(--primary))]">
-            {{ formatCount(myApproved) }}
+            {{ isLoggedIn ? formatCount(myPersonal) : '—' }}
           </dd>
         </div>
       </dl>
@@ -88,9 +88,14 @@
         </span>
       </p>
 
-      <p v-if="invitation" class="mt-4 rounded-xl bg-[hsl(var(--golden-50))] px-3 py-3 text-sm text-[hsl(var(--foreground))]">
-        {{ invitation }}
-      </p>
+      <NiyamLeaderboard
+        v-if="published"
+        :challenge="challenge"
+        :leaders="leaders"
+        :loading="leadersLoading"
+        :current-user-id="currentUserId"
+        :my-personal="myPersonal"
+      />
 
       <div class="mt-5 space-y-3 border-t border-[hsl(var(--border))] pt-4 text-sm text-[hsl(var(--muted-foreground))]">
         <p v-if="challenge.hint">
@@ -102,7 +107,7 @@
           up to {{ formatCount(challenge.autoApproveMax) }}
           {{ unitLabel(challenge, challenge.autoApproveMax) }} in one entry joins the total straight away.
           {{ reviewReason(challenge) }}
-          Your own count stays private — only the sangat's shared total is shown.
+          The top five contributors appear on the leaderboard above.
         </p>
         <p v-if="!published" class="flex items-start gap-2 text-[hsl(var(--foreground))]">
           <IconLock class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
@@ -135,7 +140,7 @@
 
 <script setup lang="ts">
 import { IconClockPause, IconLock } from '@tabler/icons-vue'
-import type { NiyamChallenge, NiyamChallengeStats } from '~/types'
+import type { NiyamChallenge, NiyamChallengeStats, NiyamContributor } from '~/types'
 import {
   challengeWindow,
   formatCount,
@@ -154,8 +159,12 @@ const props = defineProps<{
   open: boolean
   challenge: NiyamChallenge | null
   stats: NiyamChallengeStats
-  myApproved: number
+  isLoggedIn: boolean
+  myPersonal: number
   myPending: number
+  leaders: NiyamContributor[]
+  leadersLoading?: boolean
+  currentUserId?: string
 }>()
 
 const emit = defineEmits<{ close: []; log: [] }>()
@@ -169,19 +178,4 @@ const range = computed(() => (props.challenge ? challengeWindow(props.challenge)
 const milestone = computed(() =>
   milestoneFor(props.stats.approvedTotal, props.challenge?.target || 0)
 )
-
-/**
- * An invitation, never a quota: "if each of us offers 9 a day" reads as a way
- * in, where "you are 9 a day behind" reads as a debt.
- */
-const invitation = computed(() => {
-  const challenge = props.challenge
-  if (!challenge || !published.value) return ''
-  const days = range.value?.daysLeft || 0
-  const people = props.stats.participants
-  const remaining = Math.max(0, challenge.target - props.stats.approvedTotal)
-  if (!days || people < 1 || remaining <= 0) return ''
-  const share = Math.max(1, Math.ceil(remaining / days / people))
-  return `If each of us offers ${formatCount(share)} ${unitLabel(challenge, share)} a day, the sangat reaches ${formatTarget(challenge.target)} before the utsav.`
-})
 </script>

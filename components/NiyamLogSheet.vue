@@ -31,7 +31,19 @@
             {{ result?.status === 'pending' ? 'recorded.' : 'added.' }}
           </p>
 
-          <div v-if="result?.status === 'approved'" class="mt-5">
+          <div v-if="result?.status === 'approved'" class="mt-5 space-y-4">
+            <div v-if="isLoggedIn" class="rounded-xl bg-[hsl(var(--muted))]/60 px-4 py-3">
+              <p class="text-[10px] font-semibold uppercase tracking-[0.14em] text-[hsl(var(--golden-900))]">
+                Yours
+              </p>
+              <p class="mt-1 font-display text-3xl text-[hsl(var(--primary))]">
+                {{ formatCount(myPersonal) }}
+              </p>
+              <p class="mt-0.5 text-xs text-[hsl(var(--muted-foreground))]">
+                {{ unitLabel(challenge, myPersonal) }} counted
+              </p>
+            </div>
+            <div>
             <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-[hsl(var(--golden-900))]">
               Together so far
             </p>
@@ -41,6 +53,7 @@
             <p class="mt-1 text-sm text-[hsl(var(--muted-foreground))]">
               of {{ formatTarget(challenge.target) }} {{ unitLabel(challenge, challenge.target) }}
             </p>
+            </div>
           </div>
 
           <p
@@ -69,6 +82,21 @@
       <!-- Attendance: one tap is one sabha. A number field would be silly here. -->
       <div v-else-if="isCheckin" class="text-center">
         <p class="text-sm text-[hsl(var(--muted-foreground))]">{{ challenge.hint || challenge.detail }}</p>
+
+        <div v-if="isLoggedIn" class="mt-4 rounded-xl bg-[hsl(var(--muted))]/60 px-4 py-3">
+          <p class="text-[10px] font-semibold uppercase tracking-[0.14em] text-[hsl(var(--golden-900))]">
+            Yours
+          </p>
+          <p class="mt-1 font-display text-2xl text-[hsl(var(--primary))]">
+            {{ formatCount(myPersonal) }}
+          </p>
+          <p class="mt-0.5 text-xs text-[hsl(var(--muted-foreground))]">
+            {{ unitLabel(challenge, myPersonal) }} counted
+            <span v-if="myPending > 0">
+              · {{ formatCount(myPending) }} awaiting review
+            </span>
+          </p>
+        </div>
 
         <p
           v-if="atMandir"
@@ -126,6 +154,21 @@
         <p class="text-center text-sm text-[hsl(var(--muted-foreground))]">
           {{ challenge.hint || challenge.detail }}
         </p>
+
+        <div v-if="isLoggedIn" class="mt-4 rounded-xl bg-[hsl(var(--muted))]/60 px-4 py-3 text-center">
+          <p class="text-[10px] font-semibold uppercase tracking-[0.14em] text-[hsl(var(--golden-900))]">
+            Yours
+          </p>
+          <p class="mt-1 font-display text-2xl text-[hsl(var(--primary))]">
+            {{ formatCount(myPersonal) }}
+          </p>
+          <p class="mt-0.5 text-xs text-[hsl(var(--muted-foreground))]">
+            {{ unitLabel(challenge, myPersonal) }} counted
+            <span v-if="myPending > 0">
+              · {{ formatCount(myPending) }} awaiting review
+            </span>
+          </p>
+        </div>
 
         <div class="mt-5 flex items-center justify-center gap-4">
           <button
@@ -249,7 +292,7 @@
       <div v-if="challenge">
       <div v-if="phase !== 'input'" class="flex items-center gap-2">
         <button
-          v-if="phase === 'done' && result?.submission && undoSeconds > 0"
+          v-if="phase === 'done' && result?.submission && undoSeconds > 0 && !isCheckin"
           type="button"
           class="flex-1 rounded-xl border border-[hsl(var(--golden-200))] bg-white px-4 py-3 text-sm font-semibold text-[hsl(var(--primary))] hover:bg-[hsl(var(--golden-50))]"
           @click="undo"
@@ -350,6 +393,8 @@ const props = defineProps<{
   challenge: NiyamChallenge | null
   stats: NiyamChallengeStats
   mySubmissions: NiyamSubmission[]
+  myPersonal: number
+  myPending: number
   isLoggedIn: boolean
   submitting: boolean
   atMandir?: boolean
@@ -441,7 +486,7 @@ function startCooldownTimer() {
   now.value = Date.now()
   cooldownTimer = setInterval(() => {
     now.value = Date.now()
-  }, 60_000)
+  }, 1000)
 }
 
 function stopCooldownTimer() {
@@ -553,6 +598,7 @@ function commit(amount: number) {
       committed.value = requested
       result.value = payload
       phase.value = 'done'
+      now.value = Date.now()
       startUndoTimer()
       reclaimFocus()
     },

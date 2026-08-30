@@ -9,7 +9,7 @@ const { getAuth } = require('firebase-admin/auth')
 
 initializeApp()
 
-const ALLOWED_TOPICS = new Set(['all', 'announcements', 'games'])
+const ALLOWED_TOPICS = new Set(['all', 'announcements', 'games', 'niyams'])
 const INVALID_TOKEN_CODES = new Set([
   'messaging/invalid-registration-token',
   'messaging/registration-token-not-registered'
@@ -259,7 +259,8 @@ const SITE_ORIGIN = process.env.BHAKTRAS_SITE_ORIGIN || 'https://skssw-bhaktiras
 // Older builds saved `patotsav` / `events`; both mean announcements today.
 const TOPIC_ALIASES = {
   announcements: ['announcements', 'patotsav', 'events'],
-  games: ['games']
+  games: ['games'],
+  niyams: ['niyams']
 }
 
 /** At most one automatic new-event push per window, so a bulk import cannot storm. */
@@ -421,7 +422,7 @@ async function pruneStaleSubscriptions(db, staleRefs) {
  * Sends to a topic, records the delivery audit, and — unless `inbox` is false —
  * keeps a copy readable in the app so a missed OS notification is not lost.
  */
-async function deliverNotification({ title, body, topic, url, sentBy, inbox = topic !== 'games', excludeUserId = null }) {
+async function deliverNotification({ title, body, topic, url, sentBy, inbox = topic !== 'games' && topic !== 'niyams', excludeUserId = null }) {
   const db = getFirestore()
   const all = await loadRecipients(db, topic)
   // Someone who just did the thing does not need telling about it.
@@ -488,7 +489,7 @@ exports.sendPushNotification = onCall(
     const uid = await requireAdmin(request)
     const input = readNotificationInput(request.data)
     const inbox = request.data?.inbox == null
-      ? input.topic !== 'games'
+      ? input.topic !== 'games' && input.topic !== 'niyams'
       : request.data.inbox === true
     return deliverNotification({ ...input, inbox, sentBy: uid })
   }
@@ -516,7 +517,7 @@ exports.sendTestPushNotification = onCall(
     await pruneStaleSubscriptions(db, outcome.staleRefs)
     // Mirror the real send's inbox decision, so the test reflects what will happen.
     const inbox = request.data?.inbox == null
-      ? input.topic !== 'games'
+      ? input.topic !== 'games' && input.topic !== 'niyams'
       : request.data.inbox === true
     if (inbox) await recordTestNotification(db, uid, input)
     return {
@@ -536,13 +537,14 @@ exports.getPushAudience = onCall(
     await requireAdmin(request)
     const db = getFirestore()
     const snap = await db.collection('pushSubscriptions').where('enabled', '==', true).get()
-    const counts = { all: 0, announcements: 0, games: 0 }
+    const counts = { all: 0, announcements: 0, games: 0, niyams: 0 }
     snap.docs.forEach((doc) => {
       const data = doc.data()
       if (typeof data.token !== 'string' || !data.token) return
       counts.all += 1
       if (subscriptionMatches(data.topics, 'announcements')) counts.announcements += 1
       if (subscriptionMatches(data.topics, 'games')) counts.games += 1
+      if (subscriptionMatches(data.topics, 'niyams')) counts.niyams += 1
     })
     return counts
   }
@@ -692,6 +694,7 @@ async function collectPushStats(db) {
   let devices = 0
   let announcements = 0
   let games = 0
+  let niyams = 0
 
   snap.docs.forEach((docSnap) => {
     const data = docSnap.data()
@@ -701,9 +704,10 @@ async function collectPushStats(db) {
     platforms[platformOf(data.platform)] += 1
     if (subscriptionMatches(data.topics, 'announcements')) announcements += 1
     if (subscriptionMatches(data.topics, 'games')) games += 1
+    if (subscriptionMatches(data.topics, 'niyams')) niyams += 1
   })
 
-  return { devices, accounts: accounts.size, announcements, games, platforms }
+  return { devices, accounts: accounts.size, announcements, games, niyams, platforms }
 }
 
 /**
@@ -820,7 +824,7 @@ function emptyAccounts() {
   }
 }
 function emptyPush() {
-  return { devices: 0, accounts: 0, announcements: 0, games: 0, platforms: {} }
+  return { devices: 0, accounts: 0, announcements: 0, games: 0, niyams: 0, platforms: {} }
 }
 function emptyGames() {
   return {
@@ -1280,6 +1284,22 @@ exports.sendDailyGameReminder = onSchedule(
 )
 
 /**
+ * Evening nudge for devotees keeping the shared niyams.
+ * Kept out of the inbox — a daily reminder would bury real announcements.
+ */
+exports.sendDailyNiyamReminder = onSchedule(
+  { region: 'europe-west2', schedule: '0 19 * * *', timeZone: 'Europe/London' },
+  () => deliverNotification({
+    title: 'Have you done niyams today?',
+    body: 'Tap to log what you kept today — mala, stotra, mandir, path or dandvat.',
+    topic: 'niyams',
+    url: '/niyams',
+    inbox: false,
+    sentBy: 'system:daily-niyams'
+  })
+)
+
+/**
  * Snapshots how many members were active today, because the figure is
  * unrecoverable afterwards — an auth record keeps only the most recent
  * lastRefreshTime, so yesterday's active count cannot be derived tomorrow.
@@ -1364,6 +1384,58 @@ exports.notifyNewEvent = onDocumentCreated(
 function niyamCounters(value) {
   const number = Number(value)
   return Number.isFinite(number) && number > 0 ? Math.floor(number) : 0
+}
+
+/** Minimum gap between mandir attendance check-ins for the same person. */
+const MANDIR_CHECKIN_COOLDOWN_MS = 4 * 60 * 60 * 1000
+const MANDIR_CHECKIN_CHALLENGE_ID = 'mandir-darshan'
+
+function submissionCreatedMs(row) {
+  if (!row?.createdAt) return 0
+  if (typeof row.createdAt.toMillis === 'function') return row.createdAt.toMillis()
+  if (row.createdAt instanceof Date) return row.createdAt.getTime()
+  if (typeof row.createdAt === 'object' && row.createdAt.seconds != null) {
+    return row.createdAt.seconds * 1000 + Math.floor((row.createdAt.nanoseconds || 0) / 1e6)
+  }
+  return 0
+}
+
+/**
+ * Drop a mandir check-in written inside the cooldown window. Client-side checks
+ * are not enough — undo, auto check-in races and rapid taps all got through.
+ */
+async function rejectMandirCheckinSpam(db, submissionId, afterSnap) {
+  if (!afterSnap?.exists) return false
+  const after = afterSnap.data() || {}
+  if (after.challengeId !== MANDIR_CHECKIN_CHALLENGE_ID) return false
+  const userChallengeKey = typeof after.userChallengeKey === 'string' ? after.userChallengeKey.trim() : ''
+  if (!userChallengeKey) return false
+
+  const snap = await db.collection('niyamSubmissions')
+    .where('userChallengeKey', '==', userChallengeKey)
+    .limit(25)
+    .get()
+
+  const newMs = submissionCreatedMs(after)
+  if (!newMs) return false
+
+  for (const doc of snap.docs) {
+    if (doc.id === submissionId) continue
+    const row = doc.data() || {}
+    if (row.status === 'rejected') continue
+    const previousMs = submissionCreatedMs(row)
+    if (previousMs && newMs - previousMs < MANDIR_CHECKIN_COOLDOWN_MS) {
+      await db.doc(`niyamSubmissions/${submissionId}`).delete()
+      logger.info('Rejected mandir check-in inside cooldown', {
+        submissionId,
+        userId: after.userId,
+        previousMs,
+        newMs
+      })
+      return true
+    }
+  }
+  return false
 }
 
 function readNiyamSubmission(snap) {
@@ -1493,6 +1565,12 @@ exports.syncNiyamChallengeTotals = onDocumentWritten(
     if (!before && !after) return
 
     const db = getFirestore()
+
+    if (!before && event.data?.after) {
+      const rejected = await rejectMandirCheckinSpam(db, event.params.submissionId, event.data.after)
+      if (rejected) return
+    }
+
     const sameOwner = before && after
       && before.challengeId === after.challengeId
       && before.userId === after.userId

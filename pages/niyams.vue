@@ -28,14 +28,15 @@
             :key="challenge.id"
             :challenge="challenge"
             :stats="statsFor(challenge.id)"
+            :is-logged-in="isLoggedIn"
+            :my-personal="myPersonalTotal(challenge.id)"
             @detail="openDetail(challenge)"
             @log="openLog(challenge)"
           />
         </ul>
 
         <p class="mt-3 text-center text-xs text-[hsl(var(--muted-foreground))]">
-          Tap a niyam to see how it is going. Nobody's individual count is ever shown — only the
-          shared total.
+          Tap a niyam to see progress and the top-five leaderboard.
         </p>
       </section>
     </div>
@@ -45,6 +46,8 @@
       :challenge="activeChallenge"
       :stats="activeStats"
       :my-submissions="activeSubmissions"
+      :my-personal="activeChallenge ? myPersonalTotal(activeChallenge.id) : 0"
+      :my-pending="activeChallenge ? myPendingTotal(activeChallenge.id) : 0"
       :is-logged-in="isLoggedIn"
       :submitting="submitting"
       :at-mandir="isAtMandir"
@@ -64,8 +67,12 @@
       :open="sheet === 'detail'"
       :challenge="activeChallenge"
       :stats="activeStats"
-      :my-approved="activeChallenge ? myApprovedTotal(activeChallenge.id) : 0"
+      :is-logged-in="isLoggedIn"
+      :my-personal="activeChallenge ? myPersonalTotal(activeChallenge.id) : 0"
       :my-pending="activeChallenge ? myPendingTotal(activeChallenge.id) : 0"
+      :leaders="activeId ? leadersFor(activeId) : []"
+      :leaders-loading="activeId ? leadersLoading(activeId) : false"
+      :current-user-id="auth.user.value?.uid"
       @close="closeSheet"
       @log="switchToLog"
     />
@@ -90,9 +97,15 @@ const {
   submissionsFor,
   myApprovedTotal,
   myPendingTotal,
+  myPersonalTotal,
+  leadersFor,
+  leadersLoading,
+  fetchTopContributors,
   submit,
   withdraw
 } = useNiyamChallenges()
+
+const auth = useAuth()
 
 const {
   isAtMandir,
@@ -170,6 +183,7 @@ function openLog(challenge: NiyamChallenge) {
 function openDetail(challenge: NiyamChallenge) {
   activeId.value = challenge.id
   sheet.value = 'detail'
+  void fetchTopContributors(challenge.id)
 }
 
 function closeSheet() {

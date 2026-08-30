@@ -42,7 +42,7 @@
               <div>
                 <h2 class="font-display text-xl font-semibold text-[hsl(var(--primary))]">Push notifications</h2>
                 <p class="mt-2 text-sm leading-relaxed text-[hsl(var(--muted-foreground))]">
-                  Receive announcements and daily game reminders on this device. You can turn them off at any time.
+                  Receive announcements, niyam reminders and daily game reminders on this device. You can turn them off at any time.
                 </p>
               </div>
             </div>
@@ -345,6 +345,11 @@ const pushCategories: Array<{ topic: PushTopic; label: string; description: stri
     topic: 'games',
     label: 'Daily games and records',
     description: 'A reminder when the next daily challenge is ready, and when someone beats a record.'
+  },
+  {
+    topic: 'niyams',
+    label: 'Daily niyam reminder',
+    description: 'An evening nudge to log what you kept today.'
   }
 ]
 

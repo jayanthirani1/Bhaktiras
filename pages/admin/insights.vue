@@ -115,7 +115,7 @@
 
           <AdminBars class="mt-5" caption="Devices by platform" :rows="platformRows" />
           <p class="mt-3 text-xs text-[hsl(var(--muted-foreground))]">
-            Announcements {{ data.push.announcements }} · Games and records {{ data.push.games }}.
+            Announcements {{ data.push.announcements }} · Niyam reminders {{ data.push.niyams }} · Games and records {{ data.push.games }}.
             iPhone and iPad only receive push once Bhaktiras is added to the Home Screen.
           </p>
         </div>
@@ -178,6 +178,7 @@ type Overview = {
     accounts: number
     announcements: number
     games: number
+    niyams: number
     platforms: Record<string, number>
   }
   games: {

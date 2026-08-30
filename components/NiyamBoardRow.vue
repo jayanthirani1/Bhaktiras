@@ -57,6 +57,12 @@
             <p class="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
               of {{ formatTarget(challenge.target) }}
             </p>
+            <p
+              v-if="isLoggedIn"
+              class="mt-1.5 text-xs font-semibold text-[hsl(var(--golden-900))]"
+            >
+              Yours: {{ formatCount(myPersonal) }} {{ unitLabel(challenge, myPersonal) }}
+            </p>
           </div>
           <p class="max-w-[52%] text-right text-[11px] leading-snug text-[hsl(var(--muted-foreground))]">
             <!-- The "Not open yet" chip beside the name already says this. -->
@@ -94,12 +100,15 @@ import {
   inputModeFor,
   isChallengeOpen,
   isPublished,
-  milestoneFor
+  milestoneFor,
+  unitLabel
 } from '~/utils/niyamChallenge'
 
 const props = defineProps<{
   challenge: NiyamChallenge
   stats: NiyamChallengeStats
+  isLoggedIn?: boolean
+  myPersonal?: number
 }>()
 
 const emit = defineEmits<{ detail: []; log: [] }>()
@@ -115,6 +124,8 @@ const GLOSSES: Record<NiyamIconKey, string> = {
 }
 
 const published = computed(() => isPublished(props.challenge))
+const isLoggedIn = computed(() => props.isLoggedIn === true)
+const myPersonal = computed(() => Math.max(0, Number(props.myPersonal) || 0))
 const isCheckin = computed(() => inputModeFor(props.challenge) === 'checkin')
 const canLog = computed(() => published.value && isChallengeOpen(props.challenge))
 const gloss = computed(() => GLOSSES[iconFor(props.challenge)] || props.challenge.unit)

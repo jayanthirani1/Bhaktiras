@@ -32,6 +32,7 @@
           <option value="all">All subscribers</option>
           <option value="announcements">Announcements</option>
           <option value="games">Daily games and records</option>
+          <option value="niyams">Daily niyam reminder</option>
         </select>
         <p class="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
           <span v-if="audienceCount == null">Counting devices…</span>
@@ -217,7 +218,7 @@ type SendResult = {
   errorCodes?: string[]
   inbox?: boolean
 }
-type AudienceCounts = { all: number; announcements: number; games: number }
+type AudienceCounts = { all: number; announcements: number; games: number; niyams: number }
 type MessageRow = {
   id: string
   title: string

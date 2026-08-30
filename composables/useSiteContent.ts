@@ -56,15 +56,20 @@ function writeGateCache(sections: SiteSectionContent[]) {
 export function useSiteContent() {
   const content = useState<SiteContentSettings>('site-content', () => ({ ...DEFAULT_SITE_CONTENT }))
   const loading = useState<boolean>('site-content-loading', () => false)
+  const ready = useState<boolean>('site-content-ready', () => false)
   const fromCms = useState<boolean>('site-content-from-cms', () => false)
 
   async function fetchContent(force = false) {
     if (inFlight && !force) return inFlight
-    if (fromCms.value && !force) return
+    if (fromCms.value && !force) {
+      ready.value = true
+      return
+    }
     const db = getDb()
     if (!db) {
       content.value = fallbackContent()
       fromCms.value = false
+      ready.value = true
       return
     }
     loading.value = true
@@ -99,6 +104,7 @@ export function useSiteContent() {
         fromCms.value = false
       } finally {
         loading.value = false
+        ready.value = true
         inFlight = null
       }
     })()
@@ -184,6 +190,7 @@ export function useSiteContent() {
     sectionFor,
     pathIsVisible,
     loading,
+    ready,
     fromCms,
     fetchContent
   }

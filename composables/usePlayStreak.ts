@@ -80,10 +80,26 @@ export function usePlayStreak() {
   return { record, recording, error, recordVisit }
 }
 
+export const STREAK_PAGE_SIZE = 20
+
 export function usePlayStreakLeaderboard() {
   const entries = ref<PlayStreakRecord[]>([])
   const loading = ref(true)
   const error = ref('')
+  const page = ref(1)
+
+  const pageCount = computed(() =>
+    Math.max(1, Math.ceil(entries.value.length / STREAK_PAGE_SIZE))
+  )
+
+  const pageEntries = computed(() => {
+    const start = (page.value - 1) * STREAK_PAGE_SIZE
+    return entries.value.slice(start, start + STREAK_PAGE_SIZE)
+  })
+
+  function setPage(next: number) {
+    page.value = Math.min(pageCount.value, Math.max(1, next))
+  }
 
   async function fetchLeaderboard() {
     loading.value = true
@@ -109,11 +125,12 @@ export function usePlayStreakLeaderboard() {
           longestStreak: Number(data.longestStreak) || 0,
           lastVisitDate
         } satisfies PlayStreakRecord
-      }).sort((a, b) =>
+      }      ).sort((a, b) =>
         b.currentStreak - a.currentStreak
         || b.longestStreak - a.longestStreak
         || a.userName.localeCompare(b.userName)
       )
+      page.value = 1
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Could not load streaks.'
       entries.value = []
@@ -124,5 +141,5 @@ export function usePlayStreakLeaderboard() {
 
   onMounted(fetchLeaderboard)
 
-  return { entries, loading, error, refetch: fetchLeaderboard }
+  return { entries, pageEntries, page, pageCount, loading, error, setPage, refetch: fetchLeaderboard }
 }

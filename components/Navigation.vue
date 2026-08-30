@@ -26,6 +26,17 @@
       class="fixed bottom-0 left-0 right-0 z-50 border-t border-[hsl(var(--border))] bg-[hsl(var(--card))]/95 pb-[env(safe-area-inset-bottom,0px)] backdrop-blur-md md:hidden"
     >
       <div class="flex h-16 items-center px-2">
+        <template v-if="!navReady">
+          <div
+            v-for="i in 5"
+            :key="i"
+            class="flex min-w-0 flex-1 flex-col items-center justify-center space-y-1 p-2"
+          >
+            <span class="h-5 w-5 animate-pulse rounded-md bg-[hsl(var(--muted))]" />
+            <span class="h-2 w-10 animate-pulse rounded bg-[hsl(var(--muted))]" />
+          </div>
+        </template>
+        <template v-else>
         <NuxtLink
           v-for="item in mobilePrimaryItems"
           :key="item.href"
@@ -50,6 +61,7 @@
           <IconLayoutGrid class="h-5 w-5 shrink-0" />
           <span class="truncate text-[10px] font-medium">More</span>
         </button>
+        </template>
       </div>
     </div>
 
@@ -120,6 +132,14 @@
           <BhaktirasLogo size="sm" animate />
         </NuxtLink>
         <div class="flex items-center space-x-1">
+          <template v-if="!navReady">
+            <span
+              v-for="i in 6"
+              :key="i"
+              class="h-9 w-16 animate-pulse rounded-full bg-[hsl(var(--muted))]"
+            />
+          </template>
+          <template v-else>
           <NuxtLink
             v-for="item in desktopNavItems"
             :key="item.href"
@@ -154,6 +174,7 @@
               Account
             </NuxtLink>
           </span>
+          </template>
         </div>
       </div>
     </div>
@@ -173,7 +194,7 @@ import { isGamePagePath } from '~/utils/gameRoutes'
 
 const route = useRoute()
 const { isLoggedIn } = useAuth()
-const { navItems: managedNavItems } = useSiteContent()
+const { navItems: managedNavItems, ready: navReady } = useSiteContent()
 const drawerOpen = ref(false)
 const sheetOffset = ref(0)
 const isGamePage = computed(() => isGamePagePath(route.path))

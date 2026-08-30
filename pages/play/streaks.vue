@@ -37,12 +37,14 @@
         </div>
         <ol class="divide-y divide-[hsl(var(--border))]">
           <li
-            v-for="(entry, index) in entries"
+            v-for="(entry, index) in pageEntries"
             :key="entry.id"
             class="grid grid-cols-[3rem_1fr_auto] items-center gap-3 px-4 py-3"
             :class="entry.userId === auth.user.value?.uid ? 'bg-orange-50' : ''"
           >
-            <span class="font-display text-lg font-bold text-[hsl(var(--primary))]">{{ index + 1 }}</span>
+            <span class="font-display text-lg font-bold text-[hsl(var(--primary))]">
+              {{ rankFor(index) }}
+            </span>
             <span class="min-w-0">
               <span class="block truncate font-semibold text-[hsl(var(--foreground))]">
                 {{ entry.userName }}
@@ -59,6 +61,31 @@
             No streaks yet. Sign in and play a game to light the first flame!
           </li>
         </ol>
+
+        <div
+          v-if="pageCount > 1"
+          class="flex items-center justify-between gap-3 border-t border-[hsl(var(--border))] bg-[hsl(var(--golden-50))]/60 px-4 py-3"
+        >
+          <button
+            type="button"
+            class="rounded-lg px-3 py-1.5 text-sm font-semibold text-[hsl(var(--primary))] transition-colors hover:bg-white disabled:opacity-40"
+            :disabled="page <= 1"
+            @click="setPage(page - 1)"
+          >
+            Previous
+          </button>
+          <p class="text-xs text-[hsl(var(--muted-foreground))]">
+            Page {{ page }} of {{ pageCount }}
+          </p>
+          <button
+            type="button"
+            class="rounded-lg px-3 py-1.5 text-sm font-semibold text-[hsl(var(--primary))] transition-colors hover:bg-white disabled:opacity-40"
+            :disabled="page >= pageCount"
+            @click="setPage(page + 1)"
+          >
+            Next
+          </button>
+        </div>
       </div>
 
       <p class="mt-4 text-center text-xs text-[hsl(var(--muted-foreground))]">
@@ -70,11 +97,16 @@
 
 <script setup lang="ts">
 import { IconCrown } from '@tabler/icons-vue'
+import { STREAK_PAGE_SIZE } from '~/composables/usePlayStreak'
 
 const auth = useAuth()
-const { entries, loading, error } = usePlayStreakLeaderboard()
+const { entries, pageEntries, page, pageCount, loading, error, setPage } = usePlayStreakLeaderboard()
 const achievements = useAchievements()
 const longestCrown = computed(() => achievements.crowns.value.find(crown => crown.id === 'streak-longest') || null)
+
+function rankFor(indexOnPage: number) {
+  return (page.value - 1) * STREAK_PAGE_SIZE + indexOnPage + 1
+}
 
 useHead({ title: 'Games Streaks · Bhaktiras' })
 </script>

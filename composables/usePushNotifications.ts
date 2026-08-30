@@ -11,10 +11,10 @@ import { getApp } from 'firebase/app'
 import { isIos, isStandalone } from '~/utils/pwa'
 import { consumeInteractiveSignIn } from '~/utils/signInSignal'
 
-export type PushTopic = 'announcements' | 'games'
+export type PushTopic = 'announcements' | 'games' | 'niyams'
 export type PushPromptMoment = 'game-complete' | 'events' | 'signed-in'
 
-const ALL_TOPICS: PushTopic[] = ['announcements', 'games']
+const ALL_TOPICS: PushTopic[] = ['announcements', 'games', 'niyams']
 const SUBSCRIPTION_ID_KEY = 'bhaktiras-push-subscription-id'
 const TOPICS_KEY = 'bhaktiras-push-topics'
 let foregroundUnsubscribe: (() => void) | null = null
@@ -38,6 +38,7 @@ function normalizeTopics(raw: unknown): PushTopic[] {
   const next = new Set<PushTopic>()
   for (const item of raw) {
     if (item === 'games') next.add('games')
+    if (item === 'niyams') next.add('niyams')
     if (item === 'announcements' || item === 'patotsav' || item === 'events') next.add('announcements')
   }
   return ALL_TOPICS.filter(topic => next.has(topic))

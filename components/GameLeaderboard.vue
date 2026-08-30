@@ -1,7 +1,7 @@
 <template>
   <div class="mt-12">
     <h3 class="text-lg font-bold text-[hsl(var(--primary))] mb-1">
-      {{ allTime ? 'All-time leaderboard' : 'Today’s leaderboard' }}
+      {{ allTime ? 'All-time top 10' : 'Today’s top 10' }}
     </h3>
     <p class="text-sm text-[hsl(var(--muted-foreground))] mb-3">
       <template v-if="allTime">Best scores ever. Anyone can view.</template>
@@ -38,6 +38,8 @@
 <script setup lang="ts">
 import { formatUkDateLabel, ukDateId } from '~/utils/gameDay'
 
+const LEADERBOARD_TOP = 10
+
 type LeaderboardRow = {
   id: string
   userId?: string
@@ -61,7 +63,7 @@ const dateLabel = computed(() => formatUkDateLabel(props.dateId || ukDateId()))
 
 const visibleRows = computed(() => {
   const list = props.entries || []
-  const top = list.slice(0, 10).map((entry, idx) => ({
+  const top = list.slice(0, LEADERBOARD_TOP).map((entry, idx) => ({
     entry,
     rank: idx + 1,
     mine: !!props.currentUserId && entry.userId === props.currentUserId

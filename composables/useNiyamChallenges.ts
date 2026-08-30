@@ -4,6 +4,7 @@ import {
   getDoc,
   getDocs,
   limit,
+  orderBy,
   query,
   serverTimestamp,
   setDoc,
@@ -13,6 +14,7 @@ import {
 import type {
   NiyamChallenge,
   NiyamChallengeStats,
+  NiyamContributor,
   NiyamSubmission,
   NiyamSubmissionStatus
 } from '~/types'
@@ -33,6 +35,7 @@ import {
 } from '~/utils/niyamChallenge'
 
 const MY_SUBMISSION_LIMIT = 100
+const TOP_CONTRIBUTORS_LIMIT = 5
 
 function emptyStats(challengeId: string): NiyamChallengeStats {
   return {
@@ -112,6 +115,19 @@ export function mapSubmission(id: string, data: Record<string, unknown>): NiyamS
   }
 }
 
+function mapContributor(id: string, data: Record<string, unknown>): NiyamContributor {
+  return {
+    id,
+    userId: String(data.userId || id),
+    userName: String(data.userName || 'Devotee'),
+    approvedTotal: Math.max(0, Number(data.approvedTotal) || 0),
+    pendingTotal: Math.max(0, Number(data.pendingTotal) || 0),
+    submissionCount: Math.max(0, Number(data.submissionCount) || 0),
+    lastSubmittedAt: data.lastSubmittedAt as NiyamContributor['lastSubmittedAt'],
+    updatedAt: data.updatedAt as NiyamContributor['updatedAt']
+  }
+}
+
 /**
  * The devotee side of the niyam challenges: read the goals, read the community
  * totals, and add your own count.
@@ -128,6 +144,8 @@ export function useNiyamChallenges() {
   const challenges = ref<NiyamChallenge[]>([])
   const stats = ref<Record<string, NiyamChallengeStats>>({})
   const mySubmissions = ref<NiyamSubmission[]>([])
+  const topContributors = ref<Record<string, NiyamContributor[]>>({})
+  const loadingLeaders = ref<Record<string, boolean>>({})
   const loading = ref(true)
   const submitting = ref(false)
   const error = ref('')
@@ -148,6 +166,38 @@ export function useNiyamChallenges() {
     return mySubmissions.value.filter(s => s.challengeId === challengeId)
   }
 
+  function leadersFor(challengeId: string): NiyamContributor[] {
+    return topContributors.value[challengeId] || []
+  }
+
+  function leadersLoading(challengeId: string): boolean {
+    return !!loadingLeaders.value[challengeId]
+  }
+
+  /** Top five by approved total — public leaderboard rows only. */
+  async function fetchTopContributors(challengeId: string) {
+    const db = getDb()
+    if (!db || !challengeId) return
+    loadingLeaders.value = { ...loadingLeaders.value, [challengeId]: true }
+    try {
+      const snap = await getDocs(query(
+        collection(db, 'niyamChallenges', challengeId, 'contributors'),
+        orderBy('approvedTotal', 'desc'),
+        limit(TOP_CONTRIBUTORS_LIMIT)
+      ))
+      topContributors.value = {
+        ...topContributors.value,
+        [challengeId]: snap.docs
+          .map(d => mapContributor(d.id, d.data()))
+          .filter(row => row.approvedTotal > 0)
+      }
+    } catch {
+      topContributors.value = { ...topContributors.value, [challengeId]: [] }
+    } finally {
+      loadingLeaders.value = { ...loadingLeaders.value, [challengeId]: false }
+    }
+  }
+
   /** Your own approved total for a challenge — what you have added to the goal. */
   function myApprovedTotal(challengeId: string): number {
     return submissionsFor(challengeId)
@@ -160,6 +210,11 @@ export function useNiyamChallenges() {
     return submissionsFor(challengeId)
       .filter(s => s.status === 'pending')
       .reduce((sum, s) => sum + s.amount, 0)
+  }
+
+  /** Approved plus pending — the personal total shown on check-in and detail sheets. */
+  function myPersonalTotal(challengeId: string): number {
+    return myApprovedTotal(challengeId) + myPendingTotal(challengeId)
   }
 
   /**
@@ -276,23 +331,47 @@ export function useNiyamChallenges() {
 
     submitting.value = true
     error.value = ''
+    const dayKey = ukDateId()
+    const optimistic: NiyamSubmission = {
+      id,
+      challengeId: challenge.id,
+      userId: uid,
+      userName: safeMemberName(userName.value),
+      amount,
+      note: note || null,
+      status,
+      statusKey: statusKey(challenge.id, status),
+      userChallengeKey: userChallengeKey(uid, challenge.id),
+      dayKey,
+      createdAt: new Date(),
+      reviewedAt: null,
+      reviewedBy: null,
+      reviewNote: null
+    }
     try {
+      // Optimistic row so cooldown and "Yours" update before the round-trip finishes.
+      mySubmissions.value = sortSubmissionsNewestFirst([
+        optimistic,
+        ...mySubmissions.value.filter(s => s.id !== id)
+      ])
       await setDoc(doc(db, 'niyamSubmissions', id), {
         challengeId: challenge.id,
         userId: uid,
-        userName: safeMemberName(userName.value),
+        userName: optimistic.userName,
         amount,
         note: note || null,
         status,
         statusKey: statusKey(challenge.id, status),
         userChallengeKey: userChallengeKey(uid, challenge.id),
-        dayKey: ukDateId(),
+        dayKey,
         createdAt: serverTimestamp()
       })
       // The trigger owns the totals, so re-read them rather than guessing here.
       await Promise.all([fetchStats(), fetchMySubmissions()])
+      void fetchTopContributors(challenge.id)
       return status
     } catch (e) {
+      mySubmissions.value = mySubmissions.value.filter(s => s.id !== id)
       error.value = (e as Error).message
       throw e
     } finally {
@@ -309,6 +388,7 @@ export function useNiyamChallenges() {
     try {
       await deleteDoc(doc(db, 'niyamSubmissions', submission.id))
       await Promise.all([fetchStats(), fetchMySubmissions()])
+      void fetchTopContributors(submission.challengeId)
     } catch (e) {
       error.value = (e as Error).message
     }
@@ -334,8 +414,12 @@ export function useNiyamChallenges() {
     isLoggedIn,
     statsFor,
     submissionsFor,
+    leadersFor,
+    leadersLoading,
+    fetchTopContributors,
     myApprovedTotal,
     myPendingTotal,
+    myPersonalTotal,
     submit,
     withdraw,
     refresh

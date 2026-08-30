@@ -440,10 +440,11 @@ service cloud.firestore {
       allow read: if true;
       allow create, update, delete: if isAdmin();
 
-      // Per-person rollups, derived by `syncNiyamChallengeTotals`. A devotee
-      // sees their own; admins see everyone's while reviewing.
+      // Per-person rollups, derived by `syncNiyamChallengeTotals`. Top rows are
+      // shown on the public niyam leaderboard; a devotee still reads only their
+      // own doc when signed in.
       match /contributors/{uid} {
-        allow read: if isAdmin() || (isSignedIn() && request.auth.uid == uid);
+        allow read: if true;
         allow write: if false;
       }
     }
