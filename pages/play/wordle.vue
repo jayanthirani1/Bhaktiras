@@ -232,6 +232,7 @@
         :loading="leaderboardLoading"
         :date-id="leaderboardDateId"
         :current-user-id="auth.user.value?.uid"
+        game="wordle"
         :format-score="(e) => formatWordleScore(e)"
       >
         <template v-if="!isLoggedIn">

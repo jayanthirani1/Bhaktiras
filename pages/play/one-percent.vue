@@ -133,6 +133,7 @@
         :loading="boardLoading"
         :date-id="dateId"
         :current-user-id="auth.user.value?.uid"
+        game="one-percent"
         :format-score="formatBoardScore"
       >
         <template v-if="!isLoggedIn">

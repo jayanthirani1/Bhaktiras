@@ -3,9 +3,15 @@
     <h3 class="text-lg font-bold text-[hsl(var(--primary))] mb-1">
       {{ allTime ? 'All-time top 10' : 'Today’s top 10' }}
     </h3>
-    <p class="text-sm text-[hsl(var(--muted-foreground))] mb-3">
+    <p class="text-sm text-[hsl(var(--muted-foreground))] mb-1">
       <template v-if="allTime">Best scores ever. Anyone can view.</template>
       <template v-else>Resets every day ({{ dateLabel }}). Anyone can view.</template>
+    </p>
+    <p v-if="rulesText" class="text-sm text-[hsl(var(--muted-foreground))] mb-3">
+      {{ rulesText }}
+      <slot />
+    </p>
+    <p v-else-if="$slots.default" class="text-sm text-[hsl(var(--muted-foreground))] mb-3">
       <slot />
     </p>
     <div v-if="loading" class="text-sm text-[hsl(var(--muted-foreground))]">Loading...</div>
@@ -37,6 +43,8 @@
 
 <script setup lang="ts">
 import { formatUkDateLabel, ukDateId } from '~/utils/gameDay'
+import { leaderboardRulesText } from '~/utils/gameLeaderboardRules'
+import type { GameLeaderboardId } from '~/types'
 
 const LEADERBOARD_TOP = 10
 
@@ -57,9 +65,18 @@ const props = defineProps<{
   allTime?: boolean
   currentUserId?: string
   formatScore?: (entry: LeaderboardRow) => string
+  game?: GameLeaderboardId
+  /** Override the default ranking blurb for this game. */
+  rules?: string
 }>()
 
 const dateLabel = computed(() => formatUkDateLabel(props.dateId || ukDateId()))
+
+const rulesText = computed(() => {
+  if (props.rules != null) return props.rules
+  if (props.game) return leaderboardRulesText(props.game)
+  return ''
+})
 
 const visibleRows = computed(() => {
   const list = props.entries || []

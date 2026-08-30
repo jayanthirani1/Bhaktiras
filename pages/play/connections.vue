@@ -116,6 +116,7 @@
           :loading="boardLoading"
           :date-id="dateId"
           :current-user-id="auth.user.value?.uid"
+          game="connections"
           :format-score="formatBoardScore"
         />
       </div>

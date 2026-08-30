@@ -160,6 +160,7 @@
           :loading="boardLoading"
           :date-id="dateId"
           :current-user-id="auth.user.value?.uid"
+          game="bracket-city"
           :format-score="formatBoardScore"
         />
       </div>

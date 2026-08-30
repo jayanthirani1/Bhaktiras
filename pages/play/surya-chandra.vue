@@ -147,10 +147,9 @@
           :loading="boardLoading"
           :date-id="dateId"
           :current-user-id="auth.user.value?.uid"
+          game="surya-chandra"
           :format-score="formatBoardScore"
-        >
-          Fastest time wins. Fewer moves breaks ties.
-        </GameLeaderboard>
+        />
       </div>
     </div>
   </div>

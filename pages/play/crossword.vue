@@ -223,10 +223,9 @@
           :loading="boardLoading"
           :date-id="dateId"
           :current-user-id="auth.user.value?.uid"
+          game="mini-crossword"
           :format-score="(e) => formatElapsed(e.timeMs ?? (e.score || 0) * 1000)"
-        >
-          Fastest finish today.
-        </GameLeaderboard>
+        />
       </div>
     </div>
 
