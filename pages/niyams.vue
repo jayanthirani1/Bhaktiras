@@ -29,8 +29,8 @@
             :challenge="challenge"
             :stats="statsFor(challenge.id)"
             :is-logged-in="isLoggedIn"
-            :my-approved="myApprovedTotal(challenge.id)"
-            :my-pending="myPendingTotal(challenge.id)"
+            :my-approved="myApprovedByChallenge[challenge.id] ?? 0"
+            :my-pending="myPendingByChallenge[challenge.id] ?? 0"
             @detail="openDetail(challenge)"
             @log="openLog(challenge)"
             @sign-in="goSignIn"
@@ -71,7 +71,8 @@
       :stats="activeStats"
       :is-logged-in="isLoggedIn"
       :my-personal="activeChallenge ? myPersonalTotal(activeChallenge.id) : 0"
-      :my-pending="activeChallenge ? myPendingTotal(activeChallenge.id) : 0"
+      :my-approved="activeChallenge ? (myApprovedByChallenge[activeChallenge.id] ?? 0) : 0"
+      :my-pending="activeChallenge ? (myPendingByChallenge[activeChallenge.id] ?? 0) : 0"
       :leaders="activeId ? leadersFor(activeId) : []"
       :leaders-loading="activeId ? leadersLoading(activeId) : false"
       :current-user-id="auth.user.value?.uid"
@@ -99,6 +100,8 @@ const {
   myApprovedTotal,
   myPendingTotal,
   myPersonalTotal,
+  myApprovedByChallenge,
+  myPendingByChallenge,
   leadersFor,
   leadersLoading,
   fetchTopContributors,
@@ -198,6 +201,26 @@ function openDetail(challenge: NiyamChallenge) {
   sheet.value = 'detail'
   void fetchTopContributors(challenge.id)
 }
+
+// Keep the detail leaderboard in step with live community and contributor rollups.
+watch(
+  () => {
+    if (sheet.value !== 'detail' || !activeId.value) return null
+    const id = activeId.value
+    const s = statsFor(id)
+    return [
+      s.approvedTotal,
+      s.pendingTotal,
+      myApprovedByChallenge.value[id] ?? 0,
+      myPendingByChallenge.value[id] ?? 0
+    ].join(':')
+  },
+  () => {
+    if (sheet.value === 'detail' && activeId.value) {
+      void fetchTopContributors(activeId.value)
+    }
+  }
+)
 
 function closeSheet() {
   sheet.value = 'none'

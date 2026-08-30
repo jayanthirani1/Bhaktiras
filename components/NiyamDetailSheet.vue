@@ -74,7 +74,13 @@
             Yours
           </dt>
           <dd class="mt-1 font-display text-lg text-[hsl(var(--primary))]">
-            {{ isLoggedIn ? formatCount(myPersonal) : '—' }}
+            {{ isLoggedIn ? formatCount(myApproved) : '—' }}
+            <span
+              v-if="isLoggedIn && myPending > 0"
+              class="block text-xs font-normal text-[hsl(var(--muted-foreground))]"
+            >
+              + {{ formatCount(myPending) }} pending
+            </span>
           </dd>
         </div>
       </dl>
@@ -94,7 +100,7 @@
         :leaders="leaders"
         :loading="leadersLoading"
         :current-user-id="currentUserId"
-        :my-personal="myPersonal"
+        :my-approved="myApproved"
       />
 
       <div class="mt-5 space-y-3 border-t border-[hsl(var(--border))] pt-4 text-sm text-[hsl(var(--muted-foreground))]">
@@ -169,6 +175,7 @@ const props = defineProps<{
   stats: NiyamChallengeStats
   isLoggedIn: boolean
   myPersonal: number
+  myApproved: number
   myPending: number
   leaders: NiyamContributor[]
   leadersLoading?: boolean

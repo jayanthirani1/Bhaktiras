@@ -1,6 +1,7 @@
 import {
   collection,
   doc,
+  documentId,
   getDoc,
   getDocs,
   limit,
@@ -170,6 +171,7 @@ export function useNiyamChallenges() {
   const submitting = ref(false)
   const error = ref('')
   let statsUnsubs: Unsubscribe[] = []
+  let contributorUnsubs: Unsubscribe[] = []
 
   function getDb(): Firestore | null {
     if (import.meta.server) return null
@@ -223,23 +225,50 @@ export function useNiyamChallenges() {
     return myContributors.value[challengeId] ?? null
   }
 
-  /** Your own approved total — contributor rollup matches the public leaderboard. */
-  function myApprovedTotal(challengeId: string): number {
-    const rolled = contributorFor(challengeId)?.approvedTotal
-    if (rolled != null) return rolled
+  function approvedFromSubmissions(challengeId: string): number {
     return submissionsFor(challengeId)
       .filter(s => s.status === 'approved')
       .reduce((sum, s) => sum + s.amount, 0)
   }
 
-  /** Submitted but waiting on an admin, so not in the shared total yet. */
-  function myPendingTotal(challengeId: string): number {
-    const rolled = contributorFor(challengeId)?.pendingTotal
-    if (rolled != null) return rolled
+  function pendingFromSubmissions(challengeId: string): number {
     return submissionsFor(challengeId)
       .filter(s => s.status === 'pending')
       .reduce((sum, s) => sum + s.amount, 0)
   }
+
+  /** Your own approved total — contributor rollup matches the public leaderboard. */
+  function myApprovedTotal(challengeId: string): number {
+    const rolled = contributorFor(challengeId)?.approvedTotal
+    const fromSubs = approvedFromSubmissions(challengeId)
+    if (rolled == null) return fromSubs
+    return Math.max(rolled, fromSubs)
+  }
+
+  /** Submitted but waiting on an admin, so not in the shared total yet. */
+  function myPendingTotal(challengeId: string): number {
+    const rolled = contributorFor(challengeId)?.pendingTotal
+    const fromSubs = pendingFromSubmissions(challengeId)
+    if (rolled == null) return fromSubs
+    return Math.max(rolled, fromSubs)
+  }
+
+  /** Reactive map so board rows re-render when contributor rollups change. */
+  const myApprovedByChallenge = computed(() => {
+    const totals: Record<string, number> = {}
+    for (const challenge of publishedChallenges.value) {
+      totals[challenge.id] = myApprovedTotal(challenge.id)
+    }
+    return totals
+  })
+
+  const myPendingByChallenge = computed(() => {
+    const totals: Record<string, number> = {}
+    for (const challenge of publishedChallenges.value) {
+      totals[challenge.id] = myPendingTotal(challenge.id)
+    }
+    return totals
+  })
 
   /** Approved plus pending — the personal total shown on check-in and detail sheets. */
   function myPersonalTotal(challengeId: string): number {
@@ -269,6 +298,41 @@ export function useNiyamChallenges() {
   function teardownStatsListeners() {
     for (const unsub of statsUnsubs) unsub()
     statsUnsubs = []
+  }
+
+  function teardownContributorListeners() {
+    for (const unsub of contributorUnsubs) unsub()
+    contributorUnsubs = []
+  }
+
+  /** Live contributor rollups — same source as the public leaderboard. */
+  function setupContributorListeners() {
+    teardownContributorListeners()
+    const db = getDb()
+    const uid = user.value?.uid
+    if (!db || !uid || !publishedChallenges.value.length) return
+
+    for (const challenge of publishedChallenges.value) {
+      const unsub = onSnapshot(
+        doc(db, 'niyamChallenges', challenge.id, 'contributors', uid),
+        (snap) => {
+          if (!snap.exists()) {
+            const next = { ...myContributors.value }
+            delete next[challenge.id]
+            myContributors.value = next
+            return
+          }
+          myContributors.value = {
+            ...myContributors.value,
+            [challenge.id]: mapContributor(uid, snap.data() as Record<string, unknown>)
+          }
+        },
+        () => {
+          // Keep the last known rollup on transient listener errors.
+        }
+      )
+      contributorUnsubs.push(unsub)
+    }
   }
 
   /** Live totals — the trigger updates stats after each submission. */
@@ -339,13 +403,40 @@ export function useNiyamChallenges() {
     stats.value = Object.fromEntries(entries)
   }
 
+  /** Poll until the Cloud Function has folded a write into your contributor row. */
+  async function waitForContributorUpdate(
+    challengeId: string,
+    options: { minApproved?: number; minPending?: number; attempts?: number } = {}
+  ) {
+    const db = getDb()
+    const uid = user.value?.uid
+    if (!db || !uid) return
+    const { minApproved, minPending, attempts = 10 } = options
+    for (let i = 0; i < attempts; i++) {
+      try {
+        const snap = await getDoc(doc(db, 'niyamChallenges', challengeId, 'contributors', uid))
+        if (snap.exists()) {
+          const row = mapContributor(uid, snap.data() as Record<string, unknown>)
+          myContributors.value = { ...myContributors.value, [challengeId]: row }
+          const approvedOk = minApproved == null || row.approvedTotal >= minApproved
+          const pendingOk = minPending == null || row.pendingTotal >= minPending
+          if (approvedOk && pendingOk) return
+        }
+      } catch {
+        // Retry until attempts are exhausted.
+      }
+      await new Promise(resolve => setTimeout(resolve, 250 * (i + 1)))
+    }
+  }
+
   async function fetchMyContributors() {
     const db = getDb()
     const uid = user.value?.uid
-    if (!db || !uid || !publishedChallenges.value.length) {
+    if (!db || !uid) {
       myContributors.value = {}
       return
     }
+    if (!publishedChallenges.value.length) return
     const entries = await Promise.all(
       publishedChallenges.value.map(async (c) => {
         try {
@@ -373,12 +464,14 @@ export function useNiyamChallenges() {
     // One equality filter per challenge on the composite `userChallengeKey`.
     // Filtering on userId and challengeId separately would need a composite
     // index, and the deploy service account is not allowed to create those.
+    // Newest-first via inverted ids in the document key (see buildSubmissionId).
     const results = await Promise.all(
       publishedChallenges.value.map(async (c) => {
         try {
           const snap = await getDocs(query(
             collection(db, 'niyamSubmissions'),
             where('userChallengeKey', '==', userChallengeKey(uid, c.id)),
+            orderBy(documentId(), 'desc'),
             limit(MY_SUBMISSION_LIMIT)
           ))
           return snap.docs.map(d => mapSubmission(d.id, d.data()))
@@ -397,6 +490,7 @@ export function useNiyamChallenges() {
       await fetchChallenges()
       await fetchStats()
       setupStatsListeners()
+      setupContributorListeners()
       if (!authLoading.value) {
         await Promise.all([fetchMySubmissions(), fetchMyContributors()])
       }
@@ -405,6 +499,38 @@ export function useNiyamChallenges() {
     } finally {
       loading.value = false
     }
+  }
+
+  async function waitForSubmissionSettled(
+    id: string,
+    challenge: NiyamChallenge
+  ): Promise<NiyamSubmission> {
+    const db = getDb()
+    if (!db) throw new Error('Firebase is not configured')
+    const checkin = inputModeFor(challenge) === 'checkin'
+    const attempts = checkin ? 12 : 1
+    for (let i = 0; i < attempts; i++) {
+      const snap = await getDoc(doc(db, 'niyamSubmissions', id))
+      if (!snap.exists()) {
+        throw new Error(
+          checkin
+            ? 'This check-in could not be recorded. Please wait before trying again.'
+            : 'Your entry could not be saved. Please try again.'
+        )
+      }
+      const saved = mapSubmission(id, snap.data() as Record<string, unknown>)
+      if (saved.status === 'rejected') {
+        throw new Error(
+          saved.reviewNote?.trim()
+            || (checkin
+              ? 'This check-in was not counted — you may have already logged today\'s sabhas or tapped too soon.'
+              : 'This entry was not counted.')
+        )
+      }
+      if (!checkin || i >= attempts - 1) return saved
+      await new Promise(resolve => setTimeout(resolve, 250 * (i + 1)))
+    }
+    throw new Error('Your entry could not be confirmed. Please try again.')
   }
 
   /**
@@ -493,7 +619,7 @@ export function useNiyamChallenges() {
             : 'Your entry could not be saved. Please try again.'
         )
       }
-      const saved = mapSubmission(id, savedSnap.data() as Record<string, unknown>)
+      const saved = await waitForSubmissionSettled(id, challenge)
       mySubmissions.value = sortSubmissionsNewestFirst([
         saved,
         ...mySubmissions.value.filter(s => s.id !== id)
@@ -501,18 +627,30 @@ export function useNiyamChallenges() {
       void fetchMySubmissions()
 
       if (status === 'approved') {
-        await waitForStatsUpdate(challenge.id, {
-          minApproved: beforeStats.approvedTotal + amount
-        })
+        await Promise.all([
+          waitForStatsUpdate(challenge.id, {
+            minApproved: beforeStats.approvedTotal + amount
+          }),
+          waitForContributorUpdate(challenge.id, {
+            minApproved: myApprovedTotal(challenge.id)
+          })
+        ])
       } else if (status === 'pending') {
-        await waitForStatsUpdate(challenge.id, {
-          minPending: beforeStats.pendingTotal + amount
-        })
+        await Promise.all([
+          waitForStatsUpdate(challenge.id, {
+            minPending: beforeStats.pendingTotal + amount
+          }),
+          waitForContributorUpdate(challenge.id, {
+            minPending: myPendingTotal(challenge.id)
+          })
+        ])
       } else {
-        await refreshStatsForChallenge(challenge.id)
+        await Promise.all([
+          refreshStatsForChallenge(challenge.id),
+          fetchMyContributors()
+        ])
       }
       void fetchTopContributors(challenge.id)
-      await fetchMyContributors()
       return { status, submission: saved }
     } catch (e) {
       mySubmissions.value = mySubmissions.value.filter(s => s.id !== id)
@@ -545,17 +683,20 @@ export function useNiyamChallenges() {
     () => authLoading.value,
     async (loadingAuth) => {
       if (loadingAuth) return
+      setupContributorListeners()
       await Promise.all([fetchMySubmissions(), fetchMyContributors()])
     }
   )
 
   watch(() => user.value?.uid, async (uid, prev) => {
     if (uid === prev) return
+    setupContributorListeners()
     await Promise.all([fetchMySubmissions(), fetchMyContributors()])
   })
 
   watch(publishedChallenges, () => {
     setupStatsListeners()
+    setupContributorListeners()
     if (user.value?.uid && !authLoading.value) {
       void Promise.all([fetchMySubmissions(), fetchMyContributors()])
     }
@@ -563,6 +704,7 @@ export function useNiyamChallenges() {
 
   onBeforeUnmount(() => {
     teardownStatsListeners()
+    teardownContributorListeners()
   })
 
   return {
@@ -584,6 +726,8 @@ export function useNiyamChallenges() {
     myApprovedTotal,
     myPendingTotal,
     myPersonalTotal,
+    myApprovedByChallenge,
+    myPendingByChallenge,
     submit,
     withdraw,
     refresh

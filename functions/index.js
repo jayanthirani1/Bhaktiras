@@ -1438,7 +1438,14 @@ async function rejectMandirCheckinSpam(db, submissionId, afterSnap) {
   }
 
   if (todayTotal > maxPerDay) {
-    await db.doc(`niyamSubmissions/${submissionId}`).delete()
+    await db.doc(`niyamSubmissions/${submissionId}`).update({
+      status: 'rejected',
+      statusKey: `${MANDIR_CHECKIN_CHALLENGE_ID}__rejected`,
+      spamRejected: true,
+      reviewNote: 'Over the daily sabha limit for this niyam.',
+      reviewedAt: FieldValue.serverTimestamp(),
+      reviewedBy: 'system:mandir-spam'
+    })
     logger.info('Rejected mandir check-in over daily limit', {
       submissionId,
       userId: after.userId,
@@ -1458,7 +1465,14 @@ async function rejectMandirCheckinSpam(db, submissionId, afterSnap) {
     if (row.dayKey !== dayKey) continue
     const previousMs = submissionCreatedMs(row)
     if (previousMs && newMs - previousMs < MANDIR_CHECKIN_DOUBLE_TAP_MS) {
-      await db.doc(`niyamSubmissions/${submissionId}`).delete()
+      await db.doc(`niyamSubmissions/${submissionId}`).update({
+        status: 'rejected',
+        statusKey: `${MANDIR_CHECKIN_CHALLENGE_ID}__rejected`,
+        spamRejected: true,
+        reviewNote: 'Checked in again too soon — wait two minutes between sabhas.',
+        reviewedAt: FieldValue.serverTimestamp(),
+        reviewedBy: 'system:mandir-spam'
+      })
       logger.info('Rejected mandir check-in double-tap', {
         submissionId,
         userId: after.userId,
@@ -1664,6 +1678,13 @@ exports.syncNiyamChallengeTotals = onDocumentWritten(
     if (!before && event.data?.after) {
       const rejected = await rejectMandirCheckinSpam(db, event.params.submissionId, event.data.after)
       if (rejected) return
+    }
+
+    // Spam check-ins are marked rejected without ever receiving a create delta.
+    const afterRaw = event.data?.after?.data?.() || {}
+    const beforeRaw = event.data?.before?.data?.() || {}
+    if (before && after && afterRaw.spamRejected === true && beforeRaw.status !== 'rejected') {
+      return
     }
 
     const sameOwner = before && after

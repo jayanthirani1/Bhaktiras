@@ -18,6 +18,14 @@
       ]
     },
     {
+      "collectionGroup": "niyamSubmissions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userChallengeKey", "order": "ASCENDING" },
+        { "fieldPath": "__name__", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "wordleScores",
       "queryScope": "COLLECTION",
       "fields": [

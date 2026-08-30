@@ -56,7 +56,7 @@ const props = defineProps<{
   leaders: NiyamContributor[]
   loading?: boolean
   currentUserId?: string
-  myPersonal?: number
+  myApproved?: number
 }>()
 
 const visibleLeaders = computed(() => {
@@ -69,7 +69,7 @@ const visibleLeaders = computed(() => {
   }))
   if (!props.currentUserId || top.some(row => row.mine)) return top
 
-  const mine = Math.max(0, Number(props.myPersonal) || 0)
+  const mine = Math.max(0, Number(props.myApproved) || 0)
   if (mine <= 0) return top
 
   return [...top, {
