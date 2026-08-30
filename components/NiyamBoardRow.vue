@@ -39,6 +39,14 @@
               <span>{{ isCheckin ? "I'm here" : 'Log' }}</span>
               <span class="sr-only">— add to {{ challenge.title }}</span>
             </button>
+            <button
+              v-else-if="needsSignIn"
+              type="button"
+              class="flex h-12 items-center gap-1.5 rounded-full border border-[hsl(var(--golden-200))] bg-white px-3.5 text-sm font-semibold text-[hsl(var(--primary))] transition-colors hover:bg-[hsl(var(--golden-50))]"
+              @click="emit('sign-in')"
+            >
+              Sign in
+            </button>
             <span
               v-else
               class="flex h-12 items-center gap-1.5 rounded-full bg-[hsl(var(--muted))] px-3 text-xs font-semibold text-[hsl(var(--muted-foreground))]"
@@ -61,7 +69,10 @@
               v-if="isLoggedIn"
               class="mt-1.5 text-xs font-semibold text-[hsl(var(--golden-900))]"
             >
-              Yours: {{ formatCount(myPersonal) }} {{ unitLabel(challenge, myPersonal) }}
+              Yours: {{ formatCount(myApproved) }} {{ unitLabel(challenge, myApproved) }}
+              <span v-if="myPending > 0" class="font-normal text-[hsl(var(--muted-foreground))]">
+                (+ {{ formatCount(myPending) }} pending)
+              </span>
             </p>
           </div>
           <p class="max-w-[52%] text-right text-[11px] leading-snug text-[hsl(var(--muted-foreground))]">
@@ -108,10 +119,11 @@ const props = defineProps<{
   challenge: NiyamChallenge
   stats: NiyamChallengeStats
   isLoggedIn?: boolean
-  myPersonal?: number
+  myApproved?: number
+  myPending?: number
 }>()
 
-const emit = defineEmits<{ detail: []; log: [] }>()
+const emit = defineEmits<{ detail: []; log: []; 'sign-in': [] }>()
 
 /** Plain English under the Sanskrit name — gloss it once, never replace it. */
 const GLOSSES: Record<NiyamIconKey, string> = {
@@ -125,9 +137,12 @@ const GLOSSES: Record<NiyamIconKey, string> = {
 
 const published = computed(() => isPublished(props.challenge))
 const isLoggedIn = computed(() => props.isLoggedIn === true)
-const myPersonal = computed(() => Math.max(0, Number(props.myPersonal) || 0))
+const myApproved = computed(() => Math.max(0, Number(props.myApproved) || 0))
+const myPending = computed(() => Math.max(0, Number(props.myPending) || 0))
 const isCheckin = computed(() => inputModeFor(props.challenge) === 'checkin')
-const canLog = computed(() => published.value && isChallengeOpen(props.challenge))
+const challengeOpen = computed(() => published.value && isChallengeOpen(props.challenge))
+const canLog = computed(() => challengeOpen.value && isLoggedIn.value)
+const needsSignIn = computed(() => challengeOpen.value && !isLoggedIn.value)
 const gloss = computed(() => GLOSSES[iconFor(props.challenge)] || props.challenge.unit)
 const milestone = computed(() => milestoneFor(props.stats.approvedTotal, props.challenge.target))
 

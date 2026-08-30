@@ -29,9 +29,11 @@
             :challenge="challenge"
             :stats="statsFor(challenge.id)"
             :is-logged-in="isLoggedIn"
-            :my-personal="myPersonalTotal(challenge.id)"
+            :my-approved="myApprovedTotal(challenge.id)"
+            :my-pending="myPendingTotal(challenge.id)"
             @detail="openDetail(challenge)"
             @log="openLog(challenge)"
+            @sign-in="goSignIn"
           />
         </ul>
 
@@ -175,7 +177,15 @@ watch([isAtMandir, alwaysAllowLocation, isLoggedIn, mandirChallenge], () => {
   void tryAutoCheckIn()
 })
 
+function goSignIn() {
+  navigateTo('/login?redirect=/niyams')
+}
+
 function openLog(challenge: NiyamChallenge) {
+  if (!isLoggedIn.value) {
+    goSignIn()
+    return
+  }
   activeId.value = challenge.id
   sheet.value = 'log'
 }
@@ -191,6 +201,10 @@ function closeSheet() {
 }
 
 async function switchToLog() {
+  if (!isLoggedIn.value) {
+    goSignIn()
+    return
+  }
   sheet.value = 'none'
   await nextTick()
   sheet.value = 'log'
@@ -204,6 +218,10 @@ async function onSubmit(payload: {
 }) {
   const challenge = activeChallenge.value
   if (!challenge) return
+  if (!isLoggedIn.value) {
+    payload.fail('Sign in to add to this challenge')
+    return
+  }
 
   if (inputModeFor(challenge) === 'checkin') {
     const cooldown = mandirCheckinCooldown(submissionsFor(challenge.id))

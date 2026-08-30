@@ -125,8 +125,16 @@
         >
           Close
         </button>
+        <NuxtLink
+          v-if="needsSignIn"
+          to="/login?redirect=/niyams"
+          class="flex flex-1 items-center justify-center rounded-xl bg-[hsl(var(--primary))] px-4 py-3 text-sm font-semibold text-white hover:bg-[hsl(var(--primary))]/90"
+          @click="emit('close')"
+        >
+          Sign in to add
+        </NuxtLink>
         <button
-          v-if="canLog"
+          v-else-if="canLog"
           type="button"
           class="flex-1 rounded-xl bg-[hsl(var(--primary))] px-4 py-3 text-sm font-semibold text-white hover:bg-[hsl(var(--primary))]/90"
           @click="emit('log')"
@@ -171,7 +179,9 @@ const emit = defineEmits<{ close: []; log: [] }>()
 
 const published = computed(() => !!props.challenge && isPublished(props.challenge))
 const isCheckin = computed(() => !!props.challenge && inputModeFor(props.challenge) === 'checkin')
-const canLog = computed(() => !!props.challenge && published.value && isChallengeOpen(props.challenge))
+const challengeOpen = computed(() => !!props.challenge && published.value && isChallengeOpen(props.challenge))
+const canLog = computed(() => challengeOpen.value && props.isLoggedIn)
+const needsSignIn = computed(() => challengeOpen.value && !props.isLoggedIn)
 const showRing = computed(() => !!props.challenge && iconFor(props.challenge) === 'mala')
 const EMPTY_WINDOW = { startMs: 0, endMs: 0, hasStarted: true, hasEnded: false, daysLeft: 0, totalDays: 0 }
 const range = computed(() => (props.challenge ? challengeWindow(props.challenge) : EMPTY_WINDOW))

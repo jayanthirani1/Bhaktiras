@@ -4,12 +4,14 @@ import {
   getDoc,
   getDocs,
   limit,
+  onSnapshot,
   orderBy,
   query,
   serverTimestamp,
   setDoc,
   where,
-  type Firestore
+  type Firestore,
+  type Unsubscribe
 } from 'firebase/firestore'
 import type {
   NiyamChallenge,
@@ -139,7 +141,7 @@ function mapContributor(id: string, data: Record<string, unknown>): NiyamContrib
  */
 export function useNiyamChallenges() {
   const { $firebaseDb } = useNuxtApp()
-  const { user, isLoggedIn, userName } = useAuth()
+  const { user, isLoggedIn, userName, loading: authLoading } = useAuth()
 
   const challenges = ref<NiyamChallenge[]>([])
   const stats = ref<Record<string, NiyamChallengeStats>>({})
@@ -149,6 +151,7 @@ export function useNiyamChallenges() {
   const loading = ref(true)
   const submitting = ref(false)
   const error = ref('')
+  let statsUnsubs: Unsubscribe[] = []
 
   function getDb(): Firestore | null {
     if (import.meta.server) return null
@@ -237,6 +240,63 @@ export function useNiyamChallenges() {
   /** Only published niyams have totals or entries to read. */
   const publishedChallenges = computed(() => challenges.value.filter(isPublished))
 
+  function teardownStatsListeners() {
+    for (const unsub of statsUnsubs) unsub()
+    statsUnsubs = []
+  }
+
+  /** Live totals — the trigger updates stats after each submission. */
+  function setupStatsListeners() {
+    teardownStatsListeners()
+    const db = getDb()
+    if (!db || !publishedChallenges.value.length) return
+    for (const challenge of publishedChallenges.value) {
+      const unsub = onSnapshot(
+        doc(db, 'niyamChallengeStats', challenge.id),
+        (snap) => {
+          stats.value = {
+            ...stats.value,
+            [challenge.id]: mapStats(challenge.id, snap.data() as Record<string, unknown> | undefined)
+          }
+        },
+        () => {
+          stats.value = { ...stats.value, [challenge.id]: emptyStats(challenge.id) }
+        }
+      )
+      statsUnsubs.push(unsub)
+    }
+  }
+
+  async function refreshStatsForChallenge(challengeId: string) {
+    const db = getDb()
+    if (!db) return
+    try {
+      const snap = await getDoc(doc(db, 'niyamChallengeStats', challengeId))
+      stats.value = {
+        ...stats.value,
+        [challengeId]: mapStats(challengeId, snap.data() as Record<string, unknown> | undefined)
+      }
+    } catch {
+      stats.value = { ...stats.value, [challengeId]: emptyStats(challengeId) }
+    }
+  }
+
+  /** Poll until the Cloud Function has folded a write into the shared total. */
+  async function waitForStatsUpdate(
+    challengeId: string,
+    options: { minApproved?: number; minPending?: number; attempts?: number } = {}
+  ) {
+    const { minApproved, minPending, attempts = 10 } = options
+    for (let i = 0; i < attempts; i++) {
+      await refreshStatsForChallenge(challengeId)
+      const current = statsFor(challengeId)
+      const approvedOk = minApproved == null || current.approvedTotal >= minApproved
+      const pendingOk = minPending == null || current.pendingTotal >= minPending
+      if (approvedOk && pendingOk) return
+      await new Promise(resolve => setTimeout(resolve, 250 * (i + 1)))
+    }
+  }
+
   async function fetchStats() {
     const db = getDb()
     if (!db || !publishedChallenges.value.length) return
@@ -285,7 +345,11 @@ export function useNiyamChallenges() {
     error.value = ''
     try {
       await fetchChallenges()
-      await Promise.all([fetchStats(), fetchMySubmissions()])
+      await fetchStats()
+      setupStatsListeners()
+      if (!authLoading.value) {
+        await fetchMySubmissions()
+      }
     } catch (e) {
       error.value = (e as Error).message
     } finally {
@@ -328,6 +392,7 @@ export function useNiyamChallenges() {
     const status = statusForAmount(challenge, amount)
     const note = noteInput.trim().slice(0, SUBMISSION_NOTE_MAX)
     const id = buildSubmissionId(challenge.id)
+    const beforeStats = statsFor(challenge.id)
 
     submitting.value = true
     error.value = ''
@@ -366,8 +431,28 @@ export function useNiyamChallenges() {
         dayKey,
         createdAt: serverTimestamp()
       })
-      // The trigger owns the totals, so re-read them rather than guessing here.
-      await Promise.all([fetchStats(), fetchMySubmissions()])
+      await fetchMySubmissions()
+
+      const saved = mySubmissions.value.find(s => s.id === id)
+      if (!saved) {
+        throw new Error(
+          inputModeFor(challenge) === 'checkin'
+            ? 'This check-in could not be recorded. Please wait before trying again.'
+            : 'Your entry could not be saved. Please try again.'
+        )
+      }
+
+      if (status === 'approved') {
+        await waitForStatsUpdate(challenge.id, {
+          minApproved: beforeStats.approvedTotal + amount
+        })
+      } else if (status === 'pending') {
+        await waitForStatsUpdate(challenge.id, {
+          minPending: beforeStats.pendingTotal + amount
+        })
+      } else {
+        await refreshStatsForChallenge(challenge.id)
+      }
       void fetchTopContributors(challenge.id)
       return status
     } catch (e) {
@@ -396,9 +481,25 @@ export function useNiyamChallenges() {
 
   onMounted(refresh)
 
+  watch(
+    () => authLoading.value,
+    async (loadingAuth) => {
+      if (loadingAuth) return
+      await fetchMySubmissions()
+    }
+  )
+
   watch(() => user.value?.uid, async (uid, prev) => {
     if (uid === prev) return
     await fetchMySubmissions()
+  })
+
+  watch(publishedChallenges, () => {
+    setupStatsListeners()
+  })
+
+  onBeforeUnmount(() => {
+    teardownStatsListeners()
   })
 
   return {
