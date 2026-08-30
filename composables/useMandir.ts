@@ -12,6 +12,7 @@ import {
   type DocumentData,
   type Firestore
 } from 'firebase/firestore'
+import { normalizeEventDateId } from '~/utils/eventSharing'
 import type { TimelineItem, TimelineMedia, Event, GratitudeMessage, VolunteerRole, TimeCapsuleMessage } from '~/types'
 import { compareTimelineItems } from '~/data/timeline'
 
@@ -99,7 +100,7 @@ export function useEvents() {
           const data = d.data()
           return mapDoc<Event>(d.id, {
             title: data.title || '',
-            date: data.date || data.time || '',
+            date: normalizeEventDateId(data.date || data.time || ''),
             description: data.description || '',
             posterUrl: data.posterUrl ?? null,
             flickrAlbumId: data.flickrAlbumId ?? null,

@@ -102,7 +102,8 @@
 </template>
 
 <script setup lang="ts">
-import { formatEventDateLong } from '~/utils/eventSharing'
+import { ukDateId } from '~/utils/gameDay'
+import { formatEventDateLong, isPastEventDate, isUpcomingEventDate, normalizeEventDateId } from '~/utils/eventSharing'
 import type { Event } from '~/types'
 
 const { events, isLoading } = useEvents()
@@ -120,34 +121,24 @@ onUnmounted(() => {
   if (pushPromptTimer) window.clearTimeout(pushPromptTimer)
 })
 
-/** Start of today in local time, so today's events stay under Upcoming. */
-function todayStart() {
-  const now = new Date()
-  return new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
-}
+/** UK calendar day — event dates are compared as YYYY-MM-DD strings. */
+const todayId = computed(() => ukDateId())
 
-function eventTime(event: Event) {
-  if (!event.date) return Number.NaN
-  const date = new Date(`${event.date}T00:00:00`)
-  return date.getTime()
+function eventSortKey(event: Event) {
+  const id = normalizeEventDateId(event.date)
+  return /^\d{4}-\d{2}-\d{2}$/.test(id) ? id : '9999-99-99'
 }
 
 const upcoming = computed(() =>
   events.value
-    .filter(event => {
-      const time = eventTime(event)
-      return Number.isNaN(time) || time >= todayStart()
-    })
-    .sort((a, b) => eventTime(a) - eventTime(b))
+    .filter(event => isUpcomingEventDate(event.date, todayId.value))
+    .sort((a, b) => eventSortKey(a).localeCompare(eventSortKey(b)))
 )
 
 const past = computed(() =>
   events.value
-    .filter(event => {
-      const time = eventTime(event)
-      return !Number.isNaN(time) && time < todayStart()
-    })
-    .sort((a, b) => eventTime(b) - eventTime(a))
+    .filter(event => isPastEventDate(event.date, todayId.value))
+    .sort((a, b) => eventSortKey(b).localeCompare(eventSortKey(a)))
 )
 
 const formatDate = formatEventDateLong

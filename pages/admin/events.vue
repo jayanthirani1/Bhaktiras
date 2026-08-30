@@ -48,7 +48,7 @@
           </div>
           <div>
             <label class="admin-label">Poster</label>
-            <AdminImageUpload v-model="form.posterUrl" folder="events" />
+            <AdminImageUpload v-model="form.posterUrl" folder="events" :existing-urls="existingPosterUrls" />
           </div>
           <div>
             <label class="admin-label">Flickr album ID <span class="font-normal">(optional)</span></label>
@@ -67,6 +67,7 @@
 </template>
 
 <script setup lang="ts">
+import { normalizeEventDateId } from '~/utils/eventSharing'
 import type { Event } from '~/types'
 
 definePageMeta({ layout: 'admin', middleware: 'admin' })
@@ -79,6 +80,10 @@ const form = reactive({ title: '', date: '', description: '', posterUrl: '', fli
 
 const sorted = computed(() =>
   [...items.value].sort((a, b) => String(b.date).localeCompare(String(a.date)))
+)
+
+const existingPosterUrls = computed(() =>
+  [...new Set(items.value.map(item => item.posterUrl?.trim()).filter(Boolean) as string[])]
 )
 
 onMounted(async () => {
@@ -110,7 +115,7 @@ function openEdit(item: Event) {
   editingId.value = id
   Object.assign(form, {
     title: item.title || '',
-    date: String(item.date || '').slice(0, 10),
+    date: normalizeEventDateId(item.date).slice(0, 10),
     description: item.description || '',
     posterUrl: item.posterUrl || '',
     flickrAlbumId: item.flickrAlbumId || ''

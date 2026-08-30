@@ -1,5 +1,5 @@
 <template>
-  <div class="space-y-2" @click.stop>
+  <div class="space-y-3" @click.stop>
     <input ref="fileRef" type="file" accept="image/jpeg,image/png,image/webp,image/gif" class="hidden" @change="onFile">
     <div v-if="modelValue" class="space-y-3">
       <img :src="modelValue" alt="Uploaded image" class="w-full h-auto rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--muted))] object-contain">
@@ -20,15 +20,30 @@
         </div>
       </div>
     </div>
-    <button
-      v-else
-      type="button"
-      class="w-full rounded-xl border-2 border-dashed border-[hsl(var(--border))] px-4 py-8 text-sm text-[hsl(var(--muted-foreground))] hover:border-[hsl(var(--accent))]"
-      :disabled="uploading"
-      @click.prevent="fileRef?.click()"
-    >
-      {{ uploading ? 'Uploading…' : 'Click to upload image' }}
-    </button>
+    <template v-else>
+      <div v-if="pickerUrls.length" class="space-y-2">
+        <p class="text-xs text-[hsl(var(--muted-foreground))]">Choose an existing poster, or upload a new one below.</p>
+        <div class="grid grid-cols-3 gap-2 sm:grid-cols-4">
+          <button
+            v-for="url in pickerUrls"
+            :key="url"
+            type="button"
+            class="overflow-hidden rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--muted))] hover:border-[hsl(var(--accent))] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[hsl(var(--accent))]"
+            @click.prevent="emit('update:modelValue', url)"
+          >
+            <img :src="url" alt="" class="aspect-[4/3] w-full object-cover">
+          </button>
+        </div>
+      </div>
+      <button
+        type="button"
+        class="w-full rounded-xl border-2 border-dashed border-[hsl(var(--border))] px-4 py-8 text-sm text-[hsl(var(--muted-foreground))] hover:border-[hsl(var(--accent))]"
+        :disabled="uploading"
+        @click.prevent="fileRef?.click()"
+      >
+        {{ uploading ? 'Uploading…' : pickerUrls.length ? 'Upload new image' : 'Click to upload image' }}
+      </button>
+    </template>
     <p v-if="error" class="text-sm text-red-600">{{ error }}</p>
   </div>
 </template>
@@ -36,14 +51,27 @@
 <script setup lang="ts">
 import { getApp } from 'firebase/app'
 import { getAuth, type Auth } from 'firebase/auth'
-import { getStorage, ref as storageRef, uploadBytes, getDownloadURL, type FirebaseStorage } from 'firebase/storage'
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL, listAll, type FirebaseStorage } from 'firebase/storage'
 
-const props = defineProps<{ modelValue: string; folder?: string }>()
+const props = defineProps<{ modelValue: string; folder?: string; existingUrls?: string[] }>()
 const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
 
 const fileRef = ref<HTMLInputElement | null>(null)
 const uploading = ref(false)
 const error = ref('')
+const storageUrls = ref<string[]>([])
+
+const pickerUrls = computed(() => {
+  const seen = new Set<string>()
+  const urls: string[] = []
+  for (const url of [...(props.existingUrls || []), ...storageUrls.value]) {
+    const trimmed = url.trim()
+    if (!trimmed || seen.has(trimmed)) continue
+    seen.add(trimmed)
+    urls.push(trimmed)
+  }
+  return urls
+})
 
 function contentTypeFor(file: File) {
   if (file.type && file.type.startsWith('image/')) return file.type
@@ -78,6 +106,22 @@ function explainStorageError(err: unknown) {
   return message || 'Upload failed.'
 }
 
+async function loadStorageUrls() {
+  if (!props.folder) return
+  try {
+    const storage = getStorageInstance()
+    const folderRef = storageRef(storage, props.folder)
+    const result = await listAll(folderRef)
+    storageUrls.value = await Promise.all(result.items.map(item => getDownloadURL(item)))
+  } catch {
+    storageUrls.value = []
+  }
+}
+
+onMounted(() => {
+  void loadStorageUrls()
+})
+
 async function onFile(e: Event) {
   const file = (e.target as HTMLInputElement).files?.[0]
   if (!file) return
@@ -97,7 +141,9 @@ async function onFile(e: Event) {
     const path = `${props.folder || 'uploads'}/${Date.now()}-${safeName}`
     const r = storageRef(storage, path)
     await uploadBytes(r, file, { contentType: contentTypeFor(file) })
-    emit('update:modelValue', await getDownloadURL(r))
+    const url = await getDownloadURL(r)
+    if (!storageUrls.value.includes(url)) storageUrls.value = [url, ...storageUrls.value]
+    emit('update:modelValue', url)
   } catch (err) {
     error.value = explainStorageError(err)
   } finally {

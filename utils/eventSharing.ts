@@ -1,4 +1,4 @@
-import { addUkDays } from '~/utils/gameDay'
+import { addUkDays, ukDateId } from '~/utils/gameDay'
 import { MANDIR_LOCATION } from '~/data/site'
 import type { Event } from '~/types'
 
@@ -16,14 +16,67 @@ import type { Event } from '~/types'
 /** The long date the events page shows, e.g. "Saturday 14 August 2027". */
 export function formatEventDateLong(date: string): string {
   if (!date) return ''
-  const parsed = new Date(`${date}T00:00:00`)
+  const id = normalizeEventDateId(date)
+  if (!isCalendarDate(id)) return date
+  const parsed = new Date(`${id}T12:00:00Z`)
   if (Number.isNaN(parsed.getTime())) return date
   return parsed.toLocaleDateString('en-GB', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
-    year: 'numeric'
+    year: 'numeric',
+    timeZone: 'UTC'
   })
+}
+
+/** Turn Firestore values into a YYYY-MM-DD id for sorting and comparisons. */
+export function normalizeEventDateId(raw: unknown): string {
+  if (raw == null || raw === '') return ''
+  if (typeof raw === 'string') {
+    const trimmed = raw.trim()
+    if (/^\d{4}-\d{2}-\d{2}/.test(trimmed)) return trimmed.slice(0, 10)
+    const parsed = new Date(trimmed)
+    if (!Number.isNaN(parsed.getTime())) {
+      return new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Europe/London',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      }).format(parsed)
+    }
+    return trimmed
+  }
+  if (typeof raw === 'object') {
+    const stamp = raw as { toDate?: () => Date, seconds?: number }
+    if (typeof stamp.toDate === 'function') {
+      return new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Europe/London',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      }).format(stamp.toDate())
+    }
+    if (typeof stamp.seconds === 'number') {
+      return new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Europe/London',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      }).format(new Date(stamp.seconds * 1000))
+    }
+  }
+  return String(raw).trim().slice(0, 10)
+}
+
+export function isUpcomingEventDate(date: string, todayId = ukDateId()): boolean {
+  const id = normalizeEventDateId(date)
+  if (!isCalendarDate(id)) return true
+  return id >= todayId
+}
+
+export function isPastEventDate(date: string, todayId = ukDateId()): boolean {
+  const id = normalizeEventDateId(date)
+  return isCalendarDate(id) && id < todayId
 }
 
 function isCalendarDate(date: string): boolean {
