@@ -1,15 +1,23 @@
 # Bhaktiras — Prioritised Improvements
 
-From a review of the codebase at `96aeceb` (18 Aug 2026). Ordered by severity. Each item
-names the file, the concrete failure, and the fix.
+Ordered by severity. Each item names the file, the concrete failure, and the fix. Items
+struck through are closed — the entry stays so the reasoning is not lost.
+
+Last reconciled against the code at `6f43a87` (30 Aug 2026). `PROJECT-MAP.md` describes
+the app; `TROUBLESHOOTING.md` covers problems you are hitting right now.
 
 ---
 
 ## P0 — Security
 
-### 1. The community wall accepts unauthenticated, unvalidated, unlimited writes
+### 1. The community wall accepts unauthenticated, unvalidated, unlimited writes — ~~closed~~
 
-`firestore.rules:163`
+**Fixed.** `firestore.rules:238` now requires sign-in, allowlists exactly six keys with
+`hasOnly()`, caps `name` at 50 characters, pins `createdAt == request.time`, and forbids
+a `userId` on an anonymous post — the author link moved to the admin-only
+`gratitudeAuthors` collection instead. The original finding follows.
+
+The rule as it stood:
 
 ```
 match /gratitude/{id} {
@@ -39,9 +47,17 @@ to ~50 chars, pin `createdAt == request.time`, and decide on auth. Requiring sig
 post is the strongest control; if the wall must stay open, treat moderation as
 compensating and add it back.
 
-### 2. Any signed-in user can overwrite or delete every image on the site
+### 2. Any signed-in user can overwrite or delete every image on the site — ~~mostly closed~~
 
-`storage.rules:4`
+**Fixed, with one part outstanding.** `storage.rules` is now create-only — nothing can be
+overwritten or deleted from a browser at all — scoped to the `events`, `timeline` and
+`uploads` folders, and SVG is excluded from the allowed content types because it executes
+script on a world-readable origin. **Still open:** restricting *who* may upload. Storage
+rules cannot read Firestore, so that needs an `admin` custom claim on the auth token and
+a `request.auth.token.admin == true` check. Until then an upload costs storage but cannot
+damage anything. The original finding follows.
+
+The rule as it stood:
 
 ```
 match /{allPaths=**} {
@@ -66,30 +82,29 @@ is nothing left to write. The niyams area is the challenges now, where the share
 derived by a Cloud Function and `allow write: if false` from the browser — the fix this
 entry asked for, arrived at by deleting the feature.
 
-### 4. Unauthenticated deletion of leaderboard history
+### 4. Unauthenticated deletion of leaderboard history — ~~closed~~
 
-`firestore.rules:157-160` — `wordleScores` has `allow delete: if true;`. Legacy, but any
-anonymous visitor can empty it.
+**Fixed.** Both delete paths now require `isAdmin()` (`firestore.rules:213` for
+`gameScores`, `:222` for `wordleScores`), and the routine cleanup runs from the scheduled
+`pruneOldGameScores` function rather than from a browser.
 
-`firestore.rules:152` — `gameScores` allows delete when
-`resource.data.dateId < utcDateId()` with **no auth clause**, so anyone can erase all
-historical leaderboards across all four games.
+As it stood: `wordleScores` had `allow delete: if true`, and `gameScores` allowed delete
+on any past `dateId` with no auth clause — so any anonymous visitor could erase every
+historical leaderboard across all four games.
 
-**Fix.** Require admin for the cleanup path, or run it from the scheduled function that
-already exists.
+### 5. The `guest` admin role grants full admin — ~~closed~~
 
-### 5. The `guest` admin role grants full admin
+**Resolved by deletion.** The `role` field is gone from the app, so the UI no longer
+implies a distinction the rules never enforced. `isAdmin()` (`firestore.rules:8`) is
+still the whole model — the document exists and `active != false` — and it grants every
+write path in the file, including creating further admins. **A read-only tier has to
+start in the rules before any UI can offer one**; do not reintroduce a `role` field
+without one.
 
-`firestore.rules:8`, `composables/useAdminAccess.ts:13`
-
-`AdminRecord.role` is typed `'admin' | 'guest'` and parsed everywhere, but **nothing
-enforces it** — `isAdmin()` checks only that the document exists and `active != false`.
-Rules, Cloud Functions and middleware all ignore `role`. Anyone added as a guest can edit
-every CMS collection, send push notifications to the whole community, and create further
+As it stood: `AdminRecord.role` was typed `'admin' | 'guest'` and parsed everywhere,
+while rules, Cloud Functions and middleware all ignored it — so anyone added as a guest
+could edit every CMS collection, send push to the whole community, and create further
 admins.
-
-**Fix.** Either enforce the admin role on write paths and give guests genuinely read-only
-rules, or remove the field so the UI stops implying a distinction that does not exist.
 
 ---
 
@@ -97,7 +112,7 @@ rules, or remove the field so the UI stops implying a distinction that does not 
 
 ### 6. Achievements and crowns are self-reported
 
-`functions/index.js:229`
+`functions/index.js:897`
 
 `handleGameAchievements` range-checks the client's `guesses`, `timeMs`, `score` and
 `words`, but never cross-references the `gameScores` document actually written. A signed-in
@@ -109,7 +124,7 @@ processing from `onDocumentCreated` on `gameScores` rather than from a client ca
 
 ### 7. Play streaks are trivially forgeable
 
-`firestore.rules:250` — `currentStreak` and `longestStreak` are validated only as ints with
+`firestore.rules:380` — `currentStreak` and `longestStreak` are validated only as ints with
 `longestStreak >= currentStreak`. A user can write a 999-day streak to their own document,
 and the leaderboard is public-read.
 
@@ -122,7 +137,7 @@ streaks server-side.
 
 ### 8. Widespread silent error swallowing
 
-`composables/useMandir.ts:112,147`, `useAdminData.ts`, and 13 composables that return no
+`composables/useMandir.ts:112,152`, `useAdminData.ts`, and 23 composables that return no
 `error` state at all — including `useWordleLeaderboard`, `useSiteContent`, `useSitePage`
 and `useGameLeaderboard`.
 
@@ -141,7 +156,7 @@ state. A failed read must never be indistinguishable from an empty collection.
 
 ### 9. Push prompt fires on a bare timer
 
-`pages/events.vue:109` requests the notification prompt 1.2s after mount regardless of
+`pages/events.vue:114` requests the notification prompt 1.2s after mount regardless of
 engagement. Browsers permanently blocklist a site once its permission prompt is dismissed —
 this spends a one-shot resource on someone who has only just arrived.
 
@@ -168,25 +183,64 @@ locally, and throws in CI where a missing config is always a mistake.
 else on the site became admin-editable; the utsav date still needs a code change and a
 deploy.
 
+### 15. Three game puzzle collections have no rules block, so their overrides are dead
+
+Numbered by discovery, not position — this belongs with the reliability items.
+
+`suryaChandraPuzzles`, `bhaktiMargPuzzles` and `rasRaniPuzzles` are read and written by
+the app but appear nowhere in `firestore.rules`, so Firestore denies them by default:
+
+| Collection | Read by | Written by |
+|---|---|---|
+| `suryaChandraPuzzles` | `composables/useSuryaChandraPuzzle.ts:21` | documented in `pages/admin/games/bhakti-marg.vue`, entered by hand |
+| `bhaktiMargPuzzles` | `composables/useBhaktiMargPuzzle.ts:22` | `composables/useAdminData.ts:177` |
+| `rasRaniPuzzles` | `composables/useRasRaniPuzzle.ts:22` | `composables/useAdminData.ts:181` |
+
+Each read sits inside a `try`/`catch` that falls back to the generated or static daily
+puzzle, so nothing surfaces: an admin publishes an override, the game keeps serving the
+generated board, and the only evidence is a `PERMISSION_DENIED` in the network tab. This
+is item #8's failure mode with a concrete instance behind it.
+
+The admin menu compounds it — `data/adminMenu.ts:56` labels the entry "Surya Chandra",
+routes it to `/admin/games/bhakti-marg`, and names `bhaktiMargPuzzles`, while the page it
+opens documents `suryaChandraPuzzles`. Three names for one game.
+
+**Fix.** Add rules blocks mirroring `bracketCityPuzzles` (`firestore.rules:374`) — public
+read where `published == true`, admin write — deploy them, then settle on one collection
+name per game and make the menu entry agree with it.
+
 ---
 
 ## P3 — Consistency
 
-### 11. Three `getDb()` implementations
+### 11. Sixteen `getDb()` implementations
 
-Duplicated in `useMandir.ts:17`, `useSiteContent.ts:11`, `useAdminAccess.ts:4` and others.
-Hoist into `utils/`.
+The same four-line helper is redeclared in sixteen composables — `useMandir.ts:24`,
+`useSiteContent.ts:20`, `useAdminAccess.ts:4` and thirteen more. Hoist into `utils/`.
 
 ### 12. Dead code from the previous app
 
-`useVolunteerRoles` and `useVolunteerSignUp` (`useMandir.ts:185,209`) query a
+`useVolunteerRoles` and `useVolunteerSignUp` (`useMandir.ts:215,239`) query a
 `volunteerRoles` collection with no rules block and no caller — the seva page reads a
-static file. `client/` still holds React leftovers. `wordleScores` is superseded by
-`gameScores`.
+static file. `useCreateTimeCapsuleMessage` writes to `timeCapsule`, likewise unruled and
+uncalled. `client/` still holds React leftovers. `wordleScores` is superseded by
+`gameScores`. Both dead collections were still documented in `README.md` until this pass.
+
+`utils/suryaChandra.ts` is a second, superseded implementation of the Surya Chandra
+board. Nothing imports it — the game runs on `utils/tango.ts` — but Nuxt auto-imports
+`utils/` wholesale, so the two files both export `cyclePlayCell` and every build prints:
+
+```
+WARN  Duplicated imports "cyclePlayCell", the one from "utils/suryaChandra.ts" has been
+ignored and "utils/tango.ts" is used
+```
+
+Which means anything calling the bare `cyclePlayCell()` silently gets tango's. Delete the
+dead file.
 
 ### 13. `Event.time` retained alongside `date`
 
-`types/index.ts:41` keeps an optional legacy `time`, and `useMandir.ts:102` falls back to
+`types/index.ts:40` keeps an optional legacy `time`, and `useMandir.ts:102` falls back to
 it. Fine as a migration shim; worth removing once event documents are normalised.
 
 ---
@@ -234,11 +288,17 @@ not a code one: grow the bank at lengths 4 and 5, where it is thinnest.
 
 ## Suggested order
 
-1. **Wall rules** (#1) — one rules edit, removes impersonation and flooding
-2. **Storage scoping** (#2) — one rules edit, protects all site imagery
-3. **The delete rules** (#4) — #3 closed itself when the daily tracker was retired
-4. **Decide the guest role** (#5) — enforce it or delete it
-5. **Error states** (#8) — the failure mode with the worst track record on this project
-6. Then integrity (#6, #7), and the rest as capacity allows
+The original P0 block is done: #1, #3, #4 and #5 are closed and #2 is closed apart from
+restricting who may upload. What is left, in order:
 
-Items 1–4 are a single `firebase deploy --only firestore:rules,storage` once written.
+1. **The three unruled puzzle collections** (#15) — one rules edit; today an admin can
+   publish a puzzle and nothing anywhere says it was refused
+2. **Error states** (#8) — the failure mode with the worst track record on this project,
+   and the reason #15 went unnoticed
+3. **Achievement and streak integrity** (#6, #7) — crowns are public and permanent, so a
+   forged record does not age out
+4. **Admin uploads behind a custom claim** (the open half of #2)
+5. **The push prompt on a bare timer** (#9), then the consistency items as capacity allows
+
+#15 and #4 are a single `firebase deploy --only firestore:rules`; the storage half of #2
+must still be deployed by hand (see `README.md`).
