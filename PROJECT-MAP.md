@@ -28,7 +28,7 @@ Site-wide constants — utsav dates, WhatsApp invite, journey range, gallery lin
 - **Nuxt 3** static/SSR, deployed to **Firebase App Hosting** (`apphosting.yaml`,
   backend `sksswoolwich-bhaktiras`). The GitHub Actions workflow targeting static Hosting
   is vestigial.
-- **Firestore** — 28 collections, fully ruled (`firestore.rules`, 324 lines)
+- **Firestore** — 35 collections, fully ruled (`firestore.rules`, 693 lines)
 - **Firebase Auth** — email/password + Google, with account linking
 - **Firebase Storage** — admin image uploads (`storage.rules`)
 - **Firebase Cloud Messaging** — web push, service worker generated at build by
@@ -70,11 +70,36 @@ Split into **Upcoming** and **Past** by date, with posters and embedded Flickr a
 per event. Triggers the push-notification opt-in prompt after 1.2s.
 
 ### Our Community
-A message wall with rotating prompts. Posting is **open to everyone, no sign-in**, with
-an **optional name** — blank posts as "Anonymous", and a signed-in user's name is
-pre-filled. Messages publish **immediately**; admins can edit or delete after the fact.
-Prompts come from `siteContent.communityPrompts` (CMS) with `data/communityPrompts.ts`
-as fallback.
+A message wall with rotating prompts. Posting is **signed-in only**, with an **optional
+name** — blank posts as "Anonymous", and a signed-in user's name is pre-filled. Messages
+publish **immediately**; admins can edit or delete after the fact. Prompts come from
+`siteContent.communityPrompts` (CMS) with `data/communityPrompts.ts` as fallback.
+
+Every post carries **reactions**: 👍 ❤️ 😀 🍯 💪 and nothing else, listed in
+`data/communityReactions.ts` against the stable slugs `like` `love` `smile` `honey`
+`strength`. One per person per post — tapping another moves it, tapping your own takes
+it back — so a post's counts add up to the number of people who reacted. Reacting is
+signed-in only; everyone sees the numbers.
+
+**Only numbers are ever shown, never names**, and that is a storage decision rather than
+a UI one. The tally lives on the post in `reactions`, world readable with the post; who
+chose what lives in `gratitudeReactionVotes/{postId}_{uid}`, readable by nobody but its
+owner. It is the same split `gratitudeAuthors` makes, for the same reason: `playStreaks`
+is a public uid-to-name map, so a readable uid beside a post is a name beside a post —
+on a wall where people post anonymously.
+
+The two documents move in one batch and the **security rules tie them together**. The
+post's rule reads the vote with `getAfter`, as it will be once the batch commits, and
+lets a count move only by the single step that vote just took; the vote's delete rule
+reads the post the same way and refuses to let a vote go without giving its count back.
+So no count without a vote, no vote without a count, no second vote, and no deleting the
+vote to react again. Counts are written with `FieldValue.increment`, so two devotees
+reacting at the same moment both land.
+
+This is the one derived total in the app that is **not** kept honest by a Cloud Function
+trigger, unlike `niyamChallengeStats`. A wall reaction does not warrant one, and a tally
+that only started counting after the next functions deploy would read as a broken button.
+The rules do the same job here, and the deploy that carries them carries the feature.
 
 ### Seva
 WhatsApp community invite (live link in `data/site.ts`) plus 12 volunteer teams and their

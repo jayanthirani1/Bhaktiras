@@ -13,8 +13,17 @@ import {
   type Firestore
 } from 'firebase/firestore'
 import { normalizeEventDateId } from '~/utils/eventSharing'
-import type { TimelineItem, TimelineMedia, Event, GratitudeMessage, VolunteerRole, TimeCapsuleMessage } from '~/types'
+import type {
+  TimelineItem,
+  TimelineMedia,
+  Event,
+  GratitudeMessage,
+  CommunityReactionCounts,
+  VolunteerRole,
+  TimeCapsuleMessage
+} from '~/types'
 import { compareTimelineItems } from '~/data/timeline'
+import { COMMUNITY_REACTIONS } from '~/data/communityReactions'
 
 /** Newest notes shown on the community wall in one page. */
 const GRATITUDE_PAGE_SIZE = 60
@@ -120,6 +129,28 @@ export function useEvents() {
   return { events: items, isLoading: loading, refetch: fetchEvents }
 }
 
+/**
+ * Keep only the five keys the wall knows about, and only sane numbers.
+ *
+ * The rules stop a browser writing anything else, but an admin edit or an
+ * older document can still leave something odd here, and a stray key would
+ * otherwise render as a blank pill. Counts are clamped at zero rather than
+ * hidden: a negative tally is a bug to be swallowed in the display, not a
+ * reason to drop the post.
+ */
+function readReactionCounts(raw: unknown): CommunityReactionCounts {
+  if (!raw || typeof raw !== 'object') return {}
+  const source = raw as Record<string, unknown>
+  const counts: CommunityReactionCounts = {}
+  for (const { key } of COMMUNITY_REACTIONS) {
+    const value = source[key]
+    if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+      counts[key] = Math.floor(value)
+    }
+  }
+  return counts
+}
+
 export function useGratitudeMessages() {
   const items = ref<GratitudeMessage[]>([])
   const loading = ref(true)
@@ -141,6 +172,7 @@ export function useGratitudeMessages() {
           name: data.anonymous ? 'Anonymous' : (data.name || 'Anonymous'),
           prompt: data.prompt ?? null,
           anonymous: !!data.anonymous,
+          reactions: readReactionCounts(data.reactions),
           createdAt: data.createdAt ?? undefined
         })
       })

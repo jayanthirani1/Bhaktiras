@@ -11,14 +11,19 @@ import {
   doc,
   getDoc,
   getDocs,
+  increment,
   query,
   where,
   writeBatch,
   type DocumentReference,
-  type Firestore
+  type Firestore,
+  type QueryDocumentSnapshot
 } from 'firebase/firestore'
 
 const DELETE_BATCH_SIZE = 400
+
+/** Half of DELETE_BATCH_SIZE: each reaction costs two writes, not one. */
+const REACTION_DELETE_BATCH_SIZE = 200
 
 /** Export and erase data that is directly linked to the current Firebase UID. */
 export function useAccountPrivacy() {
@@ -41,7 +46,7 @@ export function useAccountPrivacy() {
     // `legacyNiyams` is the retired daily tracker. Nothing writes it any more;
     // it is read here so an export and a deletion still cover what it left
     // behind. Drop it once the collection has been cleared.
-    const [profile, admin, scores, legacyWordleScores, streak, legacyNiyams, completions, pushSubscriptions, mandirVisits] = await Promise.all([
+    const [profile, admin, scores, legacyWordleScores, streak, legacyNiyams, completions, pushSubscriptions, mandirVisits, reactionVotes] = await Promise.all([
       getDoc(doc(db, 'users', uid)),
       getDoc(doc(db, 'admins', uid)),
       getDocs(query(collection(db, 'gameScores'), where('userId', '==', uid))),
@@ -50,10 +55,11 @@ export function useAccountPrivacy() {
       getDoc(doc(db, 'niyamProgress', uid)),
       getDocs(collection(db, 'playCompletions', uid, 'days')),
       getDocs(query(collection(db, 'pushSubscriptions'), where('userId', '==', uid))),
-      getDocs(collection(db, 'mandirVisits', uid, 'visits'))
+      getDocs(collection(db, 'mandirVisits', uid, 'visits')),
+      getDocs(query(collection(db, 'gratitudeReactionVotes'), where('userId', '==', uid)))
     ])
 
-    return { profile, admin, scores, legacyWordleScores, streak, legacyNiyams, completions, pushSubscriptions, mandirVisits }
+    return { profile, admin, scores, legacyWordleScores, streak, legacyNiyams, completions, pushSubscriptions, mandirVisits, reactionVotes }
   }
 
   async function exportMyData() {
@@ -84,9 +90,11 @@ export function useAccountPrivacy() {
           token: '[redacted from export]'
         })),
         mandirVisits: data.mandirVisits.docs.map(item => ({ id: item.id, ...item.data() })),
+        communityReactions: data.reactionVotes.docs.map(item => ({ id: item.id, ...item.data() })),
         notes: [
           'Anonymous community wall posts carry no link to your account and are not listed here. A signed post is linked and is included above.',
-          'Community niyam challenge totals are combined figures and do not contain your user ID.'
+          'Community niyam challenge totals are combined figures and do not contain your user ID.',
+          'The reaction counts shown on the community wall are combined figures. Which reaction you chose is the record listed above, and it is visible to nobody but you.'
         ]
       }
 
@@ -128,6 +136,32 @@ export function useAccountPrivacy() {
     }
   }
 
+  /**
+   * Reactions come off in pairs: the vote document, and the one it added to
+   * the post's public tally. The rules refuse a vote delete on its own —
+   * otherwise deleting a vote and reacting again would count the same person
+   * twice — so erasing an account has to do what the wall does and hand the
+   * count back.
+   */
+  async function deleteReactionVotes(db: Firestore, votes: QueryDocumentSnapshot[]) {
+    // A post deleted since the reaction leaves no tally to correct, and the
+    // rules let that orphan vote go on its own.
+    const posts = await Promise.all(
+      votes.map(vote => getDoc(doc(db, 'gratitude', vote.data().postId as string)))
+    )
+    for (let offset = 0; offset < votes.length; offset += REACTION_DELETE_BATCH_SIZE) {
+      const batch = writeBatch(db)
+      for (let i = offset; i < Math.min(offset + REACTION_DELETE_BATCH_SIZE, votes.length); i++) {
+        batch.delete(votes[i].ref)
+        const post = posts[i]
+        if (post.exists()) {
+          batch.update(post.ref, { [`reactions.${votes[i].data().key}`]: increment(-1) })
+        }
+      }
+      await batch.commit()
+    }
+  }
+
   async function deleteMyAccount(password: string) {
     deleting.value = true
     try {
@@ -150,6 +184,7 @@ export function useAccountPrivacy() {
       if (data.profile.exists()) refs.push(data.profile.ref)
       if (data.streak.exists()) refs.push(data.streak.ref)
       if (data.legacyNiyams.exists()) refs.push(data.legacyNiyams.ref)
+      await deleteReactionVotes(db, data.reactionVotes.docs)
       await deleteRefs(db, refs)
       await deleteUser(currentUser)
       authState.user.value = null

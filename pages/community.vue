@@ -44,8 +44,9 @@
         </button>
         <div v-else class="card-surface mx-auto max-w-md p-6">
           <p class="text-sm leading-relaxed text-[hsl(var(--muted-foreground))]">
-            Sign in to add your message to the wall. You can still choose to post
-            it anonymously — signing in only keeps anyone from posting as someone else.
+            Sign in to add your message to the wall, or to react to someone
+            else's. You can still choose to post anonymously — signing in only
+            keeps anyone from posting as someone else, or from reacting twice.
           </p>
           <NuxtLink to="/login?redirect=/community" class="btn-primary mt-4 inline-flex text-sm">
             Sign in to post
@@ -101,6 +102,8 @@
         </div>
       </div>
 
+      <p v-if="reactionError" class="mb-4 text-center text-sm text-red-600">{{ reactionError }}</p>
+
       <div v-if="isLoading" class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
         <div v-for="i in 6" :key="i" class="h-40 rounded-2xl bg-[hsl(var(--muted))] animate-pulse" />
       </div>
@@ -117,6 +120,12 @@
             “{{ msg.message }}”
           </p>
           <p class="mt-4 text-xs font-medium text-[hsl(var(--muted-foreground))]">{{ msg.name }}</p>
+          <CommunityReactionBar
+            :counts="msg.reactions"
+            :mine="myVote(msg.id)"
+            :disabled="!isLoggedIn || savingPostId === msg.id"
+            @react="key => react(msg, key)"
+          />
         </article>
         <p v-if="messages.length === 0" class="text-center text-sm text-[hsl(var(--muted-foreground))]">
           Be the first to leave a note on the wall.
@@ -131,6 +140,7 @@ import { IconCamera, IconExternalLink } from '@tabler/icons-vue'
 import { SITE } from '~/data/site'
 
 const { messages, isLoading, refetch } = useGratitudeMessages()
+const { myVote, react, savingPostId, error: reactionError } = useCommunityReactions()
 const createMessage = useCreateGratitudeMessage()
 const { userName, isLoggedIn } = useAuth()
 const { communityPrompts } = useSiteContent()
