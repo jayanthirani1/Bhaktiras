@@ -74,6 +74,9 @@ export default defineNuxtPlugin<FirebaseInjection>((nuxtApp) => {
     })
   }
 
+  const { fetchContent } = useSiteContent()
+  void fetchContent()
+
   return {
     provide: { firebaseDb: db, firebaseAuth: auth, firebaseStorage: storage },
     close: () => {

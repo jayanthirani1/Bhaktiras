@@ -14,7 +14,7 @@
         <span aria-hidden="true">|</span>
         <NuxtLink :to="bugLink" class="inline-flex items-center gap-1 font-medium text-[hsl(var(--primary))] hover:underline">
           <IconBug class="h-3.5 w-3.5" aria-hidden="true" />
-          Submit a bug
+          Submit a bug/feature request
         </NuxtLink>
         <!-- Only rendered where the app can actually be installed and is not already. -->
         <ClientOnly>

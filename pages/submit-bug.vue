@@ -2,7 +2,7 @@
   <div class="min-h-screen bg-[hsl(var(--background))] px-4 pb-24 pt-8 md:pt-12">
     <div class="mx-auto max-w-xl">
       <PageHeader
-        title="Submit a bug"
+        title="Submit a bug/feature request"
         subtitle="Tell us what went wrong and where you saw it."
       />
 
@@ -147,5 +147,5 @@ async function submit() {
   }
 }
 
-useHead({ title: 'Submit a bug · Bhaktiras' })
+useHead({ title: 'Submit a bug/feature request · Bhaktiras' })
 </script>

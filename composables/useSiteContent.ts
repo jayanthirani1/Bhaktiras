@@ -67,6 +67,58 @@ export function useSiteContent() {
   const ready = useState<boolean>('site-content-ready', () => false)
   const fromCms = useState<boolean>('site-content-from-cms', () => false)
 
+  /**
+   * Applies the last known switches and nav straight from localStorage.
+   *
+   * Without it the shell is wrong for as long as Firestore takes to answer.
+   * A hidden section stays on screen, and — because the server renders the code
+   * defaults, having no Firebase of its own — the tab bar paints the default
+   * items and then visibly swaps one once the CMS lands: on this build the
+   * third tab read Events and turned into Seva a moment later. Only the shell
+   * is cached; the content still comes from the network, so a stale cache is
+   * one paint out of date at worst.
+   *
+   * A cache older than the current DEFAULT_NAV_ITEMS is ignored for its nav —
+   * the same rule `navItemsFromSource` applies to a stored document, so a nav
+   * the code has since moved past cannot come back through the cache.
+   */
+  function applyCachedShell() {
+    if (fromCms.value) return false
+    const cache = readShellCache()
+    if (!cache) return false
+    const cachedNav = cache.navItems && !navItemsAreStale(cache.navItemsRevision)
+      ? navItemsFromSource(cache.navItems, cache.navItemsRevision)
+      : null
+    content.value = {
+      ...content.value,
+      sections: siteSectionsFromSource(cache.sections),
+      ...(cachedNav ? { navItems: cachedNav, navItemsRevision: cache.navItemsRevision } : {})
+    }
+    return true
+  }
+
+  /**
+   * Static content, but keeping whatever switches are already in hand.
+   *
+   * Without this, a failed read — or a dev server with no Firebase config —
+   * would reset every section to visible a moment after the cached shell was
+   * applied, flashing a hidden section back onto the screen and the nav back
+   * to the code defaults.
+   */
+  function fallbackContent(): SiteContentSettings {
+    return {
+      ...DEFAULT_SITE_CONTENT,
+      sections: content.value.sections,
+      navItems: content.value.navItems,
+      navItemsRevision: content.value.navItemsRevision
+    }
+  }
+
+  // Paint from cache before mount — do not wait for onMounted or Firestore.
+  if (import.meta.client && !fromCms.value && applyCachedShell()) {
+    ready.value = true
+  }
+
   async function fetchContent(force = false) {
     if (inFlight && !force) return inFlight
     if (fromCms.value && !force) {
@@ -110,52 +162,6 @@ export function useSiteContent() {
     return inFlight
   }
 
-  /**
-   * Applies the last known switches and nav straight from localStorage.
-   *
-   * Without it the shell is wrong for as long as Firestore takes to answer.
-   * A hidden section stays on screen, and — because the server renders the code
-   * defaults, having no Firebase of its own — the tab bar paints the default
-   * items and then visibly swaps one once the CMS lands: on this build the
-   * third tab read Events and turned into Seva a moment later. Only the shell
-   * is cached; the content still comes from the network, so a stale cache is
-   * one paint out of date at worst.
-   *
-   * A cache older than the current DEFAULT_NAV_ITEMS is ignored for its nav —
-   * the same rule `navItemsFromSource` applies to a stored document, so a nav
-   * the code has since moved past cannot come back through the cache.
-   */
-  function applyCachedShell() {
-    if (fromCms.value) return
-    const cache = readShellCache()
-    if (!cache) return
-    const cachedNav = cache.navItems && !navItemsAreStale(cache.navItemsRevision)
-      ? navItemsFromSource(cache.navItems, cache.navItemsRevision)
-      : null
-    content.value = {
-      ...content.value,
-      sections: siteSectionsFromSource(cache.sections),
-      ...(cachedNav ? { navItems: cachedNav } : {})
-    }
-  }
-
-  /**
-   * Static content, but keeping whatever switches are already in hand.
-   *
-   * Without this, a failed read — or a dev server with no Firebase config —
-   * would reset every section to visible a moment after the cached shell was
-   * applied, flashing a hidden section back onto the screen and the nav back
-   * to the code defaults.
-   */
-  function fallbackContent(): SiteContentSettings {
-    return {
-      ...DEFAULT_SITE_CONTENT,
-      sections: content.value.sections,
-      navItems: content.value.navItems,
-      navItemsRevision: content.value.navItemsRevision
-    }
-  }
-
   const sections = computed(() => content.value.sections)
 
   function isSectionVisible(id: string) {
@@ -182,20 +188,13 @@ export function useSiteContent() {
   const sevaIntro = computed(() => content.value.sevaIntro)
   const sevaTeams = computed(() => content.value.sevaTeams.filter(item => item.active !== false))
 
-  // Route middleware calls this composable outside of a component, where there
-  // is no mount to hook — it awaits `fetchContent` itself instead.
   if (getCurrentInstance()) {
     onMounted(() => {
       if (fromCms.value) {
-        // SSR served the real content: nothing to fetch, but the nav still has
-        // to be declared ready or it renders its skeleton for good.
         ready.value = true
-        // Keep the cache fresh anyway, so a later load whose server-side read
-        // fails still paints the right shell.
         writeShellCache(content.value)
         return
       }
-      applyCachedShell()
       void fetchContent()
     })
   }
