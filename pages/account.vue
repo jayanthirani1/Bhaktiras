@@ -210,7 +210,8 @@
               <h2 class="font-display text-xl font-semibold text-[hsl(var(--primary))]">Download your data</h2>
               <p class="mt-2 text-sm leading-relaxed text-[hsl(var(--muted-foreground))]">
                 Download a JSON file containing your account details, policy acceptance, game scores, streak,
-                daily game completions and anything left from the retired niyam tracker.
+                daily game completions, your community wall reactions and anything left from the retired
+                niyam tracker.
               </p>
             </div>
           </div>
@@ -232,9 +233,9 @@
             <div>
               <h2 class="font-display text-xl font-semibold text-red-900">Delete your account</h2>
               <p class="mt-2 text-sm leading-relaxed text-red-800">
-                This permanently deletes your login, scores, streak, daily completions, saved niyam ticks and
-                policy acceptance record. Anonymous posts and anonymised community totals cannot be linked back
-                to you.
+                This permanently deletes your login, scores, streak, daily completions, saved niyam ticks,
+                your community wall reactions and your policy acceptance record. Anonymous posts and
+                anonymised community totals cannot be linked back to you.
               </p>
             </div>
           </div>

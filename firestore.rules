@@ -11,6 +11,22 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.active != false;
     }
 
+    /**
+     * The community wall's whole reaction vocabulary. This list is the feature
+     * — `data/communityReactions.ts` only decides how these five are drawn.
+     */
+    function reactionKeys() {
+      return ['like', 'love', 'smile', 'honey', 'strength'];
+    }
+
+    // A wall post's tally for one reaction. The map is absent until the post's
+    // first reaction, so every read of it has to survive not being there.
+    // Shared, because the post's rule and the vote's rule below have to agree
+    // on what a count is.
+    function reactionTally(data, key) {
+      return ('reactions' in data) ? data.reactions.get(key, 0) : 0;
+    }
+
     // Doc ID = Auth UID. Fields: name, active.
     //
     // isAdmin() above is the whole model: the document exists and is active.
@@ -267,7 +283,93 @@ service cloud.firestore {
       // can, and the link in `gratitudeAuthors` tells them whose it is.
       allow delete: if isAdmin()
         || (isSignedIn() && ('userId' in resource.data) && resource.data.userId == request.auth.uid);
-      allow update: if isAdmin();
+
+      /**
+       * The reaction tallies. `reactions` is a map of the five keys below to
+       * counts, and it is the only field a devotee may touch on someone
+       * else's post.
+       *
+       * The count is public and the voter is not, so the two halves live in
+       * different documents — and the rule that lets a browser move a count is
+       * the rule that binds it to that browser's own vote. `getAfter` reads
+       * `gratitudeReactionVotes/{postId}_{uid}` as it will be once this batch
+       * commits, so a count can only move by the single step that vote just
+       * took: one person, one reaction, one increment. Writing the count on its
+       * own, or moving it by two, or moving someone else's, all fail here.
+       *
+       * This is the same promise `niyamChallengeStats` makes by keeping its
+       * totals off the browser entirely. A wall reaction does not warrant a
+       * Cloud Function in the middle of it, and a tally that only appeared
+       * after the next functions deploy would read as a broken button.
+       */
+      // A count moves by +1 for the reaction just chosen and -1 for the one
+      // given up. Switching moves two keys; every other key must stand still.
+      function reactionMoved(key, prev, next) {
+        return reactionTally(request.resource.data, key) == reactionTally(resource.data, key)
+          + (next == key ? 1 : 0)
+          - (prev == key ? 1 : 0);
+      }
+      function isReactionUpdate() {
+        let voteRef = /databases/$(database)/documents/gratitudeReactionVotes/$(id + '_' + request.auth.uid);
+        let prev = exists(voteRef) ? get(voteRef).data.key : '';
+        let next = existsAfter(voteRef) ? getAfter(voteRef).data.key : '';
+        return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions'])
+          // No vote changed hands, so there is nothing for a count to follow.
+          && prev != next
+          && request.resource.data.reactions.keys().hasOnly(reactionKeys())
+          && reactionMoved('like', prev, next)
+          && reactionMoved('love', prev, next)
+          && reactionMoved('smile', prev, next)
+          && reactionMoved('honey', prev, next)
+          && reactionMoved('strength', prev, next);
+      }
+      // The devotee's path is checked first: it is the common one, and it
+      // saves the two reads isAdmin() costs on every reaction.
+      allow update: if (isSignedIn() && isReactionUpdate()) || isAdmin();
+    }
+
+    /**
+     * Who reacted with what. Never public, for the reason `gratitudeAuthors`
+     * is never public: `playStreaks` is a world-readable uid-to-name map, so a
+     * uid stored beside a post is a name stored beside a post, and the wall is
+     * a place people post anonymously.
+     *
+     * Doc IDs are `{postId}_{uid}` so the post's rule above can find this
+     * document by path, and so ownership is decidable before it exists. One
+     * document per person per post is what makes a reaction a single vote
+     * rather than a counter anyone can hold down.
+     */
+    match /gratitudeReactionVotes/{voteId} {
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create, update: if isSignedIn()
+        && request.resource.data.keys().hasOnly(['postId', 'userId', 'key', 'createdAt'])
+        && request.resource.data.keys().hasAll(['postId', 'userId', 'key', 'createdAt'])
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.postId is string
+        && voteId == request.resource.data.postId + '_' + request.auth.uid
+        && request.resource.data.key in reactionKeys()
+        && request.resource.data.createdAt == request.time;
+
+      /**
+       * Taking a reaction back has to take the count with it. Without this a
+       * devotee could delete the vote on its own and then react again, adding
+       * to the same tally twice, and again, for as long as they liked — the
+       * post's rule above only ever sees a fresh vote.
+       *
+       * Unless the post is gone, deleted by its author or an admin or by this
+       * very batch: then there is no tally left to correct and the vote is
+       * only an orphan to clear, which is what lets "delete my account" sever
+       * reactions on posts that no longer exist.
+       */
+      function releasesItsCount() {
+        let postRef = /databases/$(database)/documents/gratitude/$(resource.data.postId);
+        return !exists(postRef)
+          || !existsAfter(postRef)
+          || reactionTally(getAfter(postRef).data, resource.data.key)
+             == reactionTally(get(postRef).data, resource.data.key) - 1;
+      }
+      allow delete: if isAdmin()
+        || (isSignedIn() && resource.data.userId == request.auth.uid && releasesItsCount());
     }
 
     /**

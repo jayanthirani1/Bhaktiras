@@ -108,13 +108,40 @@ export interface GameWordEntry {
   replaces?: string
 }
 
+/**
+ * The five reactions a wall post can carry. Stable slugs rather than the emoji
+ * themselves, because the emoji is presentation and these are map keys in
+ * Firestore and in the security rules.
+ */
+export type CommunityReactionKey = 'like' | 'love' | 'smile' | 'honey' | 'strength'
+
+/** Reaction tallies on a wall post. Counts only — never who. */
+export type CommunityReactionCounts = Partial<Record<CommunityReactionKey, number>>
+
 export interface GratitudeMessage {
   id: string
   name: string
   message: string
   prompt?: string | null
   anonymous?: boolean
+  /**
+   * Live tallies, derived from `gratitudeReactionVotes` by the security rules:
+   * a browser may only move a count by the one step its own vote just took.
+   */
+  reactions?: CommunityReactionCounts
   createdAt?: { seconds: number; nanoseconds: number } | Date
+}
+
+/**
+ * One person's reaction to one post, kept apart from the post so the wall can
+ * show a number without showing a name. Doc ID is `{postId}_{userId}`.
+ */
+export interface CommunityReactionVote {
+  id: string
+  postId: string
+  userId: string
+  key: CommunityReactionKey
+  createdAt?: FirestoreTimestampLike
 }
 
 export interface YajmanOpportunity {
