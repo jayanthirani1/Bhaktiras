@@ -17,6 +17,7 @@ import { readSiteContentDoc } from '~/server/utils/siteContentDoc'
 export default defineNuxtPlugin(async () => {
   const content = useState<SiteContentSettings>('site-content', () => ({ ...DEFAULT_SITE_CONTENT }))
   const fromCms = useState<boolean>('site-content-from-cms', () => false)
+  const ready = useState<boolean>('site-content-ready', () => false)
   if (fromCms.value) return
 
   const projectId = useRuntimeConfig().public.firebaseProjectId
@@ -27,4 +28,9 @@ export default defineNuxtPlugin(async () => {
 
   content.value = siteContentFromDocData(data)
   fromCms.value = true
+  // The nav is known, so the bar renders it rather than its loading skeleton.
+  // `ready` is otherwise only ever set by `fetchContent`, which a client that
+  // was handed its content by the server never calls — leaving the bar
+  // shimmering for good.
+  ready.value = true
 })

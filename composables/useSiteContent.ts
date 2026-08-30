@@ -77,7 +77,10 @@ export function useSiteContent() {
     if (!db) {
       // No client SDK on the server, and none in a dev run without Firebase
       // config. Content the server-side read already supplied stands.
-      if (fromCms.value) return
+      if (fromCms.value) {
+        ready.value = true
+        return
+      }
       content.value = fallbackContent()
       fromCms.value = false
       ready.value = true
@@ -184,8 +187,11 @@ export function useSiteContent() {
   if (getCurrentInstance()) {
     onMounted(() => {
       if (fromCms.value) {
-        // SSR served the real content. Keep the cache fresh anyway, so a later
-        // load whose server-side read fails still paints the right shell.
+        // SSR served the real content: nothing to fetch, but the nav still has
+        // to be declared ready or it renders its skeleton for good.
+        ready.value = true
+        // Keep the cache fresh anyway, so a later load whose server-side read
+        // fails still paints the right shell.
         writeShellCache(content.value)
         return
       }
