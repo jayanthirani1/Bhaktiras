@@ -286,27 +286,49 @@ export function sortSubmissionsNewestFirst(list: NiyamSubmission[]): NiyamSubmis
   return [...list].sort((a, b) => toMillis(b.createdAt) - toMillis(a.createdAt) || a.id.localeCompare(b.id))
 }
 
-/** Minimum gap between mandir attendance check-ins for the same person. */
-export const MANDIR_CHECKIN_COOLDOWN_MS = 4 * 60 * 60 * 1000
+/** Short gap so a double-tap or auto + manual check-in does not count twice. */
+export const MANDIR_CHECKIN_DOUBLE_TAP_MS = 2 * 60 * 1000
 
 export interface MandirCheckinCooldown {
   blocked: boolean
   nextAt: number
   remainingMs: number
+  reason?: 'double-tap' | 'daily'
+}
+
+export function mandirCheckinsToday(
+  submissions: NiyamSubmission[],
+  todayId = ukDateId()
+): number {
+  return submissions
+    .filter(s => s.status !== 'rejected' && s.dayKey === todayId)
+    .reduce((sum, s) => sum + Math.max(0, s.amount), 0)
 }
 
 export function mandirCheckinCooldown(
   submissions: NiyamSubmission[],
-  now: number = Date.now()
+  maxPerDay = 3,
+  now: number = Date.now(),
+  todayId = ukDateId()
 ): MandirCheckinCooldown {
-  const latest = sortSubmissionsNewestFirst(
-    submissions.filter(s => s.status !== 'rejected')
-  )[0]
+  const active = submissions.filter(s => s.status !== 'rejected')
+  const todayTotal = mandirCheckinsToday(active, todayId)
+
+  if (todayTotal >= maxPerDay) {
+    return { blocked: true, nextAt: 0, remainingMs: 0, reason: 'daily' }
+  }
+
+  const latest = sortSubmissionsNewestFirst(active)[0]
   const lastMs = toMillis(latest?.createdAt)
-  if (!lastMs) return { blocked: false, nextAt: 0, remainingMs: 0 }
-  const nextAt = lastMs + MANDIR_CHECKIN_COOLDOWN_MS
-  const remainingMs = Math.max(0, nextAt - now)
-  return { blocked: remainingMs > 0, nextAt, remainingMs }
+  if (lastMs) {
+    const nextAt = lastMs + MANDIR_CHECKIN_DOUBLE_TAP_MS
+    const remainingMs = Math.max(0, nextAt - now)
+    if (remainingMs > 0) {
+      return { blocked: true, nextAt, remainingMs, reason: 'double-tap' }
+    }
+  }
+
+  return { blocked: false, nextAt: 0, remainingMs: 0 }
 }
 
 export function formatCheckinCooldownRemaining(remainingMs: number): string {
@@ -318,8 +340,14 @@ export function formatCheckinCooldownRemaining(remainingMs: number): string {
   return `${minutes}m`
 }
 
-export function mandirCheckinBlockedMessage(remainingMs: number): string {
-  return `You checked in recently. You can check in again in ${formatCheckinCooldownRemaining(remainingMs)}.`
+export function mandirCheckinBlockedMessage(cooldown: MandirCheckinCooldown | number): string {
+  if (typeof cooldown === 'number') {
+    return `You checked in recently. You can check in again in ${formatCheckinCooldownRemaining(cooldown)}.`
+  }
+  if (cooldown.reason === 'daily') {
+    return 'You have logged the maximum sabhas for today (Aarti, Chesta or Katha). You can check in again tomorrow.'
+  }
+  return `You just checked in. You can log the next sabha in ${formatCheckinCooldownRemaining(cooldown.remainingMs)}.`
 }
 
 /** Trim a client-supplied display name the same way the leaderboard does. */

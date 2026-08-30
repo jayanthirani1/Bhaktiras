@@ -3,7 +3,7 @@ const logger = require('firebase-functions/logger')
 const { onSchedule } = require('firebase-functions/v2/scheduler')
 const { onDocumentCreated, onDocumentWritten } = require('firebase-functions/v2/firestore')
 const { initializeApp } = require('firebase-admin/app')
-const { getFirestore, FieldValue } = require('firebase-admin/firestore')
+const { getFirestore, FieldValue, FieldPath } = require('firebase-admin/firestore')
 const { getMessaging } = require('firebase-admin/messaging')
 const { getAuth } = require('firebase-admin/auth')
 
@@ -1386,9 +1386,10 @@ function niyamCounters(value) {
   return Number.isFinite(number) && number > 0 ? Math.floor(number) : 0
 }
 
-/** Minimum gap between mandir attendance check-ins for the same person. */
-const MANDIR_CHECKIN_COOLDOWN_MS = 4 * 60 * 60 * 1000
+/** Minimum gap between duplicate taps — not between separate sabhas the same day. */
+const MANDIR_CHECKIN_DOUBLE_TAP_MS = 2 * 60 * 1000
 const MANDIR_CHECKIN_CHALLENGE_ID = 'mandir-darshan'
+const MANDIR_CHECKIN_RECENT_LIMIT = 40
 
 function submissionCreatedMs(row) {
   if (!row?.createdAt) return 0
@@ -1401,32 +1402,60 @@ function submissionCreatedMs(row) {
 }
 
 /**
- * Drop a mandir check-in written inside the cooldown window. Client-side checks
- * are not enough — undo, auto check-in races and rapid taps all got through.
+ * Drop invalid mandir check-ins: double-taps within two minutes, or more sabhas
+ * than `maxPerSubmission` on the same UK day. The old four-hour cooldown blocked
+ * a second sabha on the same day (Aarti then Katha), so totals never added up.
  */
 async function rejectMandirCheckinSpam(db, submissionId, afterSnap) {
   if (!afterSnap?.exists) return false
   const after = afterSnap.data() || {}
   if (after.challengeId !== MANDIR_CHECKIN_CHALLENGE_ID) return false
   const userChallengeKey = typeof after.userChallengeKey === 'string' ? after.userChallengeKey.trim() : ''
-  if (!userChallengeKey) return false
+  const dayKey = typeof after.dayKey === 'string' ? after.dayKey.trim() : ''
+  if (!userChallengeKey || !dayKey) return false
+
+  const challengeSnap = await db.doc(`niyamChallenges/${MANDIR_CHECKIN_CHALLENGE_ID}`).get()
+  const challengeData = challengeSnap.data() || {}
+  const maxPerDay = niyamCounters(challengeData.maxPerSubmission) || 3
 
   const snap = await db.collection('niyamSubmissions')
     .where('userChallengeKey', '==', userChallengeKey)
-    .limit(25)
+    .orderBy(FieldPath.documentId(), 'desc')
+    .limit(MANDIR_CHECKIN_RECENT_LIMIT)
     .get()
 
   const newMs = submissionCreatedMs(after)
+  let todayTotal = 0
+
+  for (const doc of snap.docs) {
+    const row = doc.data() || {}
+    if (row.status === 'rejected') continue
+    if (row.dayKey === dayKey) todayTotal += niyamCounters(row.amount)
+  }
+
+  if (todayTotal > maxPerDay) {
+    await db.doc(`niyamSubmissions/${submissionId}`).delete()
+    logger.info('Rejected mandir check-in over daily limit', {
+      submissionId,
+      userId: after.userId,
+      dayKey,
+      todayTotal,
+      maxPerDay
+    })
+    return true
+  }
+
   if (!newMs) return false
 
   for (const doc of snap.docs) {
     if (doc.id === submissionId) continue
     const row = doc.data() || {}
     if (row.status === 'rejected') continue
+    if (row.dayKey !== dayKey) continue
     const previousMs = submissionCreatedMs(row)
-    if (previousMs && newMs - previousMs < MANDIR_CHECKIN_COOLDOWN_MS) {
+    if (previousMs && newMs - previousMs < MANDIR_CHECKIN_DOUBLE_TAP_MS) {
       await db.doc(`niyamSubmissions/${submissionId}`).delete()
-      logger.info('Rejected mandir check-in inside cooldown', {
+      logger.info('Rejected mandir check-in double-tap', {
         submissionId,
         userId: after.userId,
         previousMs,

@@ -47,6 +47,22 @@ function timestampSeconds(value: GameScoreEntry['completedAt']): number {
   return value.seconds ?? 0
 }
 
+/** Legacy Surya Chandra rows stored move count in `score` and time in `timeMs`. */
+function parseMovesFromDetail(entry: GameScoreEntry): number {
+  const match = entry.detail?.match(/(\d+)\s+moves?/)
+  if (match) return Number(match[1])
+  if (entry.timeMs != null && entry.score > 0 && entry.score < 10_000) return entry.score
+  return Number.POSITIVE_INFINITY
+}
+
+function rankValue(entry: GameScoreEntry, rankBy: 'score' | 'timeMs'): number {
+  if (rankBy === 'timeMs') {
+    const ms = entry.timeMs ?? (entry.score >= 1000 ? entry.score : null)
+    return ms != null && ms > 0 ? ms : Number.POSITIVE_INFINITY
+  }
+  return entry.score
+}
+
 /**
  * `deleteOwnDuplicates` and `cleanseOldScores` used to live here.
  *
@@ -91,22 +107,32 @@ function currentUid() {
 function isBetter(
   candidate: GameScoreEntry,
   existing: GameScoreEntry,
-  sortDir: 'asc' | 'desc'
+  sortDir: 'asc' | 'desc',
+  rankBy: 'score' | 'timeMs'
 ) {
-  if (candidate.score !== existing.score) {
-    return sortDir === 'asc' ? candidate.score < existing.score : candidate.score > existing.score
+  const cs = rankValue(candidate, rankBy)
+  const es = rankValue(existing, rankBy)
+  if (cs !== es) {
+    return sortDir === 'asc' ? cs < es : cs > es
   }
-  const ct = candidate.timeMs ?? Number.POSITIVE_INFINITY
-  const et = existing.timeMs ?? Number.POSITIVE_INFINITY
-  if (ct !== et) return ct < et
+  if (rankBy === 'timeMs') {
+    const cm = parseMovesFromDetail(candidate)
+    const em = parseMovesFromDetail(existing)
+    if (cm !== em) return cm < em
+  } else if (candidate.score === existing.score) {
+    const ct = candidate.timeMs ?? Number.POSITIVE_INFINITY
+    const et = existing.timeMs ?? Number.POSITIVE_INFINITY
+    if (ct !== et) return ct < et
+  }
   return timestampSeconds(candidate.completedAt) > timestampSeconds(existing.completedAt)
 }
 
 export function useGameLeaderboard(
   game: GameLeaderboardId,
-  options: { sort?: 'asc' | 'desc'; allTime?: boolean } = {}
+  options: { sort?: 'asc' | 'desc'; allTime?: boolean; rankBy?: 'score' | 'timeMs' } = {}
 ) {
   const sortDir = options.sort ?? 'desc'
+  const rankBy = options.rankBy ?? 'score'
   const allTime = !!options.allTime
   const entries = ref<GameScoreEntry[]>([])
   const loading = ref(false)
@@ -117,14 +143,24 @@ export function useGameLeaderboard(
     for (const e of list) {
       if (!e.userId) continue
       const prev = bestByUser.get(e.userId)
-      if (!prev || isBetter(e, prev, sortDir)) bestByUser.set(e.userId, e)
+      if (!prev || isBetter(e, prev, sortDir, rankBy)) bestByUser.set(e.userId, e)
     }
     const deduped = [...bestByUser.values()]
     deduped.sort((a, b) => {
-      if (a.score !== b.score) return sortDir === 'asc' ? a.score - b.score : b.score - a.score
-      const at = a.timeMs ?? Number.POSITIVE_INFINITY
-      const bt = b.timeMs ?? Number.POSITIVE_INFINITY
-      if (at !== bt) return at - bt
+      const av = rankValue(a, rankBy)
+      const bv = rankValue(b, rankBy)
+      if (av !== bv) return sortDir === 'asc' ? av - bv : bv - av
+      if (rankBy === 'timeMs') {
+        const am = parseMovesFromDetail(a)
+        const bm = parseMovesFromDetail(b)
+        if (am !== bm) return am - bm
+      } else if (a.score !== b.score) {
+        return sortDir === 'asc' ? a.score - b.score : b.score - a.score
+      } else {
+        const at = a.timeMs ?? Number.POSITIVE_INFINITY
+        const bt = b.timeMs ?? Number.POSITIVE_INFINITY
+        if (at !== bt) return at - bt
+      }
       return timestampSeconds(b.completedAt) - timestampSeconds(a.completedAt)
     })
     return deduped
@@ -240,7 +276,7 @@ export function useGameLeaderboard(
         detail: payload.detail,
         userName: safeDisplayName(payload.userName)
       }
-      if (!isBetter(next, prev, sortDir)) {
+      if (!isBetter(next, prev, sortDir, rankBy)) {
         upsertLocal(prev)
         return
       }

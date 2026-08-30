@@ -148,7 +148,9 @@
           :date-id="dateId"
           :current-user-id="auth.user.value?.uid"
           :format-score="formatBoardScore"
-        />
+        >
+          Fastest time wins. Fewer moves breaks ties.
+        </GameLeaderboard>
       </div>
     </div>
   </div>
@@ -175,7 +177,7 @@ const howto = useHowToPlay('bhakti-marg', ['bhakti-marg:', 'bhakti-marg-timer:']
 const auth = useAuth()
 const isLoggedIn = computed(() => !!auth.user.value)
 const { playedElsewhere, result: elsewhereResult, markDone } = useDailyGameCompletion('bhakti-marg')
-const { entries, loading: boardLoading, dateId, submitScore } = useGameLeaderboard('surya-chandra', { sort: 'asc' })
+const { entries, loading: boardLoading, dateId, submitScore } = useGameLeaderboard('surya-chandra', { sort: 'asc', rankBy: 'timeMs' })
 const achievements = useAchievements()
 
 const board = ref<TangoCell[][]>(emptyBoard())
@@ -318,9 +320,10 @@ function shareResult() {
   }
 }
 
-function formatBoardScore(entry: { score?: number, timeMs?: number }) {
-  const time = entry.timeMs != null ? ` · ${formatElapsed(entry.timeMs)}` : ''
-  return `${entry.score ?? 0} move${entry.score === 1 ? '' : 's'}${time}`
+function formatBoardScore(entry: { score?: number, timeMs?: number, detail?: string }) {
+  const ms = entry.timeMs ?? (entry.score != null && entry.score >= 1000 ? entry.score : null)
+  const time = ms != null ? formatElapsed(ms) : `${entry.score ?? 0} moves`
+  return entry.detail ? `${time} · ${entry.detail}` : time
 }
 
 async function submitToLeaderboard() {
@@ -330,9 +333,9 @@ async function submitToLeaderboard() {
   const userName = auth.user.value.displayName || auth.user.value.email?.split('@')[0] || 'Player'
   try {
     await submitScore({
-      score: moves.value,
+      score: timer.elapsedMs.value,
       timeMs: timer.elapsedMs.value,
-      detail: `${hintsUsed.value} hints`,
+      detail: `${moves.value} moves · ${hintsUsed.value} hints`,
       userId: auth.user.value.uid,
       userName,
       userEmail: auth.user.value.email || undefined

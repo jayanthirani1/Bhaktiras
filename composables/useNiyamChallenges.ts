@@ -383,9 +383,12 @@ export function useNiyamChallenges() {
     }
 
     if (inputModeFor(challenge) === 'checkin') {
-      const cooldown = mandirCheckinCooldown(submissionsFor(challenge.id))
+      const cooldown = mandirCheckinCooldown(
+        submissionsFor(challenge.id),
+        challenge.maxPerSubmission
+      )
       if (cooldown.blocked) {
-        throw new Error(mandirCheckinBlockedMessage(cooldown.remainingMs))
+        throw new Error(mandirCheckinBlockedMessage(cooldown))
       }
     }
 

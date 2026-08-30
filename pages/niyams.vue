@@ -146,7 +146,11 @@ const pulseStats = computed(() => publishedChallenges.value.map(c => statsFor(c.
 const mandirChallenge = computed(() => challenges.value.find(c => c.id === MANDIR_CHALLENGE_ID) ?? null)
 
 function mandirCheckinBlocked(): MandirCheckinCooldown {
-  return mandirCheckinCooldown(submissionsFor(MANDIR_CHALLENGE_ID))
+  const challenge = mandirChallenge.value
+  return mandirCheckinCooldown(
+    submissionsFor(MANDIR_CHALLENGE_ID),
+    challenge?.maxPerSubmission ?? 3
+  )
 }
 
 async function tryAutoCheckIn() {
@@ -224,9 +228,12 @@ async function onSubmit(payload: {
   }
 
   if (inputModeFor(challenge) === 'checkin') {
-    const cooldown = mandirCheckinCooldown(submissionsFor(challenge.id))
+    const cooldown = mandirCheckinCooldown(
+      submissionsFor(challenge.id),
+      challenge.maxPerSubmission
+    )
     if (cooldown.blocked) {
-      payload.fail(mandirCheckinBlockedMessage(cooldown.remainingMs))
+      payload.fail(mandirCheckinBlockedMessage(cooldown))
       return
     }
     locationError.value = null

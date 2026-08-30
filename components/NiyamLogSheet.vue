@@ -144,7 +144,7 @@
           class="mt-5 flex items-start gap-2 rounded-xl bg-[hsl(var(--muted))] px-3 py-2.5 text-left text-sm"
         >
           <IconInfoCircle class="mt-0.5 h-4 w-4 shrink-0 text-[hsl(var(--golden-900))]" aria-hidden="true" />
-          <span>{{ mandirCheckinBlockedMessage(checkinCooldown.remainingMs) }}</span>
+          <span>{{ mandirCheckinBlockedMessage(checkinCooldown) }}</span>
         </p>
         <p v-else-if="atMandir" class="mt-5 text-sm text-[hsl(var(--muted-foreground))]">
           One tap adds one sabha — Aarti, Chesta or Katha you attended in person.
@@ -456,15 +456,20 @@ const presets = computed(() => (props.challenge ? presetsFor(props.challenge) : 
 const permissionDenied = computed(() => props.locationPermission === 'denied')
 
 const checkinCooldown = computed(() => {
-  if (!isCheckin.value) return { blocked: false, nextAt: 0, remainingMs: 0 }
-  return mandirCheckinCooldown(props.mySubmissions, now.value)
+  if (!isCheckin.value || !props.challenge) return { blocked: false, nextAt: 0, remainingMs: 0 }
+  return mandirCheckinCooldown(
+    props.mySubmissions,
+    props.challenge.maxPerSubmission,
+    now.value
+  )
 })
 
 const checkinButtonLabel = computed(() => {
   if (props.submitting) return 'Adding…'
   if (props.checkingLocation) return 'Checking location…'
   if (checkinCooldown.value.blocked) {
-    return `Check in again in ${formatCheckinCooldownRemaining(checkinCooldown.value.remainingMs)}`
+    if (checkinCooldown.value.reason === 'daily') return 'All sabhas logged today'
+    return `Next sabha in ${formatCheckinCooldownRemaining(checkinCooldown.value.remainingMs)}`
   }
   return 'Manually check in'
 })
