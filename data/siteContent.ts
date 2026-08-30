@@ -10,7 +10,7 @@ import {
   IconUsers
 } from '@tabler/icons-vue'
 import type { CommunityPromptContent, HomeTileContent, NavItemContent, SevaTeamContent, SiteContentSettings, SiteIconKey, SiteSectionContent } from '~/types'
-import { DEFAULT_SITE_SECTIONS, siteSectionsWritePayload } from '~/data/siteSections'
+import { DEFAULT_SITE_SECTIONS, siteSectionsFromSource, siteSectionsWritePayload } from '~/data/siteSections'
 import {
   DEFAULT_SEVA_HEADING,
   DEFAULT_SEVA_INTRO,
@@ -229,6 +229,31 @@ export function communityPromptsFromSource(raw: unknown): CommunityPromptContent
 export function sevaTeamsFromSource(raw: unknown): SevaTeamContent[] {
   const parsed = parseSevaTeams(raw)
   return parsed.length ? parsed : cloneList(DEFAULT_SEVA_TEAMS)
+}
+
+/**
+ * A `siteContent/main` document as settings.
+ *
+ * Shared by the browser's Firestore read and the server-side read that seeds
+ * SSR, so the two cannot drift into rendering the document differently — which
+ * would put the swap this exists to remove straight back on the screen.
+ */
+export function siteContentFromDocData(data: Record<string, any>): SiteContentSettings {
+  return {
+    id: SITE_CONTENT_DOC_ID,
+    // Stored tiles or nav older than the current defaults are ignored, so the
+    // page does not flip back to stale content a moment after every load.
+    homeTiles: homeTilesFromSource(data.homeTiles, data.homeTilesRevision),
+    homeTilesRevision: parseContentRevision(data.homeTilesRevision),
+    navItems: navItemsFromSource(data.navItems, data.navItemsRevision),
+    navItemsRevision: parseContentRevision(data.navItemsRevision),
+    communityPrompts: communityPromptsFromSource(data.communityPrompts),
+    sevaHeading: parseSevaHeading(data.sevaHeading),
+    sevaIntro: parseSevaIntro(data.sevaIntro),
+    sevaTeams: sevaTeamsFromSource(data.sevaTeams),
+    sections: siteSectionsFromSource(data.sections),
+    updatedAt: data.updatedAt
+  }
 }
 
 export function siteContentWritePayload(data: {
