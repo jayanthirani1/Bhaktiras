@@ -42,7 +42,7 @@
         <button
           type="button"
           class="flex min-w-0 flex-1 flex-col items-center justify-center space-y-0.5 rounded-xl p-2 transition-colors"
-          :class="drawerOpen ? 'text-[#D9AE30]' : 'text-[hsl(var(--muted-foreground))] hover:text-[#D9AE30] active:text-[#D9AE30]'"
+          :class="drawerOpen || drawerHoldsRoute ? 'text-[#D9AE30]' : 'text-[hsl(var(--muted-foreground))] hover:text-[#D9AE30] active:text-[#D9AE30]'"
           aria-label="Open more navigation"
           :aria-expanded="drawerOpen"
           @click="drawerOpen = !drawerOpen"
@@ -55,7 +55,7 @@
 
     <div
       v-if="drawerOpen && !isGamePage"
-      class="fixed inset-0 z-[60] overflow-hidden overscroll-none touch-none md:hidden"
+      class="fixed inset-0 z-[75] overflow-hidden overscroll-none touch-none md:hidden"
       @touchmove.prevent
       @wheel.prevent
     >
@@ -194,17 +194,40 @@ const accountItem = computed(() => (
     : { href: '/login', icon: IconLogin, label: 'Sign in' }
 ))
 
+/**
+ * True on a page that lives in the More sheet rather than on the tab bar.
+ *
+ * Without it the bar had no active tab at all on Community, Seva, Journey,
+ * Yajman or Account — More only lit up while the sheet was open, so four of the
+ * nav destinations left every tab dark and no indication of where you were.
+ * `/account` and `/login` are checked by path rather than through `accountItem`
+ * so the highlight does not depend on auth state the server cannot know.
+ */
+const drawerHoldsRoute = computed(() =>
+  mobileSecondaryItems.value.some(item => !item.external && isActive(item.href))
+  || isActive('/account')
+  || isActive('/login'))
+
 function isActive(href: string) {
   if (/^https?:\/\//.test(href)) return false
   if (href === '/') return route.path === '/'
   return route.path.startsWith(href)
 }
 
-function closeDrawer() {
+/** Closes with no tap shield — for closes no finger caused (a resize, unmount). */
+function resetDrawer() {
   drawerOpen.value = false
   sheetOffset.value = 0
-  if (import.meta.server || typeof document === 'undefined') return
-  // Closing under a tap must not reopen More via the tab underneath.
+}
+
+function closeDrawer() {
+  const wasOpen = drawerOpen.value
+  resetDrawer()
+  // Closing under a tap must not reopen More via the tab underneath. Only a
+  // close a tap actually caused needs that: this also runs on every route
+  // change, and shielding those left ~400ms of dead screen after each
+  // navigation, swallowing the next tap anywhere on the page.
+  if (!wasOpen || import.meta.server || typeof document === 'undefined') return
   const shield = document.createElement('div')
   shield.setAttribute('aria-hidden', 'true')
   shield.style.cssText = 'position:fixed;inset:0;z-index:10000;touch-action:none;'
@@ -303,6 +326,24 @@ function onDrawerHandleDown(event: PointerEvent) {
   window.addEventListener('pointercancel', onUp)
 }
 
+/**
+ * The sheet is `md:hidden`, so past the breakpoint it vanishes while
+ * `drawerOpen` stays true — and with it the background scroll lock, on a page
+ * that now has no More button to close it. A rotation to landscape on a tablet
+ * left the site frozen with nothing on screen to explain it.
+ */
+const DESKTOP_MEDIA_QUERY = '(min-width: 768px)'
+let desktopMedia: MediaQueryList | null = null
+
+function onDesktopBreakpoint(event: MediaQueryListEvent) {
+  if (event.matches) resetDrawer()
+}
+
+onMounted(() => {
+  desktopMedia = window.matchMedia(DESKTOP_MEDIA_QUERY)
+  desktopMedia.addEventListener('change', onDesktopBreakpoint)
+})
+
 watch(drawerOpen, (open) => {
   if (open) lockBackgroundScroll()
   else unlockBackgroundScroll()
@@ -311,6 +352,7 @@ watch(drawerOpen, (open) => {
 watch(() => route.path, closeDrawer)
 
 onUnmounted(() => {
+  desktopMedia?.removeEventListener('change', onDesktopBreakpoint)
   if (drawerOpen.value) unlockBackgroundScroll()
 })
 
