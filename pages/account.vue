@@ -351,6 +351,11 @@ const pushCategories: Array<{ topic: PushTopic; label: string; description: stri
     topic: 'niyams',
     label: 'Daily niyam reminder',
     description: 'An evening nudge to log what you kept today.'
+  },
+  {
+    topic: 'niyam-milestones',
+    label: 'Niyam milestones',
+    description: 'When the sangat reaches the next shared goal on a niyam.'
   }
 ]
 

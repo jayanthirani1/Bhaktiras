@@ -33,6 +33,7 @@
           <option value="announcements">Announcements</option>
           <option value="games">Daily games and records</option>
           <option value="niyams">Daily niyam reminder</option>
+          <option value="niyam-milestones">Niyam milestones</option>
         </select>
         <p class="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
           <span v-if="audienceCount == null">Counting devices…</span>
@@ -218,7 +219,7 @@ type SendResult = {
   errorCodes?: string[]
   inbox?: boolean
 }
-type AudienceCounts = { all: number; announcements: number; games: number; niyams: number }
+type AudienceCounts = { all: number; announcements: number; games: number; niyams: number; 'niyam-milestones': number }
 type MessageRow = {
   id: string
   title: string
@@ -262,8 +263,10 @@ const staleTokenFailures = computed(() => {
   )
 })
 
-// The daily-reminder audience is a nudge, not an announcement worth keeping.
-watch(() => form.topic, (topic) => { form.inbox = topic !== 'games' })
+// Automatic niyam topics are nudges, not announcements worth keeping.
+watch(() => form.topic, (topic) => {
+  form.inbox = topic !== 'games' && topic !== 'niyams' && topic !== 'niyam-milestones'
+})
 
 function callable<Result>(name: string) {
   return httpsCallable<Record<string, unknown>, Result>(

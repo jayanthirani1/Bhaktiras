@@ -81,8 +81,8 @@ service cloud.firestore {
         && request.resource.data.token is string
         && request.resource.data.token.size() <= 4096
         && request.resource.data.topics is list
-        && request.resource.data.topics.size() <= 2
-        && request.resource.data.topics.hasOnly(['announcements', 'games'])
+        && request.resource.data.topics.size() <= 4
+        && request.resource.data.topics.hasOnly(['announcements', 'games', 'niyams', 'niyam-milestones'])
         && request.resource.data.enabled == true
         && request.resource.data.platform is string
         && request.resource.data.platform.size() <= 240
@@ -97,8 +97,8 @@ service cloud.firestore {
         && request.resource.data.token is string
         && request.resource.data.token.size() <= 4096
         && request.resource.data.topics is list
-        && request.resource.data.topics.size() <= 2
-        && request.resource.data.topics.hasOnly(['announcements', 'games'])
+        && request.resource.data.topics.size() <= 4
+        && request.resource.data.topics.hasOnly(['announcements', 'games', 'niyams', 'niyam-milestones'])
         && request.resource.data.enabled == true
         && request.resource.data.createdAt == resource.data.createdAt
         && request.resource.data.updatedAt == request.time;
@@ -578,13 +578,13 @@ service cloud.firestore {
       function challengeExists() {
         return exists(/databases/$(database)/documents/niyamChallenges/$(request.resource.data.challengeId));
       }
-      // Both default to a value that denies, so a challenge missing its limits
-      // accepts nothing rather than accepting everything.
+      // Missing limits on older published docs fall back to the same defaults
+      // admins get when they publish from the seed list.
       function autoApproveMax(c) {
-        return (('autoApproveMax' in c) && (c.autoApproveMax is number)) ? c.autoApproveMax : 0;
+        return (('autoApproveMax' in c) && (c.autoApproveMax is number)) ? c.autoApproveMax : 108;
       }
       function maxPerSubmission(c) {
-        return (('maxPerSubmission' in c) && (c.maxPerSubmission is number)) ? c.maxPerSubmission : 0;
+        return (('maxPerSubmission' in c) && (c.maxPerSubmission is number)) ? c.maxPerSubmission : 5000;
       }
       function isOpen(c) {
         return c.active == true

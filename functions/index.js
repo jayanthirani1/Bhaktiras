@@ -9,7 +9,7 @@ const { getAuth } = require('firebase-admin/auth')
 
 initializeApp()
 
-const ALLOWED_TOPICS = new Set(['all', 'announcements', 'games', 'niyams'])
+const ALLOWED_TOPICS = new Set(['all', 'announcements', 'games', 'niyams', 'niyam-milestones'])
 const INVALID_TOKEN_CODES = new Set([
   'messaging/invalid-registration-token',
   'messaging/registration-token-not-registered'
@@ -260,7 +260,8 @@ const SITE_ORIGIN = process.env.BHAKTRAS_SITE_ORIGIN || 'https://skssw-bhaktiras
 const TOPIC_ALIASES = {
   announcements: ['announcements', 'patotsav', 'events'],
   games: ['games'],
-  niyams: ['niyams']
+  niyams: ['niyams'],
+  'niyam-milestones': ['niyam-milestones']
 }
 
 /** At most one automatic new-event push per window, so a bulk import cannot storm. */
@@ -422,7 +423,7 @@ async function pruneStaleSubscriptions(db, staleRefs) {
  * Sends to a topic, records the delivery audit, and — unless `inbox` is false —
  * keeps a copy readable in the app so a missed OS notification is not lost.
  */
-async function deliverNotification({ title, body, topic, url, sentBy, inbox = topic !== 'games' && topic !== 'niyams', excludeUserId = null }) {
+async function deliverNotification({ title, body, topic, url, sentBy, inbox = topic !== 'games' && topic !== 'niyams' && topic !== 'niyam-milestones', excludeUserId = null }) {
   const db = getFirestore()
   const all = await loadRecipients(db, topic)
   // Someone who just did the thing does not need telling about it.
@@ -489,7 +490,7 @@ exports.sendPushNotification = onCall(
     const uid = await requireAdmin(request)
     const input = readNotificationInput(request.data)
     const inbox = request.data?.inbox == null
-      ? input.topic !== 'games' && input.topic !== 'niyams'
+      ? input.topic !== 'games' && input.topic !== 'niyams' && input.topic !== 'niyam-milestones'
       : request.data.inbox === true
     return deliverNotification({ ...input, inbox, sentBy: uid })
   }
@@ -517,7 +518,7 @@ exports.sendTestPushNotification = onCall(
     await pruneStaleSubscriptions(db, outcome.staleRefs)
     // Mirror the real send's inbox decision, so the test reflects what will happen.
     const inbox = request.data?.inbox == null
-      ? input.topic !== 'games' && input.topic !== 'niyams'
+      ? input.topic !== 'games' && input.topic !== 'niyams' && input.topic !== 'niyam-milestones'
       : request.data.inbox === true
     if (inbox) await recordTestNotification(db, uid, input)
     return {
@@ -537,7 +538,7 @@ exports.getPushAudience = onCall(
     await requireAdmin(request)
     const db = getFirestore()
     const snap = await db.collection('pushSubscriptions').where('enabled', '==', true).get()
-    const counts = { all: 0, announcements: 0, games: 0, niyams: 0 }
+    const counts = { all: 0, announcements: 0, games: 0, niyams: 0, 'niyam-milestones': 0 }
     snap.docs.forEach((doc) => {
       const data = doc.data()
       if (typeof data.token !== 'string' || !data.token) return
@@ -545,6 +546,7 @@ exports.getPushAudience = onCall(
       if (subscriptionMatches(data.topics, 'announcements')) counts.announcements += 1
       if (subscriptionMatches(data.topics, 'games')) counts.games += 1
       if (subscriptionMatches(data.topics, 'niyams')) counts.niyams += 1
+      if (subscriptionMatches(data.topics, 'niyam-milestones')) counts['niyam-milestones'] += 1
     })
     return counts
   }
@@ -695,6 +697,7 @@ async function collectPushStats(db) {
   let announcements = 0
   let games = 0
   let niyams = 0
+  let niyamMilestones = 0
 
   snap.docs.forEach((docSnap) => {
     const data = docSnap.data()
@@ -705,9 +708,10 @@ async function collectPushStats(db) {
     if (subscriptionMatches(data.topics, 'announcements')) announcements += 1
     if (subscriptionMatches(data.topics, 'games')) games += 1
     if (subscriptionMatches(data.topics, 'niyams')) niyams += 1
+    if (subscriptionMatches(data.topics, 'niyam-milestones')) niyamMilestones += 1
   })
 
-  return { devices, accounts: accounts.size, announcements, games, niyams, platforms }
+  return { devices, accounts: accounts.size, announcements, games, niyams, niyamMilestones, platforms }
 }
 
 /**
@@ -824,7 +828,7 @@ function emptyAccounts() {
   }
 }
 function emptyPush() {
-  return { devices: 0, accounts: 0, announcements: 0, games: 0, niyams: 0, platforms: {} }
+  return { devices: 0, accounts: 0, announcements: 0, games: 0, niyams: 0, niyamMilestones: 0, platforms: {} }
 }
 function emptyGames() {
   return {
@@ -1535,15 +1539,73 @@ function isEmptyNiyamDelta(delta) {
   return Object.values(delta).every(value => value === 0)
 }
 
+function niyamMilestoneStep(target) {
+  return Math.max(1, Math.round(niyamCounters(target) / 10))
+}
+
+function formatNiyamCount(value) {
+  const n = niyamCounters(value)
+  if (n >= 1_000_000 && n % 100_000 === 0) return `${n / 1_000_000} million`
+  if (n >= 100_000 && n % 100_000 === 0) return `${n / 100_000} lakh`
+  return n.toLocaleString('en-GB')
+}
+
+/** Milestones crossed between two approved totals — tenth-of-target steps plus the goal. */
+function niyamMilestonesCrossed(prevTotal, newTotal, target) {
+  const goal = niyamCounters(target)
+  if (!goal || newTotal <= prevTotal) return []
+  const step = niyamMilestoneStep(goal)
+  const crossed = []
+  for (let marker = step; marker < goal; marker += step) {
+    if (prevTotal < marker && newTotal >= marker) crossed.push(marker)
+  }
+  if (prevTotal < goal && newTotal >= goal) crossed.push(goal)
+  return crossed
+}
+
+async function maybeNotifyNiyamMilestone(db, challengeId, prevTotal, newTotal) {
+  if (newTotal <= prevTotal) return
+  const challengeSnap = await db.doc(`niyamChallenges/${challengeId}`).get()
+  const challenge = challengeSnap.data() || {}
+  const target = niyamCounters(challenge.target)
+  const crossed = niyamMilestonesCrossed(prevTotal, newTotal, target)
+  if (!crossed.length) return
+
+  const milestone = crossed[crossed.length - 1]
+  const slotKey = `niyamMilestone:${challengeId}:${milestone}`
+  if (!await claimNotificationSlot(db, slotKey, 24 * 60 * 60 * 1000)) return
+
+  const title = cleanText(challenge.title, 80) || 'Niyam'
+  const label = formatNiyamCount(milestone)
+  const body = milestone >= target
+    ? `Together we have reached the goal — ${label}. Jay Swaminarayan.`
+    : `Together we have passed ${label}. Jay Swaminarayan.`
+
+  await deliverNotification({
+    title: `${title} milestone`,
+    body,
+    topic: 'niyam-milestones',
+    url: '/niyams',
+    inbox: false,
+    sentBy: `system:niyam-milestone:${challengeId}`
+  })
+}
+
 async function applyNiyamDelta(db, { challengeId, userId, userName, dayKey }, delta) {
   if (isEmptyNiyamDelta(delta)) return
   const statsRef = db.doc(`niyamChallengeStats/${challengeId}`)
   const contributorRef = db.doc(`niyamChallenges/${challengeId}/contributors/${userId}`)
 
+  let prevStatsApproved = 0
+  let nextStatsApproved = 0
+
   await db.runTransaction(async (tx) => {
     const [statsSnap, contributorSnap] = await Promise.all([tx.get(statsRef), tx.get(contributorRef)])
     const stats = statsSnap.data() || {}
     const contributor = contributorSnap.data() || {}
+
+    prevStatsApproved = niyamCounters(stats.approvedTotal)
+    nextStatsApproved = Math.max(0, prevStatsApproved + delta.approvedTotal)
 
     const prevApproved = niyamCounters(contributor.approvedTotal)
     const nextApproved = Math.max(0, prevApproved + delta.approvedTotal)
@@ -1560,7 +1622,7 @@ async function applyNiyamDelta(db, { challengeId, userId, userName, dayKey }, de
 
     tx.set(statsRef, {
       challengeId,
-      approvedTotal: Math.max(0, niyamCounters(stats.approvedTotal) + delta.approvedTotal),
+      approvedTotal: nextStatsApproved,
       pendingTotal: Math.max(0, niyamCounters(stats.pendingTotal) + delta.pendingTotal),
       approvedCount: Math.max(0, niyamCounters(stats.approvedCount) + delta.approvedCount),
       pendingCount: Math.max(0, niyamCounters(stats.pendingCount) + delta.pendingCount),
@@ -1584,6 +1646,10 @@ async function applyNiyamDelta(db, { challengeId, userId, userName, dayKey }, de
       updatedAt: FieldValue.serverTimestamp()
     }, { merge: true })
   })
+
+  if (delta.approvedTotal > 0) {
+    await maybeNotifyNiyamMilestone(db, challengeId, prevStatsApproved, nextStatsApproved)
+  }
 }
 
 exports.syncNiyamChallengeTotals = onDocumentWritten(

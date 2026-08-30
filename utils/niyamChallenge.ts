@@ -6,7 +6,7 @@ import type {
   NiyamSubmission,
   NiyamSubmissionStatus
 } from '~/types'
-import { DEFAULT_NIYAM_CHALLENGES } from '~/data/niyamChallenges'
+import { DEFAULT_NIYAM_CHALLENGES, defaultNiyamChallenge } from '~/data/niyamChallenges'
 import { addUkDays, ukDateId } from '~/utils/gameDay'
 
 export const SUBMISSION_NOTE_MAX = 240
@@ -15,6 +15,21 @@ export const SUBMISSION_NAME_MAX = 32
 /** Defaults offered when an admin creates a challenge. Both are editable per challenge. */
 export const DEFAULT_AUTO_APPROVE_MAX = 108
 export const DEFAULT_MAX_PER_SUBMISSION = 5000
+
+/** Limits from Firestore, falling back to the default seed for known slugs. */
+export function challengeLimits(id: string, data: Record<string, unknown>) {
+  const seed = defaultNiyamChallenge(id)
+  return {
+    autoApproveMax: Math.max(
+      0,
+      Number(data.autoApproveMax ?? seed?.autoApproveMax ?? DEFAULT_AUTO_APPROVE_MAX) || 0
+    ),
+    maxPerSubmission: Math.max(
+      1,
+      Number(data.maxPerSubmission ?? seed?.maxPerSubmission ?? DEFAULT_MAX_PER_SUBMISSION) || 1
+    )
+  }
+}
 
 export const SUBMISSION_STATUSES: NiyamSubmissionStatus[] = ['approved', 'pending', 'rejected']
 

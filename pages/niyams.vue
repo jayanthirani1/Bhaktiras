@@ -83,7 +83,6 @@
 
 <script setup lang="ts">
 import type { NiyamChallenge, NiyamChallengeStats, NiyamSubmission, NiyamSubmissionStatus } from '~/types'
-import { ukDateId } from '~/utils/gameDay'
 import { inputModeFor, isChallengeOpen, isPublished, mandirCheckinBlockedMessage, mandirCheckinCooldown, type MandirCheckinCooldown } from '~/utils/niyamChallenge'
 
 const MANDIR_CHALLENGE_ID = 'mandir-darshan'
@@ -247,11 +246,8 @@ async function onSubmit(payload: {
   }
 
   try {
-    const status = await submit(challenge, payload.amount, payload.note)
-    const today = ukDateId()
-    const created = submissionsFor(challenge.id)
-      .find(s => s.amount === payload.amount && s.dayKey === today) ?? null
-    payload.done({ status, submission: created })
+    const { status, submission } = await submit(challenge, payload.amount, payload.note)
+    payload.done({ status, submission })
   } catch (e) {
     payload.fail((e as Error).message)
   }
