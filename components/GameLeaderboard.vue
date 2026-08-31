@@ -38,7 +38,7 @@
           <IconCrown
             v-if="row.hasCrown"
             class="h-3.5 w-3.5 shrink-0 text-amber-600"
-            aria-label="Holds an all-time crown"
+            aria-label="Crown holder"
           />
           <span v-if="row.mine" class="shrink-0 text-xs font-semibold text-[hsl(var(--golden-900))]">you</span>
         </span>
@@ -56,7 +56,10 @@
 
 <script setup lang="ts">
 import { IconCrown } from '@tabler/icons-vue'
-import { CROWN_DEFINITIONS, useAchievements } from '~/composables/useAchievements'
+import {
+  CROWN_DEFINITIONS,
+  useAchievements
+} from '~/composables/useAchievements'
 import { devoteeProfilePath } from '~/composables/usePublicProfile'
 import { formatUkDateLabel, ukDateId } from '~/utils/gameDay'
 import { leaderboardRulesText } from '~/utils/gameLeaderboardRules'
@@ -107,18 +110,24 @@ const rulesText = computed(() => {
   return ''
 })
 
+/** Crown holders for this game. */
 const crownHolderIds = computed(() => {
-  if (!props.game) return new Set<string>()
+  const ids = new Set<string>()
+  if (!props.game) return ids
   const crownGame = CROWN_GAME_ALIASES[props.game] || props.game
   const crownIds = new Set<string>(
     CROWN_DEFINITIONS.filter(def => def.game === crownGame).map(def => def.id)
   )
-  return new Set(
-    achievements.crowns.value
-      .filter(crown => crownIds.has(crown.id) && !!crown.holderUserId)
-      .map(crown => crown.holderUserId)
-  )
+  for (const crown of achievements.crowns.value) {
+    if (!crownIds.has(crown.id) || !crown.holderUserId) continue
+    ids.add(crown.holderUserId)
+  }
+  return ids
 })
+
+function hasCrown(userId?: string) {
+  return !!userId && crownHolderIds.value.has(userId)
+}
 
 const visibleRows = computed(() => {
   const list = props.entries || []
@@ -126,7 +135,7 @@ const visibleRows = computed(() => {
     entry,
     rank: idx + 1,
     mine: !!props.currentUserId && entry.userId === props.currentUserId,
-    hasCrown: !!entry.userId && crownHolderIds.value.has(entry.userId),
+    hasCrown: hasCrown(entry.userId),
     profilePath: devoteeProfilePath(entry.userId)
   }))
   if (!props.currentUserId) return top
@@ -138,7 +147,7 @@ const visibleRows = computed(() => {
     entry,
     rank: idx + 1,
     mine: true,
-    hasCrown: !!entry.userId && crownHolderIds.value.has(entry.userId),
+    hasCrown: hasCrown(entry.userId),
     profilePath: devoteeProfilePath(entry.userId)
   }]
 })

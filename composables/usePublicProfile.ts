@@ -7,8 +7,6 @@ import {
 } from 'firebase/firestore'
 import type {
   AchievementCrownRecord,
-  NiyamChallenge,
-  NiyamContributor,
   PlayStreakRecord,
   UserAchievementsRecord
 } from '~/types'
@@ -20,9 +18,6 @@ import {
   type AchievementDefinition,
   type AchievementMedal
 } from '~/composables/useAchievements'
-import { mapChallenge } from '~/composables/useNiyamChallenges'
-import { DEFAULT_NIYAM_CHALLENGES } from '~/data/niyamChallenges'
-import { isPublished, mergeChallenges, unitLabel } from '~/utils/niyamChallenge'
 
 export type PublicProfileAchievement = {
   id: string
@@ -39,20 +34,11 @@ export type PublicProfileCrown = {
   holderName: string
 }
 
-export type PublicProfileNiyam = {
-  challengeId: string
-  title: string
-  approvedTotal: number
-  unitLabel: string
-  icon?: NiyamChallenge['icon']
-}
-
 export type PublicProfile = {
   uid: string
   displayName: string
   crowns: PublicProfileCrown[]
   achievements: PublicProfileAchievement[]
-  niyams: PublicProfileNiyam[]
   streak: {
     currentStreak: number
     longestStreak: number
@@ -64,23 +50,7 @@ function getDb(): Firestore | null {
   return (useNuxtApp().$firebaseDb as Firestore | null) ?? null
 }
 
-function mapContributor(id: string, data: Record<string, unknown>): NiyamContributor {
-  return {
-    id,
-    userId: String(data.userId || id),
-    userName: String(data.userName || 'Devotee'),
-    approvedTotal: Math.max(0, Number(data.approvedTotal) || 0),
-    pendingTotal: Math.max(0, Number(data.pendingTotal) || 0),
-    submissionCount: Math.max(0, Number(data.submissionCount) || 0),
-    lastSubmittedAt: data.lastSubmittedAt as NiyamContributor['lastSubmittedAt'],
-    updatedAt: data.updatedAt as NiyamContributor['updatedAt']
-  }
-}
-
-/**
- * Public devotee card: crowns, unlocked achievements, and niyam rollups.
- * Individual submission history stays private.
- */
+/** Public devotee card: crowns, unlocked achievements, and play streak. */
 export function usePublicProfile() {
   const profile = ref<PublicProfile | null>(null)
   const loading = ref(false)
@@ -107,12 +77,11 @@ export function usePublicProfile() {
     profile.value = null
 
     try {
-      const [publicSnap, streakSnap, achSnap, crownSnap, challengeSnap] = await Promise.all([
+      const [publicSnap, streakSnap, achSnap, crownSnap] = await Promise.all([
         getDoc(doc(db, 'publicProfiles', cleaned)),
         getDoc(doc(db, 'playStreaks', cleaned)),
         getDoc(doc(db, 'userAchievements', cleaned)),
-        getDocs(collection(db, 'achievementCrowns')),
-        getDocs(collection(db, 'niyamChallenges'))
+        getDocs(collection(db, 'achievementCrowns'))
       ])
 
       const knownCrowns = new Set<string>(CROWN_DEFINITIONS.map(item => item.id))
@@ -144,43 +113,6 @@ export function usePublicProfile() {
           group: def.group
         }))
 
-      const challenges = mergeChallenges(
-        challengeSnap.docs.map(d => mapChallenge(d.id, d.data())).filter(c => c.title)
-      ).filter(isPublished)
-
-      const contributorRows = await Promise.all(
-        challenges.map(async (challenge) => {
-          try {
-            const snap = await getDoc(doc(db, 'niyamChallenges', challenge.id, 'contributors', cleaned))
-            if (!snap.exists()) return null
-            const row = mapContributor(cleaned, snap.data() as Record<string, unknown>)
-            if (row.approvedTotal <= 0) return null
-            return {
-              challengeId: challenge.id,
-              title: challenge.title,
-              approvedTotal: row.approvedTotal,
-              unitLabel: unitLabel(challenge, row.approvedTotal),
-              icon: challenge.icon,
-              userName: row.userName
-            }
-          } catch {
-            return null
-          }
-        })
-      )
-      const niyamRows = contributorRows.filter(
-        (row): row is NonNullable<typeof row> => row != null
-      )
-      const niyams: PublicProfileNiyam[] = niyamRows
-        .map(({ challengeId, title, approvedTotal, unitLabel: unit, icon }) => ({
-          challengeId,
-          title,
-          approvedTotal,
-          unitLabel: unit,
-          icon
-        }))
-        .sort((a, b) => b.approvedTotal - a.approvedTotal || a.title.localeCompare(b.title))
-
       const streak = streakSnap.exists()
         ? (() => {
             const data = streakSnap.data() as Omit<PlayStreakRecord, 'id'>
@@ -198,12 +130,10 @@ export function usePublicProfile() {
         ? String((streakSnap.data() as { userName?: string }).userName || '').trim()
         : ''
       const crownName = heldCrowns[0]?.holderName?.trim() || ''
-      const niyamName = niyamRows[0]?.userName?.trim() || ''
 
-      const displayName = publicName || streakName || crownName || niyamName || 'Devotee'
+      const displayName = publicName || streakName || crownName || 'Devotee'
       const hasAnything = heldCrowns.length
         || unlocked.length
-        || niyams.length
         || (streak && (streak.currentStreak > 0 || streak.longestStreak > 0))
         || !!publicName
         || !!streakName
@@ -219,7 +149,6 @@ export function usePublicProfile() {
         displayName,
         crowns: heldCrowns,
         achievements: unlocked,
-        niyams,
         streak: streak && (streak.currentStreak > 0 || streak.longestStreak > 0) ? streak : null
       }
     } catch (e) {
@@ -235,9 +164,7 @@ export function usePublicProfile() {
     loading,
     error,
     notFound,
-    fetchProfile,
-    /** Seed list so empty Firebase still has titles if needed later. */
-    defaultNiyamCount: DEFAULT_NIYAM_CHALLENGES.length
+    fetchProfile
   }
 }
 

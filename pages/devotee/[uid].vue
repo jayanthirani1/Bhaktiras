@@ -19,7 +19,7 @@
       <div v-else-if="notFound || !profile" class="card-surface p-8 text-center">
         <h1 class="font-display text-2xl font-semibold text-[hsl(var(--primary))]">Profile not found</h1>
         <p class="mt-2 text-sm text-[hsl(var(--muted-foreground))]">
-          This devotee has not appeared on a leaderboard or niyam board yet.
+          This devotee has not appeared on a leaderboard yet.
         </p>
       </div>
 
@@ -113,44 +113,6 @@
             No achievements unlocked yet.
           </p>
         </section>
-
-        <section class="card-surface p-5">
-          <h2 class="font-display text-lg font-semibold text-[hsl(var(--primary))]">
-            Niyams ({{ profile.niyams.length }})
-          </h2>
-          <p class="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
-            Shared totals only — individual entries stay private.
-          </p>
-          <ul v-if="profile.niyams.length" class="mt-4 divide-y divide-[hsl(var(--border))]">
-            <li
-              v-for="niyam in profile.niyams"
-              :key="niyam.challengeId"
-              class="flex items-center justify-between gap-3 py-3"
-            >
-              <div class="flex min-w-0 items-center gap-3">
-                <span
-                  class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[hsl(var(--golden-50))] text-[hsl(var(--golden-900))]"
-                >
-                  <NiyamIcon :name="niyam.icon || 'niyam'" class="h-5 w-5" />
-                </span>
-                <span class="truncate font-semibold text-[hsl(var(--foreground))]">{{ niyam.title }}</span>
-              </div>
-              <span class="shrink-0 text-sm font-semibold tabular-nums text-[hsl(var(--primary))]">
-                {{ formatCount(niyam.approvedTotal) }}
-                <span class="font-normal text-[hsl(var(--muted-foreground))]">{{ niyam.unitLabel }}</span>
-              </span>
-            </li>
-          </ul>
-          <p v-else class="mt-3 text-sm text-[hsl(var(--muted-foreground))]">
-            No counted niyam contributions yet.
-          </p>
-          <NuxtLink
-            to="/niyams"
-            class="mt-4 inline-flex text-sm font-semibold text-[hsl(var(--primary))] underline"
-          >
-            See the sangat niyams
-          </NuxtLink>
-        </section>
       </template>
     </div>
   </div>
@@ -158,7 +120,6 @@
 
 <script setup lang="ts">
 import { IconCrown } from '@tabler/icons-vue'
-import { formatCount } from '~/utils/niyamChallenge'
 
 const route = useRoute()
 const auth = useAuth()
