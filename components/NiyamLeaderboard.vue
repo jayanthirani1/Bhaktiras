@@ -25,7 +25,14 @@
             <template v-if="row.rank > 0">{{ row.rank }}.</template>
             <template v-else>—</template>
           </span>
-          {{ row.name }}
+          <NuxtLink
+            v-if="row.profilePath"
+            :to="row.profilePath"
+            class="hover:underline"
+          >
+            {{ row.name }}
+          </NuxtLink>
+          <template v-else>{{ row.name }}</template>
           <span
             v-if="row.mine"
             class="ml-1 text-xs font-semibold text-[hsl(var(--golden-900))]"
@@ -49,6 +56,7 @@
 
 <script setup lang="ts">
 import type { NiyamChallenge, NiyamContributor } from '~/types'
+import { devoteeProfilePath } from '~/composables/usePublicProfile'
 import { formatCount, unitLabel } from '~/utils/niyamChallenge'
 
 const props = defineProps<{
@@ -65,7 +73,8 @@ const visibleLeaders = computed(() => {
     rank: index + 1,
     name: row.userName,
     total: row.approvedTotal,
-    mine: !!props.currentUserId && row.userId === props.currentUserId
+    mine: !!props.currentUserId && row.userId === props.currentUserId,
+    profilePath: devoteeProfilePath(row.userId)
   }))
   if (!props.currentUserId || top.some(row => row.mine)) return top
 
@@ -77,7 +86,8 @@ const visibleLeaders = computed(() => {
     rank: 0,
     name: 'You',
     total: mine,
-    mine: true
+    mine: true,
+    profilePath: devoteeProfilePath(props.currentUserId)
   }]
 })
 </script>

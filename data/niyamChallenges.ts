@@ -68,7 +68,7 @@ export const DEFAULT_NIYAM_CHALLENGES: NiyamChallengeSeed[] = [
   {
     id: 'mandir-darshan',
     title: 'Daily Darshan',
-    detail: 'Come to the mandir for Aarti, Chesta or Katha and add each sabha you attend.',
+    detail: 'Come to the mandir for morning or evening sabha — one check-in for each, twice a day.',
     unit: 'sabhas',
     unitSingular: 'sabha',
     target: 10_000,
@@ -77,10 +77,10 @@ export const DEFAULT_NIYAM_CHALLENGES: NiyamChallengeSeed[] = [
     active: true,
     order: 3,
     autoApproveMax: 1,
-    maxPerSubmission: 3,
+    maxPerSubmission: 2,
     inputMode: 'checkin',
     presets: [1],
-    hint: 'One sabha you attended in person — Aarti, Chesta or Katha.',
+    hint: 'One morning sabha and one evening sabha — Aarti, Chesta or Katha in person.',
     icon: 'mandir'
   },
   {

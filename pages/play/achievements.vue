@@ -37,7 +37,16 @@
                 </span>
                 <div>
                   <p class="text-sm font-semibold text-[hsl(var(--primary))]">{{ crownTitle(crown.id) }}</p>
-                  <p class="mt-1 text-sm text-[hsl(var(--muted-foreground))]">{{ crown.holderName }}</p>
+                  <p class="mt-1 text-sm text-[hsl(var(--muted-foreground))]">
+                    <NuxtLink
+                      v-if="crown.holderUserId"
+                      :to="`/devotee/${crown.holderUserId}`"
+                      class="hover:underline"
+                    >
+                      {{ crown.holderName }}
+                    </NuxtLink>
+                    <template v-else>{{ crown.holderName }}</template>
+                  </p>
                   <p class="mt-2 text-xs font-semibold uppercase tracking-wide text-[hsl(var(--golden-900))]">{{ crownValue(crown) }}</p>
                   <p v-if="crown.holderUserId === auth.user.value?.uid" class="mt-2 text-xs font-semibold text-amber-700">You currently hold this crown.</p>
                 </div>

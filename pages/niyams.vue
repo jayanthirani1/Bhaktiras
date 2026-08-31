@@ -151,7 +151,7 @@ function mandirCheckinBlocked(): MandirCheckinCooldown {
   const challenge = mandirChallenge.value
   return mandirCheckinCooldown(
     submissionsFor(MANDIR_CHALLENGE_ID),
-    challenge?.maxPerSubmission ?? 3
+    challenge?.maxPerSubmission ?? 2
   )
 }
 

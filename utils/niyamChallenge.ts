@@ -7,7 +7,7 @@ import type {
   NiyamSubmissionStatus
 } from '~/types'
 import { DEFAULT_NIYAM_CHALLENGES, defaultNiyamChallenge } from '~/data/niyamChallenges'
-import { addUkDays, ukDateId } from '~/utils/gameDay'
+import { addUkDays, ukDateId, ukHour } from '~/utils/gameDay'
 
 export const SUBMISSION_NOTE_MAX = 240
 export const SUBMISSION_NAME_MAX = 32
@@ -98,12 +98,36 @@ export function isChallengeOpen(challenge: NiyamChallenge, now: number = Date.no
   return hasStarted && !hasEnded
 }
 
+/** Daily Darshan — one tap at the mandir; no admin review queue. */
+export const MANDIR_DARSHAN_CHALLENGE_ID = 'mandir-darshan'
+
+/** UK hour when the evening sabha slot begins (14:00 London). */
+export const MANDIR_EVENING_SLOT_HOUR = 14
+
+export type MandirCheckinSlot = 'morning' | 'evening'
+
+export function isCheckinChallenge(challenge: Pick<NiyamChallenge, 'inputMode'>): boolean {
+  return challenge.inputMode === 'checkin'
+}
+
+/** Morning before 14:00 UK; evening from 14:00 onwards. */
+export function mandirCheckinSlot(at: Date | number = Date.now()): MandirCheckinSlot {
+  const date = typeof at === 'number' ? new Date(at) : at
+  return ukHour(date) < MANDIR_EVENING_SLOT_HOUR ? 'morning' : 'evening'
+}
+
+export function mandirCheckinSlotLabel(slot: MandirCheckinSlot): string {
+  return slot === 'morning' ? 'morning' : 'evening'
+}
+
 /** Anything above `autoApproveMax` waits for an admin rather than counting itself. */
 export function needsReview(challenge: NiyamChallenge, amount: number): boolean {
+  if (isCheckinChallenge(challenge)) return false
   return amount > Math.max(0, Number(challenge.autoApproveMax) || 0)
 }
 
 export function statusForAmount(challenge: NiyamChallenge, amount: number): NiyamSubmissionStatus {
+  if (isCheckinChallenge(challenge)) return 'approved'
   return needsReview(challenge, amount) ? 'pending' : 'approved'
 }
 
@@ -301,14 +325,48 @@ export function sortSubmissionsNewestFirst(list: NiyamSubmission[]): NiyamSubmis
   return [...list].sort((a, b) => toMillis(b.createdAt) - toMillis(a.createdAt) || a.id.localeCompare(b.id))
 }
 
-/** Short gap so a double-tap or auto + manual check-in does not count twice. */
+/** Short gap so a double-tap does not count twice (all niyams). */
+export const NIYAM_DOUBLE_TAP_MS = 60 * 1000
+
+/** Longer gap for mandir check-in — auto + manual can race. */
 export const MANDIR_CHECKIN_DOUBLE_TAP_MS = 2 * 60 * 1000
+
+/** One morning and one evening check-in per UK day. */
+export const MANDIR_CHECKIN_MAX_PER_DAY = 2
+
+export interface NiyamSubmitCooldown {
+  blocked: boolean
+  nextAt: number
+  remainingMs: number
+}
+
+/** Block a second entry on the same niyam within the double-tap window. */
+export function niyamSubmitCooldown(
+  submissions: NiyamSubmission[],
+  windowMs: number = NIYAM_DOUBLE_TAP_MS,
+  now: number = Date.now()
+): NiyamSubmitCooldown {
+  const latest = sortSubmissionsNewestFirst(
+    submissions.filter(s => s.status !== 'rejected')
+  )[0]
+  const lastMs = toMillis(latest?.createdAt)
+  if (!lastMs) return { blocked: false, nextAt: 0, remainingMs: 0 }
+  const nextAt = lastMs + windowMs
+  const remainingMs = Math.max(0, nextAt - now)
+  if (remainingMs <= 0) return { blocked: false, nextAt: 0, remainingMs: 0 }
+  return { blocked: true, nextAt, remainingMs }
+}
+
+export function niyamDoubleTapMessage(remainingMs: number): string {
+  return `You just added an entry. Please wait ${formatCheckinCooldownRemaining(remainingMs)} before adding another.`
+}
 
 export interface MandirCheckinCooldown {
   blocked: boolean
   nextAt: number
   remainingMs: number
-  reason?: 'double-tap' | 'daily'
+  reason?: 'double-tap' | 'slot' | 'daily'
+  slot?: MandirCheckinSlot
 }
 
 export function mandirCheckinsToday(
@@ -320,33 +378,46 @@ export function mandirCheckinsToday(
     .reduce((sum, s) => sum + Math.max(0, s.amount), 0)
 }
 
+function submissionSlot(submission: NiyamSubmission): MandirCheckinSlot {
+  const ms = toMillis(submission.createdAt)
+  return mandirCheckinSlot(ms || Date.now())
+}
+
 export function mandirCheckinCooldown(
   submissions: NiyamSubmission[],
-  maxPerDay = 3,
+  _maxPerDay = MANDIR_CHECKIN_MAX_PER_DAY,
   now: number = Date.now(),
   todayId = ukDateId()
 ): MandirCheckinCooldown {
   const active = submissions.filter(s => s.status !== 'rejected')
-  const todayTotal = mandirCheckinsToday(active, todayId)
+  const today = active.filter(s => s.dayKey === todayId)
+  const slot = mandirCheckinSlot(now)
 
-  if (todayTotal >= maxPerDay) {
-    return { blocked: true, nextAt: 0, remainingMs: 0, reason: 'daily' }
+  if (today.length >= MANDIR_CHECKIN_MAX_PER_DAY) {
+    return { blocked: true, nextAt: 0, remainingMs: 0, reason: 'daily', slot }
   }
 
-  const latest = sortSubmissionsNewestFirst(active)[0]
+  if (today.some(s => submissionSlot(s) === slot)) {
+    return { blocked: true, nextAt: 0, remainingMs: 0, reason: 'slot', slot }
+  }
+
+  const latest = sortSubmissionsNewestFirst(today)[0]
   const lastMs = toMillis(latest?.createdAt)
   if (lastMs) {
     const nextAt = lastMs + MANDIR_CHECKIN_DOUBLE_TAP_MS
     const remainingMs = Math.max(0, nextAt - now)
     if (remainingMs > 0) {
-      return { blocked: true, nextAt, remainingMs, reason: 'double-tap' }
+      return { blocked: true, nextAt, remainingMs, reason: 'double-tap', slot }
     }
   }
 
-  return { blocked: false, nextAt: 0, remainingMs: 0 }
+  return { blocked: false, nextAt: 0, remainingMs: 0, slot }
 }
 
 export function formatCheckinCooldownRemaining(remainingMs: number): string {
+  if (remainingMs > 0 && remainingMs < 60_000) {
+    return `${Math.max(1, Math.ceil(remainingMs / 1000))}s`
+  }
   const totalMinutes = Math.ceil(remainingMs / 60_000)
   const hours = Math.floor(totalMinutes / 60)
   const minutes = totalMinutes % 60
@@ -360,7 +431,13 @@ export function mandirCheckinBlockedMessage(cooldown: MandirCheckinCooldown | nu
     return `You checked in recently. You can check in again in ${formatCheckinCooldownRemaining(cooldown)}.`
   }
   if (cooldown.reason === 'daily') {
-    return 'You have logged the maximum sabhas for today (Aarti, Chesta or Katha). You can check in again tomorrow.'
+    return 'You have checked in for both morning and evening today. You can check in again tomorrow.'
+  }
+  if (cooldown.reason === 'slot') {
+    const label = mandirCheckinSlotLabel(cooldown.slot || mandirCheckinSlot())
+    return label === 'morning'
+      ? 'You have already checked in for the morning. Come back for the evening sabha after 2pm.'
+      : 'You have already checked in for the evening. Morning check-in opens again tomorrow.'
   }
   return `You just checked in. You can log the next sabha in ${formatCheckinCooldownRemaining(cooldown.remainingMs)}.`
 }

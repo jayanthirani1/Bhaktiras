@@ -19,7 +19,14 @@
           All-time longest streak crown
         </p>
         <p class="mt-2 text-sm text-[hsl(var(--muted-foreground))]">
-          <span class="font-semibold text-[hsl(var(--primary))]">{{ longestCrown.holderName }}</span>
+          <NuxtLink
+            v-if="longestCrown.holderUserId"
+            :to="`/devotee/${longestCrown.holderUserId}`"
+            class="font-semibold text-[hsl(var(--primary))] hover:underline"
+          >
+            {{ longestCrown.holderName }}
+          </NuxtLink>
+          <span v-else class="font-semibold text-[hsl(var(--primary))]">{{ longestCrown.holderName }}</span>
           · {{ longestCrown.longestStreak || longestCrown.value }} day{{ (longestCrown.longestStreak || longestCrown.value) === 1 ? '' : 's' }}
           <span v-if="longestCrown.holderUserId === auth.user.value?.uid" class="font-semibold text-amber-700"> · You hold the crown</span>
         </p>
@@ -47,8 +54,15 @@
             </span>
             <span class="min-w-0">
               <span class="block truncate font-semibold text-[hsl(var(--foreground))]">
-                {{ entry.userName }}
-                <span v-if="entry.userId === auth.user.value?.uid" class="text-xs text-[hsl(var(--golden-900))]">you</span>
+                <NuxtLink
+                  v-if="entry.userId"
+                  :to="`/devotee/${entry.userId}`"
+                  class="hover:underline"
+                >
+                  {{ entry.userName }}
+                </NuxtLink>
+                <template v-else>{{ entry.userName }}</template>
+                <span v-if="entry.userId === auth.user.value?.uid" class="text-xs text-[hsl(var(--golden-900))]"> you</span>
               </span>
               <span class="text-xs text-[hsl(var(--muted-foreground))]">Best: {{ entry.longestStreak }} days</span>
             </span>

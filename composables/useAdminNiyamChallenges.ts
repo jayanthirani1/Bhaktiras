@@ -306,7 +306,7 @@ export function useAdminNiyamChallenges() {
         })),
         // One equality filter on `statusKey` per niyam — `{challengeId}__pending`
         // is exactly this query, so no composite index is involved.
-        Promise.all(list.map(async (c) => {
+        Promise.all(list.filter(c => c.inputMode !== 'checkin').map(async (c) => {
           try {
             const snap = await getDocs(query(
               collection(db, 'niyamSubmissions'),

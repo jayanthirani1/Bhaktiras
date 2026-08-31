@@ -25,11 +25,24 @@
         class="flex items-center justify-between px-4 py-2 text-sm"
         :class="row.mine ? 'bg-[hsl(var(--golden-50))]' : ''"
       >
-        <span class="font-medium text-[hsl(var(--foreground))]">
-          {{ row.rank }}. {{ row.entry.userName }}
-          <span v-if="row.mine" class="ml-1 text-xs font-semibold text-[hsl(var(--golden-900))]">you</span>
+        <span class="flex min-w-0 items-center gap-1.5 font-medium text-[hsl(var(--foreground))]">
+          <span class="tabular-nums">{{ row.rank }}.</span>
+          <NuxtLink
+            v-if="row.profilePath"
+            :to="row.profilePath"
+            class="truncate hover:underline"
+          >
+            {{ row.entry.userName }}
+          </NuxtLink>
+          <span v-else class="truncate">{{ row.entry.userName }}</span>
+          <IconCrown
+            v-if="row.hasCrown"
+            class="h-3.5 w-3.5 shrink-0 text-amber-600"
+            aria-label="Holds an all-time crown"
+          />
+          <span v-if="row.mine" class="shrink-0 text-xs font-semibold text-[hsl(var(--golden-900))]">you</span>
         </span>
-        <span class="text-[hsl(var(--muted-foreground))]">{{ displayScore(row.entry) }}</span>
+        <span class="shrink-0 text-[hsl(var(--muted-foreground))]">{{ displayScore(row.entry) }}</span>
       </li>
       <li
         v-if="entries.length === 0"
@@ -42,11 +55,19 @@
 </template>
 
 <script setup lang="ts">
+import { IconCrown } from '@tabler/icons-vue'
+import { CROWN_DEFINITIONS, useAchievements } from '~/composables/useAchievements'
+import { devoteeProfilePath } from '~/composables/usePublicProfile'
 import { formatUkDateLabel, ukDateId } from '~/utils/gameDay'
 import { leaderboardRulesText } from '~/utils/gameLeaderboardRules'
 import type { GameLeaderboardId } from '~/types'
 
 const LEADERBOARD_TOP = 10
+
+/** Crown ids in achievements still use the old Surya Chandra game key. */
+const CROWN_GAME_ALIASES: Partial<Record<GameLeaderboardId, string>> = {
+  'surya-chandra': 'bhakti-marg'
+}
 
 type LeaderboardRow = {
   id: string
@@ -70,6 +91,14 @@ const props = defineProps<{
   rules?: string
 }>()
 
+const achievements = useAchievements()
+
+onMounted(() => {
+  if (props.game && !achievements.crowns.value.length) {
+    void achievements.fetchAll()
+  }
+})
+
 const dateLabel = computed(() => formatUkDateLabel(props.dateId || ukDateId()))
 
 const rulesText = computed(() => {
@@ -78,18 +107,40 @@ const rulesText = computed(() => {
   return ''
 })
 
+const crownHolderIds = computed(() => {
+  if (!props.game) return new Set<string>()
+  const crownGame = CROWN_GAME_ALIASES[props.game] || props.game
+  const crownIds = new Set<string>(
+    CROWN_DEFINITIONS.filter(def => def.game === crownGame).map(def => def.id)
+  )
+  return new Set(
+    achievements.crowns.value
+      .filter(crown => crownIds.has(crown.id) && !!crown.holderUserId)
+      .map(crown => crown.holderUserId)
+  )
+})
+
 const visibleRows = computed(() => {
   const list = props.entries || []
   const top = list.slice(0, LEADERBOARD_TOP).map((entry, idx) => ({
     entry,
     rank: idx + 1,
-    mine: !!props.currentUserId && entry.userId === props.currentUserId
+    mine: !!props.currentUserId && entry.userId === props.currentUserId,
+    hasCrown: !!entry.userId && crownHolderIds.value.has(entry.userId),
+    profilePath: devoteeProfilePath(entry.userId)
   }))
   if (!props.currentUserId) return top
   if (top.some(r => r.mine)) return top
   const idx = list.findIndex(e => e.userId === props.currentUserId)
   if (idx < 0) return top
-  return [...top, { entry: list[idx], rank: idx + 1, mine: true }]
+  const entry = list[idx]
+  return [...top, {
+    entry,
+    rank: idx + 1,
+    mine: true,
+    hasCrown: !!entry.userId && crownHolderIds.value.has(entry.userId),
+    profilePath: devoteeProfilePath(entry.userId)
+  }]
 })
 
 function displayScore(entry: LeaderboardRow) {

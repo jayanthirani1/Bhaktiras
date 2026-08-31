@@ -22,7 +22,7 @@
           <p class="text-xs font-bold uppercase tracking-[0.16em] text-[hsl(var(--golden-900))]">Account details</p>
           <dl class="mt-4 space-y-3 text-sm">
             <div>
-              <dt class="text-[hsl(var(--muted-foreground))]">Name</dt>
+              <dt class="text-[hsl(var(--muted-foreground))]">Name on leaderboards</dt>
               <dd class="font-semibold text-[hsl(var(--foreground))]">{{ auth.userName.value || 'Not provided' }}</dd>
             </div>
             <div>
@@ -30,7 +30,47 @@
               <dd class="break-all font-semibold text-[hsl(var(--foreground))]">{{ auth.user.value.email }}</dd>
             </div>
           </dl>
-          <button type="button" class="mt-5 text-sm font-semibold text-[hsl(var(--primary))] underline" @click="signOut">
+
+          <form class="mt-5 space-y-3 border-t border-[hsl(var(--border))] pt-5" @submit.prevent="saveDisplayName">
+            <div>
+              <label for="account-display-name" class="text-sm font-semibold text-[hsl(var(--foreground))]">
+                How your name appears
+              </label>
+              <p class="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
+                Shown on game leaderboards, crowns and niyam entries you add from now on. Today’s scores are updated straight away.
+              </p>
+              <input
+                id="account-display-name"
+                v-model="displayNameDraft"
+                type="text"
+                maxlength="32"
+                class="admin-input mt-2"
+                placeholder="Your name"
+                autocomplete="nickname"
+              >
+            </div>
+            <div class="flex flex-wrap items-center gap-3">
+              <button
+                type="submit"
+                class="rounded-xl bg-[hsl(var(--primary))] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+                :disabled="savingName || !displayNameDirty"
+              >
+                {{ savingName ? 'Saving…' : 'Save name' }}
+              </button>
+              <p v-if="nameMessage" class="text-sm text-emerald-700">{{ nameMessage }}</p>
+              <p v-else-if="nameError" role="alert" class="text-sm text-red-600">{{ nameError }}</p>
+            </div>
+          </form>
+
+          <NuxtLink
+            v-if="auth.user.value?.uid"
+            :to="`/devotee/${auth.user.value.uid}`"
+            class="mt-4 inline-flex text-sm font-semibold text-[hsl(var(--primary))] underline"
+          >
+            View your public profile
+          </NuxtLink>
+
+          <button type="button" class="mt-5 block text-sm font-semibold text-[hsl(var(--primary))] underline" @click="signOut">
             Sign out
           </button>
         </section>
@@ -336,6 +376,38 @@ const linkingMethod = ref<'google' | 'password' | null>(null)
 const linking = computed(() => linkingMethod.value != null)
 const linkError = ref('')
 const linkMessage = ref('')
+const displayNameDraft = ref('')
+const savingName = ref(false)
+const nameError = ref('')
+const nameMessage = ref('')
+
+watch(
+  () => auth.userName.value,
+  (name) => {
+    if (!savingName.value) displayNameDraft.value = name || ''
+  },
+  { immediate: true }
+)
+
+const displayNameDirty = computed(() => {
+  const next = displayNameDraft.value.trim()
+  const current = (auth.userName.value || '').trim()
+  return next.length >= 2 && next !== current
+})
+
+async function saveDisplayName() {
+  savingName.value = true
+  nameError.value = ''
+  nameMessage.value = ''
+  try {
+    await auth.updateDisplayName(displayNameDraft.value)
+    nameMessage.value = 'Name updated.'
+  } catch (value) {
+    nameError.value = (value as { message?: string })?.message || 'Could not update your name.'
+  } finally {
+    savingName.value = false
+  }
+}
 const pushCategories: Array<{ topic: PushTopic; label: string; description: string }> = [
   {
     topic: 'announcements',

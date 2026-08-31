@@ -129,7 +129,7 @@ const emit = defineEmits<{ detail: []; log: []; 'sign-in': [] }>()
 const GLOSSES: Record<NiyamIconKey, string> = {
   stotra: 'recitations of the Namavali',
   mala: 'rounds of the mala',
-  mandir: 'sabhas attended in person',
+  mandir: 'morning and evening sabhas',
   path: 'complete paths, all five chapters',
   dandvat: 'pranaams offered',
   niyam: 'entries'

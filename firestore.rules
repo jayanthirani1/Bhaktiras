@@ -43,7 +43,7 @@ service cloud.firestore {
     // Minimal policy-acceptance record. Doc ID = Auth UID; readable only by its owner.
     match /users/{uid} {
       allow read, delete: if isSignedIn() && request.auth.uid == uid;
-      allow create, update: if isSignedIn()
+      allow create: if isSignedIn()
         && request.auth.uid == uid
         && request.resource.data.keys().hasOnly([
           'userId',
@@ -51,14 +51,52 @@ service cloud.firestore {
           'sitePolicyVersion',
           'privacyAcceptedAt',
           'sitePolicyAcceptedAt',
-          'updatedAt'
+          'updatedAt',
+          'displayName'
         ])
         && request.resource.data.userId == request.auth.uid
         && request.resource.data.privacyPolicyVersion is string
         && request.resource.data.sitePolicyVersion is string
         && request.resource.data.privacyAcceptedAt == request.time
         && request.resource.data.sitePolicyAcceptedAt == request.time
-        && request.resource.data.updatedAt == request.time;
+        && request.resource.data.updatedAt == request.time
+        && (
+          !('displayName' in request.resource.data)
+          || (
+            request.resource.data.displayName is string
+            && request.resource.data.displayName.size() >= 1
+            && request.resource.data.displayName.size() <= 32
+          )
+        );
+      allow update: if isSignedIn()
+        && request.auth.uid == uid
+        && request.resource.data.userId == request.auth.uid
+        && (
+          (
+            request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['displayName', 'updatedAt'])
+            && request.resource.data.displayName is string
+            && request.resource.data.displayName.size() >= 1
+            && request.resource.data.displayName.size() <= 32
+            && request.resource.data.updatedAt == request.time
+          )
+          || (
+            request.resource.data.keys().hasOnly([
+              'userId',
+              'privacyPolicyVersion',
+              'sitePolicyVersion',
+              'privacyAcceptedAt',
+              'sitePolicyAcceptedAt',
+              'updatedAt',
+              'displayName'
+            ])
+            && request.resource.data.privacyPolicyVersion is string
+            && request.resource.data.sitePolicyVersion is string
+            && request.resource.data.privacyAcceptedAt == request.time
+            && request.resource.data.sitePolicyAcceptedAt == request.time
+            && request.resource.data.updatedAt == request.time
+          )
+        );
     }
 
     // One document per signed-in user/device. FCM tokens are private account data.
@@ -495,10 +533,26 @@ service cloud.firestore {
       allow delete: if isAdmin() || (isSignedIn() && request.auth.uid == uid);
     }
 
-    // Personal achievement unlocks are private to the signed-in user; only Cloud Functions writes them.
+    // Public profile card — display name only. Private policy fields stay on `users`.
+    match /publicProfiles/{uid} {
+      allow read: if true;
+      allow create, update: if isSignedIn()
+        && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['userId', 'displayName', 'updatedAt'])
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.displayName is string
+        && request.resource.data.displayName.size() >= 1
+        && request.resource.data.displayName.size() <= 32
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if isAdmin() || (isSignedIn() && request.auth.uid == uid);
+    }
+
+    // Unlocked achievements are public so devotee profiles can show them.
+    // Only Cloud Functions write unlocks; the owner may delete on account removal.
     match /userAchievements/{uid} {
-      allow read: if isSignedIn() && request.auth.uid == uid;
-      allow write: if false;
+      allow read: if true;
+      allow create, update: if false;
+      allow delete: if isAdmin() || (isSignedIn() && request.auth.uid == uid);
     }
 
     // Current all-time crown holders are public; only Cloud Functions writes them.
@@ -626,7 +680,9 @@ service cloud.firestore {
         && request.resource.data.createdAt == request.time
         && isOpen(challenge())
         && request.resource.data.status == (
-             request.resource.data.amount <= autoApproveMax(challenge()) ? 'approved' : 'pending'
+             (('inputMode' in challenge()) && challenge().inputMode == 'checkin')
+               ? 'approved'
+               : (request.resource.data.amount <= autoApproveMax(challenge()) ? 'approved' : 'pending')
            );
 
       // Only an admin decides what counts. Identity, amount, day and the

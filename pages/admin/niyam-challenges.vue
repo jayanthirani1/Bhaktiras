@@ -275,7 +275,10 @@
             </div>
 
             <!-- The anti-inflation dials. -->
-            <div class="rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--muted))]/40 p-3">
+            <div
+              v-if="form.inputMode !== 'checkin'"
+              class="rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--muted))]/40 p-3"
+            >
               <p class="text-sm font-semibold text-[hsl(var(--primary))]">Review thresholds</p>
               <p class="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
                 An entry at or below the auto-approve figure joins the total straight away.
@@ -291,6 +294,13 @@
                   <input :id="`${uid}-max`" v-model.number="form.maxPerSubmission" type="number" min="1" step="1" class="admin-input">
                 </div>
               </div>
+            </div>
+            <div
+              v-else
+              class="rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--muted))]/40 p-3 text-sm text-[hsl(var(--muted-foreground))]"
+            >
+              Check-in niyams count straight away — one morning and one evening sabha per day.
+              There is no approval queue or entry table for them.
             </div>
 
             <div class="grid gap-3 sm:grid-cols-2">
@@ -338,7 +348,9 @@
               </div>
               <div class="rounded-xl bg-[hsl(var(--muted))]/60 px-3 py-2">
                 <dt class="text-[10px] font-semibold uppercase tracking-[0.12em] text-[hsl(var(--golden-900))]">Entries</dt>
-                <dd class="font-display text-lg text-[hsl(var(--primary))]">{{ formatCount(submissions.length) }}</dd>
+                <dd class="font-display text-lg text-[hsl(var(--primary))]">
+                  {{ form.inputMode === 'checkin' ? formatCount(stats?.approvedCount || 0) : formatCount(submissions.length) }}
+                </dd>
               </div>
             </dl>
             <p v-if="lastDays.length" class="mt-3 text-xs text-[hsl(var(--muted-foreground))]">
@@ -350,7 +362,10 @@
           </div>
 
           <!-- ── Logging on behalf of the mandir ─────────────────── -->
-          <div v-if="editingId && editingPublished" class="border-t border-[hsl(var(--border))] pt-5">
+          <div
+            v-if="editingId && editingPublished && form.inputMode !== 'checkin'"
+            class="border-t border-[hsl(var(--border))] pt-5"
+          >
             <h3 class="font-display text-lg font-semibold text-[hsl(var(--primary))]">
               Add a count on behalf of the mandir
             </h3>
@@ -441,7 +456,10 @@
           </div>
 
           <!-- ── Everyone's entries ──────────────────────────────── -->
-          <div v-if="editingId && editingPublished" class="border-t border-[hsl(var(--border))] pt-5">
+          <div
+            v-if="editingId && editingPublished && form.inputMode !== 'checkin'"
+            class="border-t border-[hsl(var(--border))] pt-5"
+          >
             <div class="flex flex-wrap items-center justify-between gap-2">
               <h3 class="font-display text-lg font-semibold text-[hsl(var(--primary))]">All entries</h3>
               <div class="inline-flex rounded-lg border border-[hsl(var(--border))] bg-white p-0.5 text-xs">
@@ -909,8 +927,13 @@ async function save() {
     return
   }
   const target = Math.max(1, Math.floor(Number(form.target) || 0))
-  const maxPerSubmission = Math.max(1, Math.floor(Number(form.maxPerSubmission) || 1))
-  const autoApproveMax = Math.min(maxPerSubmission, Math.max(0, Math.floor(Number(form.autoApproveMax) || 0)))
+  const isCheckin = form.inputMode === 'checkin'
+  const maxPerSubmission = isCheckin
+    ? 2
+    : Math.max(1, Math.floor(Number(form.maxPerSubmission) || 1))
+  const autoApproveMax = isCheckin
+    ? 1
+    : Math.min(maxPerSubmission, Math.max(0, Math.floor(Number(form.autoApproveMax) || 0)))
 
   const payload = {
     title,

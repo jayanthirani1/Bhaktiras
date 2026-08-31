@@ -46,12 +46,14 @@ export function useAccountPrivacy() {
     // `legacyNiyams` is the retired daily tracker. Nothing writes it any more;
     // it is read here so an export and a deletion still cover what it left
     // behind. Drop it once the collection has been cleared.
-    const [profile, admin, scores, legacyWordleScores, streak, legacyNiyams, completions, pushSubscriptions, mandirVisits, reactionVotes] = await Promise.all([
+    const [profile, publicProfile, admin, scores, legacyWordleScores, streak, achievements, legacyNiyams, completions, pushSubscriptions, mandirVisits, reactionVotes] = await Promise.all([
       getDoc(doc(db, 'users', uid)),
+      getDoc(doc(db, 'publicProfiles', uid)),
       getDoc(doc(db, 'admins', uid)),
       getDocs(query(collection(db, 'gameScores'), where('userId', '==', uid))),
       getDocs(query(collection(db, 'wordleScores'), where('userId', '==', uid))),
       getDoc(doc(db, 'playStreaks', uid)),
+      getDoc(doc(db, 'userAchievements', uid)),
       getDoc(doc(db, 'niyamProgress', uid)),
       getDocs(collection(db, 'playCompletions', uid, 'days')),
       getDocs(query(collection(db, 'pushSubscriptions'), where('userId', '==', uid))),
@@ -59,7 +61,7 @@ export function useAccountPrivacy() {
       getDocs(query(collection(db, 'gratitudeReactionVotes'), where('userId', '==', uid)))
     ])
 
-    return { profile, admin, scores, legacyWordleScores, streak, legacyNiyams, completions, pushSubscriptions, mandirVisits, reactionVotes }
+    return { profile, publicProfile, admin, scores, legacyWordleScores, streak, achievements, legacyNiyams, completions, pushSubscriptions, mandirVisits, reactionVotes }
   }
 
   async function exportMyData() {
@@ -78,10 +80,12 @@ export function useAccountPrivacy() {
           providers: currentUser.providerData.map(provider => provider.providerId)
         },
         policyAcceptance: data.profile.exists() ? data.profile.data() : null,
+        publicProfile: data.publicProfile.exists() ? data.publicProfile.data() : null,
         adminRecord: data.admin.exists() ? data.admin.data() : null,
         gameScores: data.scores.docs.map(item => ({ id: item.id, ...item.data() })),
         legacyWordleScores: data.legacyWordleScores.docs.map(item => ({ id: item.id, ...item.data() })),
         playStreak: data.streak.exists() ? data.streak.data() : null,
+        achievements: data.achievements.exists() ? data.achievements.data() : null,
         legacyNiyamProgress: data.legacyNiyams.exists() ? data.legacyNiyams.data() : null,
         playCompletions: data.completions.docs.map(item => ({ id: item.id, ...item.data() })),
         pushSubscriptions: data.pushSubscriptions.docs.map(item => ({
@@ -182,7 +186,9 @@ export function useAccountPrivacy() {
         ...data.mandirVisits.docs.map(item => item.ref)
       ]
       if (data.profile.exists()) refs.push(data.profile.ref)
+      if (data.publicProfile.exists()) refs.push(data.publicProfile.ref)
       if (data.streak.exists()) refs.push(data.streak.ref)
+      if (data.achievements.exists()) refs.push(data.achievements.ref)
       if (data.legacyNiyams.exists()) refs.push(data.legacyNiyams.ref)
       await deleteReactionVotes(db, data.reactionVotes.docs)
       await deleteRefs(db, refs)

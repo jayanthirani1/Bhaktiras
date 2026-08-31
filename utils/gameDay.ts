@@ -8,6 +8,17 @@ export function ukDateId(date: Date = new Date()): string {
   }).format(date)
 }
 
+/** Hour of day in Europe/London (0–23). */
+export function ukHour(date: Date = new Date()): number {
+  return Number(
+    new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Europe/London',
+      hour: 'numeric',
+      hourCycle: 'h23'
+    }).format(date)
+  )
+}
+
 export function formatUkDateLabel(id: string = ukDateId()): string {
   const [y, m, d] = id.split('-')
   if (!y || !m || !d) return id

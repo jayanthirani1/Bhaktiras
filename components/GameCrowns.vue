@@ -11,7 +11,15 @@
     <div class="mt-3 space-y-2 text-sm text-[hsl(var(--muted-foreground))]">
       <p v-for="crown in items" :key="crown.id">
         <span class="font-semibold text-[hsl(var(--primary))]">{{ crownTitle(crown.id) }}:</span>
-        {{ crown.holderName }} · {{ crownValue(crown) }}
+        <NuxtLink
+          v-if="crown.holderUserId"
+          :to="`/devotee/${crown.holderUserId}`"
+          class="hover:underline"
+        >
+          {{ crown.holderName }}
+        </NuxtLink>
+        <template v-else>{{ crown.holderName }}</template>
+        · {{ crownValue(crown) }}
         <span v-if="crown.holderUserId === currentUserId" class="font-semibold text-amber-700"> · You hold this crown</span>
       </p>
     </div>

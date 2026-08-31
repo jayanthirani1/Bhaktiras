@@ -7,12 +7,34 @@ import {
   EmailAuthProvider,
   linkWithCredential,
   linkWithPopup,
+  updateProfile,
   signOut as firebaseSignOut
 } from 'firebase/auth'
-import { doc, serverTimestamp, setDoc, type Firestore } from 'firebase/firestore'
+import {
+  collection,
+  doc,
+  getDocs,
+  query,
+  serverTimestamp,
+  setDoc,
+  updateDoc,
+  where,
+  type Firestore
+} from 'firebase/firestore'
 import type { AuthUserSnapshot } from '~/types'
 import { PRIVACY_POLICY_VERSION, SITE_POLICY_VERSION } from '~/utils/privacy'
 import { markInteractiveSignIn } from '~/utils/signInSignal'
+import { ukDateId } from '~/utils/gameDay'
+
+const DISPLAY_NAME_MAX = 32
+
+function cleanDisplayName(name: string): string {
+  return name
+    .replace(/[^\p{L}\p{N}\s\-_.']/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, DISPLAY_NAME_MAX)
+}
 
 export function useAuth() {
   const nuxtApp = useNuxtApp()
@@ -105,6 +127,53 @@ export function useAuth() {
     syncUserSnapshot()
   }
 
+  async function updateDisplayName(rawName: string) {
+    const auth = getAuth()
+    const currentUser = auth?.currentUser
+    if (!currentUser) throw new Error('You need to sign in again.')
+    const displayName = cleanDisplayName(rawName)
+    if (displayName.length < 2) throw new Error('Enter a name of at least 2 characters.')
+
+    await updateProfile(currentUser, { displayName })
+    await currentUser.reload()
+    syncUserSnapshot()
+
+    const db = nuxtApp.$firebaseDb as Firestore | null
+    if (db) {
+      const uid = currentUser.uid
+      await setDoc(doc(db, 'publicProfiles', uid), {
+        userId: uid,
+        displayName,
+        updatedAt: serverTimestamp()
+      }, { merge: true })
+
+      await setDoc(doc(db, 'users', uid), {
+        userId: uid,
+        displayName,
+        updatedAt: serverTimestamp()
+      }, { merge: true }).catch(() => {
+        // Policy-only docs may refuse a bare name create; Auth + publicProfiles still apply.
+      })
+
+      const today = ukDateId()
+      const scoreSnap = await getDocs(query(
+        collection(db, 'gameScores'),
+        where('userId', '==', uid),
+        where('dateId', '==', today)
+      )).catch(() => null)
+      if (scoreSnap) {
+        await Promise.all(
+          scoreSnap.docs.map(scoreDoc =>
+            updateDoc(scoreDoc.ref, { userName: displayName }).catch(() => {})
+          )
+        )
+      }
+
+      const streakRef = doc(db, 'playStreaks', uid)
+      await updateDoc(streakRef, { userName: displayName }).catch(() => {})
+    }
+  }
+
   async function signOut() {
     user.value = null
     const auth = getAuth()
@@ -143,6 +212,7 @@ export function useAuth() {
     recordPolicyAcceptance,
     linkGoogle,
     linkEmailPassword,
+    updateDisplayName,
     signOut
   }
 }

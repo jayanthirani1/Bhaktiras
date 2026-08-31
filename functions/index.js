@@ -1394,6 +1394,22 @@ function niyamCounters(value) {
 const MANDIR_CHECKIN_DOUBLE_TAP_MS = 2 * 60 * 1000
 const MANDIR_CHECKIN_CHALLENGE_ID = 'mandir-darshan'
 const MANDIR_CHECKIN_RECENT_LIMIT = 40
+/** Evening sabha slot starts at 14:00 Europe/London. */
+const MANDIR_EVENING_SLOT_HOUR = 14
+const MANDIR_CHECKIN_MAX_PER_DAY = 2
+
+function ukHourOf(ms) {
+  if (!ms) return 0
+  return Number(new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/London',
+    hour: 'numeric',
+    hourCycle: 'h23'
+  }).format(new Date(ms)))
+}
+
+function mandirSlotOf(ms) {
+  return ukHourOf(ms) < MANDIR_EVENING_SLOT_HOUR ? 'morning' : 'evening'
+}
 
 function submissionCreatedMs(row) {
   if (!row?.createdAt) return 0
@@ -1406,9 +1422,9 @@ function submissionCreatedMs(row) {
 }
 
 /**
- * Drop invalid mandir check-ins: double-taps within two minutes, or more sabhas
- * than `maxPerSubmission` on the same UK day. The old four-hour cooldown blocked
- * a second sabha on the same day (Aarti then Katha), so totals never added up.
+ * Drop invalid mandir check-ins: double-taps within two minutes, a second
+ * check-in in the same morning/evening slot, or more than two sabhas on the
+ * same UK day.
  */
 async function rejectMandirCheckinSpam(db, submissionId, afterSnap) {
   if (!afterSnap?.exists) return false
@@ -1418,63 +1434,114 @@ async function rejectMandirCheckinSpam(db, submissionId, afterSnap) {
   const dayKey = typeof after.dayKey === 'string' ? after.dayKey.trim() : ''
   if (!userChallengeKey || !dayKey) return false
 
-  const challengeSnap = await db.doc(`niyamChallenges/${MANDIR_CHECKIN_CHALLENGE_ID}`).get()
-  const challengeData = challengeSnap.data() || {}
-  const maxPerDay = niyamCounters(challengeData.maxPerSubmission) || 3
-
   const snap = await db.collection('niyamSubmissions')
     .where('userChallengeKey', '==', userChallengeKey)
-    .orderBy(FieldPath.documentId(), 'desc')
+    .orderBy(FieldPath.documentId(), 'asc')
     .limit(MANDIR_CHECKIN_RECENT_LIMIT)
     .get()
 
   const newMs = submissionCreatedMs(after)
-  let todayTotal = 0
-
-  for (const doc of snap.docs) {
-    const row = doc.data() || {}
-    if (row.status === 'rejected') continue
-    if (row.dayKey === dayKey) todayTotal += niyamCounters(row.amount)
-  }
-
-  if (todayTotal > maxPerDay) {
-    await db.doc(`niyamSubmissions/${submissionId}`).update({
-      status: 'rejected',
-      statusKey: `${MANDIR_CHECKIN_CHALLENGE_ID}__rejected`,
-      spamRejected: true,
-      reviewNote: 'Over the daily sabha limit for this niyam.',
-      reviewedAt: FieldValue.serverTimestamp(),
-      reviewedBy: 'system:mandir-spam'
-    })
-    logger.info('Rejected mandir check-in over daily limit', {
-      submissionId,
-      userId: after.userId,
-      dayKey,
-      todayTotal,
-      maxPerDay
-    })
-    return true
-  }
-
-  if (!newMs) return false
+  const newSlot = mandirSlotOf(newMs || Date.now())
+  const todayRows = []
 
   for (const doc of snap.docs) {
     if (doc.id === submissionId) continue
     const row = doc.data() || {}
     if (row.status === 'rejected') continue
     if (row.dayKey !== dayKey) continue
-    const previousMs = submissionCreatedMs(row)
-    if (previousMs && newMs - previousMs < MANDIR_CHECKIN_DOUBLE_TAP_MS) {
-      await db.doc(`niyamSubmissions/${submissionId}`).update({
-        status: 'rejected',
-        statusKey: `${MANDIR_CHECKIN_CHALLENGE_ID}__rejected`,
-        spamRejected: true,
-        reviewNote: 'Checked in again too soon — wait two minutes between sabhas.',
-        reviewedAt: FieldValue.serverTimestamp(),
-        reviewedBy: 'system:mandir-spam'
-      })
+    todayRows.push({ id: doc.id, row, ms: submissionCreatedMs(row) })
+  }
+
+  if (todayRows.length >= MANDIR_CHECKIN_MAX_PER_DAY) {
+    await markNiyamSpamRejected(db, submissionId, after.challengeId, 'Already checked in for morning and evening today.')
+    logger.info('Rejected mandir check-in over daily limit', {
+      submissionId,
+      userId: after.userId,
+      dayKey,
+      todayTotal: todayRows.length
+    })
+    return true
+  }
+
+  if (todayRows.some(item => mandirSlotOf(item.ms || newMs) === newSlot)) {
+    await markNiyamSpamRejected(db, submissionId, after.challengeId, `Already checked in for the ${newSlot} sabha today.`)
+    logger.info('Rejected mandir check-in duplicate slot', {
+      submissionId,
+      userId: after.userId,
+      dayKey,
+      slot: newSlot
+    })
+    return true
+  }
+
+  if (!newMs) return false
+
+  for (const item of todayRows) {
+    if (item.ms && newMs - item.ms < MANDIR_CHECKIN_DOUBLE_TAP_MS) {
+      await markNiyamSpamRejected(db, submissionId, after.challengeId, 'Checked in again too soon — wait two minutes between sabhas.')
       logger.info('Rejected mandir check-in double-tap', {
         submissionId,
+        userId: after.userId,
+        previousMs: item.ms,
+        newMs
+      })
+      return true
+    }
+  }
+  return false
+}
+
+/** One minute between entries on the same count-mode niyam — stops accidental double taps. */
+const NIYAM_DOUBLE_TAP_MS = 60 * 1000
+const NIYAM_DOUBLE_TAP_RECENT_LIMIT = 20
+
+async function markNiyamSpamRejected(db, submissionId, challengeId, reviewNote) {
+  await db.doc(`niyamSubmissions/${submissionId}`).update({
+    status: 'rejected',
+    statusKey: `${challengeId}__rejected`,
+    spamRejected: true,
+    reviewNote,
+    reviewedAt: FieldValue.serverTimestamp(),
+    reviewedBy: 'system:niyam-spam'
+  })
+}
+
+/**
+ * Reject a second entry on the same niyam within the double-tap window.
+ * Mandir check-ins use `rejectMandirCheckinSpam` instead.
+ */
+async function rejectNiyamDoubleTap(db, submissionId, afterSnap) {
+  if (!afterSnap?.exists) return false
+  const after = afterSnap.data() || {}
+  const challengeId = typeof after.challengeId === 'string' ? after.challengeId.trim() : ''
+  if (!challengeId || challengeId === MANDIR_CHECKIN_CHALLENGE_ID) return false
+  const userChallengeKey = typeof after.userChallengeKey === 'string' ? after.userChallengeKey.trim() : ''
+  if (!userChallengeKey) return false
+
+  const newMs = submissionCreatedMs(after)
+  if (!newMs) return false
+
+  const snap = await db.collection('niyamSubmissions')
+    .where('userChallengeKey', '==', userChallengeKey)
+    .orderBy(FieldPath.documentId(), 'asc')
+    .limit(NIYAM_DOUBLE_TAP_RECENT_LIMIT)
+    .get()
+
+  for (const doc of snap.docs) {
+    if (doc.id === submissionId) continue
+    const row = doc.data() || {}
+    if (row.status === 'rejected') continue
+    const previousMs = submissionCreatedMs(row)
+    if (previousMs && newMs - previousMs < NIYAM_DOUBLE_TAP_MS) {
+      await markNiyamSpamRejected(
+        db,
+        submissionId,
+        challengeId,
+        'Added again too soon — wait a minute between entries.'
+      )
+      logger.info('Rejected niyam double-tap', {
+        submissionId,
+        challengeId,
         userId: after.userId,
         previousMs,
         newMs
@@ -1676,8 +1743,10 @@ exports.syncNiyamChallengeTotals = onDocumentWritten(
     const db = getFirestore()
 
     if (!before && event.data?.after) {
-      const rejected = await rejectMandirCheckinSpam(db, event.params.submissionId, event.data.after)
-      if (rejected) return
+      const mandirRejected = await rejectMandirCheckinSpam(db, event.params.submissionId, event.data.after)
+      if (mandirRejected) return
+      const doubleTapRejected = await rejectNiyamDoubleTap(db, event.params.submissionId, event.data.after)
+      if (doubleTapRejected) return
     }
 
     // Spam check-ins are marked rejected without ever receiving a create delta.

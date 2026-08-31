@@ -147,7 +147,7 @@
           <span>{{ mandirCheckinBlockedMessage(checkinCooldown) }}</span>
         </p>
         <p v-else-if="atMandir" class="mt-5 text-sm text-[hsl(var(--muted-foreground))]">
-          One tap adds one sabha — Aarti, Chesta or Katha you attended in person.
+          One morning and one evening check-in each day — Aarti, Chesta or Katha in person.
         </p>
       </div>
       <div v-else>
@@ -264,7 +264,14 @@
         </div>
 
         <p
-          v-if="value >= challenge.maxPerSubmission"
+          v-if="submitCooldown.blocked"
+          class="mt-4 flex items-start gap-2 rounded-xl bg-[hsl(var(--muted))] px-3 py-2.5 text-sm"
+        >
+          <IconInfoCircle class="mt-0.5 h-4 w-4 shrink-0 text-[hsl(var(--golden-900))]" aria-hidden="true" />
+          <span>{{ niyamDoubleTapMessage(submitCooldown.remainingMs) }}</span>
+        </p>
+        <p
+          v-else-if="value >= challenge.maxPerSubmission"
           class="mt-4 flex items-start gap-2 rounded-xl bg-[hsl(var(--muted))] px-3 py-2.5 text-sm"
         >
           <IconInfoCircle class="mt-0.5 h-4 w-4 shrink-0 text-[hsl(var(--golden-900))]" aria-hidden="true" />
@@ -329,10 +336,12 @@
         v-else-if="!isCheckin"
         type="button"
         class="w-full rounded-xl bg-[hsl(var(--primary))] px-4 py-3.5 text-base font-semibold text-white transition-colors hover:bg-[hsl(var(--primary))]/90 disabled:opacity-50"
-        :disabled="submitting || value < 1"
+        :disabled="submitting || value < 1 || submitCooldown.blocked"
         @click="commit(value)"
       >
-        {{ commitLabel }}
+        {{ submitCooldown.blocked
+          ? `Wait ${formatCheckinCooldownRemaining(submitCooldown.remainingMs)}`
+          : commitLabel }}
       </button>
 
       <div v-else-if="isCheckin" class="space-y-2">
@@ -377,6 +386,9 @@ import {
   mandirCheckinCooldown,
   formatCheckinCooldownRemaining,
   needsReview,
+  niyamDoubleTapMessage,
+  niyamSubmitCooldown,
+  NIYAM_DOUBLE_TAP_MS,
   presetsFor,
   reviewReason,
   SUBMISSION_NOTE_MAX,
@@ -464,11 +476,21 @@ const checkinCooldown = computed(() => {
   )
 })
 
+const submitCooldown = computed(() => {
+  if (isCheckin.value || !props.challenge) return { blocked: false, nextAt: 0, remainingMs: 0 }
+  return niyamSubmitCooldown(props.mySubmissions, NIYAM_DOUBLE_TAP_MS, now.value)
+})
+
 const checkinButtonLabel = computed(() => {
   if (props.submitting) return 'Adding…'
   if (props.checkingLocation) return 'Checking location…'
   if (checkinCooldown.value.blocked) {
-    if (checkinCooldown.value.reason === 'daily') return 'All sabhas logged today'
+    if (checkinCooldown.value.reason === 'daily') return 'Both sabhas logged today'
+    if (checkinCooldown.value.reason === 'slot') {
+      return checkinCooldown.value.slot === 'morning'
+        ? 'Morning already logged'
+        : 'Evening already logged'
+    }
     return `Next sabha in ${formatCheckinCooldownRemaining(checkinCooldown.value.remainingMs)}`
   }
   return 'Manually check in'
@@ -482,7 +504,7 @@ function toggleAutoCheckIn() {
 const sheetSubtitle = computed(() => {
   if (!props.challenge) return ''
   if (phase.value !== 'input') return ''
-  if (isCheckin.value) return 'Were you at the sabha?'
+  if (isCheckin.value) return 'Morning or evening sabha?'
   return 'How many have you done?'
 })
 
@@ -588,7 +610,7 @@ function startUndoTimer() {
 }
 
 function commit(amount: number) {
-  if (!props.challenge || props.submitting || props.checkingLocation || checkinCooldown.value.blocked) return
+  if (!props.challenge || props.submitting || props.checkingLocation || checkinCooldown.value.blocked || submitCooldown.value.blocked) return
   localError.value = ''
   const requested = clamp(amount)
   if (requested < 1) {

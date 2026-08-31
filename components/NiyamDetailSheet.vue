@@ -110,10 +110,16 @@
         </p>
         <p>
           <span class="font-semibold text-[hsl(var(--foreground))]">How entries are counted:</span>
-          up to {{ formatCount(challenge.autoApproveMax) }}
-          {{ unitLabel(challenge, challenge.autoApproveMax) }} in one entry joins the total straight away.
-          {{ reviewReason(challenge) }}
-          The top five contributors appear on the leaderboard above.
+          <template v-if="isCheckin">
+            Check-ins count straight away — one for the morning sabha and one for the evening
+            (from 2pm UK). No admin review. The top five contributors appear on the leaderboard above.
+          </template>
+          <template v-else>
+            up to {{ formatCount(challenge.autoApproveMax) }}
+            {{ unitLabel(challenge, challenge.autoApproveMax) }} in one entry joins the total straight away.
+            {{ reviewReason(challenge) }}
+            The top five contributors appear on the leaderboard above.
+          </template>
         </p>
         <p v-if="!published" class="flex items-start gap-2 text-[hsl(var(--foreground))]">
           <IconLock class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />

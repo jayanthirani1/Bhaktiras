@@ -1,7 +1,6 @@
 import {
   collection,
   doc,
-  documentId,
   getDoc,
   getDocs,
   limit,
@@ -30,6 +29,9 @@ import {
   isPublished,
   mandirCheckinBlockedMessage,
   mandirCheckinCooldown,
+  niyamDoubleTapMessage,
+  niyamSubmitCooldown,
+  NIYAM_DOUBLE_TAP_MS,
   mergeChallenges,
   safeMemberName,
   sortSubmissionsNewestFirst,
@@ -471,7 +473,7 @@ export function useNiyamChallenges() {
           const snap = await getDocs(query(
             collection(db, 'niyamSubmissions'),
             where('userChallengeKey', '==', userChallengeKey(uid, c.id)),
-            orderBy(documentId(), 'desc'),
+            // Document ids embed an inverted timestamp, so default id order is newest-first.
             limit(MY_SUBMISSION_LIMIT)
           ))
           return snap.docs.map(d => mapSubmission(d.id, d.data()))
@@ -508,7 +510,7 @@ export function useNiyamChallenges() {
     const db = getDb()
     if (!db) throw new Error('Firebase is not configured')
     const checkin = inputModeFor(challenge) === 'checkin'
-    const attempts = checkin ? 12 : 1
+    const attempts = 12
     for (let i = 0; i < attempts; i++) {
       const snap = await getDoc(doc(db, 'niyamSubmissions', id))
       if (!snap.exists()) {
@@ -524,10 +526,11 @@ export function useNiyamChallenges() {
           saved.reviewNote?.trim()
             || (checkin
               ? 'This check-in was not counted — you may have already logged today\'s sabhas or tapped too soon.'
-              : 'This entry was not counted.')
+              : 'This entry was not counted — you may have tapped too soon. Wait a minute and try again.')
         )
       }
-      if (!checkin || i >= attempts - 1) return saved
+      // Give the spam trigger a moment to mark accidental double-taps.
+      if (i >= 3) return saved
       await new Promise(resolve => setTimeout(resolve, 250 * (i + 1)))
     }
     throw new Error('Your entry could not be confirmed. Please try again.')
@@ -565,6 +568,11 @@ export function useNiyamChallenges() {
       )
       if (cooldown.blocked) {
         throw new Error(mandirCheckinBlockedMessage(cooldown))
+      }
+    } else {
+      const cooldown = niyamSubmitCooldown(submissionsFor(challenge.id), NIYAM_DOUBLE_TAP_MS)
+      if (cooldown.blocked) {
+        throw new Error(niyamDoubleTapMessage(cooldown.remainingMs))
       }
     }
 
