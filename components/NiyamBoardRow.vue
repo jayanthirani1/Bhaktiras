@@ -29,7 +29,7 @@
 
           <div class="pointer-events-auto shrink-0">
             <button
-              v-if="canLog"
+              v-if="canLog && !logDisabled"
               type="button"
               class="flex h-12 min-w-[3rem] items-center justify-center gap-1 rounded-full bg-[hsl(var(--primary))] px-3.5 text-sm font-semibold text-white transition-colors hover:bg-[hsl(var(--primary))]/90"
               @click="emit('log')"
@@ -39,6 +39,13 @@
               <span>{{ isCheckin ? "I'm here" : 'Log' }}</span>
               <span class="sr-only">— add to {{ challenge.title }}</span>
             </button>
+            <span
+              v-else-if="logDisabled"
+              class="flex h-12 items-center gap-1.5 rounded-full bg-[hsl(var(--muted))] px-3 text-xs font-semibold text-[hsl(var(--muted-foreground))]"
+            >
+              <IconCheck class="h-3.5 w-3.5" aria-hidden="true" />
+              {{ logDisabledLabel || 'Done for today' }}
+            </span>
             <button
               v-else-if="needsSignIn"
               type="button"
@@ -101,7 +108,7 @@
 </template>
 
 <script setup lang="ts">
-import { IconLock, IconMapPin, IconPlus } from '@tabler/icons-vue'
+import { IconCheck, IconLock, IconMapPin, IconPlus } from '@tabler/icons-vue'
 import type { NiyamChallenge, NiyamChallengeStats, NiyamIconKey } from '~/types'
 import {
   challengeWindow,
@@ -121,6 +128,8 @@ const props = defineProps<{
   isLoggedIn?: boolean
   myApproved?: number
   myPending?: number
+  logDisabled?: boolean
+  logDisabledLabel?: string
 }>()
 
 const emit = defineEmits<{ detail: []; log: []; 'sign-in': [] }>()
@@ -135,6 +144,8 @@ const GLOSSES: Record<NiyamIconKey, string> = {
   niyam: 'entries'
 }
 
+const logDisabled = computed(() => props.logDisabled === true)
+const logDisabledLabel = computed(() => props.logDisabledLabel || 'Done for today')
 const published = computed(() => isPublished(props.challenge))
 const isLoggedIn = computed(() => props.isLoggedIn === true)
 const myApproved = computed(() => Math.max(0, Number(props.myApproved) || 0))

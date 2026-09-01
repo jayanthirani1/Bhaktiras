@@ -1,5 +1,6 @@
 import type {
   FirestoreTimestampLike,
+  MandirCheckinSlot,
   NiyamChallenge,
   NiyamIconKey,
   NiyamInputMode,
@@ -104,7 +105,9 @@ export const MANDIR_DARSHAN_CHALLENGE_ID = 'mandir-darshan'
 /** UK hour when the evening sabha slot begins (14:00 London). */
 export const MANDIR_EVENING_SLOT_HOUR = 14
 
-export type MandirCheckinSlot = 'morning' | 'evening'
+export type { MandirCheckinSlot } from '~/types'
+
+export type MandirManualCheckinChoice = MandirCheckinSlot | 'both'
 
 export function isCheckinChallenge(challenge: Pick<NiyamChallenge, 'inputMode'>): boolean {
   return challenge.inputMode === 'checkin'
@@ -379,8 +382,123 @@ export function mandirCheckinsToday(
 }
 
 function submissionSlot(submission: NiyamSubmission): MandirCheckinSlot {
+  if (submission.checkinSlot === 'morning' || submission.checkinSlot === 'evening') {
+    return submission.checkinSlot
+  }
   const ms = toMillis(submission.createdAt)
   return mandirCheckinSlot(ms || Date.now())
+}
+
+/** Which sabhas are already counted today — from amounts and explicit slots. */
+export function mandirSabhaLoggedToday(
+  submissions: NiyamSubmission[],
+  todayId = ukDateId()
+): { morning: boolean; evening: boolean } {
+  let morning = false
+  let evening = false
+  for (const s of submissions) {
+    if (s.status === 'rejected' || s.dayKey !== todayId) continue
+    const amount = Math.max(0, Number(s.amount) || 0)
+    if (amount >= 2) {
+      morning = true
+      evening = true
+      continue
+    }
+    if (amount >= 1) {
+      const slot = submissionSlot(s)
+      if (slot === 'morning') morning = true
+      else evening = true
+    }
+  }
+  return { morning, evening }
+}
+
+/** Plan a manual check-in from home — amount 2 fills both sabhas. */
+export function mandirManualCheckinPlan(
+  submissions: NiyamSubmission[],
+  choice: MandirManualCheckinChoice,
+  todayId = ukDateId()
+): { amount: number; checkinSlot?: MandirCheckinSlot; error?: string } {
+  const logged = mandirSabhaLoggedToday(submissions, todayId)
+  const totalToday = mandirCheckinsToday(submissions, todayId)
+  if (logged.morning && logged.evening) {
+    return { amount: 0, error: 'You have already logged both sabhas today.' }
+  }
+  if (choice === 'both') {
+    if (totalToday > 0) {
+      return { amount: 0, error: 'Log the remaining sabha instead of both.' }
+    }
+    if (logged.morning || logged.evening) {
+      return { amount: 0, error: 'Log the remaining sabha instead of both.' }
+    }
+    return { amount: 2 }
+  }
+  if (totalToday + 1 > MANDIR_CHECKIN_MAX_PER_DAY) {
+    return { amount: 0, error: 'You can only log two sabhas per day.' }
+  }
+  if (choice === 'morning') {
+    if (logged.morning) return { amount: 0, error: 'Morning sabha is already logged today.' }
+    return { amount: 1, checkinSlot: 'morning' }
+  }
+  if (logged.evening) return { amount: 0, error: 'Evening sabha is already logged today.' }
+  return { amount: 1, checkinSlot: 'evening' }
+}
+
+export function mandirDailyCheckinComplete(
+  submissions: NiyamSubmission[],
+  todayId = ukDateId()
+): boolean {
+  const logged = mandirSabhaLoggedToday(submissions, todayId)
+  return logged.morning && logged.evening
+}
+
+/** Client + server guard — no more than two sabhas per UK day, no duplicate slots. */
+export function validateMandirCheckinSubmission(
+  submissions: NiyamSubmission[],
+  request: { amount: number; checkinSlot?: MandirCheckinSlot | null },
+  now: number = Date.now(),
+  todayId = ukDateId()
+): { ok: boolean; error?: string } {
+  const amount = Math.floor(Number(request.amount) || 0)
+  if (amount < 1) return { ok: false, error: 'Enter a valid check-in.' }
+
+  const logged = mandirSabhaLoggedToday(submissions, todayId)
+  if (logged.morning && logged.evening) {
+    return { ok: false, error: 'You have already logged both sabhas today.' }
+  }
+
+  const totalToday = mandirCheckinsToday(submissions, todayId)
+  if (totalToday + amount > MANDIR_CHECKIN_MAX_PER_DAY) {
+    return { ok: false, error: 'You can only log two sabhas per day.' }
+  }
+
+  const manual = amount >= 2 || !!request.checkinSlot
+  if (manual) {
+    const choice: MandirManualCheckinChoice = amount >= 2
+      ? 'both'
+      : request.checkinSlot!
+    const plan = mandirManualCheckinPlan(submissions, choice, todayId)
+    if (plan.error) return { ok: false, error: plan.error }
+    if (plan.amount !== amount) return { ok: false, error: 'Invalid check-in amount.' }
+  } else {
+    const cooldown = mandirCheckinCooldown(submissions, MANDIR_CHECKIN_MAX_PER_DAY, now, todayId)
+    if (cooldown.blocked) {
+      return { ok: false, error: mandirCheckinBlockedMessage(cooldown) }
+    }
+  }
+
+  const latest = sortSubmissionsNewestFirst(
+    submissions.filter(s => s.status !== 'rejected' && s.dayKey === todayId)
+  )[0]
+  const lastMs = toMillis(latest?.createdAt)
+  if (lastMs) {
+    const remainingMs = Math.max(0, lastMs + MANDIR_CHECKIN_DOUBLE_TAP_MS - now)
+    if (remainingMs > 0) {
+      return { ok: false, error: mandirCheckinBlockedMessage({ blocked: true, remainingMs, reason: 'double-tap', nextAt: 0 }) }
+    }
+  }
+
+  return { ok: true }
 }
 
 export function mandirCheckinCooldown(
@@ -391,14 +509,18 @@ export function mandirCheckinCooldown(
 ): MandirCheckinCooldown {
   const active = submissions.filter(s => s.status !== 'rejected')
   const today = active.filter(s => s.dayKey === todayId)
+  const logged = mandirSabhaLoggedToday(submissions, todayId)
   const slot = mandirCheckinSlot(now)
 
-  if (today.length >= MANDIR_CHECKIN_MAX_PER_DAY) {
+  if (logged.morning && logged.evening) {
     return { blocked: true, nextAt: 0, remainingMs: 0, reason: 'daily', slot }
   }
 
-  if (today.some(s => submissionSlot(s) === slot)) {
-    return { blocked: true, nextAt: 0, remainingMs: 0, reason: 'slot', slot }
+  if (slot === 'morning' && logged.morning) {
+    return { blocked: true, nextAt: 0, remainingMs: 0, reason: 'slot', slot: 'morning' }
+  }
+  if (slot === 'evening' && logged.evening) {
+    return { blocked: true, nextAt: 0, remainingMs: 0, reason: 'slot', slot: 'evening' }
   }
 
   const latest = sortSubmissionsNewestFirst(today)[0]

@@ -654,7 +654,8 @@ service cloud.firestore {
         && submissionId.matches('^' + request.resource.data.challengeId + '__.*')
         && request.resource.data.keys().hasOnly([
              'challengeId', 'userId', 'userName', 'amount', 'note',
-             'status', 'statusKey', 'userChallengeKey', 'dayKey', 'createdAt'
+             'status', 'statusKey', 'userChallengeKey', 'dayKey', 'createdAt',
+             'checkinSlot'
            ])
         && request.resource.data.keys().hasAll([
              'challengeId', 'userId', 'userName', 'amount',
@@ -683,6 +684,14 @@ service cloud.firestore {
              (('inputMode' in challenge()) && challenge().inputMode == 'checkin')
                ? 'approved'
                : (request.resource.data.amount <= autoApproveMax(challenge()) ? 'approved' : 'pending')
+           )
+        && (
+             !('checkinSlot' in request.resource.data)
+             || (
+               (('inputMode' in challenge()) && challenge().inputMode == 'checkin')
+               && request.resource.data.checkinSlot in ['morning', 'evening']
+               && request.resource.data.amount == 1
+             )
            );
 
       // Only an admin decides what counts. Identity, amount, day and the
@@ -692,7 +701,7 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly([
              'challengeId', 'userId', 'userName', 'amount', 'note',
              'status', 'statusKey', 'userChallengeKey', 'dayKey', 'createdAt',
-             'reviewedAt', 'reviewedBy', 'reviewNote'
+             'checkinSlot', 'reviewedAt', 'reviewedBy', 'reviewNote'
            ])
         && request.resource.data.challengeId == resource.data.challengeId
         && request.resource.data.userId == resource.data.userId

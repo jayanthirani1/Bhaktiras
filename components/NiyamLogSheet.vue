@@ -140,15 +140,69 @@
         </div>
 
         <p
-          v-if="checkinCooldown.blocked"
+          v-if="dailyCheckinComplete"
+          class="mt-5 flex items-start gap-2 rounded-xl bg-[hsl(var(--golden-50))] px-3 py-2.5 text-left text-sm text-[hsl(var(--golden-900))]"
+        >
+          <IconCheck class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+          <span>You have logged both sabhas for today. You can check in again tomorrow.</span>
+        </p>
+        <p
+          v-else-if="checkinCooldown.blocked"
           class="mt-5 flex items-start gap-2 rounded-xl bg-[hsl(var(--muted))] px-3 py-2.5 text-left text-sm"
         >
           <IconInfoCircle class="mt-0.5 h-4 w-4 shrink-0 text-[hsl(var(--golden-900))]" aria-hidden="true" />
           <span>{{ mandirCheckinBlockedMessage(checkinCooldown) }}</span>
         </p>
-        <p v-else-if="atMandir" class="mt-5 text-sm text-[hsl(var(--muted-foreground))]">
-          One morning and one evening check-in each day — Aarti, Chesta or Katha in person.
+        <p v-else-if="showSabhaPicker" class="mt-5 text-sm text-[hsl(var(--muted-foreground))]">
+          Which sabha did you attend today?
         </p>
+        <p v-else class="mt-5 text-sm text-[hsl(var(--muted-foreground))]">
+          One morning and one evening sabha each day — Aarti, Chesta or Katha in person.
+          <span v-if="atMandir"> Tap below to check in for this sabha.</span>
+          <span v-else> Tap below to log which sabha you attended.</span>
+        </p>
+
+        <div
+          v-if="showSabhaPicker"
+          class="mt-4 space-y-2"
+          role="group"
+          aria-label="Which sabha did you attend?"
+        >
+          <button
+            type="button"
+            class="w-full rounded-xl border border-[hsl(var(--golden-200))] bg-white px-4 py-3.5 text-left text-sm font-semibold text-[hsl(var(--primary))] transition-colors hover:bg-[hsl(var(--golden-50))] disabled:cursor-not-allowed disabled:opacity-40"
+            :disabled="sabhaLogged.morning || submitting"
+            @click="commitSabha('morning')"
+          >
+            Morning sabha
+            <span v-if="sabhaLogged.morning" class="ml-1 font-normal text-[hsl(var(--muted-foreground))]">(already logged)</span>
+          </button>
+          <button
+            type="button"
+            class="w-full rounded-xl border border-[hsl(var(--golden-200))] bg-white px-4 py-3.5 text-left text-sm font-semibold text-[hsl(var(--primary))] transition-colors hover:bg-[hsl(var(--golden-50))] disabled:cursor-not-allowed disabled:opacity-40"
+            :disabled="sabhaLogged.evening || submitting"
+            @click="commitSabha('evening')"
+          >
+            Evening sabha
+            <span v-if="sabhaLogged.evening" class="ml-1 font-normal text-[hsl(var(--muted-foreground))]">(already logged)</span>
+          </button>
+          <button
+            type="button"
+            class="w-full rounded-xl border border-[hsl(var(--golden-200))] bg-[hsl(var(--golden-50))] px-4 py-3.5 text-left text-sm font-semibold text-[hsl(var(--primary))] transition-colors hover:bg-[hsl(var(--golden-100))] disabled:cursor-not-allowed disabled:opacity-40"
+            :disabled="sabhaLogged.morning || sabhaLogged.evening || submitting"
+            @click="commitSabha('both')"
+          >
+            Both sabhas
+            <span class="block text-xs font-normal text-[hsl(var(--muted-foreground))]">Adds 2 to today's count</span>
+          </button>
+          <button
+            type="button"
+            class="w-full rounded-xl px-4 py-2 text-sm font-medium text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]"
+            @click="showSabhaPicker = false"
+          >
+            Back
+          </button>
+        </div>
       </div>
       <div v-else>
         <p class="text-center text-sm text-[hsl(var(--muted-foreground))]">
@@ -348,18 +402,33 @@
           : commitLabel }}
       </button>
 
-      <div v-else-if="isCheckin" class="space-y-2">
+      <div v-else-if="isCheckin && dailyCheckinComplete" class="space-y-2">
+        <p class="rounded-xl bg-[hsl(var(--muted))] px-4 py-3 text-center text-sm text-[hsl(var(--muted-foreground))]">
+          Both sabhas logged for today.
+        </p>
         <button
           type="button"
+          class="w-full rounded-xl border border-[hsl(var(--golden-200))] bg-white px-4 py-3 text-sm font-semibold text-[hsl(var(--primary))] hover:bg-[hsl(var(--golden-50))]"
+          @click="emit('close')"
+        >
+          Close
+        </button>
+      </div>
+
+      <div v-else-if="isCheckin" class="space-y-2">
+        <button
+          v-if="!showSabhaPicker"
+          type="button"
           class="flex w-full items-center justify-center gap-2 rounded-xl bg-[hsl(var(--primary))] px-4 py-5 font-display text-lg font-semibold text-white transition-colors hover:bg-[hsl(var(--primary))]/90 disabled:opacity-50"
-          :disabled="submitting || checkingLocation || checkinCooldown.blocked"
-          @click="commit(1)"
+          :disabled="submitting || checkingLocation || (atMandir ? atMandirCheckinBlocked : sabhaPickerBlocked)"
+          @click="onCheckinClick"
         >
           <IconMapPin class="h-5 w-5" aria-hidden="true" />
           {{ checkinButtonLabel }}
         </button>
-        <p class="text-center text-xs text-[hsl(var(--muted-foreground))]">
-          {{ copy('checkinFooterNote') }}
+        <p v-if="!showSabhaPicker" class="text-center text-xs text-[hsl(var(--muted-foreground))]">
+          <template v-if="atMandir">Check in for the {{ currentSabhaLabel }} sabha.</template>
+          <template v-else>{{ copy('checkinFooterNote') }}</template>
         </p>
       </div>
       </div>
@@ -388,6 +457,11 @@ import {
   isPublished,
   mandirCheckinBlockedMessage,
   mandirCheckinCooldown,
+  mandirCheckinSlot,
+  mandirCheckinSlotLabel,
+  mandirManualCheckinPlan,
+  mandirSabhaLoggedToday,
+  validateMandirCheckinSubmission,
   formatCheckinCooldownRemaining,
   needsReview,
   niyamDoubleTapMessage,
@@ -396,7 +470,9 @@ import {
   presetsFor,
   reviewReason,
   SUBMISSION_NOTE_MAX,
-  unitLabel
+  unitLabel,
+  type MandirCheckinSlot,
+  type MandirManualCheckinChoice
 } from '~/utils/niyamChallenge'
 
 export interface NiyamLogResult {
@@ -426,6 +502,7 @@ const emit = defineEmits<{
   submit: [payload: {
     amount: number
     note: string
+    checkinSlot?: MandirCheckinSlot | null
     done: (result: NiyamLogResult) => void
     fail: (message: string) => void
   }]
@@ -468,10 +545,23 @@ let holdTimer: ReturnType<typeof setTimeout> | null = null
 let holdInterval: ReturnType<typeof setInterval> | null = null
 let undoTimer: ReturnType<typeof setInterval> | null = null
 
+const showSabhaPicker = ref(false)
+
 const published = computed(() => !!props.challenge && isPublished(props.challenge))
 const isCheckin = computed(() => !!props.challenge && inputModeFor(props.challenge) === 'checkin')
 const presets = computed(() => (props.challenge ? presetsFor(props.challenge) : []))
 const permissionDenied = computed(() => props.locationPermission === 'denied')
+const sabhaLogged = computed(() => mandirSabhaLoggedToday(props.mySubmissions))
+const dailyCheckinComplete = computed(() => sabhaLogged.value.morning && sabhaLogged.value.evening)
+const currentSabhaLabel = computed(() => mandirCheckinSlotLabel(mandirCheckinSlot(now.value)))
+
+const atMandirCheckinBlocked = computed(() => dailyCheckinComplete.value || checkinCooldown.value.blocked)
+
+const sabhaPickerBlocked = computed(() => {
+  if (!isCheckin.value) return false
+  if (dailyCheckinComplete.value) return true
+  return checkinCooldown.value.blocked && checkinCooldown.value.reason === 'double-tap'
+})
 
 const checkinCooldown = computed(() => {
   if (!isCheckin.value || !props.challenge) return { blocked: false, nextAt: 0, remainingMs: 0 }
@@ -499,7 +589,8 @@ const checkinButtonLabel = computed(() => {
     }
     return `Next sabha in ${formatCheckinCooldownRemaining(checkinCooldown.value.remainingMs)}`
   }
-  return 'Manually check in'
+  if (props.atMandir) return `Check in — ${currentSabhaLabel.value} sabha`
+  return 'Log sabha'
 })
 
 function toggleAutoCheckIn() {
@@ -536,6 +627,7 @@ function reset() {
   note.value = ''
   showNumber.value = false
   showNote.value = false
+  showSabhaPicker.value = false
   localError.value = ''
   phase.value = 'input'
   result.value = null
@@ -615,22 +707,39 @@ function startUndoTimer() {
   }, 1000)
 }
 
-function commit(amount: number) {
-  if (!props.challenge || props.submitting || props.checkingLocation || checkinCooldown.value.blocked || submitCooldown.value.blocked) return
+function commit(amount: number, checkinSlot?: MandirCheckinSlot | null) {
+  if (!props.challenge || props.submitting || props.checkingLocation || submitCooldown.value.blocked) return
   localError.value = ''
+
   const requested = clamp(amount)
   if (requested < 1) {
     localError.value = `Choose how many ${props.challenge.unit} you have done.`
     return
   }
+
+  if (isCheckin.value) {
+    const verdict = validateMandirCheckinSubmission(props.mySubmissions, {
+      amount: requested,
+      checkinSlot: checkinSlot ?? null
+    })
+    if (!verdict.ok) {
+      localError.value = verdict.error || 'This check-in could not be recorded.'
+      return
+    }
+  } else if (checkinCooldown.value.blocked) {
+    return
+  }
+
   totalBefore.value = props.stats.approvedTotal
   emit('submit', {
     amount: requested,
     note: note.value,
+    checkinSlot: checkinSlot ?? null,
     done: (payload) => {
       committed.value = requested
       result.value = payload
       phase.value = 'done'
+      showSabhaPicker.value = false
       now.value = Date.now()
       startUndoTimer()
       reclaimFocus()
@@ -639,6 +748,27 @@ function commit(amount: number) {
       localError.value = message
     }
   })
+}
+
+function onCheckinClick() {
+  if (!props.challenge || props.submitting || props.checkingLocation) return
+  if (props.atMandir) {
+    if (atMandirCheckinBlocked.value) return
+    commit(1)
+    return
+  }
+  if (sabhaPickerBlocked.value) return
+  showSabhaPicker.value = true
+  localError.value = ''
+}
+
+function commitSabha(choice: MandirManualCheckinChoice) {
+  const plan = mandirManualCheckinPlan(props.mySubmissions, choice)
+  if (plan.error || plan.amount < 1) {
+    localError.value = plan.error || 'Could not log that sabha.'
+    return
+  }
+  commit(plan.amount, plan.checkinSlot ?? null)
 }
 
 function undo() {

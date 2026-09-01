@@ -1411,6 +1411,18 @@ function mandirSlotOf(ms) {
   return ukHourOf(ms) < MANDIR_EVENING_SLOT_HOUR ? 'morning' : 'evening'
 }
 
+function mandirSlotsFilled(row) {
+  const amount = positiveInt(row?.amount)
+  if (amount >= 2) return { morning: true, evening: true }
+  const slot = row?.checkinSlot === 'morning' || row?.checkinSlot === 'evening'
+    ? row.checkinSlot
+    : mandirSlotOf(submissionCreatedMs(row))
+  return {
+    morning: slot === 'morning',
+    evening: slot === 'evening'
+  }
+}
+
 function submissionCreatedMs(row) {
   if (!row?.createdAt) return 0
   if (typeof row.createdAt.toMillis === 'function') return row.createdAt.toMillis()
@@ -1441,18 +1453,23 @@ async function rejectMandirCheckinSpam(db, submissionId, afterSnap) {
     .get()
 
   const newMs = submissionCreatedMs(after)
-  const newSlot = mandirSlotOf(newMs || Date.now())
+  const newFilled = mandirSlotsFilled(after)
   const todayRows = []
+  let morningLogged = false
+  let eveningLogged = false
 
   for (const doc of snap.docs) {
     if (doc.id === submissionId) continue
     const row = doc.data() || {}
     if (row.status === 'rejected') continue
     if (row.dayKey !== dayKey) continue
+    const filled = mandirSlotsFilled(row)
+    morningLogged = morningLogged || filled.morning
+    eveningLogged = eveningLogged || filled.evening
     todayRows.push({ id: doc.id, row, ms: submissionCreatedMs(row) })
   }
 
-  if (todayRows.length >= MANDIR_CHECKIN_MAX_PER_DAY) {
+  if (morningLogged && eveningLogged) {
     await markNiyamSpamRejected(db, submissionId, after.challengeId, 'Already checked in for morning and evening today.')
     logger.info('Rejected mandir check-in over daily limit', {
       submissionId,
@@ -1463,13 +1480,28 @@ async function rejectMandirCheckinSpam(db, submissionId, afterSnap) {
     return true
   }
 
-  if (todayRows.some(item => mandirSlotOf(item.ms || newMs) === newSlot)) {
-    await markNiyamSpamRejected(db, submissionId, after.challengeId, `Already checked in for the ${newSlot} sabha today.`)
+  const todayAmount = todayRows.reduce((sum, item) => sum + positiveInt(item.row.amount), 0)
+  const newAmount = positiveInt(after.amount)
+  if (todayAmount + newAmount > MANDIR_CHECKIN_MAX_PER_DAY) {
+    await markNiyamSpamRejected(db, submissionId, after.challengeId, 'Only two sabhas can be logged per day.')
+    logger.info('Rejected mandir check-in over daily amount', {
+      submissionId,
+      userId: after.userId,
+      dayKey,
+      todayAmount,
+      newAmount
+    })
+    return true
+  }
+
+  if ((newFilled.morning && morningLogged) || (newFilled.evening && eveningLogged)) {
+    const slot = newFilled.morning && morningLogged ? 'morning' : 'evening'
+    await markNiyamSpamRejected(db, submissionId, after.challengeId, `Already checked in for the ${slot} sabha today.`)
     logger.info('Rejected mandir check-in duplicate slot', {
       submissionId,
       userId: after.userId,
       dayKey,
-      slot: newSlot
+      slot
     })
     return true
   }

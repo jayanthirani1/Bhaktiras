@@ -26,6 +26,8 @@
             :is-logged-in="isLoggedIn"
             :my-approved="myApprovedByChallenge[challenge.id] ?? 0"
             :my-pending="myPendingByChallenge[challenge.id] ?? 0"
+            :log-disabled="challenge.id === MANDIR_CHALLENGE_ID && mandirDailyFull"
+            :log-disabled-label="'Done for today'"
             @detail="openDetail(challenge)"
             @log="openLog(challenge)"
             @sign-in="goSignIn"
@@ -82,8 +84,8 @@
 </template>
 
 <script setup lang="ts">
-import type { NiyamChallenge, NiyamChallengeStats, NiyamSubmission, NiyamSubmissionStatus } from '~/types'
-import { inputModeFor, isChallengeOpen, isPublished, mandirCheckinBlockedMessage, mandirCheckinCooldown, type MandirCheckinCooldown } from '~/utils/niyamChallenge'
+import type { MandirCheckinSlot, NiyamChallenge, NiyamChallengeStats, NiyamSubmission, NiyamSubmissionStatus } from '~/types'
+import { inputModeFor, isChallengeOpen, isPublished, mandirCheckinCooldown, mandirDailyCheckinComplete, validateMandirCheckinSubmission, type MandirCheckinCooldown } from '~/utils/niyamChallenge'
 
 const MANDIR_CHALLENGE_ID = 'mandir-darshan'
 
@@ -121,7 +123,6 @@ const {
   alwaysAllowLocation,
   isGeolocationSupported,
   permissionState,
-  confirmAtMandir,
   enableLocationTracking,
   disableLocationTracking
 } = useMandirVisit()
@@ -149,6 +150,10 @@ const activeSubmissions = computed(() => (activeId.value ? submissionsFor(active
 const pulseStats = computed(() => publishedChallenges.value.map(c => statsFor(c.id)))
 
 const mandirChallenge = computed(() => challenges.value.find(c => c.id === MANDIR_CHALLENGE_ID) ?? null)
+
+const mandirDailyFull = computed(() =>
+  mandirDailyCheckinComplete(submissionsFor(MANDIR_CHALLENGE_ID))
+)
 
 function mandirCheckinBlocked(): MandirCheckinCooldown {
   const challenge = mandirChallenge.value
@@ -242,6 +247,7 @@ async function switchToLog() {
 async function onSubmit(payload: {
   amount: number
   note: string
+  checkinSlot?: MandirCheckinSlot | null
   done: (result: { status: NiyamSubmissionStatus; submission: NiyamSubmission | null }) => void
   fail: (message: string) => void
 }) {
@@ -253,26 +259,23 @@ async function onSubmit(payload: {
   }
 
   if (inputModeFor(challenge) === 'checkin') {
-    const cooldown = mandirCheckinCooldown(
+    const verdict = validateMandirCheckinSubmission(
       submissionsFor(challenge.id),
-      challenge.maxPerSubmission
+      { amount: payload.amount, checkinSlot: payload.checkinSlot ?? null }
     )
-    if (cooldown.blocked) {
-      payload.fail(mandirCheckinBlockedMessage(cooldown))
-      return
-    }
-    locationError.value = null
-    const atMandir = await confirmAtMandir()
-    if (!atMandir) {
-      payload.fail(
-        locationError.value || 'You\'re not at the Mandir. Try again when you arrive.'
-      )
+    if (!verdict.ok) {
+      payload.fail(verdict.error || 'This check-in could not be recorded.')
       return
     }
   }
 
   try {
-    const { status, submission } = await submit(challenge, payload.amount, payload.note)
+    const { status, submission } = await submit(
+      challenge,
+      payload.amount,
+      payload.note,
+      payload.checkinSlot ?? null
+    )
     payload.done({ status, submission })
   } catch (e) {
     payload.fail((e as Error).message)

@@ -167,6 +167,9 @@ export type NiyamSubmissionStatus = 'approved' | 'pending' | 'rejected'
  */
 export type NiyamInputMode = 'count' | 'checkin'
 
+/** Morning or evening sabha for Daily Darshan check-ins. */
+export type MandirCheckinSlot = 'morning' | 'evening'
+
 /** Which glyph `NiyamIcon` draws for a niyam. */
 export type NiyamIconKey = 'mala' | 'stotra' | 'mandir' | 'path' | 'dandvat' | 'niyam'
 
@@ -243,6 +246,8 @@ export interface NiyamSubmission {
   reviewedAt?: FirestoreTimestampLike | null
   reviewedBy?: string | null
   reviewNote?: string | null
+  /** Manual check-in away from mandir — which sabha this entry is for. */
+  checkinSlot?: MandirCheckinSlot | null
 }
 
 /**

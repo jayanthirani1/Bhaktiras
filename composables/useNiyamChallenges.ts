@@ -14,6 +14,7 @@ import {
   type Unsubscribe
 } from 'firebase/firestore'
 import type {
+  MandirCheckinSlot,
   NiyamChallenge,
   NiyamChallengeStats,
   NiyamContributor,
@@ -27,8 +28,7 @@ import {
   inputModeFor,
   isChallengeOpen,
   isPublished,
-  mandirCheckinBlockedMessage,
-  mandirCheckinCooldown,
+  validateMandirCheckinSubmission,
   niyamDoubleTapMessage,
   niyamSubmitCooldown,
   NIYAM_DOUBLE_TAP_MS,
@@ -129,6 +129,8 @@ export function mapStats(id: string, data: Record<string, unknown> | undefined):
 
 export function mapSubmission(id: string, data: Record<string, unknown>): NiyamSubmission {
   const status = String(data.status || 'pending') as NiyamSubmissionStatus
+  const rawSlot = data.checkinSlot
+  const checkinSlot = rawSlot === 'morning' || rawSlot === 'evening' ? rawSlot : null
   return {
     id,
     challengeId: String(data.challengeId || ''),
@@ -140,6 +142,7 @@ export function mapSubmission(id: string, data: Record<string, unknown>): NiyamS
     statusKey: String(data.statusKey || ''),
     userChallengeKey: String(data.userChallengeKey || ''),
     dayKey: String(data.dayKey || ''),
+    checkinSlot,
     createdAt: data.createdAt as NiyamSubmission['createdAt'],
     reviewedAt: (data.reviewedAt as NiyamSubmission['reviewedAt']) ?? null,
     reviewedBy: (data.reviewedBy as string | null) ?? null,
@@ -557,7 +560,8 @@ export function useNiyamChallenges() {
   async function submit(
     challenge: NiyamChallenge,
     amountInput: number,
-    noteInput = ''
+    noteInput = '',
+    checkinSlotInput?: MandirCheckinSlot | null
   ): Promise<{ status: NiyamSubmissionStatus; submission: NiyamSubmission }> {
     if (submitting.value) throw new Error('Already saving')
     const db = getDb()
@@ -576,13 +580,11 @@ export function useNiyamChallenges() {
     }
 
     if (inputModeFor(challenge) === 'checkin') {
-      const cooldown = mandirCheckinCooldown(
+      const verdict = validateMandirCheckinSubmission(
         submissionsFor(challenge.id),
-        challenge.maxPerSubmission
+        { amount, checkinSlot: checkinSlotInput ?? null }
       )
-      if (cooldown.blocked) {
-        throw new Error(mandirCheckinBlockedMessage(cooldown))
-      }
+      if (!verdict.ok) throw new Error(verdict.error || 'This check-in could not be recorded.')
     } else {
       const cooldown = niyamSubmitCooldown(submissionsFor(challenge.id), NIYAM_DOUBLE_TAP_MS)
       if (cooldown.blocked) {
@@ -592,6 +594,7 @@ export function useNiyamChallenges() {
 
     const status = statusForAmount(challenge, amount)
     const note = noteInput.trim().slice(0, SUBMISSION_NOTE_MAX)
+    const checkinSlot = amount === 1 && checkinSlotInput ? checkinSlotInput : null
     const id = buildSubmissionId(challenge.id)
     const beforeStats = statsFor(challenge.id)
 
@@ -609,6 +612,7 @@ export function useNiyamChallenges() {
       statusKey: statusKey(challenge.id, status),
       userChallengeKey: userChallengeKey(uid, challenge.id),
       dayKey,
+      checkinSlot,
       createdAt: new Date(),
       reviewedAt: null,
       reviewedBy: null,
@@ -630,6 +634,7 @@ export function useNiyamChallenges() {
         statusKey: statusKey(challenge.id, status),
         userChallengeKey: userChallengeKey(uid, challenge.id),
         dayKey,
+        ...(checkinSlot ? { checkinSlot } : {}),
         createdAt: serverTimestamp()
       })
 
