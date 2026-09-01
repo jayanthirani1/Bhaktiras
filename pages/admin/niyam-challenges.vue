@@ -172,6 +172,22 @@
               />
             </div>
 
+            <div>
+              <label :for="`${uid}-gloss`" class="admin-label">Sub-line on the board</label>
+              <input
+                :id="`${uid}-gloss`"
+                v-model="form.gloss"
+                :maxlength="GLOSS_MAX"
+                class="admin-input"
+                :placeholder="NIYAM_GLOSS_BY_ICON[form.icon] || form.unit"
+              >
+              <p class="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
+                The small grey line under the niyam's name on <code>/niyams</code> — plain English
+                under the Sanskrit. Blank uses the wording that goes with the
+                <strong>{{ form.icon }}</strong> icon, shown above.
+              </p>
+            </div>
+
             <div class="grid gap-3 sm:grid-cols-3">
               <div>
                 <label :for="`${uid}-target`" class="admin-label">Target</label>
@@ -655,8 +671,10 @@ import {
   DEFAULT_AUTO_APPROVE_MAX,
   DEFAULT_MAX_PER_SUBMISSION,
   formatCount,
+  GLOSS_MAX,
   isChallengeOpen,
   needsReview,
+  NIYAM_GLOSS_BY_ICON,
   RESOURCE_LABEL_MAX,
   RESOURCE_URL_MAX,
   safeResourceUrl,
@@ -746,6 +764,7 @@ const form = reactive({
   inputMode: 'count' as NiyamInputMode,
   presets: '',
   hint: '',
+  gloss: '',
   resourceUrl: '',
   resourceLabel: '',
   icon: 'niyam' as NiyamIconKey
@@ -818,6 +837,7 @@ const previewChallenge = computed<NiyamChallenge>(() => ({
   inputMode: form.inputMode,
   presets: presetNumbers.value,
   hint: form.hint,
+  gloss: form.gloss,
   resourceUrl: safeResourceUrl(form.resourceUrl),
   resourceLabel: form.resourceLabel.trim(),
   icon: form.icon
@@ -917,6 +937,7 @@ function openNew() {
     inputMode: 'count',
     presets: '1, 5, 11',
     hint: '',
+    gloss: '',
     resourceUrl: '',
     resourceLabel: '',
     icon: 'niyam'
@@ -951,6 +972,7 @@ async function openEdit(challenge: NiyamChallenge) {
     inputMode: challenge.inputMode || 'count',
     presets: (challenge.presets || []).join(', '),
     hint: challenge.hint || '',
+    gloss: challenge.gloss || '',
     resourceUrl: challenge.resourceUrl || '',
     resourceLabel: challenge.resourceLabel || '',
     icon: challenge.icon || 'niyam'
@@ -1017,6 +1039,7 @@ async function save() {
     inputMode: form.inputMode,
     presets: presetNumbers.value,
     hint: form.hint.trim(),
+    gloss: form.gloss.trim().slice(0, GLOSS_MAX),
     // Normalised, not just trimmed: an unusable href is stored as no link at
     // all rather than as a dead one the devotee finds out about by tapping it.
     resourceUrl: safeResourceUrl(form.resourceUrl),

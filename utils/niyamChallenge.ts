@@ -604,3 +604,30 @@ export function resourceUrlHost(value: string): string {
     return ''
   }
 }
+
+/** Longest the one-line gloss under a niyam's name can be. */
+export const GLOSS_MAX = 60
+
+/**
+ * Plain English under the Sanskrit name, when a niyam has not been given its
+ * own wording.
+ *
+ * Keyed by icon rather than by id so a niyam an admin creates still gets a
+ * sensible line. It is only the fallback: `gloss` on the challenge wins, which
+ * is what makes the line editable per niyam rather than fixed in the build.
+ */
+export const NIYAM_GLOSS_BY_ICON: Record<NiyamIconKey, string> = {
+  stotra: 'recitations of the Namavali',
+  mala: 'rounds of the mala',
+  mandir: 'morning and evening sabhas',
+  path: 'complete paths, all five chapters',
+  dandvat: 'pranaams offered',
+  niyam: 'entries'
+}
+
+/** The line shown under a niyam's title on the board. */
+export function glossFor(challenge: NiyamChallenge): string {
+  const own = (challenge.gloss || '').trim()
+  if (own) return own
+  return NIYAM_GLOSS_BY_ICON[iconFor(challenge)] || challenge.unit
+}

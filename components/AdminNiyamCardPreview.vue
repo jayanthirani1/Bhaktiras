@@ -8,6 +8,7 @@
         <NiyamIcon :name="iconFor(challenge)" class="mt-0.5 h-5 w-5 shrink-0 text-[hsl(var(--golden-900))]" />
         <div class="min-w-0">
           <p class="font-display text-lg text-[hsl(var(--primary))]">{{ challenge.title || 'Untitled niyam' }}</p>
+          <p class="mt-0.5 text-xs text-[hsl(var(--muted-foreground))]">{{ glossFor(challenge) }}</p>
           <p v-if="challenge.detail" class="mt-0.5 text-sm text-[hsl(var(--muted-foreground))]">
             {{ challenge.detail }}
           </p>
@@ -80,7 +81,7 @@
 <script setup lang="ts">
 import type { NiyamChallenge } from '~/types'
 import { formatBigCount } from '~/composables/useAdminNiyamChallenges'
-import { formatCount, iconFor, percentOf, unitLabel } from '~/utils/niyamChallenge'
+import { formatCount, glossFor, iconFor, percentOf, unitLabel } from '~/utils/niyamChallenge'
 
 const props = withDefaults(defineProps<{
   challenge: NiyamChallenge

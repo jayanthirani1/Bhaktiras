@@ -32,6 +32,7 @@ import {
   isChallengeOpen,
   isPublished,
   mergeChallenges,
+  GLOSS_MAX,
   percentOf,
   RESOURCE_LABEL_MAX,
   safeMemberName,
@@ -505,6 +506,7 @@ export function useAdminNiyamChallenges() {
       inputMode: challenge.inputMode || 'count',
       presets: challenge.presets || [],
       hint: challenge.hint || '',
+      gloss: (challenge.gloss || '').trim().slice(0, GLOSS_MAX),
       resourceUrl: safeResourceUrl(challenge.resourceUrl),
       resourceLabel: (challenge.resourceLabel || '').trim().slice(0, RESOURCE_LABEL_MAX),
       icon: challenge.icon || 'niyam'

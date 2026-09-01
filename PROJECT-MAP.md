@@ -121,7 +121,9 @@ it, so `isPublished()` gates the UI rather than letting a submit fail.
 
 Beyond target and deadline, a niyam carries how it is logged (`inputMode`: a count, or a
 one-tap check-in for attendance), its quick-add `presets`, a `hint` saying what counts as
-one, an `icon`, and an optional `resourceUrl`/`resourceLabel` — where the words are. Janmangal
+one, an `icon`, an optional `gloss` — the plain-English line under the Sanskrit name on the
+board, falling back to `NIYAM_GLOSS_BY_ICON` — and an optional `resourceUrl`/`resourceLabel`
+— where the words are. Janmangal
 Stotra's default points at the Kirtanavali page for the Namavali, because a counter is no use
 to somebody who does not have the text in front of them. Only absolute http(s) is stored or
 rendered (`safeResourceUrl`), since the href reaches an anchor tag straight from a document.
