@@ -111,6 +111,7 @@ import {
   DEFAULT_NIYAM_COPY,
   NIYAM_COPY_FIELDS,
   NIYAM_COPY_GROUPS,
+  NIYAM_COPY_MAX,
   parseNiyamCopy
 } from '~/data/niyamCopy'
 
@@ -123,8 +124,6 @@ import {
  * to `siteContent/main`, so it cannot disturb the tiles, nav or section
  * switches the other content editors own.
  */
-const NIYAM_COPY_MAX = 400
-
 const { item, loading, saving, error, load, save } = useAdminSiteContent()
 
 const uid = useId()
@@ -173,10 +172,21 @@ async function onSave() {
   }
 }
 
-onMounted(async () => {
+let loaded = false
+
+async function ensureLoaded() {
+  if (loaded) return
+  loaded = true
   await load()
   resetDraft()
-})
+}
+
+// Only on opening: `load()` can seed the whole siteContent document, and an
+// admin who came to clear the approval queue should not set that off — nor pay
+// the read — by scrolling past a panel they never opened.
+watch(expanded, (open) => {
+  if (open) void ensureLoaded()
+}, { immediate: true })
 
 // A reload elsewhere in the page (a save, a retry) re-seeds the untouched form.
 watch(stored, () => {

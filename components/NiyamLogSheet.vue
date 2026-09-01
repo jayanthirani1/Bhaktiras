@@ -15,13 +15,27 @@
           class="mx-auto flex h-14 w-14 items-center justify-center rounded-full"
           :class="phase === 'undone' ? 'bg-[hsl(var(--muted))]' : 'bg-[hsl(var(--golden-100))]'"
         >
-          <IconArrowBackUp v-if="phase === 'undone'" class="h-7 w-7 text-[hsl(var(--muted-foreground))]" aria-hidden="true" />
+          <IconAlertTriangle
+            v-if="phase === 'undone' && withdrawError"
+            class="h-7 w-7 text-red-700"
+            aria-hidden="true"
+          />
+          <IconArrowBackUp v-else-if="phase === 'undone'" class="h-7 w-7 text-[hsl(var(--muted-foreground))]" aria-hidden="true" />
           <IconCheck v-else class="h-7 w-7 text-[hsl(var(--primary))]" aria-hidden="true" />
         </span>
 
         <template v-if="phase === 'undone'">
-          <p class="mt-4 font-display text-xl text-[hsl(var(--primary))]">Entry removed</p>
-          <p class="mt-1 text-sm text-[hsl(var(--muted-foreground))]">Nothing was added to the sangat's total.</p>
+          <template v-if="withdrawError">
+            <p class="mt-4 font-display text-xl text-[hsl(var(--primary))]">Still counted</p>
+            <p class="mt-1 text-sm text-[hsl(var(--muted-foreground))]">
+              The entry could not be taken back, so it is still there. You can remove it from
+              this niyam's progress sheet.
+            </p>
+          </template>
+          <template v-else>
+            <p class="mt-4 font-display text-xl text-[hsl(var(--primary))]">Entry removed</p>
+            <p class="mt-1 text-sm text-[hsl(var(--muted-foreground))]">Nothing was added to the sangat's total.</p>
+          </template>
         </template>
 
         <template v-else>
@@ -347,9 +361,9 @@
         </p>
       </div>
 
-      <p v-if="localError" class="mt-4 flex items-start gap-2 text-sm text-red-700">
+      <p v-if="localError || withdrawError" class="mt-4 flex items-start gap-2 text-sm text-red-700">
         <IconAlertTriangle class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-        <span>{{ localError }}</span>
+        <span>{{ localError || withdrawError }}</span>
       </p>
     </template>
 
@@ -495,6 +509,8 @@ const props = defineProps<{
   autoCheckInEnabled?: boolean
   geolocationSupported?: boolean
   locationPermission?: string
+  /** Set when a withdraw — the undo below, usually — was refused. */
+  withdrawError?: string
 }>()
 
 const emit = defineEmits<{

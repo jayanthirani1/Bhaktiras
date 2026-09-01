@@ -163,7 +163,8 @@ export const NIYAM_COPY_GROUPS: { id: NiyamCopyField['group']; label: string; he
   { id: 'leaderboard', label: 'Top contributors', help: 'The public five on each niyam\'s detail sheet.' }
 ]
 
-const NIYAM_COPY_MAX = 400
+/** Longest a single line of section copy can be, in the editor and on write. */
+export const NIYAM_COPY_MAX = 400
 
 /** A stored value only wins when it actually says something. */
 export function parseNiyamCopy(raw: unknown): NiyamCopyContent {

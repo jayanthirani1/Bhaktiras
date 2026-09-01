@@ -96,8 +96,8 @@
       </ul>
 
       <p v-if="hiddenCount > 0" class="mt-2 text-xs text-[hsl(var(--muted-foreground))]">
-        {{ hiddenCount }} older {{ hiddenCount === 1 ? 'entry is' : 'entries are' }} still counted, and
-        stay as they are.
+        {{ hiddenCount }} older {{ hiddenCount === 1 ? 'entry is' : 'entries are' }} not shown here, and
+        {{ hiddenCount === 1 ? 'stays' : 'stay' }} as {{ hiddenCount === 1 ? 'it is' : 'they are' }}.
       </p>
     </template>
   </section>
@@ -134,8 +134,15 @@ const confirmingId = ref('')
 const recent = computed(() => props.submissions.slice(0, RECENT_LIMIT))
 const hiddenCount = computed(() => Math.max(0, props.submissions.length - RECENT_LIMIT))
 
+/**
+ * The confirm stays open until the row actually goes.
+ *
+ * Closing it here would hide the "Removing…" state entirely, and — because the
+ * removal is optimistic — a refused delete would put the row back with no
+ * confirm and no obvious way to try again. The watcher below closes it once the
+ * row is really gone.
+ */
 function confirmRemove(entry: NiyamSubmission) {
-  confirmingId.value = ''
   emit('withdraw', entry)
 }
 
@@ -152,8 +159,8 @@ function statusClass(status: NiyamSubmissionStatus): string {
   return 'text-[hsl(var(--muted-foreground))]'
 }
 
-// A removal that lands should not leave a stale "are you sure?" open on a row
-// that is no longer there.
+// A removal that lands closes its confirm; one that is refused leaves it open
+// on the row that came back.
 watch(() => props.submissions, () => {
   if (confirmingId.value && !props.submissions.some(s => s.id === confirmingId.value)) {
     confirmingId.value = ''

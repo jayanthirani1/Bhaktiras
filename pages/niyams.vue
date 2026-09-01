@@ -55,6 +55,7 @@
       :auto-check-in-enabled="alwaysAllowLocation"
       :geolocation-supported="isGeolocationSupported"
       :location-permission="permissionState"
+      :withdraw-error="withdrawError"
       @close="closeSheet"
       @submit="onSubmit"
       @withdraw="withdraw"
@@ -200,11 +201,13 @@ function openLog(challenge: NiyamChallenge) {
     goSignIn()
     return
   }
+  withdrawError.value = ''
   activeId.value = challenge.id
   sheet.value = 'log'
 }
 
 function openDetail(challenge: NiyamChallenge) {
+  withdrawError.value = ''
   activeId.value = challenge.id
   sheet.value = 'detail'
   void fetchTopContributors(challenge.id)
@@ -239,6 +242,7 @@ async function switchToLog() {
     goSignIn()
     return
   }
+  withdrawError.value = ''
   sheet.value = 'none'
   await nextTick()
   sheet.value = 'log'
