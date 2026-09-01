@@ -94,6 +94,8 @@
         </span>
       </p>
 
+      <NiyamResourceLink :challenge="challenge" class="mt-5" />
+
       <NiyamLeaderboard
         v-if="published"
         :challenge="challenge"
@@ -102,6 +104,20 @@
         :current-user-id="currentUserId"
         :my-approved="myApproved"
       />
+
+      <NiyamMyEntries
+        v-if="published"
+        :challenge="challenge"
+        :submissions="mySubmissions"
+        :is-logged-in="isLoggedIn"
+        :withdrawing-id="withdrawingId"
+        @withdraw="emit('withdraw', $event)"
+      />
+
+      <p v-if="withdrawError" class="mt-3 flex items-start gap-2 text-sm text-red-700">
+        <IconAlertTriangle class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+        <span>{{ withdrawError }}</span>
+      </p>
 
       <div class="mt-5 space-y-3 border-t border-[hsl(var(--border))] pt-4 text-sm text-[hsl(var(--muted-foreground))]">
         <p v-if="challenge.hint">
@@ -123,7 +139,7 @@
         </p>
         <p v-if="!published" class="flex items-start gap-2 text-[hsl(var(--foreground))]">
           <IconLock class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-          <span>The mandir has not opened this niyam for entries yet.</span>
+          <span>{{ copy('notPublishedNote') }}</span>
         </p>
       </div>
     </template>
@@ -159,8 +175,8 @@
 </template>
 
 <script setup lang="ts">
-import { IconClockPause, IconLock } from '@tabler/icons-vue'
-import type { NiyamChallenge, NiyamChallengeStats, NiyamContributor } from '~/types'
+import { IconAlertTriangle, IconClockPause, IconLock } from '@tabler/icons-vue'
+import type { NiyamChallenge, NiyamChallengeStats, NiyamContributor, NiyamSubmission } from '~/types'
 import {
   challengeWindow,
   formatCount,
@@ -186,9 +202,19 @@ const props = defineProps<{
   leaders: NiyamContributor[]
   leadersLoading?: boolean
   currentUserId?: string
+  /** This devotee's own entries on this niyam, newest first. */
+  mySubmissions: NiyamSubmission[]
+  withdrawingId?: string
+  withdrawError?: string
 }>()
 
-const emit = defineEmits<{ close: []; log: [] }>()
+const emit = defineEmits<{
+  close: []
+  log: []
+  withdraw: [submission: NiyamSubmission]
+}>()
+
+const copy = useNiyamCopy()
 
 const published = computed(() => !!props.challenge && isPublished(props.challenge))
 const isCheckin = computed(() => !!props.challenge && inputModeFor(props.challenge) === 'checkin')

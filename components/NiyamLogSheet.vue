@@ -68,20 +68,20 @@
 
       <!-- Sign in -->
       <div v-else-if="!isLoggedIn" class="text-center">
-        <p class="text-sm text-[hsl(var(--muted-foreground))]">
-          Your entries are private to you and the mandir's admins, so you need to be signed in to add them.
-        </p>
+        <p class="text-sm text-[hsl(var(--muted-foreground))]">{{ copy('signedOutNote') }}</p>
       </div>
 
       <!-- Not published: the security rules would refuse the write, so never offer it. -->
       <div v-else-if="!published" class="flex items-start gap-2 rounded-xl bg-[hsl(var(--muted))] px-3 py-3 text-sm">
         <IconLock class="mt-0.5 h-4 w-4 shrink-0 text-[hsl(var(--muted-foreground))]" aria-hidden="true" />
-        <span>The mandir has not opened this niyam for entries yet. It will start counting as soon as they do.</span>
+        <span>{{ copy('notPublishedNote') }}</span>
       </div>
 
       <!-- Attendance: one tap is one sabha. A number field would be silly here. -->
       <div v-else-if="isCheckin" class="text-center">
         <p class="text-sm text-[hsl(var(--muted-foreground))]">{{ challenge.hint || challenge.detail }}</p>
+
+        <NiyamResourceLink :challenge="challenge" class="mt-4 text-left" />
 
         <div v-if="isLoggedIn" class="mt-4 rounded-xl bg-[hsl(var(--muted))]/60 px-4 py-3">
           <p class="text-[10px] font-semibold uppercase tracking-[0.14em] text-[hsl(var(--golden-900))]">
@@ -154,6 +154,10 @@
         <p class="text-center text-sm text-[hsl(var(--muted-foreground))]">
           {{ challenge.hint || challenge.detail }}
         </p>
+
+        <!-- Where the words are, before the counter: somebody opening this to
+             recite needs the text more than they need the plus button. -->
+        <NiyamResourceLink :challenge="challenge" class="mt-4" />
 
         <div v-if="isLoggedIn" class="mt-4 rounded-xl bg-[hsl(var(--muted))]/60 px-4 py-3 text-center">
           <p class="text-[10px] font-semibold uppercase tracking-[0.14em] text-[hsl(var(--golden-900))]">
@@ -355,7 +359,7 @@
           {{ checkinButtonLabel }}
         </button>
         <p class="text-center text-xs text-[hsl(var(--muted-foreground))]">
-          You can check in when you are at mandir
+          {{ copy('checkinFooterNote') }}
         </p>
       </div>
       </div>
@@ -429,6 +433,8 @@ const emit = defineEmits<{
   'enable-auto-check-in': []
   'disable-auto-check-in': []
 }>()
+
+const copy = useNiyamCopy()
 
 const UNDO_SECONDS = 30
 

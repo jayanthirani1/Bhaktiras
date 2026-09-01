@@ -31,6 +31,7 @@ import {
   siteContentWritePayload
 } from '~/data/siteContent'
 import { siteSectionsFromSource, siteSectionsWritePayload } from '~/data/siteSections'
+import { parseNiyamCopy } from '~/data/niyamCopy'
 
 function getDb(): Firestore | null {
   if (import.meta.server) return null
@@ -230,7 +231,8 @@ export function useAdminSiteContent() {
     sevaHeading: parseSevaHeading(undefined),
     sevaIntro: parseSevaIntro(undefined),
     sevaTeams: sevaTeamsFromSource(undefined),
-    sections: siteSectionsFromSource(undefined)
+    sections: siteSectionsFromSource(undefined),
+    niyamCopy: parseNiyamCopy(undefined)
   })
   const loading = ref(false)
   const saving = ref(false)
@@ -251,7 +253,10 @@ export function useAdminSiteContent() {
         sevaHeading: parseSevaHeading(data.sevaHeading),
         sevaIntro: parseSevaIntro(data.sevaIntro),
         sevaTeams: sevaTeamsFromSource(data.sevaTeams),
-        sections: siteSectionsFromSource(data.sections)
+        sections: siteSectionsFromSource(data.sections),
+        // Overrides only, so the editor shows a blank field wherever the code
+        // default is still in force rather than a copy of it to drift from.
+        niyamCopy: parseNiyamCopy(data.niyamCopy)
       }
       // Stored tiles or nav older than the current defaults are re-seeded here, so
       // the editor and the live site agree and the revision stamp is brought forward.
@@ -281,14 +286,15 @@ export function useAdminSiteContent() {
         sevaHeading: parseSevaHeading(undefined),
         sevaIntro: parseSevaIntro(undefined),
         sevaTeams: sevaTeamsFromSource(undefined),
-        sections: siteSectionsFromSource(undefined)
+        sections: siteSectionsFromSource(undefined),
+        niyamCopy: parseNiyamCopy(undefined)
       }
     } finally {
       loading.value = false
     }
   }
 
-  async function save(data: Partial<Pick<SiteContentSettings, 'homeTiles' | 'navItems' | 'communityPrompts' | 'sevaHeading' | 'sevaIntro' | 'sevaTeams' | 'sections'>>) {
+  async function save(data: Partial<Pick<SiteContentSettings, 'homeTiles' | 'navItems' | 'communityPrompts' | 'sevaHeading' | 'sevaIntro' | 'sevaTeams' | 'sections' | 'niyamCopy'>>) {
     saving.value = true
     error.value = ''
     try {
@@ -307,6 +313,7 @@ export function useAdminSiteContent() {
       if (data.sevaIntro !== undefined) payload.sevaIntro = parseSevaIntro(data.sevaIntro)
       if (data.sevaTeams !== undefined) payload.sevaTeams = parseSevaTeams(data.sevaTeams)
       if (data.sections !== undefined) payload.sections = siteSectionsWritePayload(data.sections)
+      if (data.niyamCopy !== undefined) payload.niyamCopy = parseNiyamCopy(data.niyamCopy)
       await setDoc(doc(db, 'siteContent', SITE_CONTENT_DOC_ID), payload, { merge: true })
       await load()
     } catch (e) {
