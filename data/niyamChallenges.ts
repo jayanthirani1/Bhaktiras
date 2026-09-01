@@ -45,6 +45,10 @@ export const DEFAULT_NIYAM_CHALLENGES: NiyamChallengeSeed[] = [
     inputMode: 'count',
     presets: DEVOTIONAL_PRESETS,
     hint: 'One complete recitation of the Janmangal Namavali is one stotra.',
+    // A counter is no use to somebody who does not have the words. This is the
+    // Kirtanavali page for the Namavali; the link is admin-editable per niyam.
+    resourceUrl: 'https://path.swaminarayan.faith/kirtanavali/kirtans/660/36917',
+    resourceLabel: 'Read the Janmangal Namavali',
     icon: 'stotra'
   },
   {

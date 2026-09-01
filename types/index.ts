@@ -210,6 +210,14 @@ export interface NiyamChallenge {
   presets?: number[]
   /** What counts as one — "all five chapters make one full path". */
   hint?: string
+  /**
+   * Where the words are. Some niyams are a recitation, and a devotee who wants
+   * to keep one needs the text in front of them before a counter is any use.
+   * Rendered as an external link on the card's detail and log sheets.
+   */
+  resourceUrl?: string
+  /** Link text for `resourceUrl`; falls back to a generic label. */
+  resourceLabel?: string
   icon?: NiyamIconKey
   /** Runtime only; never written to Firestore. */
   origin?: NiyamChallengeOrigin
@@ -348,6 +356,15 @@ export interface SiteSectionVisibility {
   visible: boolean
 }
 
+/**
+ * Every sentence the niyams area shows that is not part of an individual niyam.
+ * The niyam's own words — title, detail, hint, unit — live on its document; this
+ * is the surrounding page, sheet and leaderboard prose, so an admin can reword
+ * the whole section without a deploy. A blank value falls back to the code
+ * default in `data/niyamCopy.ts`.
+ */
+export type NiyamCopyContent = Record<string, string>
+
 export interface SiteContentSettings {
   id: string
   homeTiles: HomeTileContent[]
@@ -362,6 +379,8 @@ export interface SiteContentSettings {
   sevaTeams: SevaTeamContent[]
   /** Which app sections are switched on. */
   sections: SiteSectionContent[]
+  /** Editable prose for the niyams area, keyed by `NIYAM_COPY_FIELDS`. */
+  niyamCopy: NiyamCopyContent
   updatedAt?: { seconds?: number; nanoseconds?: number } | Date
 }
 

@@ -451,3 +451,34 @@ export function safeMemberName(name: string | null | undefined): string {
     .slice(0, SUBMISSION_NAME_MAX)
   return cleaned || 'Devotee'
 }
+
+/** Longest "where the words are" link we will store or render. */
+export const RESOURCE_URL_MAX = 500
+export const RESOURCE_LABEL_MAX = 60
+
+/**
+ * A niyam's "where the words are" link, or empty.
+ *
+ * Only absolute http(s) is accepted. The value reaches the page from a
+ * Firestore document, and a `javascript:` href on a link the mandir's admins
+ * did not intend is the one thing that turns editable copy into a hazard.
+ */
+export function safeResourceUrl(value: unknown): string {
+  const raw = String(value ?? '').trim().slice(0, RESOURCE_URL_MAX)
+  if (!raw) return ''
+  try {
+    const url = new URL(raw)
+    return url.protocol === 'http:' || url.protocol === 'https:' ? url.toString() : ''
+  } catch {
+    return ''
+  }
+}
+
+/** The host, for showing a devotee where a link goes before they tap it. */
+export function resourceUrlHost(value: string): string {
+  try {
+    return new URL(value).hostname.replace(/^www\./, '')
+  } catch {
+    return ''
+  }
+}

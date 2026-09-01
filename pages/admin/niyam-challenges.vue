@@ -92,6 +92,9 @@
       />
     </div>
 
+    <!-- ── Everything the page says that is not a niyam ───────────── -->
+    <AdminNiyamCopy />
+
     <AdminEditorLayout
       :count-label="countLabel"
       create-label="New niyam"
@@ -264,6 +267,46 @@
                   class="admin-input"
                   placeholder="One full mala of 108 counts as one mala."
                 >
+              </div>
+
+              <!-- Where the words are. A counter is no use to a devotee who
+                   does not have the text in front of them. -->
+              <div class="mt-3 grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label :for="`${uid}-resource-url`" class="admin-label">Link to the words (optional)</label>
+                  <input
+                    :id="`${uid}-resource-url`"
+                    v-model="form.resourceUrl"
+                    type="url"
+                    inputmode="url"
+                    :maxlength="RESOURCE_URL_MAX"
+                    class="admin-input"
+                    placeholder="https://path.swaminarayan.faith/kirtanavali/kirtans/660/36917"
+                  >
+                  <p class="mt-1 text-xs" :class="resourceUrlProblem ? 'text-red-600' : 'text-[hsl(var(--muted-foreground))]'">
+                    <template v-if="resourceUrlProblem">{{ resourceUrlProblem }}</template>
+                    <template v-else-if="form.resourceUrl">
+                      Shown on the log and detail sheets, opening in a new tab.
+                    </template>
+                    <template v-else>
+                      Leave blank for a niyam that has no text to read. Must start with https://.
+                    </template>
+                  </p>
+                </div>
+                <div>
+                  <label :for="`${uid}-resource-label`" class="admin-label">Link text</label>
+                  <input
+                    :id="`${uid}-resource-label`"
+                    v-model="form.resourceLabel"
+                    :maxlength="RESOURCE_LABEL_MAX"
+                    class="admin-input"
+                    :disabled="!form.resourceUrl"
+                    placeholder="Read the Janmangal Namavali"
+                  >
+                  <p class="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
+                    Blank uses the wording set in Section copy above.
+                  </p>
+                </div>
               </div>
 
               <div class="mt-4">
@@ -614,6 +657,9 @@ import {
   formatCount,
   isChallengeOpen,
   needsReview,
+  RESOURCE_LABEL_MAX,
+  RESOURCE_URL_MAX,
+  safeResourceUrl,
   SUBMISSION_NAME_MAX,
   SUBMISSION_NOTE_MAX,
   toMillis,
@@ -698,6 +744,8 @@ const form = reactive({
   inputMode: 'count' as NiyamInputMode,
   presets: '',
   hint: '',
+  resourceUrl: '',
+  resourceLabel: '',
   icon: 'niyam' as NiyamIconKey
 })
 
@@ -736,6 +784,13 @@ const filtered = computed(() =>
 
 const anyQueueCapped = computed(() => Object.values(queueCapped.value).some(Boolean))
 
+/** Said before Save rather than after, so a typo never silently drops the link. */
+const resourceUrlProblem = computed(() => {
+  const raw = form.resourceUrl.trim()
+  if (!raw) return ''
+  return safeResourceUrl(raw) ? '' : 'That link is not a full https:// web address, so it will not be shown.'
+})
+
 const presetNumbers = computed(() =>
   form.presets
     .split(/[,\s]+/)
@@ -761,6 +816,8 @@ const previewChallenge = computed<NiyamChallenge>(() => ({
   inputMode: form.inputMode,
   presets: presetNumbers.value,
   hint: form.hint,
+  resourceUrl: safeResourceUrl(form.resourceUrl),
+  resourceLabel: form.resourceLabel.trim(),
   icon: form.icon
 }))
 
@@ -858,6 +915,8 @@ function openNew() {
     inputMode: 'count',
     presets: '1, 5, 11',
     hint: '',
+    resourceUrl: '',
+    resourceLabel: '',
     icon: 'niyam'
   })
   showForm.value = true
@@ -890,6 +949,8 @@ async function openEdit(challenge: NiyamChallenge) {
     inputMode: challenge.inputMode || 'count',
     presets: (challenge.presets || []).join(', '),
     hint: challenge.hint || '',
+    resourceUrl: challenge.resourceUrl || '',
+    resourceLabel: challenge.resourceLabel || '',
     icon: challenge.icon || 'niyam'
   })
   showForm.value = true
@@ -926,6 +987,10 @@ async function save() {
     error.value = 'Give the niyam a title.'
     return
   }
+  if (resourceUrlProblem.value) {
+    error.value = resourceUrlProblem.value
+    return
+  }
   const target = Math.max(1, Math.floor(Number(form.target) || 0))
   const isCheckin = form.inputMode === 'checkin'
   const maxPerSubmission = isCheckin
@@ -950,6 +1015,12 @@ async function save() {
     inputMode: form.inputMode,
     presets: presetNumbers.value,
     hint: form.hint.trim(),
+    // Normalised, not just trimmed: an unusable href is stored as no link at
+    // all rather than as a dead one the devotee finds out about by tapping it.
+    resourceUrl: safeResourceUrl(form.resourceUrl),
+    resourceLabel: safeResourceUrl(form.resourceUrl)
+      ? form.resourceLabel.trim().slice(0, RESOURCE_LABEL_MAX)
+      : '',
     icon: form.icon
   }
 

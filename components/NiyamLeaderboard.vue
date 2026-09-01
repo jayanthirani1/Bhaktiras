@@ -1,7 +1,7 @@
 <template>
   <section class="mt-5 border-t border-[hsl(var(--border))] pt-4">
     <h3 class="text-[11px] font-semibold uppercase tracking-[0.18em] text-[hsl(var(--golden-900))]">
-      Top contributors
+      {{ copy('leaderboardTitle') }}
     </h3>
     <p class="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
       Highest {{ unitLabel(challenge, 5) }} counted so far.
@@ -42,7 +42,7 @@
       </li>
     </ul>
     <p v-else class="mt-3 text-sm text-[hsl(var(--muted-foreground))]">
-      No entries yet — be the first on the board.
+      {{ copy('leaderboardEmpty') }}
     </p>
   </section>
 </template>
@@ -58,6 +58,8 @@ const props = defineProps<{
   currentUserId?: string
   myApproved?: number
 }>()
+
+const copy = useNiyamCopy()
 
 const visibleLeaders = computed(() => {
   const top = props.leaders.map((row, index) => ({

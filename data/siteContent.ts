@@ -9,7 +9,8 @@ import {
   IconMapPin,
   IconUsers
 } from '@tabler/icons-vue'
-import type { CommunityPromptContent, HomeTileContent, NavItemContent, SevaTeamContent, SiteContentSettings, SiteIconKey, SiteSectionContent } from '~/types'
+import type { CommunityPromptContent, HomeTileContent, NavItemContent, NiyamCopyContent, SevaTeamContent, SiteContentSettings, SiteIconKey, SiteSectionContent } from '~/types'
+import { niyamCopyFromSource, parseNiyamCopy } from '~/data/niyamCopy'
 import { DEFAULT_SITE_SECTIONS, siteSectionsFromSource, siteSectionsWritePayload } from '~/data/siteSections'
 import {
   DEFAULT_SEVA_HEADING,
@@ -105,7 +106,8 @@ export const DEFAULT_SITE_CONTENT: SiteContentSettings = {
   sevaHeading: DEFAULT_SEVA_HEADING,
   sevaIntro: DEFAULT_SEVA_INTRO,
   sevaTeams: DEFAULT_SEVA_TEAMS,
-  sections: DEFAULT_SITE_SECTIONS
+  sections: DEFAULT_SITE_SECTIONS,
+  niyamCopy: niyamCopyFromSource(undefined)
 }
 
 function sortByOrder<T extends { order?: number }>(items: T[]) {
@@ -252,6 +254,7 @@ export function siteContentFromDocData(data: Record<string, any>): SiteContentSe
     sevaIntro: parseSevaIntro(data.sevaIntro),
     sevaTeams: sevaTeamsFromSource(data.sevaTeams),
     sections: siteSectionsFromSource(data.sections),
+    niyamCopy: niyamCopyFromSource(data.niyamCopy),
     updatedAt: data.updatedAt
   }
 }
@@ -264,6 +267,7 @@ export function siteContentWritePayload(data: {
   sevaIntro?: string
   sevaTeams: SevaTeamContent[]
   sections?: SiteSectionContent[]
+  niyamCopy?: NiyamCopyContent
 }) {
   return {
     homeTiles: parseHomeTiles(data.homeTiles.length ? data.homeTiles : DEFAULT_HOME_TILES),
@@ -274,6 +278,9 @@ export function siteContentWritePayload(data: {
     sevaHeading: parseSevaHeading(data.sevaHeading),
     sevaIntro: parseSevaIntro(data.sevaIntro),
     sevaTeams: parseSevaTeams(data.sevaTeams.length ? data.sevaTeams : DEFAULT_SEVA_TEAMS),
-    sections: siteSectionsWritePayload(data.sections?.length ? data.sections : DEFAULT_SITE_SECTIONS)
+    sections: siteSectionsWritePayload(data.sections?.length ? data.sections : DEFAULT_SITE_SECTIONS),
+    // Only overrides are stored: an admin who has not reworded anything leaves
+    // an empty map, and the code defaults keep winning as they change.
+    niyamCopy: parseNiyamCopy(data.niyamCopy)
   }
 }

@@ -121,13 +121,32 @@ it, so `isPublished()` gates the UI rather than letting a submit fail.
 
 Beyond target and deadline, a niyam carries how it is logged (`inputMode`: a count, or a
 one-tap check-in for attendance), its quick-add `presets`, a `hint` saying what counts as
-one, and an `icon`.
+one, an `icon`, and an optional `resourceUrl`/`resourceLabel` — where the words are. Janmangal
+Stotra's default points at the Kirtanavali page for the Namavali, because a counter is no use
+to somebody who does not have the text in front of them. Only absolute http(s) is stored or
+rendered (`safeResourceUrl`), since the href reaches an anchor tag straight from a document.
 
 The page is a **sangat board**: five compact rows, each with the counted total, the next
 milestone and a `+ Log` pill; input happens in a bottom sheet (`NiyamLogSheet`), never
 inline — five inline forms was the thing that did not scale. Tapping a row body opens the
 detail sheet instead. The private "Visit Mandir" streak card still sits below the board,
 and both it and the board read one shared `useMandirVisit` instance.
+
+The detail sheet ends with **your own last five entries** (`NiyamMyEntries`), each removable.
+The 30-second undo on the log sheet only catches a mis-tap you notice immediately; this is
+where a count typed wrong yesterday is taken back. Removal asks once inline rather than
+opening a dialog over a sheet, the row leaves the list optimistically and returns if the
+delete is refused, and `syncNiyamChallengeTotals` unwinds the shared total. The rules already
+allowed it — `niyamSubmissions` delete has been open to the entry's author all along — so
+this is UI over an existing permission, not a new one. The list is five because it exists to
+undo a mistake, not to be a diary; older entries stay as they are.
+
+**Everything the section says that is not part of a niyam** — page heading, empty and loading
+states, the sentences on both sheets, the leaderboard headings — is CMS copy, defaulted in
+`data/niyamCopy.ts` and overridden by `siteContent.niyamCopy`. Components read it through
+`useNiyamCopy()`. Only overrides are stored: a blank field in the editor means "whatever the
+code says", so rewording a default in a deploy still reaches the live site instead of being
+pinned by a copy of itself saved in Firestore.
 
 Rendering targets this large took some care, and the helpers carry the reasoning:
 `formatTarget` says "10 Lakh" rather than seven digits, `percentLabel` keeps a decimal
@@ -141,7 +160,8 @@ the day it was approved, which is what the "the sangat added N today" strip read
 
 Admin side is `/admin/niyam-challenges`: a cross-niyam overview, a **combined approval
 queue across all five** (an admin should not have to open each niyam to find what is
-waiting), one-tap publishing of the defaults, the editor with a live preview of the
+waiting), one-tap publishing of the defaults, a **Section copy** panel (`AdminNiyamCopy`)
+holding every front-end string listed above, the editor with a live preview of the
 devotee card, and per-challenge entries, filters and per-person totals.
 
 It also has "log on behalf of the mandir", for counts gathered on paper at sabha. The
@@ -231,7 +251,7 @@ overrides**. The static layer means the site is never blank; the Firestore layer
 admins can change content without a deploy.
 
 `data/` holds: `site.ts`, `timeline.ts`, `sevaTeams.ts`,
-`communityPrompts.ts`, `quotes.csv`, `siteContent.ts`, `legalPages.ts`, `adminMenu.ts`,
+`communityPrompts.ts`, `quotes.csv`, `siteContent.ts`, `niyamCopy.ts`, `legalPages.ts`, `adminMenu.ts`,
 and the game banks (`connectionsPuzzles`, `miniCrossword`,
 `onePercentClub`, `fiveLetterWords`, `wordleGuessList`, `satsangWordBank`).
 

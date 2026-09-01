@@ -33,7 +33,9 @@ import {
   niyamSubmitCooldown,
   NIYAM_DOUBLE_TAP_MS,
   mergeChallenges,
+  RESOURCE_LABEL_MAX,
   safeMemberName,
+  safeResourceUrl,
   sortSubmissionsNewestFirst,
   statusForAmount,
   statusKey,
@@ -90,6 +92,14 @@ export function mapChallenge(id: string, data: Record<string, unknown>): NiyamCh
     inputMode: data.inputMode === 'checkin' ? 'checkin' : 'count',
     presets: presets?.length ? presets : undefined,
     hint: data.hint ? String(data.hint) : undefined,
+    // Absent means the document predates the field, so the seed's link still
+    // applies; present-but-empty means an admin cleared it, and it stays clear.
+    resourceUrl: 'resourceUrl' in data
+      ? safeResourceUrl(data.resourceUrl) || undefined
+      : safeResourceUrl(seed?.resourceUrl) || undefined,
+    resourceLabel: 'resourceLabel' in data
+      ? String(data.resourceLabel || '').trim().slice(0, RESOURCE_LABEL_MAX) || undefined
+      : seed?.resourceLabel,
     icon: (data.icon as NiyamChallenge['icon']) || undefined,
     origin: 'stored',
     createdAt: data.createdAt as NiyamChallenge['createdAt'],
@@ -171,6 +181,10 @@ export function useNiyamChallenges() {
   const loadingLeaders = ref<Record<string, boolean>>({})
   const loading = ref(true)
   const submitting = ref(false)
+  const withdrawingId = ref('')
+  /** Kept apart from `error` so a failed removal is reported inside the sheet
+   *  the tap came from, not only in the page banner behind it. */
+  const withdrawError = ref('')
   const error = ref('')
   let statsUnsubs: Unsubscribe[] = []
   let contributorUnsubs: Unsubscribe[] = []
@@ -670,18 +684,32 @@ export function useNiyamChallenges() {
     }
   }
 
-  /** Withdraw one of your own entries — a mistyped count, usually. */
+  /**
+   * Withdraw one of your own entries — a mistyped count, usually.
+   *
+   * The row leaves the list straight away so the tap feels like it did
+   * something, and is put back if the delete is refused. The community total
+   * is unwound by `syncNiyamChallengeTotals`, which runs a moment behind the
+   * delete, so the re-reads are given that moment before they are trusted.
+   */
   async function withdraw(submission: NiyamSubmission) {
     const db = getDb()
     if (!db || !user.value?.uid) return
+    if (withdrawingId.value) return
     const { deleteDoc } = await import('firebase/firestore')
-    error.value = ''
+    withdrawError.value = ''
+    withdrawingId.value = submission.id
+    const previous = mySubmissions.value
+    mySubmissions.value = mySubmissions.value.filter(s => s.id !== submission.id)
     try {
       await deleteDoc(doc(db, 'niyamSubmissions', submission.id))
       await Promise.all([fetchStats(), fetchMySubmissions(), fetchMyContributors()])
       void fetchTopContributors(submission.challengeId)
     } catch (e) {
-      error.value = (e as Error).message
+      mySubmissions.value = previous
+      withdrawError.value = (e as Error).message || 'That entry could not be removed. Please try again.'
+    } finally {
+      withdrawingId.value = ''
     }
   }
 
@@ -724,6 +752,8 @@ export function useNiyamChallenges() {
     mySubmissions,
     loading,
     submitting,
+    withdrawingId,
+    withdrawError,
     error,
     isLoggedIn,
     statsFor,

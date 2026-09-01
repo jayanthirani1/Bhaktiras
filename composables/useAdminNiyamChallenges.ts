@@ -32,7 +32,9 @@ import {
   isPublished,
   mergeChallenges,
   percentOf,
+  RESOURCE_LABEL_MAX,
   safeMemberName,
+  safeResourceUrl,
   sortChallenges,
   sortSubmissionsNewestFirst,
   statusForAmount,
@@ -489,6 +491,8 @@ export function useAdminNiyamChallenges() {
       inputMode: challenge.inputMode || 'count',
       presets: challenge.presets || [],
       hint: challenge.hint || '',
+      resourceUrl: safeResourceUrl(challenge.resourceUrl),
+      resourceLabel: (challenge.resourceLabel || '').trim().slice(0, RESOURCE_LABEL_MAX),
       icon: challenge.icon || 'niyam'
     }
   }

@@ -1,10 +1,7 @@
 <template>
   <div class="min-h-screen bg-[hsl(var(--background))] px-4 pb-24 pt-8 md:pt-12">
     <div class="mx-auto max-w-2xl">
-      <PageHeader
-        title="Our Niyams"
-        subtitle="Sadhana we are keeping together, between now and the Patotsav in August 2027."
-      />
+      <PageHeader :title="copy('pageTitle')" :subtitle="copy('pageSubtitle')" />
 
       <p v-if="challengeError" class="mb-4 text-center text-sm text-red-700">{{ challengeError }}</p>
 
@@ -12,14 +9,12 @@
 
       <section aria-label="Niyams">
         <p v-if="challengesLoading" class="card-surface px-5 py-6 text-center text-sm text-[hsl(var(--muted-foreground))]">
-          Loading the niyams…
+          {{ copy('loadingLabel') }}
         </p>
 
         <div v-else-if="!challenges.length" class="card-surface px-5 py-6 text-center">
-          <p class="font-display text-lg text-[hsl(var(--primary))]">No niyam running right now</p>
-          <p class="mt-2 text-sm text-[hsl(var(--muted-foreground))]">
-            When the mandir opens one it will appear here, and everyone's count will add up towards it.
-          </p>
+          <p class="font-display text-lg text-[hsl(var(--primary))]">{{ copy('emptyTitle') }}</p>
+          <p class="mt-2 text-sm text-[hsl(var(--muted-foreground))]">{{ copy('emptyBody') }}</p>
         </div>
 
         <ul v-else class="card-surface overflow-hidden">
@@ -38,7 +33,7 @@
         </ul>
 
         <p class="mt-3 text-center text-xs text-[hsl(var(--muted-foreground))]">
-          Tap a niyam to see progress and the top-five leaderboard.
+          {{ copy('boardHint') }}
         </p>
       </section>
     </div>
@@ -76,8 +71,12 @@
       :leaders="activeId ? leadersFor(activeId) : []"
       :leaders-loading="activeId ? leadersLoading(activeId) : false"
       :current-user-id="auth.user.value?.uid"
+      :my-submissions="activeSubmissions"
+      :withdrawing-id="withdrawingId"
+      :withdraw-error="withdrawError"
       @close="closeSheet"
       @log="switchToLog"
+      @withdraw="withdraw"
     />
   </div>
 </template>
@@ -106,8 +105,12 @@ const {
   leadersLoading,
   fetchTopContributors,
   submit,
-  withdraw
+  withdraw,
+  withdrawingId,
+  withdrawError
 } = useNiyamChallenges()
+
+const copy = useNiyamCopy()
 
 const auth = useAuth()
 
