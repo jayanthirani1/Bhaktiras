@@ -509,6 +509,7 @@ export function useAdminNiyamChallenges() {
       gloss: (challenge.gloss || '').trim().slice(0, GLOSS_MAX),
       resourceUrl: safeResourceUrl(challenge.resourceUrl),
       resourceLabel: (challenge.resourceLabel || '').trim().slice(0, RESOURCE_LABEL_MAX),
+      resourceDocumentId: (challenge.resourceDocumentId || '').trim(),
       icon: challenge.icon || 'niyam'
     }
   }

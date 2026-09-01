@@ -287,29 +287,48 @@
 
               <!-- Where the words are. A counter is no use to a devotee who
                    does not have the text in front of them. -->
-              <div class="mt-3 grid gap-3 sm:grid-cols-2">
-                <div>
-                  <label :for="`${uid}-resource-url`" class="admin-label">Link to the words (optional)</label>
-                  <input
-                    :id="`${uid}-resource-url`"
-                    v-model="form.resourceUrl"
-                    type="url"
-                    inputmode="url"
-                    :maxlength="RESOURCE_URL_MAX"
-                    class="admin-input"
-                    placeholder="https://path.swaminarayan.faith/kirtanavali/kirtans/660/36917"
-                  >
-                  <p class="mt-1 text-xs" :class="resourceUrlProblem ? 'text-red-600' : 'text-[hsl(var(--muted-foreground))]'">
-                    <template v-if="resourceUrlProblem">{{ resourceUrlProblem }}</template>
-                    <template v-else-if="form.resourceUrl">
-                      Shown on the log and detail sheets, opening in a new tab.
-                    </template>
-                    <template v-else>
-                      Leave blank for a niyam that has no text to read. Must start with https://.
-                    </template>
-                  </p>
+              <div class="mt-3">
+                <p class="text-sm font-semibold text-[hsl(var(--primary))]">Reading text</p>
+                <p class="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
+                  Link a document from Bhaktiras, or an external page — not both.
+                </p>
+                <div class="mt-3 grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <label :for="`${uid}-resource-doc`" class="admin-label">Document</label>
+                    <select :id="`${uid}-resource-doc`" v-model="form.resourceDocumentId" class="admin-input">
+                      <option value="">None</option>
+                      <option v-for="doc in documentOptions" :key="doc.id" :value="doc.id">
+                        {{ doc.title }}
+                      </option>
+                    </select>
+                    <p class="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
+                      Opens in-app with English / Gujarati toggle.
+                      <NuxtLink to="/admin/documents" class="font-semibold text-[hsl(var(--primary))] underline">
+                        Manage documents
+                      </NuxtLink>
+                    </p>
+                  </div>
+                  <div>
+                    <label :for="`${uid}-resource-url`" class="admin-label">Or external link</label>
+                    <input
+                      :id="`${uid}-resource-url`"
+                      v-model="form.resourceUrl"
+                      type="url"
+                      inputmode="url"
+                      :maxlength="RESOURCE_URL_MAX"
+                      class="admin-input"
+                      :disabled="!!form.resourceDocumentId"
+                      placeholder="https://path.swaminarayan.faith/…"
+                    >
+                    <p class="mt-1 text-xs" :class="resourceUrlProblem ? 'text-red-600' : 'text-[hsl(var(--muted-foreground))]'">
+                      <template v-if="form.resourceDocumentId">Clear the document above to use an external link.</template>
+                      <template v-else-if="resourceUrlProblem">{{ resourceUrlProblem }}</template>
+                      <template v-else-if="form.resourceUrl">Opens in a new browser tab.</template>
+                      <template v-else>Leave blank if you linked a document instead.</template>
+                    </p>
+                  </div>
                 </div>
-                <div>
+                <div class="mt-3">
                   <label :for="`${uid}-resource-label`" class="admin-label">Link text</label>
                   <input
                     :id="`${uid}-resource-label`"
@@ -317,10 +336,11 @@
                     :maxlength="RESOURCE_LABEL_MAX"
                     class="admin-input"
                     :placeholder="copy('resourceLinkLabel')"
+                    :disabled="!form.resourceDocumentId && !form.resourceUrl.trim()"
                   >
                   <p class="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
-                    Blank uses the wording set in Section copy above
-                    (“{{ copy('resourceLinkLabel') }}”). Only shown when there is a link.
+                    Blank uses the document title or the wording in Section copy
+                    (“{{ copy('resourceLinkLabel') }}”).
                   </p>
                 </div>
               </div>
@@ -737,6 +757,13 @@ const filters: { id: FilterId; label: string }[] = [
 ]
 
 const copy = useNiyamCopy()
+const { items: niyamDocuments, fetchAll: fetchNiyamDocuments } = useAdminNiyamDocuments()
+
+const documentOptions = computed(() =>
+  [...niyamDocuments.value]
+    .filter(doc => doc.active)
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.title.localeCompare(b.title))
+)
 
 const uid = useId()
 const filter = ref<FilterId>('all')
@@ -765,9 +792,18 @@ const form = reactive({
   presets: '',
   hint: '',
   gloss: '',
+  resourceDocumentId: '',
   resourceUrl: '',
   resourceLabel: '',
   icon: 'niyam' as NiyamIconKey
+})
+
+watch(() => form.resourceDocumentId, (id) => {
+  if (id) form.resourceUrl = ''
+})
+
+watch(() => form.resourceUrl, (url) => {
+  if (safeResourceUrl(url)) form.resourceDocumentId = ''
 })
 
 const mandir = reactive({
@@ -838,7 +874,8 @@ const previewChallenge = computed<NiyamChallenge>(() => ({
   presets: presetNumbers.value,
   hint: form.hint,
   gloss: form.gloss,
-  resourceUrl: safeResourceUrl(form.resourceUrl),
+  resourceDocumentId: form.resourceDocumentId.trim(),
+  resourceUrl: form.resourceDocumentId.trim() ? '' : safeResourceUrl(form.resourceUrl),
   resourceLabel: form.resourceLabel.trim(),
   icon: form.icon
 }))
@@ -874,7 +911,10 @@ const rejectBody = computed(() => {
   return `${entry.userName} · ${formatCount(entry.amount)} ${unit} on ${challenge?.title || entry.challengeId}. It stays on their card, marked not counted, with your reason.`
 })
 
-onMounted(loadOverview)
+onMounted(() => {
+  void loadOverview()
+  void fetchNiyamDocuments()
+})
 
 /** `YYYY-MM-DD` for a date input, in UK time so it matches what admins see. */
 function dateInputValue(value: NiyamChallenge['startAt']): string {
@@ -938,6 +978,7 @@ function openNew() {
     presets: '1, 5, 11',
     hint: '',
     gloss: '',
+    resourceDocumentId: '',
     resourceUrl: '',
     resourceLabel: '',
     icon: 'niyam'
@@ -973,6 +1014,7 @@ async function openEdit(challenge: NiyamChallenge) {
     presets: (challenge.presets || []).join(', '),
     hint: challenge.hint || '',
     gloss: challenge.gloss || '',
+    resourceDocumentId: challenge.resourceDocumentId || '',
     resourceUrl: challenge.resourceUrl || '',
     resourceLabel: challenge.resourceLabel || '',
     icon: challenge.icon || 'niyam'
@@ -1042,8 +1084,9 @@ async function save() {
     gloss: form.gloss.trim().slice(0, GLOSS_MAX),
     // Normalised, not just trimmed: an unusable href is stored as no link at
     // all rather than as a dead one the devotee finds out about by tapping it.
-    resourceUrl: safeResourceUrl(form.resourceUrl),
-    resourceLabel: safeResourceUrl(form.resourceUrl)
+    resourceDocumentId: form.resourceDocumentId.trim(),
+    resourceUrl: form.resourceDocumentId.trim() ? '' : safeResourceUrl(form.resourceUrl),
+    resourceLabel: (form.resourceDocumentId.trim() || safeResourceUrl(form.resourceUrl))
       ? form.resourceLabel.trim().slice(0, RESOURCE_LABEL_MAX)
       : '',
     icon: form.icon

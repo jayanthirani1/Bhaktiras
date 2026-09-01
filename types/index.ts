@@ -226,9 +226,29 @@ export interface NiyamChallenge {
   resourceUrl?: string
   /** Link text for `resourceUrl`; falls back to a generic label. */
   resourceLabel?: string
+  /**
+   * In-app document from `niyamDocuments`. Takes precedence over `resourceUrl`
+   * when set — the devotee reads the text here and can log from that page.
+   */
+  resourceDocumentId?: string
   icon?: NiyamIconKey
   /** Runtime only; never written to Firestore. */
   origin?: NiyamChallengeOrigin
+  createdAt?: FirestoreTimestampLike
+  updatedAt?: FirestoreTimestampLike
+}
+
+/**
+ * Bilingual reading text linked from a niyam — stotra, path, or other sadhana
+ * the devotee needs beside the counter.
+ */
+export interface NiyamDocument {
+  id: string
+  title: string
+  bodyEnglish: string
+  bodyGujarati: string
+  active: boolean
+  order?: number
   createdAt?: FirestoreTimestampLike
   updatedAt?: FirestoreTimestampLike
 }

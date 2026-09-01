@@ -102,6 +102,9 @@ export function mapChallenge(id: string, data: Record<string, unknown>): NiyamCh
     resourceLabel: 'resourceLabel' in data
       ? String(data.resourceLabel || '').trim().slice(0, RESOURCE_LABEL_MAX) || undefined
       : seed?.resourceLabel,
+    resourceDocumentId: 'resourceDocumentId' in data
+      ? String(data.resourceDocumentId || '').trim() || undefined
+      : undefined,
     icon: (data.icon as NiyamChallenge['icon']) || undefined,
     origin: 'stored',
     createdAt: data.createdAt as NiyamChallenge['createdAt'],

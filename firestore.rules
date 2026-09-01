@@ -737,6 +737,12 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
 
+    // Bilingual reading texts linked from niyams (stotra, path, etc.). Public read.
+    match /niyamDocuments/{id} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
     // Personal mandir visits for the "Visit Mandir" niyam. Private to the user.
     // Document ID is the UK date (YYYY-MM-DD), so one visit per day is enforced
     // by design — writing the same date twice is an update, not a duplicate.

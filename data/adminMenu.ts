@@ -40,6 +40,7 @@ export const ADMIN_MENU_GROUPS: AdminMenuGroup[] = [
       { label: 'Events', to: '/admin/events', subtitle: 'Title, date, description and poster', collection: 'events' },
       { label: 'Yajman opportunities', to: '/admin/yajman', subtitle: 'Utsav Yajman opportunities shown on the site', collection: 'yajmanOpportunities' },
       { label: 'Niyams', to: '/admin/niyam-challenges', subtitle: 'The five shared goals, and the entries waiting for your approval', collection: 'niyamChallenges' },
+      { label: 'Documents', to: '/admin/documents', subtitle: 'Bilingual texts linked from niyams — stotra, path and sadhana readings', collection: 'niyamDocuments' },
       { label: 'Privacy & Policy', to: '/admin/legal', subtitle: 'Footer legal pages', collection: 'sitePages' }
     ]
   },
