@@ -692,10 +692,15 @@ export function useNiyamChallenges() {
   /**
    * Withdraw one of your own entries — a mistyped count, usually.
    *
-   * The row leaves the list straight away so the tap feels like it did
-   * something, and is put back if the delete is refused. The community total
-   * is unwound by `syncNiyamChallengeTotals`, which runs a moment behind the
-   * delete, so the re-reads are given that moment before they are trusted.
+   * The row is dropped the moment the delete is acknowledged, not before and
+   * not after the re-reads: dropping it up front leaves nothing on screen to
+   * carry the "Removing…" state or to put an error against, and waiting for
+   * the three re-reads that follow makes a fast delete feel slow. A refused
+   * delete therefore leaves the entry exactly where it was, with the reason
+   * beside it.
+   *
+   * The shared total is unwound by `syncNiyamChallengeTotals` rather than here;
+   * the stats and contributor listeners pick that up when it lands.
    */
   async function withdraw(submission: NiyamSubmission) {
     const db = getDb()
@@ -704,14 +709,12 @@ export function useNiyamChallenges() {
     const { deleteDoc } = await import('firebase/firestore')
     withdrawError.value = ''
     withdrawingId.value = submission.id
-    const previous = mySubmissions.value
-    mySubmissions.value = mySubmissions.value.filter(s => s.id !== submission.id)
     try {
       await deleteDoc(doc(db, 'niyamSubmissions', submission.id))
+      mySubmissions.value = mySubmissions.value.filter(s => s.id !== submission.id)
       await Promise.all([fetchStats(), fetchMySubmissions(), fetchMyContributors()])
       void fetchTopContributors(submission.challengeId)
     } catch (e) {
-      mySubmissions.value = previous
       withdrawError.value = (e as Error).message || 'That entry could not be removed. Please try again.'
     } finally {
       withdrawingId.value = ''
