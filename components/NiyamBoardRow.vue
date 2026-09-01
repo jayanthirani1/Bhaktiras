@@ -109,11 +109,12 @@
 
 <script setup lang="ts">
 import { IconCheck, IconLock, IconMapPin, IconPlus } from '@tabler/icons-vue'
-import type { NiyamChallenge, NiyamChallengeStats, NiyamIconKey } from '~/types'
+import type { NiyamChallenge, NiyamChallengeStats } from '~/types'
 import {
   challengeWindow,
   formatCount,
   formatTarget,
+  glossFor,
   iconFor,
   inputModeFor,
   isChallengeOpen,
@@ -134,16 +135,6 @@ const props = defineProps<{
 
 const emit = defineEmits<{ detail: []; log: []; 'sign-in': [] }>()
 
-/** Plain English under the Sanskrit name — gloss it once, never replace it. */
-const GLOSSES: Record<NiyamIconKey, string> = {
-  stotra: 'recitations of the Namavali',
-  mala: 'rounds of the mala',
-  mandir: 'morning and evening sabhas',
-  path: 'complete paths, all five chapters',
-  dandvat: 'pranaams offered',
-  niyam: 'entries'
-}
-
 const logDisabled = computed(() => props.logDisabled === true)
 const logDisabledLabel = computed(() => props.logDisabledLabel || 'Done for today')
 const published = computed(() => isPublished(props.challenge))
@@ -154,7 +145,7 @@ const isCheckin = computed(() => inputModeFor(props.challenge) === 'checkin')
 const challengeOpen = computed(() => published.value && isChallengeOpen(props.challenge))
 const canLog = computed(() => challengeOpen.value && isLoggedIn.value)
 const needsSignIn = computed(() => challengeOpen.value && !isLoggedIn.value)
-const gloss = computed(() => GLOSSES[iconFor(props.challenge)] || props.challenge.unit)
+const gloss = computed(() => glossFor(props.challenge))
 const milestone = computed(() => milestoneFor(props.stats.approvedTotal, props.challenge.target))
 
 const closedLabel = computed(() => {

@@ -214,6 +214,11 @@ export interface NiyamChallenge {
   /** What counts as one — "all five chapters make one full path". */
   hint?: string
   /**
+   * The one line of plain English under the niyam's name on the board —
+   * "recitations of the Namavali". Falls back to `NIYAM_GLOSS_BY_ICON`.
+   */
+  gloss?: string
+  /**
    * Where the words are. Some niyams are a recitation, and a devotee who wants
    * to keep one needs the text in front of them before a counter is any use.
    * Rendered as an external link on the card's detail and log sheets.

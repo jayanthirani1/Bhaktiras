@@ -33,6 +33,7 @@ import {
   niyamSubmitCooldown,
   NIYAM_DOUBLE_TAP_MS,
   mergeChallenges,
+  GLOSS_MAX,
   RESOURCE_LABEL_MAX,
   safeMemberName,
   safeResourceUrl,
@@ -92,6 +93,7 @@ export function mapChallenge(id: string, data: Record<string, unknown>): NiyamCh
     inputMode: data.inputMode === 'checkin' ? 'checkin' : 'count',
     presets: presets?.length ? presets : undefined,
     hint: data.hint ? String(data.hint) : undefined,
+    gloss: data.gloss ? String(data.gloss).trim().slice(0, GLOSS_MAX) : undefined,
     // Absent means the document predates the field, so the seed's link still
     // applies; present-but-empty means an admin cleared it, and it stays clear.
     resourceUrl: 'resourceUrl' in data
