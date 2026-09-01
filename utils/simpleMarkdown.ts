@@ -18,6 +18,7 @@ function inline(text: string) {
       `<a href="${safeHref(String(href))}" class="underline decoration-[hsl(var(--accent))]/40 hover:text-[hsl(var(--accent))]">${label}</a>`
     )
     .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*([^*]+)\*/g, '<em>$1</em>')
 }
 
 /** Escape + a small markdown subset for admin-edited legal pages. */

@@ -242,11 +242,23 @@ export interface NiyamChallenge {
  * Bilingual reading text linked from a niyam — stotra, path, or other sadhana
  * the devotee needs beside the counter.
  */
+export interface NiyamDocumentChapter {
+  id: string
+  /** Optional heading shown on the reading page. */
+  title?: string
+  bodyEnglish: string
+  bodyGujarati: string
+}
+
 export interface NiyamDocument {
   id: string
   title: string
   bodyEnglish: string
   bodyGujarati: string
+  /** When present, the reader paginates these instead of the top-level body. */
+  chapters?: NiyamDocumentChapter[]
+  /** Optional external audio link shown on the reading page. */
+  audioUrl?: string
   active: boolean
   order?: number
   createdAt?: FirestoreTimestampLike

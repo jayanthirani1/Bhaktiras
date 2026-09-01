@@ -152,8 +152,14 @@
   .legal-prose ul {
     @apply mb-3 list-disc space-y-1 pl-5 text-[hsl(var(--muted-foreground))];
   }
+  .legal-prose ol {
+    @apply mb-3 list-decimal space-y-1 pl-5 text-[hsl(var(--muted-foreground))];
+  }
   .legal-prose strong {
     @apply font-semibold text-[hsl(var(--foreground))];
+  }
+  .legal-prose em {
+    @apply italic;
   }
   .legal-prose a {
     @apply font-medium text-[hsl(var(--primary))];
