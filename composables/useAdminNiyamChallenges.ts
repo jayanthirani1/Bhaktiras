@@ -22,6 +22,7 @@ import type {
   NiyamSubmissionStatus
 } from '~/types'
 import { DEFAULT_NIYAM_CHALLENGES } from '~/data/niyamChallenges'
+import { mapChallenge } from '~/composables/useNiyamChallenges'
 import {
   buildSubmissionId,
   challengeWindow,
@@ -173,8 +174,21 @@ export function useAdminNiyamChallenges() {
   const pending = computed(() => submissions.value.filter(s => s.status === 'pending'))
   const reviewed = computed(() => submissions.value.filter(s => s.status !== 'pending'))
 
-  /** Defaults plus stored documents; a stored document always wins. */
-  const allChallenges = computed(() => mergeChallenges(challenges.items.value))
+  /**
+   * Defaults plus stored documents; a stored document always wins.
+   *
+   * Stored documents go through `mapChallenge`, the same reader the devotee
+   * page uses, rather than being shown raw. Otherwise the admin edits a
+   * different challenge from the one devotees see: a field the document
+   * predates — `resourceUrl` is the first — resolves to its seed on /niyams
+   * and to nothing here, and the next save writes that nothing back, quietly
+   * removing what was on the live page.
+   */
+  const allChallenges = computed(() =>
+    mergeChallenges(
+      challenges.items.value.map(c => mapChallenge(c.id, c as unknown as Record<string, unknown>))
+    )
+  )
   const publishedChallenges = computed(() => allChallenges.value.filter(isPublished))
   const unpublishedDefaults = computed(() => allChallenges.value.filter(c => !isPublished(c)))
 

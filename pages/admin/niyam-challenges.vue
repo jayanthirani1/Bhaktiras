@@ -300,11 +300,11 @@
                     v-model="form.resourceLabel"
                     :maxlength="RESOURCE_LABEL_MAX"
                     class="admin-input"
-                    :disabled="!form.resourceUrl"
-                    placeholder="Read the Janmangal Namavali"
+                    :placeholder="copy('resourceLinkLabel')"
                   >
                   <p class="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
-                    Blank uses the wording set in Section copy above.
+                    Blank uses the wording set in Section copy above
+                    (“{{ copy('resourceLinkLabel') }}”). Only shown when there is a link.
                   </p>
                 </div>
               </div>
@@ -717,6 +717,8 @@ const filters: { id: FilterId; label: string }[] = [
   { id: 'approved', label: 'Counted' },
   { id: 'rejected', label: 'Rejected' }
 ]
+
+const copy = useNiyamCopy()
 
 const uid = useId()
 const filter = ref<FilterId>('all')
