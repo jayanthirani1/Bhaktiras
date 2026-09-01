@@ -24,19 +24,20 @@
       </div>
 
       <template v-else>
-        <header class="mb-5 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <p v-if="challenge" class="text-xs font-bold uppercase tracking-[0.16em] text-[hsl(var(--golden-900))]">
-              {{ challenge.title }}
-            </p>
-            <h1 class="mt-1 font-display text-3xl font-semibold text-[hsl(var(--primary))]">
+        <header class="mb-5">
+          <p v-if="challenge" class="text-xs font-bold uppercase tracking-[0.16em] text-[hsl(var(--golden-900))]">
+            {{ challenge.title }}
+          </p>
+          <div class="mt-1 flex items-start justify-between gap-3">
+            <h1 class="min-w-0 flex-1 font-display text-3xl font-semibold leading-tight text-[hsl(var(--primary))]">
               {{ document.title }}
             </h1>
+            <NiyamDocumentLanguageToggle
+              v-model="language"
+              :languages="languages"
+              class="mt-1.5"
+            />
           </div>
-          <NiyamDocumentLanguageToggle
-            v-model="language"
-            :languages="languages"
-          />
         </header>
 
         <article
