@@ -8,7 +8,7 @@
     <template v-if="challenge">
       <NiyamBeadRing v-if="showRing" :total="stats.approvedTotal" :target="challenge.target">
         <p class="font-display text-3xl leading-none text-[hsl(var(--primary))]">
-          {{ formatCountWithPercent(stats.approvedTotal, challenge.target) }}
+          {{ formatCount(stats.approvedTotal) }}
         </p>
         <p class="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
           of {{ formatTarget(challenge.target) }}
@@ -20,7 +20,7 @@
           Together so far
         </p>
         <p class="mt-1 font-display text-4xl text-[hsl(var(--primary))]">
-          {{ formatCountWithPercent(stats.approvedTotal, challenge.target) }}
+          {{ formatCount(stats.approvedTotal) }}
         </p>
         <p class="mt-1 text-sm text-[hsl(var(--muted-foreground))]">
           of {{ formatTarget(challenge.target) }} — {{ formatCount(challenge.target) }}
@@ -181,7 +181,6 @@ import type { NiyamChallenge, NiyamChallengeStats, NiyamContributor, NiyamSubmis
 import {
   challengeWindow,
   formatCount,
-  formatCountWithPercent,
   formatTarget,
   iconFor,
   inputModeFor,

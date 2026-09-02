@@ -67,7 +67,7 @@
         <div class="mt-3 flex items-end justify-between gap-3">
           <div>
             <p class="font-display text-2xl leading-none text-[hsl(var(--primary))]">
-              {{ formatCountWithPercent(stats.approvedTotal, challenge.target) }}
+              {{ formatCount(stats.approvedTotal) }}
             </p>
             <p class="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
               of {{ formatTarget(challenge.target) }}
@@ -113,7 +113,6 @@ import type { NiyamChallenge, NiyamChallengeStats } from '~/types'
 import {
   challengeWindow,
   formatCount,
-  formatCountWithPercent,
   formatTarget,
   glossFor,
   iconFor,
