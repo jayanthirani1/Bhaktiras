@@ -12,12 +12,15 @@ import {
   type Firestore,
   type Timestamp
 } from 'firebase/firestore'
+import { notificationDetailPath, notificationLinkUrl } from '~/utils/notificationDetail'
 
 export type InboxMessage = {
   id: string
   title: string
   body: string
+  /** Legacy destination; new sends open the detail page first. */
   url: string
+  linkUrl: string
   topic: string
   test: boolean
   createdAt: Date | null
@@ -37,15 +40,29 @@ function toDate(value?: Timestamp | Date | null) {
 }
 
 function toMessage(id: string, data: DocumentData, test: boolean): InboxMessage {
+  const url = String(data.url || '/')
+  const linkUrl = notificationLinkUrl({
+    linkUrl: typeof data.linkUrl === 'string' ? data.linkUrl : '',
+    url
+  }) || '/'
   return {
     id,
     title: String(data.title || 'Bhaktiras'),
     body: String(data.body || ''),
-    url: String(data.url || '/'),
+    url,
+    linkUrl,
     topic: String(data.topic || 'announcements'),
     test,
     createdAt: toDate(data.createdAt as Timestamp | undefined)
   }
+}
+
+function detailPathFor(message: InboxMessage) {
+  if (message.url.startsWith('/notifications/')) {
+    const path = message.url.split('?')[0]
+    return message.test ? `${path}?test=1` : path
+  }
+  return notificationDetailPath(message)
 }
 
 function newestFirst(a: InboxMessage, b: InboxMessage) {
@@ -258,6 +275,7 @@ export function useNotificationInbox() {
     clearViewedUnread,
     dismiss,
     restore,
-    isUnread
+    isUnread,
+    detailPathFor
   }
 }

@@ -334,6 +334,13 @@ async function loadOwnRecipients(db, uid) {
   return snap.docs.filter(doc => doc.data().enabled === true).map(toRecipient).filter(hasToken)
 }
 
+/** Short line for the OS banner; full text is on /notifications/[id]. */
+function notificationPreviewBody(body, max = 120) {
+  const trimmed = String(body || '').trim()
+  if (trimmed.length <= max) return trimmed
+  return `${trimmed.slice(0, max - 1).trimEnd()}…`
+}
+
 /**
  * Fans a message out to already-resolved recipients.
  * Data-only so the client SW / foreground listener always owns display.
@@ -341,6 +348,7 @@ async function loadOwnRecipients(db, uid) {
  */
 async function pushToRecipients({ recipients, title, body, topic, url }) {
   const link = new URL(url || '/', SITE_ORIGIN).href
+  const preview = notificationPreviewBody(body)
   let successCount = 0
   let failureCount = 0
   const staleRefs = []
@@ -352,6 +360,7 @@ async function pushToRecipients({ recipients, title, body, topic, url }) {
       data: {
         title,
         body,
+        preview,
         url: url || '/',
         topic,
         tag: `bhaktiras-${topic}`
@@ -394,21 +403,24 @@ const TEST_INBOX_KEEP = 10
  * test would surface in the whole community's bell. This subcollection is
  * readable only by the admin who triggered it.
  */
-async function recordTestNotification(db, uid, { title, body, topic, url }) {
+async function recordTestNotification(db, uid, { title, body, topic, url, linkUrl, messageId }) {
   const messages = db.collection('testNotifications').doc(uid).collection('messages')
-  await messages.add({
+  const ref = messageId ? messages.doc(messageId) : messages.doc()
+  await ref.set({
     title,
     body,
     topic,
     url: url || '/',
+    linkUrl: linkUrl || '/',
     test: true,
     createdAt: FieldValue.serverTimestamp()
   })
   const stale = await messages.orderBy('createdAt', 'desc').offset(TEST_INBOX_KEEP).get()
-  if (stale.empty) return
+  if (stale.empty) return ref.id
   const write = db.batch()
   stale.docs.forEach(doc => write.delete(doc.ref))
   await write.commit()
+  return ref.id
 }
 
 async function pruneStaleSubscriptions(db, staleRefs) {
@@ -428,7 +440,16 @@ async function deliverNotification({ title, body, topic, url, sentBy, inbox = to
   const all = await loadRecipients(db, topic)
   // Someone who just did the thing does not need telling about it.
   const recipients = excludeUserId ? all.filter(item => item.userId !== excludeUserId) : all
-  const outcome = await pushToRecipients({ recipients, title, body, topic, url })
+
+  const linkUrl = url || '/'
+  let pushUrl = linkUrl
+  let notificationRef = null
+  if (inbox) {
+    notificationRef = db.collection('notifications').doc()
+    pushUrl = `/notifications/${notificationRef.id}`
+  }
+
+  const outcome = await pushToRecipients({ recipients, title, body, topic, url: pushUrl })
   await pruneStaleSubscriptions(db, outcome.staleRefs)
 
   const uniqueErrorCodes = Array.from(new Set(outcome.errorCodes))
@@ -437,7 +458,8 @@ async function deliverNotification({ title, body, topic, url, sentBy, inbox = to
       title,
       body,
       topic,
-      url,
+      url: pushUrl,
+      linkUrl,
       sentBy,
       inbox,
       recipientCount: recipients.length,
@@ -447,12 +469,13 @@ async function deliverNotification({ title, body, topic, url, sentBy, inbox = to
       createdAt: FieldValue.serverTimestamp()
     })
   ]
-  if (inbox) {
-    writes.push(db.collection('notifications').add({
+  if (inbox && notificationRef) {
+    writes.push(notificationRef.set({
       title,
       body,
       topic,
-      url: url || '/',
+      url: pushUrl,
+      linkUrl,
       createdAt: FieldValue.serverTimestamp()
     }))
   }
@@ -469,7 +492,7 @@ async function deliverNotification({ title, body, topic, url, sentBy, inbox = to
 /** Shared validation for both the live send and the admin-only test send. */
 function readNotificationInput(data) {
   const title = cleanText(data?.title, 80)
-  const body = cleanText(data?.body, 240)
+  const body = cleanText(data?.body, 2000)
   const topic = cleanText(data?.topic, 20) || 'all'
   const url = String(data?.url || '/').trim().slice(0, 300)
   if (title.length < 3 || body.length < 3) {
@@ -514,13 +537,26 @@ exports.sendTestPushNotification = onCall(
         'Turn notifications on for this account first, then send yourself a test.'
       )
     }
-    const outcome = await pushToRecipients({ recipients, ...input })
-    await pruneStaleSubscriptions(db, outcome.staleRefs)
-    // Mirror the real send's inbox decision, so the test reflects what will happen.
     const inbox = request.data?.inbox == null
       ? input.topic !== 'games' && input.topic !== 'niyams' && input.topic !== 'niyam-milestones'
       : request.data.inbox === true
-    if (inbox) await recordTestNotification(db, uid, input)
+    const linkUrl = input.url
+    let pushUrl = linkUrl
+    let testMessageId = null
+    if (inbox) {
+      testMessageId = db.collection('testNotifications').doc(uid).collection('messages').doc().id
+      pushUrl = `/notifications/${testMessageId}?test=1`
+    }
+    const outcome = await pushToRecipients({ recipients, ...input, url: pushUrl })
+    await pruneStaleSubscriptions(db, outcome.staleRefs)
+    if (inbox) {
+      await recordTestNotification(db, uid, {
+        ...input,
+        url: pushUrl,
+        linkUrl,
+        messageId: testMessageId
+      })
+    }
     return {
       recipientCount: recipients.length,
       successCount: outcome.successCount,

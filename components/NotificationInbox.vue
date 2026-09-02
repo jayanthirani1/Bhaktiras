@@ -111,7 +111,7 @@
                       @pointerdown="onPointerDown($event, message.id)"
                     >
                       <NuxtLink
-                        :to="message.url"
+                        :to="detailPathFor(message)"
                         class="flex min-w-0 flex-1 gap-3 px-4 pt-3 transition-colors hover:bg-[hsl(var(--muted))]"
                         @click="onRowClick"
                       >
@@ -183,7 +183,8 @@ const {
   clearViewedUnread,
   dismiss,
   restore,
-  isUnread
+  isUnread,
+  detailPathFor
 } = useNotificationInbox()
 
 const open = ref(false)

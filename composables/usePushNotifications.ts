@@ -10,6 +10,7 @@ import {
 import { getApp } from 'firebase/app'
 import { isIos, isStandalone } from '~/utils/pwa'
 import { consumeInteractiveSignIn } from '~/utils/signInSignal'
+import { notificationPreviewBody } from '~/utils/notificationDetail'
 
 export type PushTopic = 'announcements' | 'games' | 'niyams' | 'niyam-milestones'
 export type PushPromptMoment = 'game-complete' | 'events' | 'signed-in'
@@ -323,7 +324,7 @@ export function usePushNotifications() {
         if (Notification.permission !== 'granted') return
         const data = payload.data || {}
         const title = payload.notification?.title || data.title || 'Bhaktiras'
-        const body = payload.notification?.body || data.body || ''
+        const body = data.preview || notificationPreviewBody(String(data.body || payload.notification?.body || ''))
         const url = data.url || '/'
         void navigator.serviceWorker.ready.then((registration) => {
           void registration.showNotification(title, {

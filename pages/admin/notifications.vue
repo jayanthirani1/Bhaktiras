@@ -18,13 +18,16 @@
         <textarea
           id="push-body"
           v-model="form.body"
-          class="admin-input min-h-28"
-          maxlength="240"
+          class="admin-input min-h-36"
+          maxlength="2000"
           required
-          placeholder="Write the notification people will receive…"
+          placeholder="Write the full notification message…"
           @input="resetConfirm"
         />
-        <p class="mt-1 text-right text-xs text-[hsl(var(--muted-foreground))]">{{ form.body.length }}/240</p>
+        <p class="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
+          The device shows a short preview. Devotees tap the notification to read the full message.
+        </p>
+        <p class="mt-1 text-right text-xs text-[hsl(var(--muted-foreground))]">{{ form.body.length }}/2000</p>
       </div>
       <div>
         <label for="push-audience" class="admin-label">Audience</label>
@@ -41,7 +44,7 @@
         </p>
       </div>
       <div>
-        <label for="push-url" class="admin-label">Open page</label>
+        <label for="push-url" class="admin-label">Button on the message page</label>
         <input
           id="push-url"
           v-model="form.url"
@@ -52,7 +55,9 @@
           placeholder="/events"
           @input="resetConfirm"
         >
-        <p class="mt-1 text-xs text-[hsl(var(--muted-foreground))]">Use an internal path beginning with /.</p>
+        <p class="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
+          After reading the full message, devotees can tap this link. Use an internal path beginning with /.
+        </p>
       </div>
 
       <label class="flex items-start gap-2 text-sm text-[hsl(var(--foreground))]">
@@ -91,10 +96,10 @@
               {{ form.title || 'Notification title' }}
             </p>
             <p class="mt-0.5 text-sm text-[hsl(var(--muted-foreground))]">
-              {{ form.body || 'The message people will receive appears here.' }}
+              {{ previewBody }}
             </p>
             <p class="mt-1 text-[11px] text-[hsl(var(--muted-foreground))]">
-              Bhaktiras · opens {{ form.url || '/' }}
+              Bhaktiras · tap to read full message
             </p>
           </div>
         </div>
@@ -111,10 +116,10 @@
               <p class="text-sm font-semibold text-[hsl(var(--foreground))]">
                 {{ form.title || 'Notification title' }}
               </p>
-              <p class="mt-0.5 text-sm leading-relaxed text-[hsl(var(--muted-foreground))]">
-                {{ form.body || 'The message people will receive appears here.' }}
+              <p class="mt-0.5 line-clamp-2 text-sm leading-relaxed text-[hsl(var(--muted-foreground))]">
+                {{ previewBody }}
               </p>
-              <p class="mt-1 text-[11px] text-[hsl(var(--muted-foreground))]">Just now</p>
+              <p class="mt-1 text-[11px] text-[hsl(var(--muted-foreground))]">Just now · tap to read full message</p>
             </div>
           </div>
           <p v-else class="px-4 py-6 text-center text-sm text-[hsl(var(--muted-foreground))]">
@@ -209,6 +214,7 @@ import {
   type Firestore,
   type Timestamp
 } from 'firebase/firestore'
+import { notificationPreviewBody } from '~/utils/notificationDetail'
 
 definePageMeta({ layout: 'admin', middleware: 'admin' })
 
@@ -251,6 +257,11 @@ const previewModes = [
   { id: 'inbox' as const, label: 'In the inbox' }
 ]
 
+const previewBody = computed(() => {
+  const text = form.body.trim()
+  if (!text) return 'The short preview people see on their device appears here.'
+  return notificationPreviewBody(text)
+})
 const audienceCount = computed(() => audience.value?.[form.topic] ?? null)
 const canSend = computed(() => form.title.trim().length >= 3
   && form.body.trim().length >= 3

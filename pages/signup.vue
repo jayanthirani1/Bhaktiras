@@ -117,9 +117,14 @@ const route = useRoute()
 const { authErrorMessage } = useAuthErrors()
 
 function safeRedirect() {
-  const path = typeof route.query.redirect === 'string' ? route.query.redirect : ''
-  if (!path.startsWith('/') || path.startsWith('//') || path.includes('\\')) return '/play'
-  return path
+  const raw = typeof route.query.redirect === 'string' ? route.query.redirect : ''
+  if (!raw.startsWith('/') || raw.startsWith('//') || raw.includes('\\')) return '/play'
+  const queryIndex = raw.indexOf('?')
+  if (queryIndex === -1) return raw
+  const path = raw.slice(0, queryIndex)
+  const params = new URLSearchParams(raw.slice(queryIndex + 1))
+  const query = Object.fromEntries(params.entries())
+  return { path, query }
 }
 
 const loginLink = computed(() => {

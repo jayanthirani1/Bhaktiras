@@ -51,8 +51,11 @@ messaging.onBackgroundMessage((payload) => {
   const data = payload.data || {}
   const notification = payload.notification || {}
   const title = notification.title || data.title || 'Bhaktiras'
+  const fullBody = notification.body || data.body || ''
+  const preview = data.preview || fullBody
+  const body = preview.length > 120 ? preview.slice(0, 119).trimEnd() + '…' : preview
   const options = {
-    body: notification.body || data.body || '',
+    body,
     icon: '/notification-icon.png',
     badge: '/notification-badge.png',
     data: { url: absoluteUrl(data.url) },
