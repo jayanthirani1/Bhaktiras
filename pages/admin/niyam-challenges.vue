@@ -534,16 +534,23 @@
             </p>
           </div>
 
-          <!-- ── Everyone's entries ──────────────────────────────── -->
+          <!-- ── Everyone's entries / check-ins ─────────────────────── -->
           <div
-            v-if="editingId && editingPublished && form.inputMode !== 'checkin'"
+            v-if="editingId && editingPublished"
             class="border-t border-[hsl(var(--border))] pt-5"
           >
             <div class="flex flex-wrap items-center justify-between gap-2">
-              <h3 class="font-display text-lg font-semibold text-[hsl(var(--primary))]">All entries</h3>
+              <div>
+                <h3 class="font-display text-lg font-semibold text-[hsl(var(--primary))]">
+                  {{ form.inputMode === 'checkin' ? 'Check-ins' : 'All entries' }}
+                </h3>
+                <p v-if="form.inputMode === 'checkin'" class="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
+                  Daily Darshan check-ins are auto-approved. Reject duplicates or spam — totals update within a second or two.
+                </p>
+              </div>
               <div class="inline-flex rounded-lg border border-[hsl(var(--border))] bg-white p-0.5 text-xs">
                 <button
-                  v-for="option in filters"
+                  v-for="option in entryFilters"
                   :key="option.id"
                   type="button"
                   class="min-h-[36px] rounded-md px-2.5 py-1 font-semibold transition-colors"
@@ -566,7 +573,8 @@
                 <thead class="text-[10px] uppercase tracking-[0.12em] text-[hsl(var(--muted-foreground))]">
                   <tr>
                     <th class="py-2 pr-3 font-semibold">Devotee</th>
-                    <th class="py-2 pr-3 font-semibold">Amount</th>
+                    <th class="py-2 pr-3 font-semibold">{{ form.inputMode === 'checkin' ? 'Sabhas' : 'Amount' }}</th>
+                    <th v-if="form.inputMode === 'checkin'" class="py-2 pr-3 font-semibold">Slot</th>
                     <th class="py-2 pr-3 font-semibold">Day</th>
                     <th class="py-2 pr-3 font-semibold">Status</th>
                     <th class="py-2 font-semibold">Change</th>
@@ -577,12 +585,18 @@
                     <td class="py-2 pr-3">
                       <span class="font-semibold text-[hsl(var(--foreground))]">{{ entry.userName }}</span>
                       <span v-if="entry.note" class="block text-xs text-[hsl(var(--muted-foreground))]">{{ entry.note }}</span>
-                      <!-- Judgement context, free here because the whole list is loaded. -->
+                      <span v-if="entry.reviewNote" class="block text-xs text-red-700">{{ entry.reviewNote }}</span>
                       <span v-if="entry.status === 'pending'" class="block text-xs text-[hsl(var(--muted-foreground))]">
+                        {{ personSummary(entry) }}
+                      </span>
+                      <span v-else-if="form.inputMode === 'checkin'" class="block text-xs text-[hsl(var(--muted-foreground))]">
                         {{ personSummary(entry) }}
                       </span>
                     </td>
                     <td class="py-2 pr-3 font-semibold text-[hsl(var(--primary))]">{{ formatCount(entry.amount) }}</td>
+                    <td v-if="form.inputMode === 'checkin'" class="py-2 pr-3 text-xs text-[hsl(var(--muted-foreground))]">
+                      {{ checkinSlotLabel(entry) }}
+                    </td>
                     <td class="py-2 pr-3 text-xs text-[hsl(var(--muted-foreground))]">{{ formatUkDateLabel(entry.dayKey) }}</td>
                     <td class="py-2 pr-3">
                       <span class="rounded-full px-2 py-0.5 text-[11px] font-semibold" :class="chipClass(entry.status)">
@@ -590,9 +604,9 @@
                       </span>
                     </td>
                     <td class="py-2">
-                      <div class="flex gap-1.5">
+                      <div class="flex flex-wrap gap-1.5">
                         <button
-                          v-if="entry.status !== 'approved'"
+                          v-if="entry.status !== 'approved' && form.inputMode !== 'checkin'"
                           type="button"
                           class="min-h-[36px] text-xs font-semibold text-[hsl(var(--primary))] hover:underline disabled:opacity-40"
                           :disabled="!!reviewingId"
@@ -601,7 +615,16 @@
                           Approve
                         </button>
                         <button
-                          v-if="entry.status === 'approved'"
+                          v-if="entry.status === 'rejected'"
+                          type="button"
+                          class="min-h-[36px] text-xs font-semibold text-[hsl(var(--primary))] hover:underline disabled:opacity-40"
+                          :disabled="!!reviewingId"
+                          @click="approve(entry)"
+                        >
+                          Restore
+                        </button>
+                        <button
+                          v-if="entry.status === 'approved' && form.inputMode !== 'checkin'"
                           type="button"
                           class="min-h-[36px] text-xs font-semibold text-amber-700 hover:underline disabled:opacity-40"
                           :disabled="!!reviewingId"
@@ -617,6 +640,15 @@
                           @click="askReject(entry)"
                         >
                           Reject
+                        </button>
+                        <button
+                          v-if="form.inputMode === 'checkin'"
+                          type="button"
+                          class="min-h-[36px] text-xs font-semibold text-[hsl(var(--muted-foreground))] hover:underline disabled:opacity-40"
+                          :disabled="!!reviewingId"
+                          @click="askDelete(entry)"
+                        >
+                          Delete
                         </button>
                       </div>
                     </td>
@@ -670,6 +702,16 @@
     />
 
     <AdminConfirmDialog
+      :open="!!deleteTarget"
+      title="Delete this check-in?"
+      :body="deleteBody"
+      confirm-label="Delete check-in"
+      danger
+      @confirm="onDeleteConfirm"
+      @cancel="deleteTarget = null"
+    />
+
+    <AdminConfirmDialog
       :open="confirmDelete"
       title="Delete this niyam?"
       body="Every entry devotees have submitted towards it is deleted too, and its total is unwound."
@@ -686,7 +728,7 @@ import { Timestamp } from 'firebase/firestore'
 import type { NiyamSubmission, NiyamSubmissionStatus } from '~/types'
 import type { NiyamChallenge, NiyamIconKey, NiyamInputMode } from '~/types'
 import { formatBigCount, NIYAM_ICON_NAMES } from '~/composables/useAdminNiyamChallenges'
-import { iconFor, isPublished } from '~/utils/niyamChallenge'
+import { iconFor, isPublished, mandirCheckinSlot, mandirCheckinSlotLabel } from '~/utils/niyamChallenge'
 import {
   DEFAULT_AUTO_APPROVE_MAX,
   DEFAULT_MAX_PER_SUBMISSION,
@@ -737,6 +779,7 @@ const {
   approve,
   reject,
   hold,
+  removeSubmission,
   publishDefault,
   publishAllDefaults,
   logMandirEntry,
@@ -756,6 +799,12 @@ const filters: { id: FilterId; label: string }[] = [
   { id: 'rejected', label: 'Rejected' }
 ]
 
+const entryFilters = computed(() =>
+  form.inputMode === 'checkin'
+    ? filters.filter(option => option.id !== 'pending')
+    : filters
+)
+
 const copy = useNiyamCopy()
 const { items: niyamDocuments, fetchAll: fetchNiyamDocuments } = useAdminNiyamDocuments()
 
@@ -774,6 +823,7 @@ const queueFilter = ref('')
 const queueEl = ref<HTMLElement | null>(null)
 const publishingId = ref<string | null>(null)
 const rejectTarget = ref<NiyamSubmission | null>(null)
+const deleteTarget = ref<NiyamSubmission | null>(null)
 const confirmDelete = ref(false)
 
 const form = reactive({
@@ -908,7 +958,13 @@ const rejectBody = computed(() => {
   if (!entry) return ''
   const challenge = allChallenges.value.find(c => c.id === entry.challengeId)
   const unit = challenge ? unitLabel(challenge, entry.amount) : 'entries'
-  return `${entry.userName} · ${formatCount(entry.amount)} ${unit} on ${challenge?.title || entry.challengeId}. It stays on their card, marked not counted, with your reason.`
+  return `${entry.userName} · ${formatCount(entry.amount)} ${unit} on ${formatUkDateLabel(entry.dayKey)}. It stays on their card, marked not counted, with your reason.`
+})
+
+const deleteBody = computed(() => {
+  const entry = deleteTarget.value
+  if (!entry) return ''
+  return `Permanently delete ${entry.userName}'s check-in for ${formatUkDateLabel(entry.dayKey)}? Totals update within a second or two.`
 })
 
 onMounted(() => {
@@ -1192,15 +1248,34 @@ function onRejectConfirm(reason: string) {
   if (entry) reject(entry, reason)
 }
 
+function askDelete(entry: NiyamSubmission) {
+  deleteTarget.value = entry
+}
+
+function onDeleteConfirm() {
+  const entry = deleteTarget.value
+  deleteTarget.value = null
+  if (entry) void removeSubmission(entry)
+}
+
+function checkinSlotLabel(entry: NiyamSubmission): string {
+  if (entry.amount >= 2) return 'Morning + evening'
+  if (entry.checkinSlot === 'morning' || entry.checkinSlot === 'evening') {
+    return mandirCheckinSlotLabel(entry.checkinSlot)
+  }
+  return mandirCheckinSlotLabel(mandirCheckinSlot(toMillis(entry.createdAt) || Date.now()))
+}
+
 /** One line an admin can judge a held entry against, inside the loaded challenge. */
 function personSummary(entry: NiyamSubmission): string {
   const context = contextFor(entry)
+  const unit = form.inputMode === 'checkin' ? (form.unitSingular || form.unit || 'sabha') : form.unit
   const parts = [
-    `${formatCount(context.approvedTotal)} ${form.unit} counted so far`,
-    `${context.entryCount} ${context.entryCount === 1 ? 'entry' : 'entries'} in total`
+    `${formatCount(context.approvedTotal)} ${unit} counted so far`,
+    `${context.entryCount} ${form.inputMode === 'checkin' ? (context.entryCount === 1 ? 'check-in' : 'check-ins') : (context.entryCount === 1 ? 'entry' : 'entries')} in total`
   ]
   if (context.sameDayCount > 1) {
-    parts.push(`${context.sameDayCount} entries on this day (${formatCount(context.sameDayTotal)} ${form.unit})`)
+    parts.push(`${context.sameDayCount} on this day (${formatCount(context.sameDayTotal)} ${unit})`)
   }
   if (context.pendingCount > 1) parts.push(`${context.pendingCount} awaiting review`)
   return parts.join(' · ')

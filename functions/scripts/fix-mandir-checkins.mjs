@@ -1,9 +1,13 @@
 /**
- * One-off: trim spam mandir check-ins for named devotees.
+ * Trim mandir check-ins to a target sabha count for named devotees.
+ * Keeps the earliest valid submissions; deletes the rest.
  * Deleting submissions triggers syncNiyamChallengeTotals to fix contributor stats.
  *
  * Usage (from repo root, with Firebase admin credentials):
  *   node functions/scripts/fix-mandir-checkins.mjs [--dry-run]
+ *
+ * After running, recompute totals:
+ *   node functions/scripts/recompute-niyam-stats.mjs --challenge=mandir-darshan
  */
 import { initializeApp, applicationDefault } from 'firebase-admin/app'
 import { getFirestore } from 'firebase-admin/firestore'
@@ -13,8 +17,13 @@ import { join } from 'node:path'
 
 const CHALLENGE_ID = 'mandir-darshan'
 const TARGETS = [
-  { name: 'Veer Hirani', keepSabhas: 3 },
-  { name: 'Dhruv Varsani', keepSabhas: 3 }
+  { name: 'Kerai123', keepSabhas: 5 },
+  { name: 'Roshan Kerai', keepSabhas: 5 },
+  { name: 'Venika Hirani', keepSabhas: 3 },
+  { name: 'Vinay Kerai', keepSabhas: 5 },
+  { name: 'Rashika Halai', keepSabhas: 2 },
+  { name: 'Suraj Varsani', keepSabhas: 4 },
+  { name: 'P_halai', keepSabhas: 3 }
 ]
 const dryRun = process.argv.includes('--dry-run')
 
@@ -64,9 +73,14 @@ async function trimUser({ name, keepSabhas }) {
   const totalSabhas = rows.reduce((sum, row) => sum + sabhasOf(row), 0)
   console.log(`\n${name}: ${rows.length} submission(s), ${totalSabhas} sabha(s) total`)
 
+  if (!rows.length) {
+    console.log('  No submissions found.')
+    return { name, deleted: 0, kept: 0, keptSabhas: 0 }
+  }
+
   if (totalSabhas <= keepSabhas) {
     console.log(`  Already at or below ${keepSabhas} — nothing to delete.`)
-    return { name, deleted: 0, kept: rows.length }
+    return { name, deleted: 0, kept: rows.length, keptSabhas: totalSabhas }
   }
 
   const keep = []
@@ -110,12 +124,16 @@ function chunk(items, size) {
 }
 
 async function main() {
-  console.log(dryRun ? 'DRY RUN' : 'LIVE — deleting excess mandir check-ins')
+  console.log(dryRun ? 'DRY RUN' : 'LIVE — trimming mandir check-ins')
   const results = []
   for (const target of TARGETS) {
     results.push(await trimUser(target))
   }
   console.log('\nSummary:', JSON.stringify(results, null, 2))
+  if (!dryRun) {
+    console.log('\nRecompute totals with:')
+    console.log('  node functions/scripts/recompute-niyam-stats.mjs --challenge=mandir-darshan')
+  }
 }
 
 main().catch((err) => {

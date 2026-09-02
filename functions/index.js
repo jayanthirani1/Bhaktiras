@@ -1397,6 +1397,52 @@ const MANDIR_CHECKIN_RECENT_LIMIT = 40
 /** Evening sabha slot starts at 14:00 Europe/London. */
 const MANDIR_EVENING_SLOT_HOUR = 14
 const MANDIR_CHECKIN_MAX_PER_DAY = 2
+/** Daily Darshan went live Saturday 29 Aug 2026 (evening sabha). */
+const MANDIR_DARSHAN_LAUNCH_DAY = '2026-08-29'
+
+function addUkDays(id, days) {
+  const [year, month, day] = id.split('-').map(Number)
+  if (!year || !month || !day) return id
+  const date = new Date(Date.UTC(year, month - 1, day))
+  date.setUTCDate(date.getUTCDate() + days)
+  return date.toISOString().slice(0, 10)
+}
+
+function ukDateIdNow() {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/London',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).format(new Date())
+}
+
+function mandirMaxSabhasForDay(dayKey) {
+  if (dayKey < MANDIR_DARSHAN_LAUNCH_DAY) return 0
+  if (dayKey === MANDIR_DARSHAN_LAUNCH_DAY) return 1
+  return MANDIR_CHECKIN_MAX_PER_DAY
+}
+
+function mandirMaxTotalSinceLaunch(todayId = ukDateIdNow()) {
+  if (todayId < MANDIR_DARSHAN_LAUNCH_DAY) return 0
+  let total = 0
+  let day = MANDIR_DARSHAN_LAUNCH_DAY
+  while (day <= todayId) {
+    total += mandirMaxSabhasForDay(day)
+    day = addUkDays(day, 1)
+  }
+  return total
+}
+
+function mandirLaunchDayBlocksCheckin(dayKey, amount, checkinSlot, ms) {
+  if (dayKey !== MANDIR_DARSHAN_LAUNCH_DAY) return null
+  if (niyamCounters(amount) >= 2) return 'Only one check-in was available on the first day.'
+  const slot = checkinSlot === 'morning' || checkinSlot === 'evening'
+    ? checkinSlot
+    : mandirSlotOf(ms)
+  if (slot === 'morning') return 'Daily Darshan opened Saturday evening — the morning sabha was before launch.'
+  return null
+}
 
 function ukHourOf(ms) {
   if (!ms) return 0
@@ -1412,7 +1458,7 @@ function mandirSlotOf(ms) {
 }
 
 function mandirSlotsFilled(row) {
-  const amount = positiveInt(row?.amount)
+  const amount = niyamCounters(row?.amount)
   if (amount >= 2) return { morning: true, evening: true }
   const slot = row?.checkinSlot === 'morning' || row?.checkinSlot === 'evening'
     ? row.checkinSlot
@@ -1446,30 +1492,61 @@ async function rejectMandirCheckinSpam(db, submissionId, afterSnap) {
   const dayKey = typeof after.dayKey === 'string' ? after.dayKey.trim() : ''
   if (!userChallengeKey || !dayKey) return false
 
+  if (dayKey < MANDIR_DARSHAN_LAUNCH_DAY) {
+    await markNiyamSpamRejected(db, submissionId, after.challengeId, 'Daily Darshan check-in is not open yet.')
+    return true
+  }
+
+  const newMs = submissionCreatedMs(after)
+  const newAmount = niyamCounters(after.amount)
+  const launchBlock = mandirLaunchDayBlocksCheckin(dayKey, newAmount, after.checkinSlot, newMs)
+  if (launchBlock) {
+    await markNiyamSpamRejected(db, submissionId, after.challengeId, launchBlock)
+    return true
+  }
+
   const snap = await db.collection('niyamSubmissions')
     .where('userChallengeKey', '==', userChallengeKey)
     .orderBy(FieldPath.documentId(), 'asc')
     .limit(MANDIR_CHECKIN_RECENT_LIMIT)
     .get()
 
-  const newMs = submissionCreatedMs(after)
   const newFilled = mandirSlotsFilled(after)
+  const dailyMax = mandirMaxSabhasForDay(dayKey)
   const todayRows = []
   let morningLogged = false
   let eveningLogged = false
+  let lifetimeTotal = 0
 
   for (const doc of snap.docs) {
     if (doc.id === submissionId) continue
     const row = doc.data() || {}
     if (row.status === 'rejected') continue
-    if (row.dayKey !== dayKey) continue
+    const rowDay = typeof row.dayKey === 'string' ? row.dayKey.trim() : ''
+    if (rowDay >= MANDIR_DARSHAN_LAUNCH_DAY) {
+      lifetimeTotal += niyamCounters(row.amount)
+    }
+    if (rowDay !== dayKey) continue
     const filled = mandirSlotsFilled(row)
     morningLogged = morningLogged || filled.morning
     eveningLogged = eveningLogged || filled.evening
     todayRows.push({ id: doc.id, row, ms: submissionCreatedMs(row) })
   }
 
-  if (morningLogged && eveningLogged) {
+  const lifetimeMax = mandirMaxTotalSinceLaunch(dayKey)
+  if (lifetimeTotal + newAmount > lifetimeMax) {
+    await markNiyamSpamRejected(db, submissionId, after.challengeId, 'You have reached the maximum check-ins available so far.')
+    logger.info('Rejected mandir check-in over lifetime limit', {
+      submissionId,
+      userId: after.userId,
+      lifetimeTotal,
+      newAmount,
+      lifetimeMax
+    })
+    return true
+  }
+
+  if (morningLogged && eveningLogged && dailyMax >= 2) {
     await markNiyamSpamRejected(db, submissionId, after.challengeId, 'Already checked in for morning and evening today.')
     logger.info('Rejected mandir check-in over daily limit', {
       submissionId,
@@ -1480,10 +1557,14 @@ async function rejectMandirCheckinSpam(db, submissionId, afterSnap) {
     return true
   }
 
-  const todayAmount = todayRows.reduce((sum, item) => sum + positiveInt(item.row.amount), 0)
-  const newAmount = positiveInt(after.amount)
-  if (todayAmount + newAmount > MANDIR_CHECKIN_MAX_PER_DAY) {
-    await markNiyamSpamRejected(db, submissionId, after.challengeId, 'Only two sabhas can be logged per day.')
+  const todayAmount = todayRows.reduce((sum, item) => sum + niyamCounters(item.row.amount), 0)
+  if (todayAmount + newAmount > dailyMax) {
+    await markNiyamSpamRejected(
+      db,
+      submissionId,
+      after.challengeId,
+      dailyMax === 1 ? 'Only one check-in was available on the first day.' : 'Only two sabhas can be logged per day.'
+    )
     logger.info('Rejected mandir check-in over daily amount', {
       submissionId,
       userId: after.userId,

@@ -337,6 +337,51 @@ export const MANDIR_CHECKIN_DOUBLE_TAP_MS = 2 * 60 * 1000
 /** One morning and one evening check-in per UK day. */
 export const MANDIR_CHECKIN_MAX_PER_DAY = 2
 
+/** Daily Darshan went live Saturday 29 Aug 2026 (evening sabha). */
+export const MANDIR_DARSHAN_LAUNCH_DAY = '2026-08-29'
+
+/** Max sabhas allowed on a given UK day — one on launch evening, two on full days. */
+export function mandirMaxSabhasForDay(dayKey: string): number {
+  if (dayKey < MANDIR_DARSHAN_LAUNCH_DAY) return 0
+  if (dayKey === MANDIR_DARSHAN_LAUNCH_DAY) return 1
+  return MANDIR_CHECKIN_MAX_PER_DAY
+}
+
+/** Running maximum sabhas a devotee can have logged through a UK day. */
+export function mandirMaxTotalSinceLaunch(todayId: string = ukDateId()): number {
+  if (todayId < MANDIR_DARSHAN_LAUNCH_DAY) return 0
+  let total = 0
+  let day = MANDIR_DARSHAN_LAUNCH_DAY
+  while (day <= todayId) {
+    total += mandirMaxSabhasForDay(day)
+    day = addUkDays(day, 1)
+  }
+  return total
+}
+
+export function mandirApprovedSabhasSinceLaunch(
+  submissions: NiyamSubmission[],
+  launchDay: string = MANDIR_DARSHAN_LAUNCH_DAY
+): number {
+  return submissions
+    .filter(s => s.status !== 'rejected' && (s.dayKey || '') >= launchDay)
+    .reduce((sum, s) => sum + Math.max(0, Math.floor(Number(s.amount) || 0)), 0)
+}
+
+/** Launch evening only — morning sabha on the first day is not valid. */
+export function mandirLaunchDayBlocksCheckin(
+  dayKey: string,
+  amount: number,
+  checkinSlot: MandirCheckinSlot | null | undefined,
+  now: number = Date.now()
+): string | null {
+  if (dayKey !== MANDIR_DARSHAN_LAUNCH_DAY) return null
+  if (amount >= 2) return 'Only one check-in was available on the first day.'
+  const slot = checkinSlot ?? mandirCheckinSlot(now)
+  if (slot === 'morning') return 'Daily Darshan opened Saturday evening — the morning sabha was before launch.'
+  return null
+}
+
 export interface NiyamSubmitCooldown {
   blocked: boolean
   nextAt: number
@@ -462,14 +507,33 @@ export function validateMandirCheckinSubmission(
   const amount = Math.floor(Number(request.amount) || 0)
   if (amount < 1) return { ok: false, error: 'Enter a valid check-in.' }
 
+  if (todayId < MANDIR_DARSHAN_LAUNCH_DAY) {
+    return { ok: false, error: 'Daily Darshan check-in is not open yet.' }
+  }
+
+  const launchBlock = mandirLaunchDayBlocksCheckin(todayId, amount, request.checkinSlot ?? null, now)
+  if (launchBlock) return { ok: false, error: launchBlock }
+
+  const dailyMax = mandirMaxSabhasForDay(todayId)
+  const totalToday = mandirCheckinsToday(submissions, todayId)
+  if (totalToday + amount > dailyMax) {
+    return {
+      ok: false,
+      error: dailyMax === 1
+        ? 'Only one check-in was available on the first day.'
+        : 'You can only log two sabhas per day.'
+    }
+  }
+
+  const lifetimeTotal = mandirApprovedSabhasSinceLaunch(submissions)
+  const lifetimeMax = mandirMaxTotalSinceLaunch(todayId)
+  if (lifetimeTotal + amount > lifetimeMax) {
+    return { ok: false, error: 'You have reached the maximum check-ins available so far.' }
+  }
+
   const logged = mandirSabhaLoggedToday(submissions, todayId)
   if (logged.morning && logged.evening) {
     return { ok: false, error: 'You have already logged both sabhas today.' }
-  }
-
-  const totalToday = mandirCheckinsToday(submissions, todayId)
-  if (totalToday + amount > MANDIR_CHECKIN_MAX_PER_DAY) {
-    return { ok: false, error: 'You can only log two sabhas per day.' }
   }
 
   const manual = amount >= 2 || !!request.checkinSlot
