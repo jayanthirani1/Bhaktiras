@@ -8,7 +8,7 @@
     <template v-if="challenge">
       <NiyamBeadRing v-if="showRing" :total="stats.approvedTotal" :target="challenge.target">
         <p class="font-display text-3xl leading-none text-[hsl(var(--primary))]">
-          {{ formatCount(stats.approvedTotal) }}
+          {{ formatCountWithPercent(stats.approvedTotal, challenge.target) }}
         </p>
         <p class="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
           of {{ formatTarget(challenge.target) }}
@@ -20,7 +20,7 @@
           Together so far
         </p>
         <p class="mt-1 font-display text-4xl text-[hsl(var(--primary))]">
-          {{ formatCount(stats.approvedTotal) }}
+          {{ formatCountWithPercent(stats.approvedTotal, challenge.target) }}
         </p>
         <p class="mt-1 text-sm text-[hsl(var(--muted-foreground))]">
           of {{ formatTarget(challenge.target) }} — {{ formatCount(challenge.target) }}
@@ -103,6 +103,7 @@
         :loading="leadersLoading"
         :current-user-id="currentUserId"
         :my-approved="myApproved"
+        :my-name="myName"
       />
 
       <NiyamMyEntries
@@ -180,6 +181,7 @@ import type { NiyamChallenge, NiyamChallengeStats, NiyamContributor, NiyamSubmis
 import {
   challengeWindow,
   formatCount,
+  formatCountWithPercent,
   formatTarget,
   iconFor,
   inputModeFor,
@@ -202,6 +204,7 @@ const props = defineProps<{
   leaders: NiyamContributor[]
   leadersLoading?: boolean
   currentUserId?: string
+  myName?: string
   /** This devotee's own entries on this niyam, newest first. */
   mySubmissions: NiyamSubmission[]
   withdrawingId?: string

@@ -1,9 +1,9 @@
 <template>
-  <span>{{ formatCount(shown) }}</span>
+  <span>{{ formatCount(shown) }}<template v-if="target > 0"> ({{ percentLabel(shown, target) }})</template></span>
 </template>
 
 <script setup lang="ts">
-import { formatCount } from '~/utils/niyamChallenge'
+import { formatCount, percentLabel } from '~/utils/niyamChallenge'
 
 /**
  * Runs once, on the devotee's own submission, from the total before their entry
@@ -13,8 +13,9 @@ import { formatCount } from '~/utils/niyamChallenge'
 const props = withDefaults(defineProps<{
   from: number
   to: number
+  target?: number
   duration?: number
-}>(), { duration: 800 })
+}>(), { target: 0, duration: 800 })
 
 const shown = ref(props.from)
 let frame = 0

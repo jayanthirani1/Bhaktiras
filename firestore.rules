@@ -601,7 +601,17 @@ service cloud.firestore {
       // own doc when signed in.
       match /contributors/{uid} {
         allow read: if true;
-        allow write: if false;
+        allow update: if isSignedIn()
+          && request.auth.uid == uid
+          && request.resource.data.userId == resource.data.userId
+          && request.resource.data.approvedTotal == resource.data.approvedTotal
+          && request.resource.data.pendingTotal == resource.data.pendingTotal
+          && request.resource.data.submissionCount == resource.data.submissionCount
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['userName'])
+          && request.resource.data.userName is string
+          && request.resource.data.userName.size() >= 1
+          && request.resource.data.userName.size() <= 32;
+        allow create, delete: if false;
       }
     }
 

@@ -183,6 +183,11 @@ export function percentLabel(total: number, target: number): string {
   return `${Math.round(raw)}%`
 }
 
+/** Community total with progress, e.g. "335 (2%)". */
+export function formatCountWithPercent(total: number, target: number): string {
+  return `${formatCount(total)} (${percentLabel(total, target)})`
+}
+
 /**
  * Bar width. A real total should never render as an invisible bar, so anything
  * above zero keeps a sliver — otherwise the first ten thousand malas of a ten

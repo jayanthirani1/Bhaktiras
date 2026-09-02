@@ -62,7 +62,7 @@
               Together so far
             </p>
             <p class="mt-1 font-display text-4xl text-[hsl(var(--primary))]">
-              <NiyamCountUp :from="totalBefore" :to="stats.approvedTotal" />
+              <NiyamCountUp :from="totalBefore" :to="stats.approvedTotal" :target="challenge.target" />
             </p>
             <p class="mt-1 text-sm text-[hsl(var(--muted-foreground))]">
               of {{ formatTarget(challenge.target) }} {{ unitLabel(challenge, challenge.target) }}

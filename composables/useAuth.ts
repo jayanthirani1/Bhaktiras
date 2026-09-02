@@ -13,6 +13,7 @@ import {
 import {
   collection,
   doc,
+  getDoc,
   getDocs,
   query,
   serverTimestamp,
@@ -127,7 +128,7 @@ export function useAuth() {
     syncUserSnapshot()
   }
 
-  async function updateDisplayName(rawName: string) {
+  async function updateDisplayName(rawName: string): Promise<string> {
     const auth = getAuth()
     const currentUser = auth?.currentUser
     if (!currentUser) throw new Error('You need to sign in again.')
@@ -135,25 +136,57 @@ export function useAuth() {
     if (displayName.length < 2) throw new Error('Enter a name of at least 2 characters.')
 
     await updateProfile(currentUser, { displayName })
-    await currentUser.reload()
-    syncUserSnapshot()
+
+    const applySnapshot = (authUser: NonNullable<ReturnType<typeof getAuth>>['currentUser']) => {
+      if (!authUser) return
+      user.value = {
+        uid: authUser.uid,
+        email: authUser.email,
+        displayName: authUser.displayName?.trim() || displayName,
+        providerIds: authUser.providerData.map(provider => provider.providerId)
+      }
+    }
+
+    // Keep local state in sync immediately — a reload right after updateProfile
+    // can still return the previous name while Auth propagates.
+    applySnapshot(currentUser)
+
+    try {
+      await currentUser.reload()
+      const reloaded = auth?.currentUser
+      if (reloaded?.displayName?.trim() === displayName) applySnapshot(reloaded)
+    } catch {
+      // The optimistic snapshot above is enough for the UI.
+    }
 
     const db = nuxtApp.$firebaseDb as Firestore | null
     if (db) {
       const uid = currentUser.uid
-      await setDoc(doc(db, 'publicProfiles', uid), {
-        userId: uid,
-        displayName,
-        updatedAt: serverTimestamp()
-      }, { merge: true })
+      const profileRef = doc(db, 'publicProfiles', uid)
+      const profileSnap = await getDoc(profileRef)
+      if (profileSnap.exists()) {
+        await updateDoc(profileRef, {
+          displayName,
+          updatedAt: serverTimestamp()
+        })
+      } else {
+        await setDoc(profileRef, {
+          userId: uid,
+          displayName,
+          updatedAt: serverTimestamp()
+        })
+      }
 
-      await setDoc(doc(db, 'users', uid), {
-        userId: uid,
-        displayName,
-        updatedAt: serverTimestamp()
-      }, { merge: true }).catch(() => {
-        // Policy-only docs may refuse a bare name create; Auth + publicProfiles still apply.
-      })
+      const userRef = doc(db, 'users', uid)
+      const userSnap = await getDoc(userRef)
+      if (userSnap.exists()) {
+        await updateDoc(userRef, {
+          displayName,
+          updatedAt: serverTimestamp()
+        }).catch(() => {
+          // Policy-only docs may refuse a bare name patch; Auth + publicProfiles still apply.
+        })
+      }
 
       const today = ukDateId()
       const scoreSnap = await getDocs(query(
@@ -171,7 +204,17 @@ export function useAuth() {
 
       const streakRef = doc(db, 'playStreaks', uid)
       await updateDoc(streakRef, { userName: displayName }).catch(() => {})
+
+      const challengeSnap = await getDocs(collection(db, 'niyamChallenges')).catch(() => null)
+      if (challengeSnap) {
+        await Promise.all(challengeSnap.docs.map((challengeDoc) => {
+          const contributorRef = doc(db, 'niyamChallenges', challengeDoc.id, 'contributors', uid)
+          return updateDoc(contributorRef, { userName: displayName }).catch(() => {})
+        }))
+      }
     }
+
+    return displayName
   }
 
   async function signOut() {

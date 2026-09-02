@@ -57,18 +57,23 @@ const props = defineProps<{
   loading?: boolean
   currentUserId?: string
   myApproved?: number
+  myName?: string
 }>()
 
 const copy = useNiyamCopy()
 
 const visibleLeaders = computed(() => {
-  const top = props.leaders.map((row, index) => ({
-    id: row.id,
-    rank: index + 1,
-    name: row.userName,
-    total: row.approvedTotal,
-    mine: !!props.currentUserId && row.userId === props.currentUserId
-  }))
+  const liveName = props.myName?.trim() || ''
+  const top = props.leaders.map((row, index) => {
+    const mine = !!props.currentUserId && row.userId === props.currentUserId
+    return {
+      id: row.id,
+      rank: index + 1,
+      name: mine && liveName ? liveName : row.userName,
+      total: row.approvedTotal,
+      mine
+    }
+  })
   if (!props.currentUserId || top.some(row => row.mine)) return top
 
   const mine = Math.max(0, Number(props.myApproved) || 0)
@@ -77,7 +82,7 @@ const visibleLeaders = computed(() => {
   return [...top, {
     id: `mine-${props.currentUserId}`,
     rank: 0,
-    name: 'You',
+    name: liveName || 'You',
     total: mine,
     mine: true
   }]

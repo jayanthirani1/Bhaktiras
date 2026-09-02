@@ -74,6 +74,7 @@
       :leaders="activeId ? leadersFor(activeId) : []"
       :leaders-loading="activeId ? leadersLoading(activeId) : false"
       :current-user-id="auth.user.value?.uid"
+      :my-name="auth.userName.value || ''"
       :my-submissions="activeSubmissions"
       :withdrawing-id="withdrawingId"
       :withdraw-error="withdrawError"

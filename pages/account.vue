@@ -395,12 +395,13 @@ const displayNameDirty = computed(() => {
   return next.length >= 2 && next !== current
 })
 
-async function saveDisplayName() {
+  async function saveDisplayName() {
   savingName.value = true
   nameError.value = ''
   nameMessage.value = ''
   try {
-    await auth.updateDisplayName(displayNameDraft.value)
+    const saved = await auth.updateDisplayName(displayNameDraft.value)
+    displayNameDraft.value = saved
     nameMessage.value = 'Name updated.'
   } catch (value) {
     nameError.value = (value as { message?: string })?.message || 'Could not update your name.'
