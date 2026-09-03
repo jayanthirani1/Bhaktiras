@@ -129,7 +129,7 @@ Messages may be public. Do not share private phone numbers, addresses, or other 
 
 ## Games and leaderboards
 
-Games are for fun and satsang. Play fairly. Do not try to break or spam the leaderboards. Daily boards reset; some games keep an all-time best.
+Games are for fun and satsang. Play fairly. Do not try to break or spam the leaderboards. Daily boards reset; monthly crowns reset on the 1st of each month.
 
 ## Niyams and seva
 

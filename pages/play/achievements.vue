@@ -22,13 +22,14 @@
         <section class="card-surface mt-8 p-5 sm:p-6">
           <div class="flex items-center gap-2">
             <IconCrown class="h-5 w-5 text-[hsl(var(--golden-900))]" />
-            <h2 class="font-display text-xl font-semibold text-[hsl(var(--primary))]">All-time crowns</h2>
+            <h2 class="font-display text-xl font-semibold text-[hsl(var(--primary))]">Monthly Crowns</h2>
           </div>
+          <p class="mt-1 text-sm text-[hsl(var(--muted-foreground))]">Best results this month. Resets on the 1st.</p>
           <div v-if="achievements.loading.value" class="mt-4 text-sm text-[hsl(var(--muted-foreground))]">Loading crowns…</div>
           <div v-else class="mt-4 grid gap-3 md:grid-cols-2">
             <div
-              v-for="crown in achievements.crowns.value"
-              :key="crown.id"
+              v-for="def in crownDefinitions"
+              :key="def.id"
               class="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--background))] p-4"
             >
               <div class="flex items-start gap-3">
@@ -36,23 +37,32 @@
                   <IconCrown class="h-5 w-5" />
                 </span>
                 <div>
-                  <p class="text-sm font-semibold text-[hsl(var(--primary))]">{{ crownTitle(crown.id) }}</p>
-                  <p class="mt-1 text-sm text-[hsl(var(--muted-foreground))]">
-                    <NuxtLink
-                      v-if="crown.holderUserId"
-                      :to="`/devotee/${crown.holderUserId}`"
-                      class="hover:underline"
+                  <p class="text-sm font-semibold text-[hsl(var(--primary))]">{{ def.title }}</p>
+                  <template v-if="crownById(def.id)">
+                    <p class="mt-1 text-sm text-[hsl(var(--muted-foreground))]">
+                      <NuxtLink
+                        v-if="crownById(def.id)?.holderUserId"
+                        :to="`/devotee/${crownById(def.id)?.holderUserId}`"
+                        class="hover:underline"
+                      >
+                        {{ crownById(def.id)?.holderName }}
+                      </NuxtLink>
+                      <template v-else>{{ crownById(def.id)?.holderName }}</template>
+                    </p>
+                    <p class="mt-2 text-xs font-semibold uppercase tracking-wide text-[hsl(var(--golden-900))]">
+                      {{ crownValue(crownById(def.id)!) }}
+                    </p>
+                    <p
+                      v-if="crownById(def.id)?.holderUserId === auth.user.value?.uid"
+                      class="mt-2 text-xs font-semibold text-amber-700"
                     >
-                      {{ crown.holderName }}
-                    </NuxtLink>
-                    <template v-else>{{ crown.holderName }}</template>
-                  </p>
-                  <p class="mt-2 text-xs font-semibold uppercase tracking-wide text-[hsl(var(--golden-900))]">{{ crownValue(crown) }}</p>
-                  <p v-if="crown.holderUserId === auth.user.value?.uid" class="mt-2 text-xs font-semibold text-amber-700">You currently hold this crown.</p>
+                      You currently hold this crown.
+                    </p>
+                  </template>
+                  <p v-else class="mt-1 text-sm text-[hsl(var(--muted-foreground))]">Unclaimed this month</p>
                 </div>
               </div>
             </div>
-            <p v-if="!achievements.crowns.value.length" class="text-sm text-[hsl(var(--muted-foreground))]">No crowns claimed yet.</p>
           </div>
         </section>
 
@@ -104,10 +114,15 @@
 
 <script setup lang="ts">
 import { IconCrown } from '@tabler/icons-vue'
-import { crownTitle, crownValue } from '~/composables/useAchievements'
+import { CROWN_DEFINITIONS, crownValue } from '~/composables/useAchievements'
 
 const auth = useAuth()
 const achievements = useAchievements()
+const crownDefinitions = CROWN_DEFINITIONS
+
+function crownById(id: string) {
+  return achievements.crowns.value.find(crown => crown.id === id) || null
+}
 
 useHead({ title: 'Achievements · Bhaktiras' })
 </script>

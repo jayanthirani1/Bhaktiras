@@ -133,6 +133,8 @@
           <p v-if="submitError" class="text-sm text-red-600">{{ submitError }}</p>
         </div>
 
+        <GameCrowns :ids="['bhakti-marg-fastest', 'bhakti-marg-fewest-moves']" />
+
         <GameHowTo>
           <ol class="list-decimal space-y-2 pl-5">
             <li>Fill every cell with a <span class="font-semibold text-[hsl(var(--foreground))]">sun</span> or a <span class="font-semibold text-[hsl(var(--foreground))]">moon</span>.</li>

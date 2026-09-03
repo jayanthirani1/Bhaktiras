@@ -153,6 +153,8 @@
           <p v-if="submitError" class="text-sm text-red-600">{{ submitError }}</p>
         </div>
 
+        <GameCrowns :ids="['ras-rani-fastest', 'ras-rani-fewest-moves']" />
+
         <GameHowTo>
           <ol class="list-decimal space-y-3 pl-5">
             <li>

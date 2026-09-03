@@ -156,6 +156,11 @@ function ukDateIdNow() {
   }).format(new Date())
 }
 
+/** UK calendar month as YYYY-MM — monthly crowns reset when this changes. */
+function ukMonthIdNow() {
+  return ukDateIdNow().slice(0, 7)
+}
+
 function previousUkDate(id) {
   const [year, month, day] = String(id || '').split('-').map(Number)
   if (!year || !month || !day) return ''
@@ -249,6 +254,20 @@ function isBetterFewestPeeks(current, candidate) {
   return candidate.timeMs < Number(current.timeMs || Infinity)
 }
 
+function isBetterFewestMistakes(current, candidate) {
+  if (!current) return true
+  const currentMistakes = Number(current.mistakes ?? current.value)
+  if (candidate.mistakes !== currentMistakes) return candidate.mistakes < currentMistakes
+  return candidate.timeMs < Number(current.timeMs || Infinity)
+}
+
+function isBetterFewestHints(current, candidate) {
+  if (!current) return true
+  const currentHints = Number(current.hintsUsed ?? current.value)
+  if (candidate.hintsUsed !== currentHints) return candidate.hintsUsed < currentHints
+  return candidate.timeMs < Number(current.timeMs || Infinity)
+}
+
 function isBetterLongestStreak(current, candidate) {
   if (!current) return true
   return candidate.longestStreak > Number(current.longestStreak || current.value)
@@ -278,6 +297,9 @@ const CROWN_LABELS = {
   'wordle-fastest': 'fastest Wordle',
   'wordle-fewest-guesses': 'fewest-guess Wordle',
   'crossword-fastest': 'fastest Crossword',
+  'crossword-fewest-hints': 'fewest-hint Crossword',
+  'connections-fastest': 'fastest Connections',
+  'connections-fewest-mistakes': 'fewest-mistake Connections',
   'bracket-city-fastest': 'fastest Bracket City',
   'bracket-city-fewest-peeks': 'fewest-peek Bracket City',
   'one-percent-highest': 'highest 1% Club score',
@@ -963,21 +985,50 @@ async function handleGameAchievements(request) {
     )
   } else if (game === 'crossword') {
     const timeMs = intInRange(request.data?.timeMs, 0, 86_400_000)
+    const hintsUsed = intInRange(request.data?.hintsUsed ?? 0, 0, 500)
     if (timeMs == null) throw new HttpsError('invalid-argument', 'Invalid Crossword time.')
-    Object.assign(candidate, { timeMs })
-    crownSpecs.push({
-      id: 'crossword-fastest',
-      metric: 'fastest-time',
-      value: timeMs,
-      better: isBetterFastestTime,
-      extra: { timeMs }
-    })
+    if (hintsUsed == null) throw new HttpsError('invalid-argument', 'Invalid Crossword hints.')
+    Object.assign(candidate, { timeMs, hintsUsed })
+    crownSpecs.push(
+      {
+        id: 'crossword-fastest',
+        metric: 'fastest-time',
+        value: timeMs,
+        better: isBetterFastestTime,
+        extra: { timeMs, hintsUsed }
+      },
+      {
+        id: 'crossword-fewest-hints',
+        metric: 'fewest-hints',
+        value: hintsUsed,
+        better: isBetterFewestHints,
+        extra: { hintsUsed, timeMs }
+      }
+    )
   } else if (game === 'connections') {
     const mistakes = intInRange(request.data?.mistakes, 0, 4)
     const timeMs = intInRange(request.data?.timeMs ?? 0, 0, 86_400_000)
     if (mistakes == null) throw new HttpsError('invalid-argument', 'Invalid Connections mistakes.')
     if (timeMs == null) throw new HttpsError('invalid-argument', 'Invalid Connections time.')
     Object.assign(candidate, { won: request.data?.won === true, mistakes, timeMs })
+    if (request.data?.won === true) {
+      crownSpecs.push(
+        {
+          id: 'connections-fastest',
+          metric: 'fastest-time',
+          value: timeMs,
+          better: isBetterFastestTime,
+          extra: { timeMs, mistakes }
+        },
+        {
+          id: 'connections-fewest-mistakes',
+          metric: 'fewest-mistakes',
+          value: mistakes,
+          better: isBetterFewestMistakes,
+          extra: { mistakes, timeMs }
+        }
+      )
+    }
   } else if (game === 'bracket-city') {
     const timeMs = intInRange(request.data?.timeMs, 0, 86_400_000)
     const peeks = intInRange(request.data?.hintsUsed ?? request.data?.score ?? 0, 0, 200)
@@ -1040,18 +1091,21 @@ async function handleGameAchievements(request) {
   } else if (game === 'streak') {
     const streakSnap = await db.doc(`playStreaks/${uid}`).get()
     if (!streakSnap.exists) return { unlockedIds: [], crowns: [] }
-    const longestStreak = intInRange(streakSnap.data().longestStreak, 1, 10_000)
-    if (longestStreak == null) throw new HttpsError('failed-precondition', 'Invalid streak record.')
-    Object.assign(candidate, { longestStreak })
+    // Monthly crown tracks the active streak, not the all-time personal best —
+    // otherwise a long historical streak would re-claim the board on day one.
+    const currentStreak = intInRange(streakSnap.data().currentStreak, 1, 10_000)
+    if (currentStreak == null) throw new HttpsError('failed-precondition', 'Invalid streak record.')
+    Object.assign(candidate, { longestStreak: currentStreak })
     crownSpecs.push({
       id: 'streak-longest',
       metric: 'longest-streak',
-      value: longestStreak,
+      value: currentStreak,
       better: isBetterLongestStreak,
-      extra: { longestStreak }
+      extra: { longestStreak: currentStreak }
     })
   }
 
+  const monthId = ukMonthIdNow()
   const crownRefs = crownSpecs.map(spec => db.doc(`achievementCrowns/${spec.id}`))
   const unlockedIds = []
   const claimedCrownIds = []
@@ -1094,21 +1148,25 @@ async function handleGameAchievements(request) {
     }, { merge: true })
 
     crownSpecs.forEach((spec, index) => {
-      const current = snaps[index + 1].exists ? snaps[index + 1].data() : null
+      const stored = snaps[index + 1].exists ? snaps[index + 1].data() : null
+      // A crown from a previous month is vacant — the board resets on the 1st.
+      const sameMonth = stored && stored.monthId === monthId
+      const current = sameMonth ? stored : null
       if (!spec.better(current, candidate)) return
       claimedCrownIds.push(spec.id)
       // Captured here because the write below is about to overwrite it.
       claimedCrowns.push({
         id: spec.id,
-        previousHolderId: current?.holderUserId || null,
-        previousHolderName: current?.holderName || null
+        previousHolderId: sameMonth ? (stored?.holderUserId || null) : null,
+        previousHolderName: sameMonth ? (stored?.holderName || null) : null
       })
       transaction.set(crownRefs[index], {
         holderUserId: uid,
         holderName: userName,
         game,
         metric: spec.metric,
-        scope: 'all-time',
+        scope: 'monthly',
+        monthId,
         value: spec.value,
         ...spec.extra,
         updatedAt: FieldValue.serverTimestamp()

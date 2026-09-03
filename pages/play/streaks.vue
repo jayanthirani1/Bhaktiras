@@ -16,7 +16,7 @@
       <div v-if="longestCrown" class="mb-6 rounded-2xl border border-orange-200 bg-orange-50/80 p-4">
         <p class="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-orange-700">
           <IconCrown class="h-4 w-4" />
-          All-time longest streak crown
+          Monthly longest streak crown
         </p>
         <p class="mt-2 text-sm text-[hsl(var(--muted-foreground))]">
           <NuxtLink

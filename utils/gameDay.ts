@@ -8,6 +8,11 @@ export function ukDateId(date: Date = new Date()): string {
   }).format(date)
 }
 
+/** UK calendar month (Europe/London) as YYYY-MM. Used for monthly game crowns. */
+export function ukMonthId(date: Date = new Date()): string {
+  return ukDateId(date).slice(0, 7)
+}
+
 /** Hour of day in Europe/London (0–23). */
 export function ukHour(date: Date = new Date()): number {
   return Number(

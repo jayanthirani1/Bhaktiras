@@ -111,6 +111,8 @@
           </ol>
         </GameHowTo>
 
+        <GameCrowns :ids="['connections-fastest', 'connections-fewest-mistakes']" />
+
         <GameLeaderboard
           :entries="entries"
           :loading="boardLoading"

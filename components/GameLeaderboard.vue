@@ -67,9 +67,10 @@ import type { GameLeaderboardId } from '~/types'
 
 const LEADERBOARD_TOP = 10
 
-/** Crown ids in achievements still use the old Surya Chandra game key. */
+/** Crown ids in achievements still use the old Surya Chandra / Crossword game keys. */
 const CROWN_GAME_ALIASES: Partial<Record<GameLeaderboardId, string>> = {
-  'surya-chandra': 'bhakti-marg'
+  'surya-chandra': 'bhakti-marg',
+  'mini-crossword': 'crossword'
 }
 
 type LeaderboardRow = {

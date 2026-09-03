@@ -217,7 +217,7 @@
       </div>
 
       <div class="mt-10">
-        <GameCrowns :ids="['crossword-fastest']" />
+        <GameCrowns :ids="['crossword-fastest', 'crossword-fewest-hints']" />
         <GameLeaderboard
           :entries="entries"
           :loading="boardLoading"
@@ -324,6 +324,7 @@ const scoreSubmitted = ref(false)
 const submitting = ref(false)
 const submitError = ref('')
 const pendingHint = ref<'letter' | 'word' | null>(null)
+const hintsUsed = ref(0)
 
 const active = computed(() => puzzles.value.find(p => p.id === activeId.value) || puzzles.value[0] || null)
 const layout = computed(() => active.value ? layoutAnyCrossword(active.value) : null)
@@ -413,6 +414,7 @@ function persist() {
       guesses: { ...guesses },
       solved: solved.value,
       scoreSubmitted: scoreSubmitted.value,
+      hintsUsed: hintsUsed.value,
       activeRow: activeRow.value,
       activeCol: activeCol.value,
       activeDir: activeDir.value
@@ -432,6 +434,7 @@ function restore() {
       activeId.value = puzzles.value[0]?.id || ''
       solved.value = false
       scoreSubmitted.value = false
+      hintsUsed.value = 0
       timer.reset()
       return
     }
@@ -442,6 +445,7 @@ function restore() {
     }
     solved.value = !!data.solved
     scoreSubmitted.value = !!data.scoreSubmitted
+    hintsUsed.value = Math.max(0, Math.floor(Number(data.hintsUsed) || 0))
     if (typeof data.activeRow === 'number') activeRow.value = data.activeRow
     if (typeof data.activeCol === 'number') activeCol.value = data.activeCol
     if (data.activeDir === 'across' || data.activeDir === 'down') activeDir.value = data.activeDir
@@ -552,6 +556,7 @@ function revealLetter() {
   activeRow.value = target.row
   activeCol.value = target.col
   checked.value = false
+  hintsUsed.value += 1
   timer.addPenalty(5_000)
   persist()
   maybeComplete()
@@ -564,6 +569,7 @@ function revealWord() {
     guesses[cellKey(cell.row, cell.col)] = word.answer[index]
   })
   checked.value = false
+  hintsUsed.value += 1
   timer.addPenalty(20_000)
   persist()
   maybeComplete()
@@ -614,6 +620,7 @@ function select(id: string) {
   checked.value = false
   solved.value = false
   scoreSubmitted.value = false
+  hintsUsed.value = 0
   activeDir.value = 'across'
   const l = layoutAnyCrossword(puzzles.value.find(p => p.id === id))
   const first = l?.words[0]
@@ -637,7 +644,11 @@ async function submitToLeaderboard() {
       detail: active.value?.title || 'crossword'
     })
     try {
-      await achievements.processResult('crossword', { timeMs: ms, userName })
+      await achievements.processResult('crossword', {
+        timeMs: ms,
+        hintsUsed: hintsUsed.value,
+        userName
+      })
     } catch {
       // Leaderboard write already succeeded.
     }

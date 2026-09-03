@@ -18,6 +18,7 @@ import {
   type AchievementDefinition,
   type AchievementMedal
 } from '~/composables/useAchievements'
+import { ukMonthId } from '~/utils/gameDay'
 
 export type PublicProfileAchievement = {
   id: string
@@ -85,13 +86,14 @@ export function usePublicProfile() {
       ])
 
       const knownCrowns = new Set<string>(CROWN_DEFINITIONS.map(item => item.id))
+      const monthId = ukMonthId()
       const heldCrowns = crownSnap.docs
         .filter(item => knownCrowns.has(item.id))
         .map(item => ({
           id: item.id,
           ...(item.data() as Omit<AchievementCrownRecord, 'id'>)
         }))
-        .filter(crown => crown.holderUserId === cleaned)
+        .filter(crown => crown.monthId === monthId && crown.holderUserId === cleaned)
         .map(crown => ({
           id: crown.id,
           title: crownTitle(crown.id),

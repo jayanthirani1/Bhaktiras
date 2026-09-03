@@ -70,7 +70,7 @@
         <div v-if="fastestCrown || fewestCrown" class="mt-4 rounded-xl bg-[hsl(var(--background))] p-4 text-left">
           <p class="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-[hsl(var(--golden-900))]">
             <IconCrown class="h-4 w-4" />
-            All-time crowns
+            Monthly Crowns
           </p>
           <div class="mt-3 space-y-2 text-sm text-[hsl(var(--muted-foreground))]">
             <p v-if="fastestCrown">

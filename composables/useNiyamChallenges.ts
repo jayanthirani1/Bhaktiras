@@ -41,8 +41,78 @@ import {
   statusForAmount,
   statusKey,
   SUBMISSION_NOTE_MAX,
+  toMillis,
   userChallengeKey
 } from '~/utils/niyamChallenge'
+
+/** Last board paint — return visits show titles + totals before Firestore answers. */
+const BOARD_CACHE_KEY = 'bhaktiras:niyam-board-v1'
+
+interface NiyamBoardCache {
+  challenges: Array<{ id: string, data: Record<string, unknown> }>
+  stats: Record<string, NiyamChallengeStats>
+  savedAt: number
+}
+
+function stampForCache(value: NiyamChallenge['startAt']): { seconds: number, nanoseconds: number } | null {
+  const ms = toMillis(value)
+  if (!ms) return null
+  return { seconds: Math.floor(ms / 1000), nanoseconds: (ms % 1000) * 1e6 }
+}
+
+function challengeForCache(challenge: NiyamChallenge): { id: string, data: Record<string, unknown> } {
+  return {
+    id: challenge.id,
+    data: {
+      title: challenge.title,
+      detail: challenge.detail,
+      unit: challenge.unit,
+      unitSingular: challenge.unitSingular,
+      target: challenge.target,
+      startAt: stampForCache(challenge.startAt),
+      endAt: stampForCache(challenge.endAt),
+      active: challenge.active,
+      order: challenge.order,
+      autoApproveMax: challenge.autoApproveMax,
+      maxPerSubmission: challenge.maxPerSubmission,
+      inputMode: challenge.inputMode,
+      presets: challenge.presets,
+      hint: challenge.hint,
+      gloss: challenge.gloss,
+      resourceUrl: challenge.resourceUrl,
+      resourceLabel: challenge.resourceLabel,
+      resourceDocumentId: challenge.resourceDocumentId,
+      icon: challenge.icon
+    }
+  }
+}
+
+function readBoardCache(): NiyamBoardCache | null {
+  if (import.meta.server || typeof localStorage === 'undefined') return null
+  try {
+    const raw = localStorage.getItem(BOARD_CACHE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as NiyamBoardCache
+    if (!parsed || !Array.isArray(parsed.challenges) || typeof parsed.stats !== 'object') return null
+    return parsed
+  } catch {
+    return null
+  }
+}
+
+function writeBoardCache(challenges: NiyamChallenge[], stats: Record<string, NiyamChallengeStats>) {
+  if (import.meta.server || typeof localStorage === 'undefined') return
+  try {
+    const payload: NiyamBoardCache = {
+      challenges: challenges.filter(isPublished).map(challengeForCache),
+      stats,
+      savedAt: Date.now()
+    }
+    localStorage.setItem(BOARD_CACHE_KEY, JSON.stringify(payload))
+  } catch {
+    // Full or blocked storage — next visit waits on the network.
+  }
+}
 
 function niyamSubmitError(e: unknown, challenge: NiyamChallenge): string {
   const code = (e as { code?: string })?.code
@@ -181,13 +251,15 @@ export function useNiyamChallenges() {
   const { $firebaseDb } = useNuxtApp()
   const { user, isLoggedIn, userName, loading: authLoading } = useAuth()
 
-  const challenges = ref<NiyamChallenge[]>([])
+  // Defaults paint immediately; a local cache (if any) upgrades titles + totals
+  // before the first Firestore round-trip finishes.
+  const challenges = ref<NiyamChallenge[]>(mergeChallenges([]))
   const stats = ref<Record<string, NiyamChallengeStats>>({})
   const mySubmissions = ref<NiyamSubmission[]>([])
   const myContributors = ref<Record<string, NiyamContributor>>({})
   const topContributors = ref<Record<string, NiyamContributor[]>>({})
   const loadingLeaders = ref<Record<string, boolean>>({})
-  const loading = ref(true)
+  const loading = ref(false)
   const submitting = ref(false)
   const withdrawingId = ref('')
   /** Kept apart from `error` so a failed removal is reported inside the sheet
@@ -196,11 +268,38 @@ export function useNiyamChallenges() {
   const error = ref('')
   let statsUnsubs: Unsubscribe[] = []
   let contributorUnsubs: Unsubscribe[] = []
+  let boardCacheTimer: ReturnType<typeof setTimeout> | null = null
 
   function getDb(): Firestore | null {
     if (import.meta.server) return null
     return ($firebaseDb as Firestore | null) ?? null
   }
+
+  function persistBoardCacheSoon() {
+    if (import.meta.server) return
+    if (boardCacheTimer) clearTimeout(boardCacheTimer)
+    boardCacheTimer = setTimeout(() => {
+      boardCacheTimer = null
+      writeBoardCache(challenges.value, stats.value)
+    }, 200)
+  }
+
+  function applyBoardCache() {
+    const cache = readBoardCache()
+    if (!cache) return
+    if (cache.challenges.length) {
+      challenges.value = mergeChallenges(
+        cache.challenges
+          .map(row => mapChallenge(row.id, row.data))
+          .filter(c => c.title)
+      )
+    }
+    if (cache.stats && Object.keys(cache.stats).length) {
+      stats.value = cache.stats
+    }
+  }
+
+  if (import.meta.client) applyBoardCache()
 
   const openChallenges = computed(() => challenges.value.filter(c => isChallengeOpen(c)))
   const closedChallenges = computed(() => challenges.value.filter(c => !isChallengeOpen(c)))
@@ -372,6 +471,7 @@ export function useNiyamChallenges() {
             ...stats.value,
             [challenge.id]: mapStats(challenge.id, snap.data() as Record<string, unknown> | undefined)
           }
+          persistBoardCacheSoon()
         },
         () => {
           stats.value = { ...stats.value, [challenge.id]: emptyStats(challenge.id) }
@@ -411,20 +511,26 @@ export function useNiyamChallenges() {
     }
   }
 
+  /** One collection read instead of one getDoc per niyam. */
   async function fetchStats() {
     const db = getDb()
     if (!db || !publishedChallenges.value.length) return
-    const entries = await Promise.all(
-      publishedChallenges.value.map(async (c) => {
-        try {
-          const snap = await getDoc(doc(db, 'niyamChallengeStats', c.id))
-          return [c.id, mapStats(c.id, snap.data() as Record<string, unknown> | undefined)] as const
-        } catch {
-          return [c.id, emptyStats(c.id)] as const
-        }
-      })
-    )
-    stats.value = Object.fromEntries(entries)
+    const publishedIds = new Set(publishedChallenges.value.map(c => c.id))
+    try {
+      const snap = await getDocs(collection(db, 'niyamChallengeStats'))
+      const next: Record<string, NiyamChallengeStats> = { ...stats.value }
+      for (const d of snap.docs) {
+        if (!publishedIds.has(d.id)) continue
+        next[d.id] = mapStats(d.id, d.data() as Record<string, unknown>)
+      }
+      for (const id of publishedIds) {
+        if (!(id in next)) next[id] = emptyStats(id)
+      }
+      stats.value = next
+      persistBoardCacheSoon()
+    } catch {
+      // Keep cached or empty totals; live listeners still try.
+    }
   }
 
   /** Poll until the Cloud Function has folded a write into your contributor row. */
@@ -507,17 +613,19 @@ export function useNiyamChallenges() {
     mySubmissions.value = sortSubmissionsNewestFirst(results.flat())
   }
 
+  /**
+   * Board first, personal data in the background.
+   *
+   * Waiting on stats + every per-niyam submission query made the whole page
+   * feel stuck behind a spinner even though the five titles are known from
+   * defaults (and usually from last visit's cache). Listeners + stats kick
+   * off from the published-id watch as soon as cache or Firestore supplies ids.
+   */
   async function refresh() {
-    loading.value = true
     error.value = ''
     try {
       await fetchChallenges()
-      await fetchStats()
-      setupStatsListeners()
-      setupContributorListeners()
-      if (!authLoading.value) {
-        await Promise.all([fetchMySubmissions(), fetchMyContributors()])
-      }
+      persistBoardCacheSoon()
     } catch (e) {
       error.value = (e as Error).message
     } finally {
@@ -730,28 +838,36 @@ export function useNiyamChallenges() {
 
   watch(
     () => authLoading.value,
-    async (loadingAuth) => {
+    (loadingAuth) => {
       if (loadingAuth) return
       setupContributorListeners()
-      await Promise.all([fetchMySubmissions(), fetchMyContributors()])
+      void fetchMySubmissions()
     }
   )
 
-  watch(() => user.value?.uid, async (uid, prev) => {
+  watch(() => user.value?.uid, (uid, prev) => {
     if (uid === prev) return
     setupContributorListeners()
-    await Promise.all([fetchMySubmissions(), fetchMyContributors()])
+    void fetchMySubmissions()
   })
 
-  watch(publishedChallenges, () => {
-    setupStatsListeners()
-    setupContributorListeners()
-    if (user.value?.uid && !authLoading.value) {
-      void Promise.all([fetchMySubmissions(), fetchMyContributors()])
-    }
-  })
+  // Keyed on ids so a re-fetch of the same board does not tear down live
+  // listeners; `immediate` starts stats from the cache before challenges reload.
+  watch(
+    () => publishedChallenges.value.map(c => c.id).join(','),
+    () => {
+      setupStatsListeners()
+      setupContributorListeners()
+      void fetchStats()
+      if (user.value?.uid && !authLoading.value) {
+        void fetchMySubmissions()
+      }
+    },
+    { immediate: true }
+  )
 
   onBeforeUnmount(() => {
+    if (boardCacheTimer) clearTimeout(boardCacheTimer)
     teardownStatsListeners()
     teardownContributorListeners()
   })

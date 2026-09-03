@@ -578,10 +578,15 @@ export interface AchievementCrownRecord {
   holderName: string
   game: GameLeaderboardId | string
   metric: string
+  /** Monthly crowns only count within this UK YYYY-MM. */
+  monthId?: string
+  scope?: 'monthly' | 'all-time' | string
   value: number
   guesses?: number
   timeMs?: number
   score?: number
+  hintsUsed?: number
+  mistakes?: number
   longestStreak?: number
   updatedAt?: { seconds?: number; nanoseconds?: number } | Date
 }

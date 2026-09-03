@@ -65,7 +65,7 @@
           <div class="flex items-center gap-2">
             <IconCrown class="h-5 w-5 text-[hsl(var(--golden-900))]" />
             <h2 class="font-display text-lg font-semibold text-[hsl(var(--primary))]">
-              Crowns ({{ profile.crowns.length }})
+              Monthly Crowns ({{ profile.crowns.length }})
             </h2>
           </div>
           <ul v-if="profile.crowns.length" class="mt-4 space-y-3">
@@ -86,7 +86,7 @@
             </li>
           </ul>
           <p v-else class="mt-3 text-sm text-[hsl(var(--muted-foreground))]">
-            No all-time crowns held right now.
+            No monthly crowns held right now.
           </p>
         </section>
 

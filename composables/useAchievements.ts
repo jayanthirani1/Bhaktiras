@@ -3,6 +3,7 @@ import { collection, doc, getDoc, getDocs, type Firestore } from 'firebase/fires
 import { getFunctions, httpsCallable } from 'firebase/functions'
 import type { AchievementCrownRecord, PlayStreakRecord, UserAchievementsRecord } from '~/types'
 import { formatElapsed } from '~/composables/useGameTimer'
+import { ukMonthId } from '~/utils/gameDay'
 
 export type AchievementGroup =
   | 'wordle'
@@ -128,18 +129,21 @@ export const ACHIEVEMENT_GROUP_TITLES: Record<AchievementGroup, string> = {
 }
 
 export const CROWN_DEFINITIONS = [
-  { id: 'wordle-fastest', title: 'Fastest Wordle', description: 'Current all-time fastest winning Wordle.', game: 'wordle' },
-  { id: 'wordle-fewest-guesses', title: 'Fewest Guesses Wordle', description: 'Current all-time fewest-guesses winning Wordle.', game: 'wordle' },
-  { id: 'crossword-fastest', title: 'Fastest Crossword', description: 'Current all-time fastest Crossword finish.', game: 'crossword' },
-  { id: 'bracket-city-fastest', title: 'Fastest Bracket City', description: 'Current all-time fastest Bracket City finish.', game: 'bracket-city' },
-  { id: 'bracket-city-fewest-peeks', title: 'Fewest Peeks Bracket City', description: 'Current all-time fewest-peek Bracket City finish.', game: 'bracket-city' },
-  { id: 'one-percent-highest', title: '1% Club High Score', description: 'Current all-time most rungs cleared in 1% Club.', game: 'one-percent' },
-  { id: 'one-percent-fastest', title: 'Fastest 1% Club', description: 'Current all-time fastest full 1% Club clear.', game: 'one-percent' },
-  { id: 'bhakti-marg-fastest', title: 'Fastest Surya Chandra', description: 'Current all-time fastest Surya Chandra completion.', game: 'bhakti-marg' },
-  { id: 'bhakti-marg-fewest-moves', title: 'Fewest Moves Surya Chandra', description: 'Current all-time fewest-move Surya Chandra completion.', game: 'bhakti-marg' },
-  { id: 'ras-rani-fastest', title: 'Fastest Ras Rani', description: 'Current all-time fastest Ras Rani completion.', game: 'ras-rani' },
-  { id: 'ras-rani-fewest-moves', title: 'Fewest Moves Ras Rani', description: 'Current all-time fewest moves Ras Rani completion.', game: 'ras-rani' },
-  { id: 'streak-longest', title: 'Longest Streak', description: 'Current all-time longest games streak.', game: 'streak' }
+  { id: 'wordle-fastest', title: 'Fastest Wordle', description: 'Fastest winning Wordle this month.', game: 'wordle' },
+  { id: 'wordle-fewest-guesses', title: 'Fewest Guesses Wordle', description: 'Fewest-guesses winning Wordle this month.', game: 'wordle' },
+  { id: 'crossword-fastest', title: 'Fastest Crossword', description: 'Fastest Crossword finish this month.', game: 'crossword' },
+  { id: 'crossword-fewest-hints', title: 'Fewest Hints Crossword', description: 'Crossword finish with the fewest hints this month.', game: 'crossword' },
+  { id: 'connections-fastest', title: 'Fastest Connections', description: 'Fastest Connections solve this month.', game: 'connections' },
+  { id: 'connections-fewest-mistakes', title: 'Fewest Mistakes Connections', description: 'Fewest-mistake Connections solve this month.', game: 'connections' },
+  { id: 'bracket-city-fastest', title: 'Fastest Bracket City', description: 'Fastest Bracket City finish this month.', game: 'bracket-city' },
+  { id: 'bracket-city-fewest-peeks', title: 'Fewest Peeks Bracket City', description: 'Fewest-peek Bracket City finish this month.', game: 'bracket-city' },
+  { id: 'one-percent-highest', title: '1% Club High Score', description: 'Most rungs cleared in 1% Club this month.', game: 'one-percent' },
+  { id: 'one-percent-fastest', title: 'Fastest 1% Club', description: 'Fastest full 1% Club clear this month.', game: 'one-percent' },
+  { id: 'bhakti-marg-fastest', title: 'Fastest Surya Chandra', description: 'Fastest Surya Chandra completion this month.', game: 'bhakti-marg' },
+  { id: 'bhakti-marg-fewest-moves', title: 'Fewest Moves Surya Chandra', description: 'Fewest-move Surya Chandra completion this month.', game: 'bhakti-marg' },
+  { id: 'ras-rani-fastest', title: 'Fastest Ras Rani', description: 'Fastest Ras Rani completion this month.', game: 'ras-rani' },
+  { id: 'ras-rani-fewest-moves', title: 'Fewest Moves Ras Rani', description: 'Fewest moves Ras Rani completion this month.', game: 'ras-rani' },
+  { id: 'streak-longest', title: 'Longest Streak', description: 'Longest active games streak this month.', game: 'streak' }
 ] as const
 
 function getDb(): Firestore | null {
@@ -200,11 +204,19 @@ export function crownTitle(id: string) {
 }
 
 export function crownValue(crown: AchievementCrownRecord) {
-  if (crown.id === 'wordle-fastest' || crown.id === 'crossword-fastest' || crown.id === 'bracket-city-fastest') {
+  if (crown.id === 'wordle-fastest' || crown.id === 'crossword-fastest' || crown.id === 'bracket-city-fastest' || crown.id === 'connections-fastest') {
     return formatElapsed(crown.timeMs || crown.value)
   }
   if (crown.id === 'wordle-fewest-guesses') {
     return `${crown.guesses || crown.value}/6${crown.timeMs ? ` · ${formatElapsed(crown.timeMs)}` : ''}`
+  }
+  if (crown.id === 'connections-fewest-mistakes') {
+    const mistakes = (crown as { mistakes?: number }).mistakes ?? crown.value
+    return `${mistakes} mistake${mistakes === 1 ? '' : 's'}${crown.timeMs ? ` · ${formatElapsed(crown.timeMs)}` : ''}`
+  }
+  if (crown.id === 'crossword-fewest-hints') {
+    const hints = (crown as { hintsUsed?: number }).hintsUsed ?? crown.value
+    return `${hints} hint${hints === 1 ? '' : 's'}${crown.timeMs ? ` · ${formatElapsed(crown.timeMs)}` : ''}`
   }
   if (crown.id === 'bracket-city-fewest-peeks') {
     const peeks = crown.score ?? crown.value
@@ -281,6 +293,7 @@ export function useAchievements() {
     error.value = ''
     try {
       const knownCrowns = new Set<string>(CROWN_DEFINITIONS.map(item => item.id))
+      const monthId = ukMonthId()
       const crownSnap = await getDocs(collection(db, 'achievementCrowns'))
       crowns.value = crownSnap.docs
         .filter(item => knownCrowns.has(item.id))
@@ -288,6 +301,9 @@ export function useAchievements() {
           id: item.id,
           ...(item.data() as Omit<AchievementCrownRecord, 'id'>)
         }))
+        // Only this UK month's holders — last month's crowns stay in Firestore
+        // but no longer appear until someone claims them again.
+        .filter(crown => crown.monthId === monthId)
         .sort((a, b) => {
           const order = CROWN_DEFINITIONS.map(item => item.id)
           return order.indexOf(a.id as typeof CROWN_DEFINITIONS[number]['id']) - order.indexOf(b.id as typeof CROWN_DEFINITIONS[number]['id'])

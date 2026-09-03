@@ -49,7 +49,7 @@
             class="rounded-2xl bg-amber-50 px-3 py-2"
           >
             <p class="text-sm font-semibold text-[hsl(var(--primary))]">{{ crown.title }}</p>
-            <p class="text-xs text-[hsl(var(--muted-foreground))]">You claimed this all-time crown.</p>
+            <p class="text-xs text-[hsl(var(--muted-foreground))]">You claimed this monthly crown.</p>
           </li>
         </ul>
         <button type="button" class="btn-primary mt-5 w-full" @click="dismissCelebration">
