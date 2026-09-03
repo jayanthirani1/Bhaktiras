@@ -164,6 +164,47 @@
   .legal-prose a {
     @apply font-medium text-[hsl(var(--primary))];
   }
+
+  /* Long-form niyam / scripture reading — larger type, darker body, calm measure. */
+  .doc-prose {
+    @apply text-[hsl(var(--foreground))];
+    font-size: var(--doc-font-size, 1.125rem);
+    line-height: var(--doc-line-height, 1.8);
+  }
+  .doc-prose h2 {
+    @apply mb-3 mt-10 font-display font-semibold text-[hsl(var(--primary))] first:mt-0;
+    font-size: 1.2em;
+    line-height: 1.35;
+  }
+  .doc-prose h3 {
+    @apply mb-2 mt-8 font-semibold text-[hsl(var(--primary))];
+    font-size: 1.05em;
+    line-height: 1.4;
+  }
+  .doc-prose p {
+    @apply mb-[0.9em] text-[hsl(var(--foreground))];
+  }
+  .doc-prose p:last-child {
+    @apply mb-0;
+  }
+  .doc-prose ul {
+    @apply mb-[0.9em] list-disc space-y-2 pl-5 text-[hsl(var(--foreground))];
+  }
+  .doc-prose ol {
+    @apply mb-[0.9em] list-decimal space-y-2 pl-5 text-[hsl(var(--foreground))];
+  }
+  .doc-prose strong {
+    @apply font-semibold text-[hsl(var(--foreground))];
+  }
+  .doc-prose em {
+    @apply italic;
+  }
+  .doc-prose a {
+    @apply font-medium text-[hsl(var(--primary))] underline decoration-[hsl(var(--golden-200))] underline-offset-2;
+  }
+  .doc-prose[lang='gu'] {
+    line-height: var(--doc-line-height-gu, 2);
+  }
 }
 
 @layer utilities {

@@ -187,7 +187,7 @@
           <div class="flex items-start justify-between gap-3">
             <div>
               <h3 class="font-semibold text-[hsl(var(--primary))]">{{ message.title }}</h3>
-              <p class="mt-1 text-sm text-[hsl(var(--muted-foreground))]">{{ message.body }}</p>
+              <p class="mt-1 whitespace-pre-wrap text-sm text-[hsl(var(--muted-foreground))]">{{ message.body }}</p>
             </div>
             <span class="rounded-full bg-[hsl(var(--muted))] px-2 py-1 text-[10px] font-bold uppercase tracking-wide">
               {{ message.topic }}

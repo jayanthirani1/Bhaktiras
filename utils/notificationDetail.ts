@@ -12,7 +12,7 @@ export function notificationDetailPath(message: NotificationDetailSource): strin
 }
 
 export function notificationPreviewBody(body: string, max = NOTIFICATION_PREVIEW_MAX): string {
-  const trimmed = body.trim()
+  const trimmed = body.replace(/\s+/g, ' ').trim()
   if (trimmed.length <= max) return trimmed
   return `${trimmed.slice(0, max - 1).trimEnd()}…`
 }

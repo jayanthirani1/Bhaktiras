@@ -103,6 +103,18 @@ function cleanText(value, max) {
   return String(value || '').replace(/\s+/g, ' ').trim().slice(0, max)
 }
 
+/** Keep paragraph breaks for full notification messages; collapse only runs of spaces/tabs. */
+function cleanMultilineText(value, max) {
+  return String(value || '')
+    .replace(/\r\n?/g, '\n')
+    .split('\n')
+    .map(line => line.replace(/[^\S\n]+/g, ' ').trimEnd())
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+    .slice(0, max)
+}
+
 function chunks(items, size) {
   const result = []
   for (let index = 0; index < items.length; index += size) {
@@ -372,7 +384,7 @@ async function loadOwnRecipients(db, uid) {
 
 /** Short line for the OS banner; full text is on /notifications/[id]. */
 function notificationPreviewBody(body, max = 120) {
-  const trimmed = String(body || '').trim()
+  const trimmed = String(body || '').replace(/\s+/g, ' ').trim()
   if (trimmed.length <= max) return trimmed
   return `${trimmed.slice(0, max - 1).trimEnd()}…`
 }
@@ -528,7 +540,7 @@ async function deliverNotification({ title, body, topic, url, sentBy, inbox = to
 /** Shared validation for both the live send and the admin-only test send. */
 function readNotificationInput(data) {
   const title = cleanText(data?.title, 80)
-  const body = cleanText(data?.body, 2000)
+  const body = cleanMultilineText(data?.body, 2000)
   const topic = cleanText(data?.topic, 20) || 'all'
   const url = String(data?.url || '/').trim().slice(0, 300)
   if (title.length < 3 || body.length < 3) {
