@@ -292,7 +292,11 @@ export function useGameLeaderboard(
     }
     if (payload.detail) data.detail = String(payload.detail).slice(0, 64)
     if (payload.timeMs != null && Number.isFinite(payload.timeMs)) {
-      data.timeMs = Math.max(0, Math.trunc(payload.timeMs))
+      const timeMs = Math.trunc(payload.timeMs)
+      // Crossword restore races were submitting ~1s finishes (shown as 0:00).
+      const minMs = game === 'mini-crossword' ? 5_000 : 1
+      if (timeMs < minMs) throw new Error('Invalid time.')
+      data.timeMs = timeMs
     }
 
     await setDoc(scoreRef, data)

@@ -121,7 +121,7 @@
           <div v-if="solved" class="mt-4 space-y-3 text-center">
             <p class="text-sm font-semibold text-emerald-700">Finished in {{ timerDisplay }}</p>
             <button
-              v-if="isLoggedIn && !scoreSubmitted"
+              v-if="freshSolveThisSession && isLoggedIn && !scoreSubmitted"
               type="button"
               class="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-50"
               :disabled="submitting"
@@ -130,13 +130,14 @@
               {{ submitting ? 'Submitting…' : 'Submit time to leaderboard' }}
             </button>
             <NuxtLink
-              v-else-if="!isLoggedIn && !scoreSubmitted"
+              v-else-if="freshSolveThisSession && !isLoggedIn && !scoreSubmitted"
               to="/login?redirect=/play/crossword"
               class="inline-block rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white"
             >
               Sign in to submit time
             </NuxtLink>
             <p v-else-if="scoreSubmitted" class="text-sm text-emerald-700">Time on the leaderboard.</p>
+            <p v-else class="text-sm text-emerald-700">Already completed today.</p>
             <p v-if="submitError" class="text-sm text-red-600">{{ submitError }}</p>
           </div>
 
@@ -286,7 +287,7 @@ import { IconEye, IconHelp } from '@tabler/icons-vue'
 import { cellKey, layoutAnyCrossword, type LaidWord } from '~/utils/crosswordLayout'
 import { ukDateId } from '~/utils/gameDay'
 import { formatElapsed } from '~/composables/useGameTimer'
-import { isPlayDoneLocally } from '~/utils/playCompletion'
+import { isPlayDoneLocally, readLocalPlayCompletion } from '~/utils/playCompletion'
 
 const STATE_KEY = `mini-crossword:${ukDateId()}`
 
@@ -328,6 +329,10 @@ const submitting = ref(false)
 const submitError = ref('')
 const pendingHint = ref<'letter' | 'word' | null>(null)
 const hintsUsed = ref(0)
+/** True only after a fresh solve in this page session — never after restore/revisit. */
+const freshSolveThisSession = ref(false)
+/** Restore finished for today's puzzle; do not start the clock before this. */
+const stateHydrated = ref(false)
 
 const active = computed(() => puzzles.value.find(p => p.id === activeId.value) || puzzles.value[0] || null)
 const layout = computed(() => active.value ? layoutAnyCrossword(active.value) : null)
@@ -418,6 +423,7 @@ function persist() {
       solved: solved.value,
       scoreSubmitted: scoreSubmitted.value,
       hintsUsed: hintsUsed.value,
+      timeMs: solved.value ? Math.max(0, timer.elapsedMs.value) : undefined,
       activeRow: activeRow.value,
       activeCol: activeCol.value,
       activeDir: activeDir.value
@@ -434,6 +440,27 @@ function fillSolutionGuesses() {
   }
 }
 
+function resolveSavedTimeMs(data?: { timeMs?: unknown } | null): number {
+  const fromState = Number(data?.timeMs)
+  if (Number.isFinite(fromState) && fromState >= 5_000) return Math.trunc(fromState)
+  const fromDone = Number(readLocalPlayCompletion('mini-crossword')?.timeMs)
+  if (Number.isFinite(fromDone) && fromDone >= 5_000) return Math.trunc(fromDone)
+  const fromTimer = timer.elapsedMs.value
+  if (fromTimer >= 5_000) return fromTimer
+  return 0
+}
+
+function hydrateSolvedClock(data?: { timeMs?: unknown } | null) {
+  const ms = resolveSavedTimeMs(data)
+  if (ms >= 5_000) timer.hydrateFinished(ms)
+  else {
+    // Still show whatever the timer had, but never treat sub-5s as submitable.
+    const raw = Number(data?.timeMs)
+    if (Number.isFinite(raw) && raw >= 1) timer.hydrateFinished(raw)
+    else timer.read()
+  }
+}
+
 function restore() {
   try {
     const raw = localStorage.getItem(STATE_KEY)
@@ -442,7 +469,11 @@ function restore() {
       if (doneToday && puzzles.value[0]) {
         activeId.value = puzzles.value[0].id
         solved.value = true
+        // Revisit of an already-finished play — never treat as a new submit.
+        freshSolveThisSession.value = false
+        scoreSubmitted.value = true
         fillSolutionGuesses()
+        hydrateSolvedClock(null)
         persist()
       }
       return
@@ -458,9 +489,13 @@ function restore() {
       if (keepSolved) {
         activeId.value = (savedPuzzle || puzzles.value[0])?.id || ''
         solved.value = true
-        scoreSubmitted.value = !!data.scoreSubmitted
+        // Already finished earlier today (possibly before a deploy). Do not
+        // auto-submit again — that re-ran crowns with a brand-new ~0:00 clock.
+        freshSolveThisSession.value = false
+        scoreSubmitted.value = true
         hintsUsed.value = Math.max(0, Math.floor(Number(data.hintsUsed) || 0))
         fillSolutionGuesses()
+        hydrateSolvedClock(data)
         persist()
         return
       }
@@ -469,6 +504,7 @@ function restore() {
       activeId.value = puzzles.value[0]?.id || ''
       solved.value = false
       scoreSubmitted.value = false
+      freshSolveThisSession.value = false
       hintsUsed.value = 0
       timer.reset()
       return
@@ -479,12 +515,20 @@ function restore() {
       Object.assign(guesses, data.guesses)
     }
     solved.value = keepSolved
-    scoreSubmitted.value = !!data.scoreSubmitted
     hintsUsed.value = Math.max(0, Math.floor(Number(data.hintsUsed) || 0))
     if (typeof data.activeRow === 'number') activeRow.value = data.activeRow
     if (typeof data.activeCol === 'number') activeCol.value = data.activeCol
     if (data.activeDir === 'across' || data.activeDir === 'down') activeDir.value = data.activeDir
-    if (solved.value) fillSolutionGuesses()
+    if (solved.value) {
+      // Restored completion: never open the auto-submit path on a revisit.
+      freshSolveThisSession.value = false
+      scoreSubmitted.value = true
+      fillSolutionGuesses()
+      hydrateSolvedClock(data)
+    } else {
+      scoreSubmitted.value = !!data.scoreSubmitted
+      freshSolveThisSession.value = false
+    }
   } catch {}
 }
 
@@ -557,6 +601,7 @@ function maybeComplete() {
   if (!l.words.every(isWordCorrect)) return
   solved.value = true
   checked.value = true
+  freshSolveThisSession.value = true
   timer.stop()
   persist()
   void markDone({ timeMs: timer.elapsedMs.value, detail: 'Solved' })
@@ -661,6 +706,7 @@ function select(id: string) {
   checked.value = false
   solved.value = false
   scoreSubmitted.value = false
+  freshSolveThisSession.value = false
   hintsUsed.value = 0
   activeDir.value = 'across'
   const l = layoutAnyCrossword(puzzles.value.find(p => p.id === id))
@@ -671,10 +717,21 @@ function select(id: string) {
 
 async function submitToLeaderboard() {
   if (!auth.user.value || !solved.value || scoreSubmitted.value || submitting.value) return
+  // Revisits of an already-finished puzzle must not publish a new clock reading.
+  if (!freshSolveThisSession.value) {
+    scoreSubmitted.value = true
+    persist()
+    return
+  }
+  const ms = resolveSavedTimeMs({ timeMs: timer.elapsedMs.value })
+  // Never publish a sub-5s "win" — restore races were stealing crowns (shown as 0:00).
+  if (ms < 5_000) {
+    submitError.value = 'Time not recorded — finish the puzzle with the clock running to submit.'
+    return
+  }
   submitError.value = ''
   submitting.value = true
   try {
-    const ms = timer.elapsedMs.value
     const userName = auth.userName.value || auth.userEmail.value || 'Player'
     await submitScore({
       score: Math.max(1, Math.ceil(ms / 1000)),
@@ -711,10 +768,12 @@ function beginAfterHowTo() {
 
 function syncPlayTimer() {
   if (!howto.ready.value || howto.showIntro.value) return
-  if (loading.value || !layout.value || playedElsewhere.value) return
+  if (!stateHydrated.value || loading.value || !layout.value || playedElsewhere.value) return
   if (solved.value) {
-    timer.read()
+    // Never start/resume a clock for a restored completion — that produced the
+    // ~0:00 times that overwrote real scores after a deploy revisit.
     if (timer.startedAt.value && !timer.finishedAt.value) timer.stop()
+    else if (!timer.startedAt.value) timer.read()
     return
   }
   timer.loadOrStart()
@@ -723,8 +782,12 @@ function syncPlayTimer() {
 watch([puzzles, loading], ([list, isLoading]) => {
   // Wait until the final daily puzzle is ready — restoring against the
   // static-bank placeholder wiped completed games on every revisit.
-  if (isLoading || !list.length) return
+  if (isLoading || !list.length) {
+    stateHydrated.value = false
+    return
+  }
   restore()
+  stateHydrated.value = true
   if (!activeId.value || !list.some(p => p.id === activeId.value)) {
     activeId.value = list[0].id
   }
@@ -732,14 +795,15 @@ watch([puzzles, loading], ([list, isLoading]) => {
   syncPlayTimer()
 }, { immediate: true })
 
-watch([loading, solved, playedElsewhere, () => howto.ready.value, () => howto.showIntro.value], () => { syncPlayTimer() })
+watch([loading, solved, playedElsewhere, () => howto.ready.value, () => howto.showIntro.value, stateHydrated], () => { syncPlayTimer() })
 
 watch([entries, () => auth.user.value?.uid], ([list, uid]) => {
   if (uid && list.some(e => e.userId === uid)) scoreSubmitted.value = true
 })
 
 watch([solved, () => auth.user.value?.uid], ([done, uid]) => {
-  if (done && uid && !scoreSubmitted.value && !submitting.value) {
+  if (done && uid && freshSolveThisSession.value && !scoreSubmitted.value && !submitting.value) {
+    if (resolveSavedTimeMs({ timeMs: timer.elapsedMs.value }) < 5_000) return
     void submitToLeaderboard()
   }
 }, { immediate: true })

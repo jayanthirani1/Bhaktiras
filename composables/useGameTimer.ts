@@ -184,6 +184,21 @@ export function useGameTimer(storageKey: string) {
     write()
   }
 
+  /** Restore a finished clock (e.g. after reload) so resubmits keep the real time. */
+  function hydrateFinished(elapsed: number) {
+    const ms = Math.max(0, Math.trunc(elapsed))
+    if (ms < 1) return
+    const at = Date.now()
+    startedAt.value = at - ms
+    finishedAt.value = at
+    accumulatedMs.value = ms
+    penaltyMs.value = 0
+    segmentStartedAt.value = null
+    now.value = at
+    stopTick()
+    write()
+  }
+
   function loadOrStart() {
     read()
     if (finishedAt.value) return
@@ -244,6 +259,7 @@ export function useGameTimer(storageKey: string) {
     stop,
     addPenalty,
     reset,
+    hydrateFinished,
     read,
     write
   }

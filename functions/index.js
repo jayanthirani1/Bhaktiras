@@ -9,6 +9,11 @@ const { getAuth } = require('firebase-admin/auth')
 
 initializeApp()
 
+/** Sub-second times are restore races or abuse, not real play. */
+const MIN_TIMED_PLAY_MS = 1_000
+/** Crossword grids cannot be humanly finished this fast; ~1s was showing as 0:00. */
+const MIN_CROSSWORD_PLAY_MS = 5_000
+
 const ALLOWED_TOPICS = new Set(['all', 'announcements', 'games', 'niyams', 'niyam-milestones'])
 const INVALID_TOKEN_CODES = new Set([
   'messaging/invalid-registration-token',
@@ -32,8 +37,8 @@ const GAME_ACHIEVEMENTS = {
     { id: 'crossword-wins-100', when: ({ crosswordWins }) => crosswordWins >= 100 },
     { id: 'crossword-wins-200', when: ({ crosswordWins }) => crosswordWins >= 200 },
     { id: 'crossword-wins-300', when: ({ crosswordWins }) => crosswordWins >= 300 },
-    { id: 'crossword-sub-30s', when: ({ timeMs }) => timeMs < 30_000 },
-    { id: 'crossword-sub-15s', when: ({ timeMs }) => timeMs < 15_000 }
+    { id: 'crossword-sub-30s', when: ({ timeMs }) => timeMs >= MIN_CROSSWORD_PLAY_MS && timeMs < 30_000 },
+    { id: 'crossword-sub-15s', when: ({ timeMs }) => timeMs >= MIN_CROSSWORD_PLAY_MS && timeMs < 15_000 }
   ],
   connections: [
     { id: 'connections-first-win', when: ({ connectionsWins }) => connectionsWins >= 1 },
@@ -54,7 +59,7 @@ const GAME_ACHIEVEMENTS = {
     { id: 'bracket-city-no-hints', when: ({ hintsUsed }) => hintsUsed === 0 },
     { id: 'bracket-city-no-hints-10', when: ({ bracketCityNoHints }) => bracketCityNoHints >= 10 },
     { id: 'bracket-city-perfect', when: ({ hintsUsed, mistakes }) => hintsUsed === 0 && mistakes === 0 },
-    { id: 'bracket-city-sub-60s', when: ({ timeMs }) => timeMs < 60_000 }
+    { id: 'bracket-city-sub-60s', when: ({ timeMs }) => timeMs >= MIN_TIMED_PLAY_MS && timeMs < 60_000 }
   ],
   'one-percent': [
     { id: 'one-percent-first-play', when: ({ onePercentRuns }) => onePercentRuns >= 1 },
@@ -77,7 +82,7 @@ const GAME_ACHIEVEMENTS = {
     { id: 'bhakti-marg-wins-300', when: ({ bhaktiMargWins }) => bhaktiMargWins >= 300 },
     { id: 'bhakti-marg-no-hints', when: ({ hintsUsed }) => hintsUsed === 0 },
     { id: 'bhakti-marg-no-hints-10', when: ({ bhaktiMargNoHints }) => bhaktiMargNoHints >= 10 },
-    { id: 'bhakti-marg-sub-60s', when: ({ timeMs }) => timeMs < 60_000 }
+    { id: 'bhakti-marg-sub-60s', when: ({ timeMs }) => timeMs >= MIN_TIMED_PLAY_MS && timeMs < 60_000 }
   ],
   'ras-rani': [
     { id: 'ras-rani-first-win', when: ({ rasRaniWins }) => rasRaniWins >= 1 },
@@ -88,7 +93,7 @@ const GAME_ACHIEVEMENTS = {
     { id: 'ras-rani-wins-300', when: ({ rasRaniWins }) => rasRaniWins >= 300 },
     { id: 'ras-rani-no-hints', when: ({ hintsUsed }) => hintsUsed === 0 },
     { id: 'ras-rani-no-hints-10', when: ({ rasRaniNoHints }) => rasRaniNoHints >= 10 },
-    { id: 'ras-rani-sub-60s', when: ({ timeMs }) => timeMs < 60_000 }
+    { id: 'ras-rani-sub-60s', when: ({ timeMs }) => timeMs >= MIN_TIMED_PLAY_MS && timeMs < 60_000 }
   ],
   streak: [
     { id: 'streak-7', when: ({ longestStreak }) => longestStreak >= 7 },
@@ -141,6 +146,7 @@ function intInRange(value, min, max) {
 }
 
 function isBetterFastestWordle(current, candidate) {
+  if (!Number.isFinite(candidate.timeMs) || candidate.timeMs < MIN_TIMED_PLAY_MS) return false
   if (!current) return true
   if (candidate.timeMs !== Number(current.timeMs)) return candidate.timeMs < Number(current.timeMs)
   if (candidate.guesses !== Number(current.guesses)) return candidate.guesses < Number(current.guesses)
@@ -150,11 +156,15 @@ function isBetterFastestWordle(current, candidate) {
 function isBetterFewestGuessWordle(current, candidate) {
   if (!current) return true
   if (candidate.guesses !== Number(current.guesses)) return candidate.guesses < Number(current.guesses)
-  if (candidate.timeMs !== Number(current.timeMs)) return candidate.timeMs < Number(current.timeMs)
+  if (candidate.timeMs !== Number(current.timeMs)) {
+    if (!Number.isFinite(candidate.timeMs) || candidate.timeMs < MIN_TIMED_PLAY_MS) return false
+    return candidate.timeMs < Number(current.timeMs)
+  }
   return false
 }
 
 function isBetterFastestTime(current, candidate) {
+  if (!Number.isFinite(candidate.timeMs) || candidate.timeMs < MIN_TIMED_PLAY_MS) return false
   if (!current) return true
   return candidate.timeMs < Number(current.timeMs)
 }
@@ -259,39 +269,47 @@ function nextOnePercentClubStreak(data, clearedAll) {
   return { current: 0, longest, last: today, changed: current !== 0 || last !== today }
 }
 
+/** Positive play time only — sub-second times were stealing crowns after restore races. */
+function isFasterPlayTime(candidateMs, currentMs) {
+  if (!Number.isFinite(candidateMs) || candidateMs < MIN_TIMED_PLAY_MS) return false
+  const current = Number(currentMs)
+  if (!Number.isFinite(current) || current < MIN_TIMED_PLAY_MS) return true
+  return candidateMs < current
+}
+
 function isBetterOnePercentScore(current, candidate) {
   if (!current) return true
   const currentScore = Number(current.score || current.value)
   if (candidate.score !== currentScore) return candidate.score > currentScore
-  return candidate.timeMs < Number(current.timeMs || Infinity)
+  return isFasterPlayTime(candidate.timeMs, current.timeMs)
 }
 
 function isBetterFewestMoves(current, candidate) {
   if (!current) return true
   const currentMoves = Number(current.moves || current.value)
   if (candidate.moves !== currentMoves) return candidate.moves < currentMoves
-  return candidate.timeMs < Number(current.timeMs || Infinity)
+  return isFasterPlayTime(candidate.timeMs, current.timeMs)
 }
 
 function isBetterFewestPeeks(current, candidate) {
   if (!current) return true
   const currentPeeks = Number(current.score || current.value)
   if (candidate.score !== currentPeeks) return candidate.score < currentPeeks
-  return candidate.timeMs < Number(current.timeMs || Infinity)
+  return isFasterPlayTime(candidate.timeMs, current.timeMs)
 }
 
 function isBetterFewestMistakes(current, candidate) {
   if (!current) return true
   const currentMistakes = Number(current.mistakes ?? current.value)
   if (candidate.mistakes !== currentMistakes) return candidate.mistakes < currentMistakes
-  return candidate.timeMs < Number(current.timeMs || Infinity)
+  return isFasterPlayTime(candidate.timeMs, current.timeMs)
 }
 
 function isBetterFewestHints(current, candidate) {
   if (!current) return true
   const currentHints = Number(current.hintsUsed ?? current.value)
   if (candidate.hintsUsed !== currentHints) return candidate.hintsUsed < currentHints
-  return candidate.timeMs < Number(current.timeMs || Infinity)
+  return isFasterPlayTime(candidate.timeMs, current.timeMs)
 }
 
 function isBetterLongestStreak(current, candidate) {
@@ -1001,7 +1019,7 @@ async function handleGameAchievements(request) {
 
   if (game === 'wordle') {
     const guesses = intInRange(request.data?.guesses, 1, 6)
-    const timeMs = intInRange(request.data?.timeMs, 0, 86_400_000)
+    const timeMs = intInRange(request.data?.timeMs, MIN_TIMED_PLAY_MS, 86_400_000)
     if (guesses == null) throw new HttpsError('invalid-argument', 'Invalid Wordle guess count.')
     if (timeMs == null) throw new HttpsError('invalid-argument', 'Invalid Wordle time.')
     Object.assign(candidate, { guesses, timeMs })
@@ -1010,7 +1028,9 @@ async function handleGameAchievements(request) {
       { id: 'wordle-fewest-guesses', metric: 'fewest-guesses', value: guesses, better: isBetterFewestGuessWordle, extra: { guesses, timeMs } }
     )
   } else if (game === 'crossword') {
-    const timeMs = intInRange(request.data?.timeMs, 0, 86_400_000)
+    // Sub-5s times are not real plays — restore races were stealing crowns
+    // and unlocking speed medals (displayed as 0:00).
+    const timeMs = intInRange(request.data?.timeMs, MIN_CROSSWORD_PLAY_MS, 86_400_000)
     const hintsUsed = intInRange(request.data?.hintsUsed ?? 0, 0, 500)
     if (timeMs == null) throw new HttpsError('invalid-argument', 'Invalid Crossword time.')
     if (hintsUsed == null) throw new HttpsError('invalid-argument', 'Invalid Crossword hints.')
@@ -1033,7 +1053,7 @@ async function handleGameAchievements(request) {
     )
   } else if (game === 'connections') {
     const mistakes = intInRange(request.data?.mistakes, 0, 4)
-    const timeMs = intInRange(request.data?.timeMs ?? 0, 0, 86_400_000)
+    const timeMs = intInRange(request.data?.timeMs, MIN_TIMED_PLAY_MS, 86_400_000)
     if (mistakes == null) throw new HttpsError('invalid-argument', 'Invalid Connections mistakes.')
     if (timeMs == null) throw new HttpsError('invalid-argument', 'Invalid Connections time.')
     Object.assign(candidate, { won: request.data?.won === true, mistakes, timeMs })
@@ -1056,7 +1076,7 @@ async function handleGameAchievements(request) {
       )
     }
   } else if (game === 'bracket-city') {
-    const timeMs = intInRange(request.data?.timeMs, 0, 86_400_000)
+    const timeMs = intInRange(request.data?.timeMs, MIN_TIMED_PLAY_MS, 86_400_000)
     const peeks = intInRange(request.data?.hintsUsed ?? request.data?.score ?? 0, 0, 200)
     const mistakes = intInRange(request.data?.mistakes ?? 0, 0, 1000)
     if (timeMs == null) throw new HttpsError('invalid-argument', 'Invalid Bracket City time.')
@@ -1069,7 +1089,11 @@ async function handleGameAchievements(request) {
     )
   } else if (game === 'one-percent') {
     const score = intInRange(request.data?.score, 0, 20)
-    const timeMs = intInRange(request.data?.timeMs ?? 0, 0, 86_400_000)
+    // Highest-score crown can omit time; fastest-clear requires a real clock.
+    const timeMsRaw = request.data?.timeMs
+    const timeMs = timeMsRaw == null || timeMsRaw === ''
+      ? 0
+      : intInRange(timeMsRaw, MIN_TIMED_PLAY_MS, 86_400_000)
     if (score == null) throw new HttpsError('invalid-argument', 'Invalid 1% Club score.')
     if (timeMs == null) throw new HttpsError('invalid-argument', 'Invalid 1% Club time.')
     const clearedAll = request.data?.clearedAll === true
@@ -1082,6 +1106,7 @@ async function handleGameAchievements(request) {
       extra: { score, timeMs }
     })
     if (clearedAll) {
+      if (timeMs < MIN_TIMED_PLAY_MS) throw new HttpsError('invalid-argument', 'Invalid 1% Club time.')
       crownSpecs.push({
         id: 'one-percent-fastest',
         metric: 'fastest-time',
@@ -1092,7 +1117,7 @@ async function handleGameAchievements(request) {
     }
   } else if (game === 'bhakti-marg') {
     const moves = intInRange(request.data?.moves, 1, 1000)
-    const timeMs = intInRange(request.data?.timeMs, 0, 86_400_000)
+    const timeMs = intInRange(request.data?.timeMs, MIN_TIMED_PLAY_MS, 86_400_000)
     const hintsUsed = intInRange(request.data?.hintsUsed ?? 0, 0, 100)
     if (moves == null) throw new HttpsError('invalid-argument', 'Invalid Surya Chandra move count.')
     if (timeMs == null) throw new HttpsError('invalid-argument', 'Invalid Surya Chandra time.')
@@ -1104,7 +1129,7 @@ async function handleGameAchievements(request) {
     )
   } else if (game === 'ras-rani') {
     const moves = intInRange(request.data?.moves, 1, 1000)
-    const timeMs = intInRange(request.data?.timeMs, 0, 86_400_000)
+    const timeMs = intInRange(request.data?.timeMs, MIN_TIMED_PLAY_MS, 86_400_000)
     const hintsUsed = intInRange(request.data?.hintsUsed ?? 0, 0, 100)
     if (moves == null) throw new HttpsError('invalid-argument', 'Invalid Ras Rani move count.')
     if (timeMs == null) throw new HttpsError('invalid-argument', 'Invalid Ras Rani time.')
