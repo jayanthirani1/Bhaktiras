@@ -204,6 +204,22 @@ service cloud.firestore {
           || scoreId == request.resource.data.game + '_' + request.auth.uid;
       }
 
+      // Crossword restore races were writing ~1–2s times (shown as 0:00 / 0:02)
+      // and stealing the monthly crown. Other games still allow any non-negative.
+      function validScoreTimeMs() {
+        return !('timeMs' in request.resource.data)
+          || (
+            request.resource.data.timeMs is number
+            && request.resource.data.timeMs == int(request.resource.data.timeMs)
+            && request.resource.data.timeMs <= 86400000
+            && (
+              request.resource.data.game == 'mini-crossword'
+                ? request.resource.data.timeMs >= 5000
+                : request.resource.data.timeMs >= 0
+            )
+          );
+      }
+
       allow read: if true;
       allow create: if isSignedIn()
         && ownsScoreId()
@@ -225,15 +241,7 @@ service cloud.firestore {
           request.resource.data.game != 'wordle'
           || (request.resource.data.score >= 1 && request.resource.data.score <= 6)
         )
-        && (
-          !('timeMs' in request.resource.data)
-          || (
-            request.resource.data.timeMs is number
-            && request.resource.data.timeMs == int(request.resource.data.timeMs)
-            && request.resource.data.timeMs >= 0
-            && request.resource.data.timeMs <= 86400000
-          )
-        );
+        && validScoreTimeMs();
       // Own score updates. Identity and the day it belongs to are immutable;
       // only the result may improve.
       allow update: if isSignedIn()
@@ -250,15 +258,7 @@ service cloud.firestore {
         && request.resource.data.score == int(request.resource.data.score)
         && request.resource.data.score >= 0
         && request.resource.data.score <= 9999999
-        && (
-          !('timeMs' in request.resource.data)
-          || (
-            request.resource.data.timeMs is number
-            && request.resource.data.timeMs == int(request.resource.data.timeMs)
-            && request.resource.data.timeMs >= 0
-            && request.resource.data.timeMs <= 86400000
-          )
-        );
+        && validScoreTimeMs();
       // Previously: anyone, signed in or not, could delete any row from a past
       // day — because `cleanseOldScores` ran the sweep in every visitor's
       // browser and the rule had to permit it. The sweep is now
