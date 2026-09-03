@@ -56,8 +56,11 @@
           <span class="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-amber-800">
             Awaiting review
           </span>
-          <span class="ml-auto text-xs text-[hsl(var(--muted-foreground))]">
+          <span class="ml-auto text-right text-xs text-[hsl(var(--muted-foreground))]">
             {{ entry.dayKey ? formatUkDateLabel(entry.dayKey) : 'no day recorded' }}
+            <span v-if="submittedAtLabel(entry.createdAt, entry.dayKey)" class="block text-[11px] opacity-80">
+              {{ submittedAtLabel(entry.createdAt, entry.dayKey) }}
+            </span>
           </span>
         </div>
 
@@ -114,7 +117,7 @@
 import type { NiyamSubmission } from '~/types'
 import type { NiyamChallenge } from '~/types'
 import type { NiyamReviewContext } from '~/composables/useAdminNiyamChallenges'
-import { formatCount, iconFor, unitLabel } from '~/utils/niyamChallenge'
+import { formatCount, iconFor, submittedAtLabel, unitLabel } from '~/utils/niyamChallenge'
 
 const props = defineProps<{
   rows: NiyamSubmission[]

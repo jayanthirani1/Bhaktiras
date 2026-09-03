@@ -8,7 +8,7 @@ import type {
   NiyamSubmissionStatus
 } from '~/types'
 import { DEFAULT_NIYAM_CHALLENGES, defaultNiyamChallenge } from '~/data/niyamChallenges'
-import { addUkDays, ukDateId, ukHour } from '~/utils/gameDay'
+import { addUkDays, formatUkDateLabel, ukDateId, ukHour } from '~/utils/gameDay'
 
 export const SUBMISSION_NOTE_MAX = 240
 export const SUBMISSION_NAME_MAX = 32
@@ -64,6 +64,37 @@ export function toMillis(value: FirestoreTimestampLike | null | undefined): numb
     return value.seconds * 1000 + Math.floor((value.nanoseconds || 0) / 1e6)
   }
   return 0
+}
+
+/** 24-hour clock time in UK time, e.g. "14:32". Empty when the stamp is missing. */
+export function formatUkTimeLabel(value: FirestoreTimestampLike | null | undefined): string {
+  const ms = toMillis(value)
+  if (!ms) return ''
+  return new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/London',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23'
+  }).format(new Date(ms))
+}
+
+/**
+ * When an entry was actually written, for admins reading a list of them.
+ *
+ * `dayKey` is the day the entry counts towards, which an admin logging a
+ * mandir check-in can backdate — so a stamp from a different day is shown with
+ * its date, and the word "logged" to keep the two apart.
+ */
+export function submittedAtLabel(
+  value: FirestoreTimestampLike | null | undefined,
+  dayKey?: string
+): string {
+  const ms = toMillis(value)
+  if (!ms) return ''
+  const time = formatUkTimeLabel(value)
+  const writtenDay = ukDateId(new Date(ms))
+  if (!dayKey || writtenDay === dayKey) return time
+  return `logged ${formatUkDateLabel(writtenDay)} ${time}`
 }
 
 export interface ChallengeWindow {

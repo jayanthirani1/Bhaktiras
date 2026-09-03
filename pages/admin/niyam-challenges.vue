@@ -575,7 +575,7 @@
                     <th class="py-2 pr-3 font-semibold">Devotee</th>
                     <th class="py-2 pr-3 font-semibold">{{ form.inputMode === 'checkin' ? 'Sabhas' : 'Amount' }}</th>
                     <th v-if="form.inputMode === 'checkin'" class="py-2 pr-3 font-semibold">Slot</th>
-                    <th class="py-2 pr-3 font-semibold">Day</th>
+                    <th class="py-2 pr-3 font-semibold">Day / time</th>
                     <th class="py-2 pr-3 font-semibold">Status</th>
                     <th class="py-2 font-semibold">Change</th>
                   </tr>
@@ -597,7 +597,12 @@
                     <td v-if="form.inputMode === 'checkin'" class="py-2 pr-3 text-xs text-[hsl(var(--muted-foreground))]">
                       {{ checkinSlotLabel(entry) }}
                     </td>
-                    <td class="py-2 pr-3 text-xs text-[hsl(var(--muted-foreground))]">{{ formatUkDateLabel(entry.dayKey) }}</td>
+                    <td class="py-2 pr-3 text-xs text-[hsl(var(--muted-foreground))]">
+                      {{ formatUkDateLabel(entry.dayKey) }}
+                      <span v-if="submittedAtLabel(entry.createdAt, entry.dayKey)" class="block text-[11px] opacity-80">
+                        {{ submittedAtLabel(entry.createdAt, entry.dayKey) }}
+                      </span>
+                    </td>
                     <td class="py-2 pr-3">
                       <span class="rounded-full px-2 py-0.5 text-[11px] font-semibold" :class="chipClass(entry.status)">
                         {{ chipLabel(entry.status) }}
@@ -742,6 +747,7 @@ import {
   safeResourceUrl,
   SUBMISSION_NAME_MAX,
   SUBMISSION_NOTE_MAX,
+  submittedAtLabel,
   toMillis,
   unitLabel
 } from '~/utils/niyamChallenge'
