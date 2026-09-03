@@ -13,6 +13,7 @@ import type {
 import {
   ACHIEVEMENT_DEFINITIONS,
   CROWN_DEFINITIONS,
+  crownBelongsToMonth,
   crownTitle,
   crownValue,
   type AchievementDefinition,
@@ -93,7 +94,7 @@ export function usePublicProfile() {
           id: item.id,
           ...(item.data() as Omit<AchievementCrownRecord, 'id'>)
         }))
-        .filter(crown => crown.monthId === monthId && crown.holderUserId === cleaned)
+        .filter(crown => crownBelongsToMonth(crown, monthId) && crown.holderUserId === cleaned)
         .map(crown => ({
           id: crown.id,
           title: crownTitle(crown.id),

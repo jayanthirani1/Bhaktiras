@@ -203,6 +203,20 @@ export function crownTitle(id: string) {
   return CROWN_DEFINITIONS.find(item => item.id === id)?.title || id
 }
 
+/**
+ * Monthly crowns: prefer explicit `monthId`. Pre-monthly holders (no monthId)
+ * stay on the board — they must be beaten on score, not cleared by the filter.
+ * Only a crown tagged with a previous monthId is treated as vacant.
+ */
+export function crownBelongsToMonth(
+  crown: Pick<AchievementCrownRecord, 'monthId' | 'updatedAt' | 'holderUserId'>,
+  monthId: string = ukMonthId()
+): boolean {
+  if (!crown.holderUserId) return false
+  if (crown.monthId) return crown.monthId === monthId
+  return true
+}
+
 export function crownValue(crown: AchievementCrownRecord) {
   if (crown.id === 'wordle-fastest' || crown.id === 'crossword-fastest' || crown.id === 'bracket-city-fastest' || crown.id === 'connections-fastest') {
     return formatElapsed(crown.timeMs || crown.value)
@@ -302,8 +316,9 @@ export function useAchievements() {
           ...(item.data() as Omit<AchievementCrownRecord, 'id'>)
         }))
         // Only this UK month's holders — last month's crowns stay in Firestore
-        // but no longer appear until someone claims them again.
-        .filter(crown => crown.monthId === monthId)
+        // but no longer appear until someone claims them again. Legacy rows
+        // without monthId still count via updatedAt (see crownBelongsToMonth).
+        .filter(crown => crownBelongsToMonth(crown, monthId))
         .sort((a, b) => {
           const order = CROWN_DEFINITIONS.map(item => item.id)
           return order.indexOf(a.id as typeof CROWN_DEFINITIONS[number]['id']) - order.indexOf(b.id as typeof CROWN_DEFINITIONS[number]['id'])

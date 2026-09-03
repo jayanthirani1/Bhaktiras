@@ -13,59 +13,63 @@
         subtitle="Long-term medals you work toward, plus a few rare one-shots. Progress saves to your account."
       />
 
-      <div v-if="!auth.user.value" class="card-surface p-8 text-center">
-        <p class="text-sm text-[hsl(var(--muted-foreground))]">Sign in to view your achievements and crowns.</p>
+      <section class="card-surface mt-8 p-5 sm:p-6">
+        <div class="flex items-center gap-2">
+          <IconCrown class="h-5 w-5 text-[hsl(var(--golden-900))]" />
+          <h2 class="font-display text-xl font-semibold text-[hsl(var(--primary))]">Monthly Crowns</h2>
+        </div>
+        <p class="mt-1 text-sm text-[hsl(var(--muted-foreground))]">
+          Best results this month. Resets on the {{ resetLabel }}.
+        </p>
+        <div v-if="achievements.loading.value && !achievements.crowns.value.length" class="mt-4 text-sm text-[hsl(var(--muted-foreground))]">
+          Loading crowns…
+        </div>
+        <div class="mt-4 grid gap-3 md:grid-cols-2">
+          <div
+            v-for="def in crownDefinitions"
+            :key="def.id"
+            class="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--background))] p-4"
+          >
+            <div class="flex items-start gap-3">
+              <span class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-b from-yellow-300 to-amber-500 text-amber-900">
+                <IconCrown class="h-5 w-5" />
+              </span>
+              <div>
+                <p class="text-sm font-semibold text-[hsl(var(--primary))]">{{ def.title }}</p>
+                <template v-if="crownById(def.id)">
+                  <p class="mt-1 text-sm text-[hsl(var(--muted-foreground))]">
+                    <NuxtLink
+                      v-if="crownById(def.id)?.holderUserId"
+                      :to="`/devotee/${crownById(def.id)?.holderUserId}`"
+                      class="hover:underline"
+                    >
+                      {{ crownById(def.id)?.holderName }}
+                    </NuxtLink>
+                    <template v-else>{{ crownById(def.id)?.holderName }}</template>
+                  </p>
+                  <p class="mt-2 text-xs font-semibold uppercase tracking-wide text-[hsl(var(--golden-900))]">
+                    {{ crownValue(crownById(def.id)!) }}
+                  </p>
+                  <p
+                    v-if="crownById(def.id)?.holderUserId === auth.user.value?.uid"
+                    class="mt-2 text-xs font-semibold text-amber-700"
+                  >
+                    You currently hold this crown.
+                  </p>
+                </template>
+                <p v-else class="mt-1 text-sm text-[hsl(var(--muted-foreground))]">Unclaimed this month</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div v-if="!auth.user.value" class="card-surface mt-5 p-8 text-center">
+        <p class="text-sm text-[hsl(var(--muted-foreground))]">Sign in to view your medals and progress.</p>
         <NuxtLink to="/login?redirect=/play/achievements" class="btn-primary mt-4 inline-flex">Sign in</NuxtLink>
       </div>
 
       <template v-else>
-        <section class="card-surface mt-8 p-5 sm:p-6">
-          <div class="flex items-center gap-2">
-            <IconCrown class="h-5 w-5 text-[hsl(var(--golden-900))]" />
-            <h2 class="font-display text-xl font-semibold text-[hsl(var(--primary))]">Monthly Crowns</h2>
-          </div>
-          <p class="mt-1 text-sm text-[hsl(var(--muted-foreground))]">Best results this month. Resets on the 1st.</p>
-          <div v-if="achievements.loading.value" class="mt-4 text-sm text-[hsl(var(--muted-foreground))]">Loading crowns…</div>
-          <div v-else class="mt-4 grid gap-3 md:grid-cols-2">
-            <div
-              v-for="def in crownDefinitions"
-              :key="def.id"
-              class="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--background))] p-4"
-            >
-              <div class="flex items-start gap-3">
-                <span class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-b from-yellow-300 to-amber-500 text-amber-900">
-                  <IconCrown class="h-5 w-5" />
-                </span>
-                <div>
-                  <p class="text-sm font-semibold text-[hsl(var(--primary))]">{{ def.title }}</p>
-                  <template v-if="crownById(def.id)">
-                    <p class="mt-1 text-sm text-[hsl(var(--muted-foreground))]">
-                      <NuxtLink
-                        v-if="crownById(def.id)?.holderUserId"
-                        :to="`/devotee/${crownById(def.id)?.holderUserId}`"
-                        class="hover:underline"
-                      >
-                        {{ crownById(def.id)?.holderName }}
-                      </NuxtLink>
-                      <template v-else>{{ crownById(def.id)?.holderName }}</template>
-                    </p>
-                    <p class="mt-2 text-xs font-semibold uppercase tracking-wide text-[hsl(var(--golden-900))]">
-                      {{ crownValue(crownById(def.id)!) }}
-                    </p>
-                    <p
-                      v-if="crownById(def.id)?.holderUserId === auth.user.value?.uid"
-                      class="mt-2 text-xs font-semibold text-amber-700"
-                    >
-                      You currently hold this crown.
-                    </p>
-                  </template>
-                  <p v-else class="mt-1 text-sm text-[hsl(var(--muted-foreground))]">Unclaimed this month</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
         <section
           v-for="group in achievements.groupedAchievements.value"
           :key="group.id"
@@ -115,10 +119,12 @@
 <script setup lang="ts">
 import { IconCrown } from '@tabler/icons-vue'
 import { CROWN_DEFINITIONS, crownValue } from '~/composables/useAchievements'
+import { nextUkMonthCrownResetLabel } from '~/utils/gameDay'
 
 const auth = useAuth()
 const achievements = useAchievements()
 const crownDefinitions = CROWN_DEFINITIONS
+const resetLabel = nextUkMonthCrownResetLabel()
 
 function crownById(id: string) {
   return achievements.crowns.value.find(crown => crown.id === id) || null

@@ -7,7 +7,7 @@
       <IconCrown class="h-4 w-4" />
       Monthly Crowns
     </p>
-    <p class="mt-1 text-xs text-[hsl(var(--muted-foreground))]">Resets on the 1st of every month.</p>
+    <p class="mt-1 text-xs text-[hsl(var(--muted-foreground))]">Resets on the {{ resetLabel }}.</p>
     <div class="mt-3 space-y-2 text-sm text-[hsl(var(--muted-foreground))]">
       <p v-for="row in rows" :key="row.id">
         <span class="font-semibold text-[hsl(var(--primary))]">{{ row.title }}:</span>
@@ -39,6 +39,7 @@
 <script setup lang="ts">
 import { IconCrown } from '@tabler/icons-vue'
 import { crownTitle, crownValue } from '~/composables/useAchievements'
+import { nextUkMonthCrownResetLabel } from '~/utils/gameDay'
 
 const props = defineProps<{
   ids: string[]
@@ -47,9 +48,10 @@ const props = defineProps<{
 const auth = useAuth()
 const achievements = useAchievements()
 const currentUserId = computed(() => auth.user.value?.uid)
+const resetLabel = nextUkMonthCrownResetLabel()
 
 onMounted(() => {
-  if (!achievements.crowns.value.length) void achievements.fetchAll()
+  void achievements.fetchAll()
 })
 
 const rows = computed(() =>

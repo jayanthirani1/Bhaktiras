@@ -161,6 +161,20 @@ function ukMonthIdNow() {
   return ukDateIdNow().slice(0, 7)
 }
 
+/**
+ * Who still holds the board for this UK month.
+ *
+ * Vacant only when the stored crown is explicitly tagged with a *previous*
+ * monthId (the monthly reset). A legacy doc with no monthId is still the bar
+ * to beat — treating it as empty let any score steal the crown when monthly
+ * crowns first shipped.
+ */
+function crownHoldsBoard(stored, monthId) {
+  if (!stored || !stored.holderUserId) return false
+  if (stored.monthId && stored.monthId !== monthId) return false
+  return true
+}
+
 function previousUkDate(id) {
   const [year, month, day] = String(id || '').split('-').map(Number)
   if (!year || !month || !day) return ''
@@ -1149,16 +1163,26 @@ async function handleGameAchievements(request) {
 
     crownSpecs.forEach((spec, index) => {
       const stored = snaps[index + 1].exists ? snaps[index + 1].data() : null
-      // A crown from a previous month is vacant — the board resets on the 1st.
-      const sameMonth = stored && stored.monthId === monthId
-      const current = sameMonth ? stored : null
-      if (!spec.better(current, candidate)) return
+      // Previous monthId → vacant. No monthId (legacy) or this month → must beat.
+      const holds = crownHoldsBoard(stored, monthId)
+      const current = holds ? stored : null
+      if (!spec.better(current, candidate)) {
+        // Stamp monthId onto legacy holders so the client filter stays aligned
+        // and the board can reset cleanly on the 1st.
+        if (holds && stored && stored.monthId !== monthId) {
+          transaction.set(crownRefs[index], {
+            scope: 'monthly',
+            monthId
+          }, { merge: true })
+        }
+        return
+      }
       claimedCrownIds.push(spec.id)
       // Captured here because the write below is about to overwrite it.
       claimedCrowns.push({
         id: spec.id,
-        previousHolderId: sameMonth ? (stored?.holderUserId || null) : null,
-        previousHolderName: sameMonth ? (stored?.holderName || null) : null
+        previousHolderId: holds ? (stored?.holderUserId || null) : null,
+        previousHolderName: holds ? (stored?.holderName || null) : null
       })
       transaction.set(crownRefs[index], {
         holderUserId: uid,

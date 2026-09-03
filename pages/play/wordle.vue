@@ -67,22 +67,28 @@
           <p class="mt-1 text-sm text-[hsl(var(--muted-foreground))]">{{ solutionMeaning }}</p>
         </div>
         <p class="mt-2 text-xs text-[hsl(var(--muted-foreground))]">{{ nextPuzzleIn }}</p>
-        <div v-if="fastestCrown || fewestCrown" class="mt-4 rounded-xl bg-[hsl(var(--background))] p-4 text-left">
+        <div class="mt-4 rounded-xl bg-[hsl(var(--background))] p-4 text-left">
           <p class="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-[hsl(var(--golden-900))]">
             <IconCrown class="h-4 w-4" />
             Monthly Crowns
           </p>
           <div class="mt-3 space-y-2 text-sm text-[hsl(var(--muted-foreground))]">
-            <p v-if="fastestCrown">
+            <p>
               <span class="font-semibold text-[hsl(var(--primary))]">Fastest Wordle:</span>
-              {{ fastestCrown.holderName }} · {{ formatElapsed(fastestCrown.timeMs || fastestCrown.value) }}
-              <span v-if="fastestCrown.holderUserId === auth.user.value?.uid" class="font-semibold text-amber-700"> · You hold the crown</span>
+              <template v-if="fastestCrown">
+                {{ fastestCrown.holderName }} · {{ formatElapsed(fastestCrown.timeMs || fastestCrown.value) }}
+                <span v-if="fastestCrown.holderUserId === auth.user.value?.uid" class="font-semibold text-amber-700"> · You hold the crown</span>
+              </template>
+              <template v-else> Unclaimed this month</template>
             </p>
-            <p v-if="fewestCrown">
+            <p>
               <span class="font-semibold text-[hsl(var(--primary))]">Fewest guesses:</span>
-              {{ fewestCrown.holderName }} · {{ fewestCrown.guesses || fewestCrown.value }}/6
-              <span v-if="fewestCrown.timeMs"> · {{ formatElapsed(fewestCrown.timeMs) }}</span>
-              <span v-if="fewestCrown.holderUserId === auth.user.value?.uid" class="font-semibold text-amber-700"> · You hold the crown</span>
+              <template v-if="fewestCrown">
+                {{ fewestCrown.holderName }} · {{ fewestCrown.guesses || fewestCrown.value }}/6
+                <span v-if="fewestCrown.timeMs"> · {{ formatElapsed(fewestCrown.timeMs) }}</span>
+                <span v-if="fewestCrown.holderUserId === auth.user.value?.uid" class="font-semibold text-amber-700"> · You hold the crown</span>
+              </template>
+              <template v-else> Unclaimed this month</template>
             </p>
           </div>
         </div>

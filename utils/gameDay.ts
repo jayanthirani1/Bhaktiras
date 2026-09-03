@@ -13,6 +13,22 @@ export function ukMonthId(date: Date = new Date()): string {
   return ukDateId(date).slice(0, 7)
 }
 
+/**
+ * Next monthly-crown reset as "1st of October".
+ * Crowns switch when the UK calendar month changes, so during September that
+ * is October; on 1 October itself the board has already rolled and the next
+ * reset is November.
+ */
+export function nextUkMonthCrownResetLabel(date: Date = new Date()): string {
+  const [year, month] = ukMonthId(date).split('-').map(Number)
+  if (!year || !month) return '1st of next month'
+  // `month` is 1–12; Date.UTC's month index is 0–11, so `month` lands on the 1st of the following month.
+  const monthName = new Intl.DateTimeFormat('en-GB', { month: 'long' }).format(
+    new Date(Date.UTC(year, month, 1))
+  )
+  return `1st of ${monthName}`
+}
+
 /** Hour of day in Europe/London (0–23). */
 export function ukHour(date: Date = new Date()): number {
   return Number(

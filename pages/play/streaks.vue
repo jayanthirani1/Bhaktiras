@@ -13,24 +13,7 @@
         subtitle="Play any game each day to keep your flame alive."
       />
 
-      <div v-if="longestCrown" class="mb-6 rounded-2xl border border-orange-200 bg-orange-50/80 p-4">
-        <p class="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-orange-700">
-          <IconCrown class="h-4 w-4" />
-          Monthly longest streak crown
-        </p>
-        <p class="mt-2 text-sm text-[hsl(var(--muted-foreground))]">
-          <NuxtLink
-            v-if="longestCrown.holderUserId"
-            :to="`/devotee/${longestCrown.holderUserId}`"
-            class="font-semibold text-[hsl(var(--primary))] hover:underline"
-          >
-            {{ longestCrown.holderName }}
-          </NuxtLink>
-          <span v-else class="font-semibold text-[hsl(var(--primary))]">{{ longestCrown.holderName }}</span>
-          · {{ longestCrown.longestStreak || longestCrown.value }} day{{ (longestCrown.longestStreak || longestCrown.value) === 1 ? '' : 's' }}
-          <span v-if="longestCrown.holderUserId === auth.user.value?.uid" class="font-semibold text-amber-700"> · You hold the crown</span>
-        </p>
-      </div>
+      <GameCrowns :ids="['streak-longest']" class="!mt-0 mb-6" />
 
       <div v-if="loading" class="card-surface p-8 text-center text-sm text-[hsl(var(--muted-foreground))]">
         Loading streaks…
@@ -110,13 +93,10 @@
 </template>
 
 <script setup lang="ts">
-import { IconCrown } from '@tabler/icons-vue'
 import { STREAK_PAGE_SIZE } from '~/composables/usePlayStreak'
 
 const auth = useAuth()
 const { entries, pageEntries, page, pageCount, loading, error, setPage } = usePlayStreakLeaderboard()
-const achievements = useAchievements()
-const longestCrown = computed(() => achievements.crowns.value.find(crown => crown.id === 'streak-longest') || null)
 
 function rankFor(indexOnPage: number) {
   return (page.value - 1) * STREAK_PAGE_SIZE + indexOnPage + 1

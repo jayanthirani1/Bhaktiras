@@ -98,9 +98,7 @@ const props = defineProps<{
 const achievements = useAchievements()
 
 onMounted(() => {
-  if (props.game && !achievements.crowns.value.length) {
-    void achievements.fetchAll()
-  }
+  if (props.game) void achievements.fetchAll()
 })
 
 const dateLabel = computed(() => formatUkDateLabel(props.dateId || ukDateId()))
