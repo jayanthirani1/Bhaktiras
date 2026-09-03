@@ -53,15 +53,20 @@ export async function fetchMergedGameWords(): Promise<GameWordEntry[]> {
 
 export function useMiniCrosswordPuzzles() {
   const today = wordleDateId()
-  // Falls back to the curated puzzle if no roll fits, so a broken grid never ships.
-  const dailyPuzzle = createFittedDailyCrossword(today) || { ...DEFAULT_MINI_CROSSWORD }
-  const puzzles = ref<CrosswordPuzzle[]>([dailyPuzzle])
+  // Stay empty until the final daily puzzle is chosen. Seeding a static-bank
+  // grid first caused restore() to see a signature mismatch and wipe progress
+  // when the Firestore word-bank puzzle replaced it.
+  const puzzles = ref<CrosswordPuzzle[]>([])
   const loading = ref(true)
 
   onMounted(async () => {
     try {
+      const fallback = createFittedDailyCrossword(today) || { ...DEFAULT_MINI_CROSSWORD }
       const db = getDb()
-      if (!db) return
+      if (!db) {
+        puzzles.value = [fallback]
+        return
+      }
       const [snap, wordSnap] = await Promise.all([
         getDocs(collection(db, 'miniCrosswordPuzzles')),
         getDocs(collection(db, 'gameWords'))
@@ -80,7 +85,7 @@ export function useMiniCrosswordPuzzles() {
         override
         || customDaily
         || remote[0]
-        || { ...DEFAULT_MINI_CROSSWORD }
+        || fallback
       ]
     } finally {
       loading.value = false

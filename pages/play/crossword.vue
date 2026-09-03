@@ -163,10 +163,10 @@
             <button
               type="button"
               class="rounded-xl bg-[hsl(var(--muted))] px-4 py-2 text-sm font-semibold text-[hsl(var(--foreground))] hover:bg-[hsl(var(--border))]"
-              :disabled="solved"
+              :disabled="solved || !activeWord"
               @click="clearGuesses"
             >
-              Clear
+              Clear word
             </button>
           </div>
         </div>
@@ -264,8 +264,10 @@
           ✓ Check answers
         </button>
         <GameLetterKeyboard
+          show-clear
           @letter="typeLetter"
           @delete="backspace"
+          @clear="clearGuesses"
         />
       </div>
     </div>
@@ -284,6 +286,7 @@ import { IconEye, IconHelp } from '@tabler/icons-vue'
 import { cellKey, layoutAnyCrossword, type LaidWord } from '~/utils/crosswordLayout'
 import { ukDateId } from '~/utils/gameDay'
 import { formatElapsed } from '~/composables/useGameTimer'
+import { isPlayDoneLocally } from '~/utils/playCompletion'
 
 const STATE_KEY = `mini-crossword:${ukDateId()}`
 
@@ -422,13 +425,45 @@ function persist() {
   } catch {}
 }
 
+function fillSolutionGuesses() {
+  const l = layout.value
+  if (!l) return
+  for (const cell of flatCells.value) {
+    if (!cell.open) continue
+    guesses[cell.id] = l.letters[cell.row][cell.col] || ''
+  }
+}
+
 function restore() {
   try {
     const raw = localStorage.getItem(STATE_KEY)
-    if (!raw) return
+    const doneToday = isPlayDoneLocally('mini-crossword')
+    if (!raw) {
+      if (doneToday && puzzles.value[0]) {
+        activeId.value = puzzles.value[0].id
+        solved.value = true
+        fillSolutionGuesses()
+        persist()
+      }
+      return
+    }
     const data = JSON.parse(raw)
-    const savedPuzzle = puzzles.value.find(p => p.id === data.puzzleId)
-    if (!savedPuzzle || data.puzzleSignature !== puzzleSignature(savedPuzzle)) {
+    const savedPuzzle = puzzles.value.find(p => p.id === data.puzzleId) || puzzles.value[0]
+    const signatureMatches = !!savedPuzzle && data.puzzleSignature === puzzleSignature(savedPuzzle)
+    const keepSolved = !!data.solved || doneToday
+
+    if (!savedPuzzle || !signatureMatches) {
+      // Word bank may have changed the grid for today. Keep "done" rather than
+      // wiping a finished play back to a blank board.
+      if (keepSolved) {
+        activeId.value = (savedPuzzle || puzzles.value[0])?.id || ''
+        solved.value = true
+        scoreSubmitted.value = !!data.scoreSubmitted
+        hintsUsed.value = Math.max(0, Math.floor(Number(data.hintsUsed) || 0))
+        fillSolutionGuesses()
+        persist()
+        return
+      }
       localStorage.removeItem(STATE_KEY)
       Object.keys(guesses).forEach(k => { delete guesses[k] })
       activeId.value = puzzles.value[0]?.id || ''
@@ -443,12 +478,13 @@ function restore() {
       Object.keys(guesses).forEach(k => { delete guesses[k] })
       Object.assign(guesses, data.guesses)
     }
-    solved.value = !!data.solved
+    solved.value = keepSolved
     scoreSubmitted.value = !!data.scoreSubmitted
     hintsUsed.value = Math.max(0, Math.floor(Number(data.hintsUsed) || 0))
     if (typeof data.activeRow === 'number') activeRow.value = data.activeRow
     if (typeof data.activeCol === 'number') activeCol.value = data.activeCol
     if (data.activeDir === 'across' || data.activeDir === 'down') activeDir.value = data.activeDir
+    if (solved.value) fillSolutionGuesses()
   } catch {}
 }
 
@@ -609,8 +645,13 @@ function checkAnswers() {
 
 function clearGuesses() {
   if (solved.value) return
-  Object.keys(guesses).forEach(k => { delete guesses[k] })
+  const word = activeWord.value
+  if (!word) return
+  for (const cell of word.cells) {
+    delete guesses[cellKey(cell.row, cell.col)]
+  }
   checked.value = false
+  focusWordStart(word)
   persist()
 }
 
@@ -679,8 +720,10 @@ function syncPlayTimer() {
   timer.loadOrStart()
 }
 
-watch(puzzles, (list) => {
-  if (!list.length) return
+watch([puzzles, loading], ([list, isLoading]) => {
+  // Wait until the final daily puzzle is ready — restoring against the
+  // static-bank placeholder wiped completed games on every revisit.
+  if (isLoading || !list.length) return
   restore()
   if (!activeId.value || !list.some(p => p.id === activeId.value)) {
     activeId.value = list[0].id

@@ -28,6 +28,17 @@
     </div>
     <div class="mt-1.5 flex justify-center gap-1.5">
       <button
+        v-if="showClear"
+        type="button"
+        class="game-letter-key game-letter-key--wide"
+        :class="{ 'game-letter-key--press': pressed === 'CLEAR' }"
+        aria-label="Clear"
+        @pointerdown="onPointer($event, 'CLEAR')"
+        @click="onClick($event, 'CLEAR')"
+      >
+        CLR
+      </button>
+      <button
         v-for="k in BOT"
         :key="k"
         type="button"
@@ -53,8 +64,15 @@
 </template>
 
 <script setup lang="ts">
-const props = defineProps<{ disabled?: boolean }>()
-const emit = defineEmits<{ letter: [string]; delete: [] }>()
+const props = withDefaults(defineProps<{
+  disabled?: boolean
+  /** Puts a Clear key on the bottom row (crossword board wipe, Wordle current row). */
+  showClear?: boolean
+}>(), {
+  disabled: false,
+  showClear: false
+})
+const emit = defineEmits<{ letter: [string]; delete: []; clear: [] }>()
 
 const TOP = ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P']
 const MID = ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L']
@@ -75,10 +93,11 @@ function run(key: string) {
   flash(key)
   try {
     if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
-      navigator.vibrate(key === 'DEL' ? 14 : 8)
+      navigator.vibrate(key === 'DEL' || key === 'CLEAR' ? 14 : 8)
     }
   } catch {}
   if (key === 'DEL') emit('delete')
+  else if (key === 'CLEAR') emit('clear')
   else emit('letter', key)
 }
 
