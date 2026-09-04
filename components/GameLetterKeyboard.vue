@@ -13,7 +13,7 @@
         {{ k }}
       </button>
     </div>
-    <div class="mt-1.5 flex justify-center gap-1.5">
+    <div class="mt-1.5 flex justify-center gap-1.5 px-3">
       <button
         v-for="k in MID"
         :key="k"
@@ -27,17 +27,6 @@
       </button>
     </div>
     <div class="mt-1.5 flex justify-center gap-1.5">
-      <button
-        v-if="showClear"
-        type="button"
-        class="game-letter-key game-letter-key--wide"
-        :class="{ 'game-letter-key--press': pressed === 'CLEAR' }"
-        aria-label="Clear"
-        @pointerdown="onPointer($event, 'CLEAR')"
-        @click="onClick($event, 'CLEAR')"
-      >
-        CLR
-      </button>
       <button
         v-for="k in BOT"
         :key="k"
@@ -57,7 +46,7 @@
         @pointerdown="onPointer($event, 'DEL')"
         @click="onClick($event, 'DEL')"
       >
-        DEL
+        ⌫
       </button>
     </div>
   </div>
@@ -66,13 +55,10 @@
 <script setup lang="ts">
 const props = withDefaults(defineProps<{
   disabled?: boolean
-  /** Puts a Clear key on the bottom row (crossword board wipe, Wordle current row). */
-  showClear?: boolean
 }>(), {
-  disabled: false,
-  showClear: false
+  disabled: false
 })
-const emit = defineEmits<{ letter: [string]; delete: []; clear: [] }>()
+const emit = defineEmits<{ letter: [string]; delete: [] }>()
 
 const TOP = ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P']
 const MID = ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L']
@@ -93,11 +79,10 @@ function run(key: string) {
   flash(key)
   try {
     if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
-      navigator.vibrate(key === 'DEL' || key === 'CLEAR' ? 14 : 8)
+      navigator.vibrate(key === 'DEL' ? 14 : 8)
     }
   } catch {}
   if (key === 'DEL') emit('delete')
-  else if (key === 'CLEAR') emit('clear')
   else emit('letter', key)
 }
 
@@ -124,30 +109,30 @@ function onClick(e: MouseEvent, key: string) {
 .game-letter-keyboard {
   border-radius: 1rem;
   background: hsl(var(--muted));
-  padding: 0.65rem 0.4rem 0.75rem;
+  padding: 0.65rem 0.35rem 0.75rem;
 }
 .game-letter-key {
-  min-width: 1.7rem;
-  height: 2.65rem;
+  min-width: 1.85rem;
+  height: 2.85rem;
   flex: 1 1 0;
-  max-width: 2.2rem;
+  max-width: 2.45rem;
   touch-action: manipulation;
   -webkit-user-select: none;
   user-select: none;
-  border-radius: 0.45rem;
+  border-radius: 0.5rem;
   border: 1px solid hsl(var(--border));
   background: #fff;
-  font-size: 0.8rem;
+  font-size: 0.95rem;
   font-weight: 700;
   color: hsl(var(--foreground));
   box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06);
   transition: transform 75ms ease, background-color 75ms ease;
 }
 .game-letter-key--wide {
-  max-width: 3.4rem;
-  flex: 1.4 1 0;
-  font-size: 0.7rem;
-  letter-spacing: 0.04em;
+  max-width: 3.6rem;
+  flex: 1.55 1 0;
+  font-size: 1.15rem;
+  line-height: 1;
 }
 .game-letter-key--press,
 .game-letter-key:active {
@@ -156,13 +141,14 @@ function onClick(e: MouseEvent, key: string) {
 }
 @media (min-width: 400px) {
   .game-letter-key {
-    min-width: 1.9rem;
-    height: 2.85rem;
-    max-width: 2.4rem;
-    font-size: 0.9rem;
+    min-width: 2rem;
+    height: 3rem;
+    max-width: 2.6rem;
+    font-size: 1rem;
   }
   .game-letter-key--wide {
-    max-width: 3.8rem;
+    max-width: 4rem;
+    font-size: 1.25rem;
   }
 }
 </style>

@@ -102,7 +102,7 @@
           <!-- Clue navigator — sticky above the mobile keyboard so it stays readable. -->
           <div
             v-if="!solved"
-            class="sticky bottom-[calc(16.5rem+env(safe-area-inset-bottom))] z-30 mt-4 bg-white md:static md:bottom-auto"
+            class="sticky bottom-[calc(15.5rem+env(safe-area-inset-bottom))] z-30 mt-4 bg-white md:static md:bottom-auto"
           >
             <CrosswordClueBar
               :number="activeWord?.number"
@@ -236,7 +236,7 @@
       class="fixed inset-x-0 bottom-0 z-40 border-t border-[hsl(var(--border))] bg-[hsl(var(--background))]/95 px-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2 backdrop-blur md:hidden"
     >
       <div class="mx-auto max-w-lg">
-        <div class="mb-2 grid grid-cols-2 gap-2">
+        <div class="mb-2 grid grid-cols-3 gap-2">
           <button
             type="button"
             class="inline-flex items-center justify-center gap-1 rounded-xl bg-amber-100 py-2 text-xs font-bold text-amber-900 active:scale-[0.99] disabled:opacity-40"
@@ -244,7 +244,7 @@
             @click="askHint('letter')"
           >
             <IconEye class="h-3.5 w-3.5" aria-hidden="true" />
-            Letter +5s
+            Letter
           </button>
           <button
             type="button"
@@ -253,7 +253,15 @@
             @click="askHint('word')"
           >
             <IconHelp class="h-3.5 w-3.5" aria-hidden="true" />
-            Word +20s
+            Word
+          </button>
+          <button
+            type="button"
+            class="rounded-xl bg-[hsl(var(--muted))] py-2 text-xs font-bold text-[hsl(var(--foreground))] active:scale-[0.99] disabled:opacity-40"
+            :disabled="!activeWord"
+            @click="clearGuesses"
+          >
+            Clear
           </button>
         </div>
         <button
@@ -265,10 +273,8 @@
           ✓ Check answers
         </button>
         <GameLetterKeyboard
-          show-clear
           @letter="typeLetter"
           @delete="backspace"
-          @clear="clearGuesses"
         />
       </div>
     </div>

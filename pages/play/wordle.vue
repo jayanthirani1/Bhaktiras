@@ -197,20 +197,10 @@
         <div class="flex justify-center gap-1">
           <button
             type="button"
-            class="h-11 sm:h-14 px-3 sm:px-5 rounded-md font-bold text-sm sm:text-base bg-[hsl(var(--muted))] text-[hsl(var(--foreground))] hover:bg-[hsl(var(--border))] disabled:opacity-50 transition-transform duration-75 active:scale-90"
-            :class="{ 'key-press': pressedKey === 'CLEAR' }"
-            :disabled="isComplete || !currentGuess"
-            aria-label="Clear current guess"
-            @pointerdown="onKeyPointer($event, 'CLEAR')"
-            @click="onKeyClick($event, 'CLEAR')"
-          >
-            CLR
-          </button>
-          <button
-            type="button"
-            class="h-11 sm:h-14 px-5 sm:px-7 rounded-md font-bold text-sm sm:text-base bg-[hsl(var(--primary))] text-[hsl(var(--accent))] hover:opacity-90 disabled:opacity-50 transition-transform duration-75 active:scale-90"
+            class="h-11 sm:h-14 min-w-[3.5rem] px-3 sm:min-w-[4.25rem] sm:px-4 rounded-md font-bold text-xs sm:text-sm bg-[hsl(var(--primary))] text-[hsl(var(--accent))] hover:opacity-90 disabled:opacity-50 transition-transform duration-75 active:scale-90"
             :class="{ 'key-press': pressedKey === 'ENTER' }"
             :disabled="isComplete"
+            aria-label="Enter guess"
             @pointerdown="onKeyPointer($event, 'ENTER')"
             @click="onKeyClick($event, 'ENTER')"
           >
@@ -231,9 +221,10 @@
           </button>
           <button
             type="button"
-            class="h-11 sm:h-14 px-5 sm:px-7 rounded-md font-bold text-base bg-[hsl(var(--muted))] text-[hsl(var(--foreground))] hover:bg-[hsl(var(--border))] disabled:opacity-50 transition-transform duration-75 active:scale-90"
+            class="h-11 sm:h-14 min-w-[3.5rem] px-3 sm:min-w-[4.25rem] sm:px-4 rounded-md font-bold text-lg bg-[hsl(var(--muted))] text-[hsl(var(--foreground))] hover:bg-[hsl(var(--border))] disabled:opacity-50 transition-transform duration-75 active:scale-90"
             :class="{ 'key-press': pressedKey === 'BACK' }"
             :disabled="isComplete"
+            aria-label="Delete"
             @pointerdown="onKeyPointer($event, 'BACK')"
             @click="onKeyClick($event, 'BACK')"
           >
@@ -704,12 +695,6 @@ function runKey(key: string) {
     removeLetter()
     return
   }
-  if (k === 'CLEAR' || k === 'CLR') {
-    pressKeyVisual('CLEAR')
-    haptic(14)
-    clearCurrentGuess()
-    return
-  }
   pressKeyVisual(k)
   haptic(10)
   addLetter(k)
@@ -793,12 +778,6 @@ function addLetter(letter: string) {
 function removeLetter() {
   if (isComplete.value) return
   currentGuess.value = currentGuess.value.slice(0, -1)
-  popTile.value = null
-}
-
-function clearCurrentGuess() {
-  if (isComplete.value || playedElsewhere.value) return
-  currentGuess.value = ''
   popTile.value = null
 }
 
