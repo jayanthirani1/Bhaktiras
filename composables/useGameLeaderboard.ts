@@ -10,7 +10,7 @@ import {
   limit,
   serverTimestamp
 } from 'firebase/firestore'
-import type { GameLeaderboardId, GameScoreEntry } from '~/types'
+import type { GameLeaderboardId, GameScoreEntry, LegacyGameLeaderboardId } from '~/types'
 import { ukDateId } from '~/utils/gameDay'
 
 const USERNAME_MAX_LENGTH = 32
@@ -19,11 +19,11 @@ const SCORES_COLLECTION = 'gameScores'
 const SCORE_MAX = 9_999_999
 
 /** Older Surya Chandra rows were written as Bhakti Marg. Read both; write the new id. */
-const SCORE_GAME_ALIASES: Partial<Record<GameLeaderboardId, GameLeaderboardId[]>> = {
+const SCORE_GAME_ALIASES: Partial<Record<GameLeaderboardId, LegacyGameLeaderboardId[]>> = {
   'surya-chandra': ['bhakti-marg']
 }
 
-function scoreQueryIds(game: GameLeaderboardId): GameLeaderboardId[] {
+function scoreQueryIds(game: GameLeaderboardId): Array<GameLeaderboardId | LegacyGameLeaderboardId> {
   return [game, ...(SCORE_GAME_ALIASES[game] || [])]
 }
 
@@ -86,7 +86,8 @@ function mapScoreDoc(
 ): GameScoreEntry {
   return {
     id,
-    game: (data.game || game) as GameLeaderboardId,
+    // Always label with the live game id — alias rows may still say bhakti-marg.
+    game,
     dateId: String(data.dateId || ''),
     userId: String(data.userId || ''),
     userName: String(data.userName || 'Anonymous'),
@@ -192,7 +193,7 @@ export function useGameLeaderboard(
       const ids = scoreQueryIds(game)
       const known = new Set(ids)
 
-      async function queryGame(id: GameLeaderboardId) {
+      async function queryGame(id: GameLeaderboardId | LegacyGameLeaderboardId) {
         try {
           return allTime
             ? await getDocs(query(

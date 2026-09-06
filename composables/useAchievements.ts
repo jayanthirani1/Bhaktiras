@@ -11,7 +11,7 @@ export type AchievementGroup =
   | 'connections'
   | 'one-percent'
   | 'bracket-city'
-  | 'bhakti-marg'
+  | 'surya-chandra'
   | 'ras-rani'
   | 'streak'
 
@@ -92,15 +92,15 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
   { id: 'one-percent-club-7-days', title: 'Week in the Club', description: 'Be part of the 1% Club 7 days in a row.', group: 'one-percent', medal: 'gold', progress: { stat: 'onePercentClubCurrentStreak', goal: 7, unit: 'days' } },
   { id: 'one-percent-club-14-days', title: 'Fortnight of Amrut', description: 'Join the 1% Club 14 days in a row.', group: 'one-percent', medal: 'gold', progress: { stat: 'onePercentClubCurrentStreak', goal: 14, unit: 'days' } },
   { id: 'one-percent-club-30-days', title: 'Club Devotee', description: 'Join the 1% Club 30 days in a row.', group: 'one-percent', medal: 'platinum', progress: { stat: 'onePercentClubCurrentStreak', goal: 30, unit: 'days' } },
-  { id: 'bhakti-marg-first-win', title: 'First Sunrise', description: 'Complete a Surya Chandra puzzle for the first time.', group: 'bhakti-marg', medal: 'bronze' },
-  { id: 'bhakti-marg-wins-7', title: 'Week of Light', description: 'Complete 7 Surya Chandra puzzles.', group: 'bhakti-marg', medal: 'silver', progress: { stat: 'bhaktiMargWins', goal: 7, unit: 'wins' } },
-  { id: 'bhakti-marg-wins-30', title: 'Surya Chandra Sadhak', description: 'Complete 30 Surya Chandra puzzles.', group: 'bhakti-marg', medal: 'gold', progress: { stat: 'bhaktiMargWins', goal: 30, unit: 'wins' } },
-  { id: 'bhakti-marg-wins-100', title: '100-Day Surya Chandra', description: 'Complete 100 Surya Chandra puzzles.', group: 'bhakti-marg', medal: 'gold', progress: { stat: 'bhaktiMargWins', goal: 100, unit: 'wins' } },
-  { id: 'bhakti-marg-wins-200', title: '200-Day Surya Chandra', description: 'Complete 200 Surya Chandra puzzles.', group: 'bhakti-marg', medal: 'gold', progress: { stat: 'bhaktiMargWins', goal: 200, unit: 'wins' } },
-  { id: 'bhakti-marg-wins-300', title: '300-Day Surya Chandra', description: 'Complete 300 Surya Chandra puzzles.', group: 'bhakti-marg', medal: 'platinum', progress: { stat: 'bhaktiMargWins', goal: 300, unit: 'wins' } },
-  { id: 'bhakti-marg-no-hints', title: 'Pure Light', description: 'Complete Surya Chandra without using any hints.', group: 'bhakti-marg', medal: 'gold' },
-  { id: 'bhakti-marg-no-hints-10', title: 'Clear Sky', description: 'Complete 10 Surya Chandra puzzles without hints.', group: 'bhakti-marg', medal: 'platinum', progress: { stat: 'bhaktiMargNoHints', goal: 10, unit: 'perfects' } },
-  { id: 'bhakti-marg-sub-60s', title: 'Swift Dawn', description: 'Complete Surya Chandra in under 60 seconds.', group: 'bhakti-marg', medal: 'gold' },
+  { id: 'surya-chandra-first-win', title: 'First Sunrise', description: 'Complete a Surya Chandra puzzle for the first time.', group: 'surya-chandra', medal: 'bronze' },
+  { id: 'surya-chandra-wins-7', title: 'Week of Light', description: 'Complete 7 Surya Chandra puzzles.', group: 'surya-chandra', medal: 'silver', progress: { stat: 'suryaChandraWins', goal: 7, unit: 'wins' } },
+  { id: 'surya-chandra-wins-30', title: 'Surya Chandra Sadhak', description: 'Complete 30 Surya Chandra puzzles.', group: 'surya-chandra', medal: 'gold', progress: { stat: 'suryaChandraWins', goal: 30, unit: 'wins' } },
+  { id: 'surya-chandra-wins-100', title: '100-Day Surya Chandra', description: 'Complete 100 Surya Chandra puzzles.', group: 'surya-chandra', medal: 'gold', progress: { stat: 'suryaChandraWins', goal: 100, unit: 'wins' } },
+  { id: 'surya-chandra-wins-200', title: '200-Day Surya Chandra', description: 'Complete 200 Surya Chandra puzzles.', group: 'surya-chandra', medal: 'gold', progress: { stat: 'suryaChandraWins', goal: 200, unit: 'wins' } },
+  { id: 'surya-chandra-wins-300', title: '300-Day Surya Chandra', description: 'Complete 300 Surya Chandra puzzles.', group: 'surya-chandra', medal: 'platinum', progress: { stat: 'suryaChandraWins', goal: 300, unit: 'wins' } },
+  { id: 'surya-chandra-no-hints', title: 'Pure Light', description: 'Complete Surya Chandra without using any hints.', group: 'surya-chandra', medal: 'gold' },
+  { id: 'surya-chandra-no-hints-10', title: 'Clear Sky', description: 'Complete 10 Surya Chandra puzzles without hints.', group: 'surya-chandra', medal: 'platinum', progress: { stat: 'suryaChandraNoHints', goal: 10, unit: 'perfects' } },
+  { id: 'surya-chandra-sub-60s', title: 'Swift Dawn', description: 'Complete Surya Chandra in under 60 seconds.', group: 'surya-chandra', medal: 'gold' },
   { id: 'ras-rani-first-win', title: 'First Nectar', description: 'Complete a Ras Rani puzzle for the first time.', group: 'ras-rani', medal: 'bronze' },
   { id: 'ras-rani-wins-7', title: 'Week of Nectar', description: 'Complete 7 Ras Rani puzzles.', group: 'ras-rani', medal: 'silver', progress: { stat: 'rasRaniWins', goal: 7, unit: 'wins' } },
   { id: 'ras-rani-wins-30', title: 'Ras Rani Sadhak', description: 'Complete 30 Ras Rani puzzles.', group: 'ras-rani', medal: 'gold', progress: { stat: 'rasRaniWins', goal: 30, unit: 'wins' } },
@@ -123,9 +123,27 @@ export const ACHIEVEMENT_GROUP_TITLES: Record<AchievementGroup, string> = {
   connections: 'Connections',
   'bracket-city': 'Bracket City',
   'one-percent': '1% Club',
-  'bhakti-marg': 'Surya Chandra',
+  'surya-chandra': 'Surya Chandra',
   'ras-rani': 'Ras Rani',
   streak: 'Streaks'
+}
+
+/** Retired Bhakti Marg achievement ids still unlock the matching Surya Chandra medals. */
+export const SURYA_CHANDRA_ACHIEVEMENT_LEGACY: Record<string, string> = {
+  'surya-chandra-first-win': 'bhakti-marg-first-win',
+  'surya-chandra-wins-7': 'bhakti-marg-wins-7',
+  'surya-chandra-wins-30': 'bhakti-marg-wins-30',
+  'surya-chandra-wins-100': 'bhakti-marg-wins-100',
+  'surya-chandra-wins-200': 'bhakti-marg-wins-200',
+  'surya-chandra-wins-300': 'bhakti-marg-wins-300',
+  'surya-chandra-no-hints': 'bhakti-marg-no-hints',
+  'surya-chandra-no-hints-10': 'bhakti-marg-no-hints-10',
+  'surya-chandra-sub-60s': 'bhakti-marg-sub-60s'
+}
+
+const SURYA_STAT_LEGACY: Record<string, string> = {
+  suryaChandraWins: 'bhaktiMargWins',
+  suryaChandraNoHints: 'bhaktiMargNoHints'
 }
 
 export const CROWN_DEFINITIONS = [
@@ -139,11 +157,15 @@ export const CROWN_DEFINITIONS = [
   { id: 'bracket-city-fewest-peeks', title: 'Fewest Peeks Bracket City', description: 'Fewest-peek Bracket City finish this month.', game: 'bracket-city' },
   { id: 'one-percent-highest', title: '1% Club High Score', description: 'Most rungs cleared in 1% Club this month.', game: 'one-percent' },
   { id: 'one-percent-fastest', title: 'Fastest 1% Club', description: 'Fastest full 1% Club clear this month.', game: 'one-percent' },
-  { id: 'bhakti-marg-fastest', title: 'Fastest Surya Chandra', description: 'Fastest Surya Chandra completion this month.', game: 'bhakti-marg' },
+  { id: 'surya-chandra-fastest', title: 'Fastest Surya Chandra', description: 'Fastest Surya Chandra completion this month.', game: 'surya-chandra' },
   { id: 'ras-rani-fastest', title: 'Fastest Ras Rani', description: 'Fastest Ras Rani completion this month.', game: 'ras-rani' },
   { id: 'ras-rani-fewest-moves', title: 'Fewest Moves Ras Rani', description: 'Fewest moves Ras Rani completion this month.', game: 'ras-rani' },
   { id: 'streak-longest', title: 'Longest Streak', description: 'Longest active games streak this month.', game: 'streak' }
 ] as const
+
+const LEGACY_CROWN_IDS: Record<string, string> = {
+  'surya-chandra-fastest': 'bhakti-marg-fastest'
+}
 
 function getDb(): Firestore | null {
   if (import.meta.server) return null
@@ -182,6 +204,8 @@ export function achievementProgress(
   if (!def.progress) return null
   const stats = (record?.stats || {}) as Record<string, unknown>
   let current = Number(stats[def.progress.stat]) || 0
+  const legacyStat = SURYA_STAT_LEGACY[def.progress.stat]
+  if (legacyStat) current = Math.max(current, Number(stats[legacyStat]) || 0)
   if (def.progress.stat === 'gamesStreak') {
     current = Math.max(streak?.currentStreak ?? 0, streak?.longestStreak ?? 0)
   } else if (def.progress.stat === 'onePercentClubCurrentStreak') {
@@ -242,7 +266,7 @@ export function crownValue(crown: AchievementCrownRecord) {
     const rungs = crown.score || crown.value
     return `${rungs} cleared${crown.timeMs ? ` · ${formatElapsed(crown.timeMs)}` : ''}`
   }
-  if (crown.id === 'bhakti-marg-fastest' || crown.id === 'ras-rani-fastest') {
+  if (crown.id === 'surya-chandra-fastest' || crown.id === 'bhakti-marg-fastest' || crown.id === 'ras-rani-fastest') {
     return formatElapsed(crown.timeMs || crown.value)
   }
   if (crown.id === 'ras-rani-fewest-moves') {
@@ -275,7 +299,11 @@ export function useAchievements() {
   const celebration = useState<UnlockCelebration | null>('achievement-celebration', () => null)
 
   const unlockedIds = computed(() => {
-    const ids = new Set<string>(Object.keys(userAchievements.value?.achievements || {}))
+    const raw = userAchievements.value?.achievements || {}
+    const ids = new Set<string>(Object.keys(raw))
+    for (const [nextId, legacyId] of Object.entries(SURYA_CHANDRA_ACHIEVEMENT_LEGACY)) {
+      if (ids.has(legacyId)) ids.add(nextId)
+    }
     for (const id of unlockFromStreak(streak.value)) ids.add(id)
     return ids
   })
@@ -308,12 +336,24 @@ export function useAchievements() {
       const knownCrowns = new Set<string>(CROWN_DEFINITIONS.map(item => item.id))
       const monthId = ukMonthId()
       const crownSnap = await getDocs(collection(db, 'achievementCrowns'))
-      crowns.value = crownSnap.docs
-        .filter(item => knownCrowns.has(item.id))
-        .map(item => ({
+      const byId = new Map<string, AchievementCrownRecord>()
+      for (const item of crownSnap.docs) {
+        const record = {
           id: item.id,
           ...(item.data() as Omit<AchievementCrownRecord, 'id'>)
-        }))
+        }
+        byId.set(item.id, record)
+      }
+      // Prefer the new crown id; surface a legacy holder under the new id if needed.
+      for (const [nextId, legacyId] of Object.entries(LEGACY_CROWN_IDS)) {
+        if (!byId.has(nextId) && byId.has(legacyId)) {
+          const legacy = byId.get(legacyId)!
+          byId.set(nextId, { ...legacy, id: nextId, game: 'surya-chandra' })
+        }
+        byId.delete(legacyId)
+      }
+      crowns.value = [...byId.values()]
+        .filter(item => knownCrowns.has(item.id))
         // Only this UK month's holders — last month's crowns stay in Firestore
         // but no longer appear until someone claims them again. Legacy rows
         // without monthId still count via updatedAt (see crownBelongsToMonth).

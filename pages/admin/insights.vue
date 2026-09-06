@@ -206,8 +206,9 @@ const GAME_LABELS: Record<string, string> = {
   'one-percent': '1% Club',
   'mini-crossword': 'Mini crossword',
   'bracket-city': 'Bracket City',
-  'bhakti-marg': 'Surya Chandra',
   'surya-chandra': 'Surya Chandra',
+  // Legacy score rows may still appear until prune/migrate finishes.
+  'bhakti-marg': 'Surya Chandra',
   'ras-rani': 'Ras Rani'
 }
 

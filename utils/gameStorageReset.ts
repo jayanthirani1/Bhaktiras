@@ -21,6 +21,9 @@ const GAME_STORAGE_PREFIXES = [
   'one-percent-timer:',
   'bracket-city:',
   'bracket-city-timer:',
+  'surya-chandra:',
+  'surya-chandra-timer:',
+  // Retired Surya Chandra slug — still cleared on word-bank bumps.
   'bhakti-marg:',
   'bhakti-marg-timer:',
   'ras-rani:',
@@ -44,10 +47,14 @@ const GAME_DAY_KEYS: Record<PlayGameSlug, (dateId: string) => string[]> = {
   'one-percent': dateId => [`one-percent-run:${dateId}`, `one-percent-timer:${dateId}`],
   'connections': dateId => [`connections:${dateId}`, `connections-timer:${dateId}`],
   'bracket-city': dateId => [`bracket-city:${dateId}`, `bracket-city-timer:${dateId}`],
-  'bhakti-marg': dateId => [
+  'surya-chandra': dateId => [
+    `surya-chandra:${dateId}`,
+    `surya-chandra-timer:${dateId}`,
     `bhakti-marg:${dateId}`,
     `bhakti-marg-timer:${dateId}`,
-    `leaderboard-submitted:surya-chandra:${dateId}`
+    `play-done:bhakti-marg:${dateId}`,
+    `leaderboard-submitted:surya-chandra:${dateId}`,
+    `leaderboard-submitted:bhakti-marg:${dateId}`
   ],
   'ras-rani': dateId => [`ras-rani-v3:${dateId}`, `ras-rani:${dateId}`, `ras-rani-timer:${dateId}`]
 }

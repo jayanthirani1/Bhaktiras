@@ -55,7 +55,12 @@ export function usePlayCompletionStore() {
     if (!db) return
     try {
       const snap = await getDoc(dayRef(db, uid))
-      remote.value = snap.exists() ? ((snap.data().games || {}) as CompletionMap) : {}
+      const games = snap.exists() ? ((snap.data().games || {}) as CompletionMap & Record<string, PlayCompletionEntry>) : {}
+      // Pre-rename Surya Chandra completions used the retired bhakti-marg key.
+      if (games['bhakti-marg'] && !games['surya-chandra']) {
+        games['surya-chandra'] = games['bhakti-marg']
+      }
+      remote.value = games
     } catch {
       remote.value = {}
     }
@@ -99,10 +104,12 @@ export function usePlayCompletionStore() {
     const db = getDb()
     if (!uid || !db) return
     try {
-      await updateDoc(doc(db, 'playCompletions', uid, 'days', dateId), {
+      const patch: Record<string, unknown> = {
         [`games.${slug}`]: deleteField(),
         updatedAt: serverTimestamp()
-      })
+      }
+      if (slug === 'surya-chandra') patch['games.bhakti-marg'] = deleteField()
+      await updateDoc(doc(db, 'playCompletions', uid, 'days', dateId), patch)
     } catch {
       // No document for the day yet, or offline — the local clear still stands.
     }

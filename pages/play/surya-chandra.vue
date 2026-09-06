@@ -132,7 +132,7 @@
           <p v-if="submitError" class="text-sm text-red-600">{{ submitError }}</p>
         </div>
 
-        <GameCrowns :ids="['bhakti-marg-fastest']" />
+        <GameCrowns :ids="['surya-chandra-fastest']" />
 
         <GameHowTo>
           <ol class="list-decimal space-y-2 pl-5">
@@ -170,13 +170,55 @@ import {
   type TangoCell
 } from '~/utils/tango'
 
-const STORAGE_KEY = `bhakti-marg:${ukDateId()}`
+const dateIdToday = ukDateId()
+const STORAGE_KEY = `surya-chandra:${dateIdToday}`
+const LEGACY_STORAGE_KEY = `bhakti-marg:${dateIdToday}`
+const TIMER_KEY = `surya-chandra-timer:${dateIdToday}`
+const LEGACY_TIMER_KEY = `bhakti-marg-timer:${dateIdToday}`
+
+/** Move pre-rename local progress onto the new keys so today's play survives. */
+function migrateLegacyLocalKeys() {
+  if (import.meta.server || typeof localStorage === 'undefined') return
+  try {
+    if (!localStorage.getItem(STORAGE_KEY)) {
+      const legacy = localStorage.getItem(LEGACY_STORAGE_KEY)
+      if (legacy) {
+        localStorage.setItem(STORAGE_KEY, legacy)
+        localStorage.removeItem(LEGACY_STORAGE_KEY)
+      }
+    }
+    if (!localStorage.getItem(TIMER_KEY)) {
+      const legacy = localStorage.getItem(LEGACY_TIMER_KEY)
+      if (legacy) {
+        localStorage.setItem(TIMER_KEY, legacy)
+        localStorage.removeItem(LEGACY_TIMER_KEY)
+      }
+    }
+    const howtoKey = 'bhaktiras-howto-seen:surya-chandra'
+    if (localStorage.getItem(howtoKey) !== '1' && localStorage.getItem('bhaktiras-howto-seen:bhakti-marg') === '1') {
+      localStorage.setItem(howtoKey, '1')
+    }
+    const doneKey = `play-done:surya-chandra:${dateIdToday}`
+    if (!localStorage.getItem(doneKey)) {
+      const legacyDone = localStorage.getItem(`play-done:bhakti-marg:${dateIdToday}`)
+      if (legacyDone) localStorage.setItem(doneKey, legacyDone)
+    }
+  } catch {}
+}
+
+migrateLegacyLocalKeys()
+
 const { puzzle, loading } = useSuryaChandraPuzzle()
-const timer = useGameTimer(`bhakti-marg-timer:${ukDateId()}`)
-const howto = useHowToPlay('bhakti-marg', ['bhakti-marg:', 'bhakti-marg-timer:'])
+const timer = useGameTimer(TIMER_KEY)
+const howto = useHowToPlay('surya-chandra', [
+  'surya-chandra:',
+  'surya-chandra-timer:',
+  'bhakti-marg:',
+  'bhakti-marg-timer:'
+])
 const auth = useAuth()
 const isLoggedIn = computed(() => !!auth.user.value)
-const { playedElsewhere, result: elsewhereResult, markDone } = useDailyGameCompletion('bhakti-marg')
+const { playedElsewhere, result: elsewhereResult, markDone } = useDailyGameCompletion('surya-chandra')
 const { entries, loading: boardLoading, dateId, submitScore } = useGameLeaderboard('surya-chandra', { sort: 'asc', rankBy: 'timeMs' })
 const achievements = useAchievements()
 
@@ -358,7 +400,7 @@ async function submitToLeaderboard() {
     })
     scoreSubmitted.value = true
     saveState()
-    await achievements.processResult('bhakti-marg', {
+    await achievements.processResult('surya-chandra', {
       userName,
       timeMs: timer.elapsedMs.value,
       moves: moves.value,

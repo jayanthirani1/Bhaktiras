@@ -446,8 +446,10 @@ export type GameLeaderboardId =
   | 'connections'
   | 'bracket-city'
   | 'surya-chandra'
-  | 'bhakti-marg'
   | 'ras-rani'
+
+/** Retired Surya Chandra score/crown game id — read as an alias only. */
+export type LegacyGameLeaderboardId = 'bhakti-marg'
 
 export interface GameScoreEntry {
   id: string
@@ -504,23 +506,6 @@ export interface BracketCityPuzzle {
   source: string
   /** Where the episode comes from, shown once the puzzle is solved. */
   credit?: string
-}
-
-export interface BhaktiMargWord {
-  word: string
-  meaning: string
-}
-
-export interface BhaktiMargPuzzle {
-  id: string
-  title: string
-  dateId?: string | null
-  gridSize: number
-  grid: string[][]
-  walls: Array<{ row: number; col: number; direction: 'right' | 'down' }>
-  words: BhaktiMargWord[]
-  paths: Array<Array<[number, number]>>
-  published?: boolean
 }
 
 export interface RasRaniRegion {

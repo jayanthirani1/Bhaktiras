@@ -73,16 +73,16 @@ const GAME_ACHIEVEMENTS = {
     { id: 'one-percent-club-14-days', when: ({ clubStreak, onePercentClubLongestStreak }) => Math.max(clubStreak || 0, onePercentClubLongestStreak || 0) >= 14 },
     { id: 'one-percent-club-30-days', when: ({ clubStreak, onePercentClubLongestStreak }) => Math.max(clubStreak || 0, onePercentClubLongestStreak || 0) >= 30 }
   ],
-  'bhakti-marg': [
-    { id: 'bhakti-marg-first-win', when: ({ bhaktiMargWins }) => bhaktiMargWins >= 1 },
-    { id: 'bhakti-marg-wins-7', when: ({ bhaktiMargWins }) => bhaktiMargWins >= 7 },
-    { id: 'bhakti-marg-wins-30', when: ({ bhaktiMargWins }) => bhaktiMargWins >= 30 },
-    { id: 'bhakti-marg-wins-100', when: ({ bhaktiMargWins }) => bhaktiMargWins >= 100 },
-    { id: 'bhakti-marg-wins-200', when: ({ bhaktiMargWins }) => bhaktiMargWins >= 200 },
-    { id: 'bhakti-marg-wins-300', when: ({ bhaktiMargWins }) => bhaktiMargWins >= 300 },
-    { id: 'bhakti-marg-no-hints', when: ({ hintsUsed }) => hintsUsed === 0 },
-    { id: 'bhakti-marg-no-hints-10', when: ({ bhaktiMargNoHints }) => bhaktiMargNoHints >= 10 },
-    { id: 'bhakti-marg-sub-60s', when: ({ timeMs }) => timeMs >= MIN_TIMED_PLAY_MS && timeMs < 60_000 }
+  'surya-chandra': [
+    { id: 'surya-chandra-first-win', when: ({ suryaChandraWins }) => suryaChandraWins >= 1 },
+    { id: 'surya-chandra-wins-7', when: ({ suryaChandraWins }) => suryaChandraWins >= 7 },
+    { id: 'surya-chandra-wins-30', when: ({ suryaChandraWins }) => suryaChandraWins >= 30 },
+    { id: 'surya-chandra-wins-100', when: ({ suryaChandraWins }) => suryaChandraWins >= 100 },
+    { id: 'surya-chandra-wins-200', when: ({ suryaChandraWins }) => suryaChandraWins >= 200 },
+    { id: 'surya-chandra-wins-300', when: ({ suryaChandraWins }) => suryaChandraWins >= 300 },
+    { id: 'surya-chandra-no-hints', when: ({ hintsUsed }) => hintsUsed === 0 },
+    { id: 'surya-chandra-no-hints-10', when: ({ suryaChandraNoHints }) => suryaChandraNoHints >= 10 },
+    { id: 'surya-chandra-sub-60s', when: ({ timeMs }) => timeMs >= MIN_TIMED_PLAY_MS && timeMs < 60_000 }
   ],
   'ras-rani': [
     { id: 'ras-rani-first-win', when: ({ rasRaniWins }) => rasRaniWins >= 1 },
@@ -221,6 +221,36 @@ function bumpOncePerDay(stats, countKey, dateKey, today) {
   stats[dateKey] = today
 }
 
+/** Copy a legacy counter into the new key once so progress bars do not reset. */
+function seedStatFromLegacy(stats, nextCount, nextDate, legacyCount, legacyDate) {
+  if ((Number(stats[nextCount]) || 0) > 0) return
+  const prior = Number(stats[legacyCount]) || 0
+  if (prior <= 0) return
+  stats[nextCount] = prior
+  if (stats[legacyDate]) stats[nextDate] = stats[legacyDate]
+}
+
+/** Retired Bhakti Marg unlocks still count as the matching Surya Chandra medals. */
+const SURYA_CHANDRA_ACHIEVEMENT_LEGACY = {
+  'surya-chandra-first-win': 'bhakti-marg-first-win',
+  'surya-chandra-wins-7': 'bhakti-marg-wins-7',
+  'surya-chandra-wins-30': 'bhakti-marg-wins-30',
+  'surya-chandra-wins-100': 'bhakti-marg-wins-100',
+  'surya-chandra-wins-200': 'bhakti-marg-wins-200',
+  'surya-chandra-wins-300': 'bhakti-marg-wins-300',
+  'surya-chandra-no-hints': 'bhakti-marg-no-hints',
+  'surya-chandra-no-hints-10': 'bhakti-marg-no-hints-10',
+  'surya-chandra-sub-60s': 'bhakti-marg-sub-60s'
+}
+
+function migrateSuryaChandraAchievementIds(achievements) {
+  for (const [nextId, legacyId] of Object.entries(SURYA_CHANDRA_ACHIEVEMENT_LEGACY)) {
+    if (!achievements[nextId] && achievements[legacyId]) {
+      achievements[nextId] = achievements[legacyId]
+    }
+  }
+}
+
 function applyGameStats(game, candidate, stats, today) {
   if (game === 'wordle') {
     bumpOncePerDay(stats, 'wordleWins', 'wordleWinsDate', today)
@@ -241,9 +271,16 @@ function applyGameStats(game, candidate, stats, today) {
     stats.onePercentClubLastDate = streak.last
     candidate.clubStreak = streak.current
     if (candidate.clearedAll) bumpOncePerDay(stats, 'onePercentClubClears', 'onePercentClubClearsDate', today)
-  } else if (game === 'bhakti-marg') {
+  } else if (game === 'surya-chandra') {
+    seedStatFromLegacy(stats, 'suryaChandraWins', 'suryaChandraWinsDate', 'bhaktiMargWins', 'bhaktiMargWinsDate')
+    seedStatFromLegacy(stats, 'suryaChandraNoHints', 'suryaChandraNoHintsDate', 'bhaktiMargNoHints', 'bhaktiMargNoHintsDate')
+    bumpOncePerDay(stats, 'suryaChandraWins', 'suryaChandraWinsDate', today)
+    // Keep legacy counters in step so any unread client still sees progress.
     bumpOncePerDay(stats, 'bhaktiMargWins', 'bhaktiMargWinsDate', today)
-    if (candidate.hintsUsed === 0) bumpOncePerDay(stats, 'bhaktiMargNoHints', 'bhaktiMargNoHintsDate', today)
+    if (candidate.hintsUsed === 0) {
+      bumpOncePerDay(stats, 'suryaChandraNoHints', 'suryaChandraNoHintsDate', today)
+      bumpOncePerDay(stats, 'bhaktiMargNoHints', 'bhaktiMargNoHintsDate', today)
+    }
   } else if (game === 'ras-rani') {
     bumpOncePerDay(stats, 'rasRaniWins', 'rasRaniWinsDate', today)
     if (candidate.hintsUsed === 0) bumpOncePerDay(stats, 'rasRaniNoHints', 'rasRaniNoHintsDate', today)
@@ -348,6 +385,7 @@ const CROWN_LABELS = {
   'bracket-city-fewest-peeks': 'fewest-peek Bracket City',
   'one-percent-highest': 'highest 1% Club score',
   'one-percent-fastest': 'fastest 1% Club clear',
+  'surya-chandra-fastest': 'fastest Surya Chandra',
   'bhakti-marg-fastest': 'fastest Surya Chandra',
   'ras-rani-fastest': 'fastest Ras Rani',
   'ras-rani-fewest-moves': 'fewest-move Ras Rani',
@@ -1006,7 +1044,9 @@ exports.getAdminOverview = onCall(
 async function handleGameAchievements(request) {
   if (!request.auth?.uid) throw new HttpsError('unauthenticated', 'Sign in to unlock achievements.')
 
-  const game = String(request.data?.game || '')
+  let game = String(request.data?.game || '')
+  // Retired internal slug — same unlock path as Surya Chandra.
+  if (game === 'bhakti-marg') game = 'surya-chandra'
   if (!GAME_ACHIEVEMENTS[game]) throw new HttpsError('invalid-argument', 'Unknown game.')
 
   const userName = cleanText(request.data?.userName, 32) || 'Player'
@@ -1114,7 +1154,7 @@ async function handleGameAchievements(request) {
         extra: { score, timeMs }
       })
     }
-  } else if (game === 'bhakti-marg') {
+  } else if (game === 'surya-chandra') {
     const moves = intInRange(request.data?.moves ?? 0, 0, 1000)
     const timeMs = intInRange(request.data?.timeMs, MIN_TIMED_PLAY_MS, 86_400_000)
     const hintsUsed = intInRange(request.data?.hintsUsed ?? 0, 0, 100)
@@ -1124,7 +1164,14 @@ async function handleGameAchievements(request) {
     Object.assign(candidate, { moves, timeMs, hintsUsed })
     // Time-only crown — fewest-moves was retired because the board is ranked by clock.
     crownSpecs.push(
-      { id: 'bhakti-marg-fastest', metric: 'fastest-time', value: timeMs, better: isBetterFastestTime, extra: { timeMs, hintsUsed } }
+      {
+        id: 'surya-chandra-fastest',
+        legacyId: 'bhakti-marg-fastest',
+        metric: 'fastest-time',
+        value: timeMs,
+        better: isBetterFastestTime,
+        extra: { timeMs, hintsUsed }
+      }
     )
   } else if (game === 'ras-rani') {
     const moves = intInRange(request.data?.moves, 1, 1000)
@@ -1157,6 +1204,9 @@ async function handleGameAchievements(request) {
 
   const monthId = ukMonthIdNow()
   const crownRefs = crownSpecs.map(spec => db.doc(`achievementCrowns/${spec.id}`))
+  const legacyCrownRefs = crownSpecs.map(spec => (
+    spec.legacyId ? db.doc(`achievementCrowns/${spec.legacyId}`) : null
+  ))
   const unlockedIds = []
   const claimedCrownIds = []
   const claimedCrowns = []
@@ -1169,12 +1219,14 @@ async function handleGameAchievements(request) {
     claimedCrowns.length = 0
     const snaps = await Promise.all([
       transaction.get(userRef),
-      ...crownRefs.map(ref => transaction.get(ref))
+      ...crownRefs.map(ref => transaction.get(ref)),
+      ...legacyCrownRefs.filter(Boolean).map(ref => transaction.get(ref))
     ])
     const userSnap = snaps[0]
     const existingData = userSnap.exists ? userSnap.data() : {}
     const existingAchievements = existingData.achievements || {}
     const nextAchievements = { ...existingAchievements }
+    migrateSuryaChandraAchievementIds(nextAchievements)
     const stats = readStats(existingData)
     applyGameStats(game, candidate, stats, ukDateIdNow())
 
@@ -1197,16 +1249,32 @@ async function handleGameAchievements(request) {
       updatedAt: FieldValue.serverTimestamp()
     }, { merge: true })
 
+    let legacySnapOffset = 1 + crownRefs.length
     crownSpecs.forEach((spec, index) => {
-      const stored = snaps[index + 1].exists ? snaps[index + 1].data() : null
-      // Previous monthId → vacant. No monthId (legacy) or this month → must beat.
-      const holds = crownHoldsBoard(stored, monthId)
+      const primarySnap = snaps[index + 1]
+      let stored = primarySnap.exists ? primarySnap.data() : null
+      let holds = crownHoldsBoard(stored, monthId)
+      let holdingLegacy = false
+      const legacyRef = legacyCrownRefs[index]
+      if (!holds && legacyRef) {
+        const legacySnap = snaps[legacySnapOffset]
+        legacySnapOffset += 1
+        const legacyStored = legacySnap.exists ? legacySnap.data() : null
+        if (crownHoldsBoard(legacyStored, monthId)) {
+          stored = legacyStored
+          holds = true
+          holdingLegacy = true
+        }
+      } else if (legacyRef) {
+        legacySnapOffset += 1
+      }
       const current = holds ? stored : null
       if (!spec.better(current, candidate)) {
         // Stamp monthId onto legacy holders so the client filter stays aligned
         // and the board can reset cleanly on the 1st.
         if (holds && stored && stored.monthId !== monthId) {
-          transaction.set(crownRefs[index], {
+          const stampRef = holdingLegacy ? legacyRef : crownRefs[index]
+          transaction.set(stampRef, {
             scope: 'monthly',
             monthId
           }, { merge: true })
@@ -1231,6 +1299,7 @@ async function handleGameAchievements(request) {
         ...spec.extra,
         updatedAt: FieldValue.serverTimestamp()
       }, { merge: true })
+      if (legacyRef) transaction.delete(legacyRef)
     })
   })
 

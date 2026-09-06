@@ -6,7 +6,7 @@ export type PlayGameSlug =
   | 'one-percent'
   | 'connections'
   | 'bracket-city'
-  | 'bhakti-marg'
+  | 'surya-chandra'
   | 'ras-rani'
 
 export interface PlayCompletionEntry {
@@ -29,6 +29,12 @@ export function markPlayDoneLocally(slug: PlayGameSlug, meta: PlayCompletionEntr
   } catch {}
 }
 
+function parseDoneRaw(raw: string | null): PlayCompletionEntry | null {
+  if (!raw) return null
+  // Older builds stored a bare "1".
+  return raw === '1' ? {} : (JSON.parse(raw) as PlayCompletionEntry)
+}
+
 export function readLocalPlayCompletion(
   slug: PlayGameSlug,
   dateId = ukDateId()
@@ -36,9 +42,12 @@ export function readLocalPlayCompletion(
   if (import.meta.server || typeof localStorage === 'undefined') return null
   try {
     const raw = localStorage.getItem(doneKey(slug, dateId))
-    if (raw) {
-      // Older builds stored a bare "1".
-      return raw === '1' ? {} : (JSON.parse(raw) as PlayCompletionEntry)
+    if (raw) return parseDoneRaw(raw)
+
+    // Pre-rename Surya Chandra completions used the retired bhakti-marg slug.
+    if (slug === 'surya-chandra') {
+      const legacyDone = parseDoneRaw(localStorage.getItem(`play-done:bhakti-marg:${dateId}`))
+      if (legacyDone) return legacyDone
     }
 
     if (slug === 'wordle') {
@@ -69,8 +78,9 @@ export function readLocalPlayCompletion(
       return data.finished ? { score: Number(data.peekedIds?.length) || 0 } : null
     }
 
-    if (slug === 'bhakti-marg') {
-      const state = localStorage.getItem(`bhakti-marg:${dateId}`)
+    if (slug === 'surya-chandra') {
+      const state = localStorage.getItem(`surya-chandra:${dateId}`)
+        || localStorage.getItem(`bhakti-marg:${dateId}`)
       if (!state) return null
       const data = JSON.parse(state)
       return data.finished ? { score: Number(data.moves) || 0 } : null

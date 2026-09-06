@@ -55,13 +55,13 @@ const games: Array<{ slug: PlayGameSlug; title: string; href: string }> = [
   { slug: 'one-percent', title: '1% Club', href: '/play/one-percent' },
   { slug: 'connections', title: 'Connections', href: '/play/connections' },
   { slug: 'bracket-city', title: 'Bracket City', href: '/play/bracket-city' },
-  { slug: 'bhakti-marg', title: 'Surya Chandra', href: '/play/surya-chandra' },
+  { slug: 'surya-chandra', title: 'Surya Chandra', href: '/play/surya-chandra' },
   { slug: 'ras-rani', title: 'Ras Rani', href: '/play/ras-rani' }
 ]
 
 function legacyScoreIds(slug: PlayGameSlug, dateId: string, uid: string): string[] {
-  if (slug !== 'bhakti-marg') return []
-  return [`surya-chandra_${dateId}_${uid}`, `surya-chandra_${uid}`]
+  if (slug !== 'surya-chandra') return []
+  return [`bhakti-marg_${dateId}_${uid}`, `bhakti-marg_${uid}`]
 }
 
 const auth = useAuth()
