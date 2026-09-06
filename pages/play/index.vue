@@ -45,7 +45,7 @@
         to start a daily Games streak.
       </p>
 
-      <ul class="mt-10 divide-y divide-[hsl(var(--golden-200))] overflow-hidden rounded-2xl border border-[hsl(var(--golden-200))] bg-[hsl(var(--card))] shadow-[0_18px_40px_-32px_rgba(59,32,97,0.55)]">
+      <ul class="mt-10 divide-y divide-[hsl(var(--golden-200))] overflow-hidden rounded-2xl border border-[hsl(var(--golden-200))] bg-[hsl(var(--card))] shadow-[0_18px_40px_-32px_rgba(61,0,102,0.55)]">
         <li v-for="game in games" :key="game.slug">
           <NuxtLink
             :to="game.href"

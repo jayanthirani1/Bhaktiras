@@ -1,7 +1,7 @@
 <template>
   <Teleport to="body">
     <div
-      class="fixed inset-x-3 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-[70] mx-auto max-w-md rounded-2xl border border-[hsl(var(--golden-200))] bg-white p-4 shadow-[0_22px_60px_-20px_rgba(56,32,97,0.45)] md:bottom-6"
+      class="fixed inset-x-3 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-[70] mx-auto max-w-md rounded-2xl border border-[hsl(var(--golden-200))] bg-white p-4 shadow-[0_22px_60px_-20px_rgba(61,0,102,0.45)] md:bottom-6"
       role="dialog"
       :aria-labelledby="`${id}-title`"
       :aria-describedby="`${id}-description`"

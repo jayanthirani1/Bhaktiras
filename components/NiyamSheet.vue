@@ -23,7 +23,7 @@
           @pointerdown="onHandleDown"
           @click="onHandleClick"
         >
-          <span class="h-1.5 w-12 rounded-full bg-[#D9AE30]" aria-hidden="true" />
+          <span class="h-1.5 w-12 rounded-full bg-[#FDC500]" aria-hidden="true" />
         </button>
 
         <div class="relative shrink-0 border-b border-[hsl(var(--border))] bg-[hsl(var(--golden-50))] px-5 pb-4 pt-2 sm:pt-5">
@@ -34,7 +34,7 @@
             </div>
             <button
               type="button"
-              class="-mr-1 -mt-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[#D9AE30] hover:bg-white"
+              class="-mr-1 -mt-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[#FDC500] hover:bg-white"
               aria-label="Close"
               @pointerdown.stop
               @click.stop="safeClose"

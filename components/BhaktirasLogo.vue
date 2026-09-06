@@ -69,7 +69,7 @@ function prepareSvg(raw: string, prefix: string) {
         '</svg>',
         `<g id="logo-droplet-layer">
           ${tilak}
-          <g id="logo-splash" fill="#d9ae30" aria-hidden="true">
+          <g id="logo-splash" fill="#FDC500" aria-hidden="true">
             <ellipse class="logo-splash-drop" cx="224.3" cy="317.1" rx="2.1" ry="3.3"/>
             <ellipse class="logo-splash-drop" cx="224.3" cy="317.1" rx="1.7" ry="2.7"/>
             <ellipse class="logo-splash-drop" cx="224.3" cy="317.1" rx="1.3" ry="2.1"/>
@@ -92,7 +92,7 @@ function prepareSvg(raw: string, prefix: string) {
         '</svg>',
         `<g id="logo-text-droplet-layer">
           ${tilak}
-          <g id="logo-text-splash" fill="#d9ae30" aria-hidden="true">
+          <g id="logo-text-splash" fill="#FDC500" aria-hidden="true">
             <ellipse class="logo-splash-drop" cx="268.4" cy="35.2" rx="2.2" ry="3.4"/>
             <ellipse class="logo-splash-drop" cx="268.4" cy="35.2" rx="1.9" ry="2.9"/>
             <ellipse class="logo-splash-drop" cx="268.4" cy="35.2" rx="1.6" ry="2.4"/>

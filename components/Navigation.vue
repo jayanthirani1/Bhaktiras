@@ -33,7 +33,7 @@
           :target="item.external ? '_blank' : undefined"
           :rel="item.external ? 'noopener noreferrer' : undefined"
           class="flex min-w-0 flex-1 flex-col items-center justify-center space-y-0.5 rounded-xl p-2 transition-colors"
-          :class="isActive(item.href) ? 'text-[#D9AE30]' : 'text-[hsl(var(--muted-foreground))] hover:text-[#D9AE30] active:text-[#D9AE30]'"
+          :class="isActive(item.href) ? 'text-[#FDC500]' : 'text-[hsl(var(--muted-foreground))] hover:text-[#FDC500] active:text-[#FDC500]'"
           @click="closeDrawer"
         >
           <component :is="item.icon" class="h-5 w-5 shrink-0" />
@@ -42,7 +42,7 @@
         <button
           type="button"
           class="flex min-w-0 flex-1 flex-col items-center justify-center space-y-0.5 rounded-xl p-2 transition-colors"
-          :class="drawerOpen || drawerHoldsRoute ? 'text-[#D9AE30]' : 'text-[hsl(var(--muted-foreground))] hover:text-[#D9AE30] active:text-[#D9AE30]'"
+          :class="drawerOpen || drawerHoldsRoute ? 'text-[#FDC500]' : 'text-[hsl(var(--muted-foreground))] hover:text-[#FDC500] active:text-[#FDC500]'"
           aria-label="Open more navigation"
           :aria-expanded="drawerOpen"
           @click="drawerOpen = !drawerOpen"
@@ -72,13 +72,13 @@
           aria-label="Close menu"
           @click="onDrawerHandleClick"
         >
-          <span class="h-1.5 w-12 rounded-full bg-[#D9AE30]" />
+          <span class="h-1.5 w-12 rounded-full bg-[#FDC500]" />
         </button>
         <div class="mb-4 flex items-center justify-between">
           <h2 class="font-display text-lg font-semibold text-[hsl(var(--primary))]">More</h2>
           <button
             type="button"
-            class="rounded-full p-2 text-[#D9AE30] transition-colors hover:bg-[hsl(var(--golden-50))]"
+            class="rounded-full p-2 text-[#FDC500] transition-colors hover:bg-[hsl(var(--golden-50))]"
             aria-label="Close menu"
             @pointerdown.stop
             @click.stop="closeDrawer"
@@ -93,8 +93,8 @@
             :to="item.href"
             :target="item.external ? '_blank' : undefined"
             :rel="item.external ? 'noopener noreferrer' : undefined"
-            class="flex items-center gap-3 rounded-2xl border border-[hsl(var(--golden-200))] bg-white px-4 py-3 text-[hsl(var(--primary))] transition-colors hover:border-[#D9AE30] hover:bg-[hsl(var(--golden-50))]"
-            :class="isActive(item.href) ? 'border-[#D9AE30] bg-[hsl(var(--golden-50))]' : ''"
+            class="flex items-center gap-3 rounded-2xl border border-[hsl(var(--golden-200))] bg-white px-4 py-3 text-[hsl(var(--primary))] transition-colors hover:border-[#FDC500] hover:bg-[hsl(var(--golden-50))]"
+            :class="isActive(item.href) ? 'border-[#FDC500] bg-[hsl(var(--golden-50))]' : ''"
             @click="closeDrawer"
           >
             <component :is="item.icon" class="h-5 w-5 shrink-0 text-[hsl(var(--primary))]" />
@@ -102,8 +102,8 @@
           </NuxtLink>
           <NuxtLink
             :to="accountItem.href"
-            class="flex items-center gap-3 rounded-2xl border border-[hsl(var(--golden-200))] bg-white px-4 py-3 text-[hsl(var(--primary))] transition-colors hover:border-[#D9AE30] hover:bg-[hsl(var(--golden-50))]"
-            :class="isActive(accountItem.href) ? 'border-[#D9AE30] bg-[hsl(var(--golden-50))]' : ''"
+            class="flex items-center gap-3 rounded-2xl border border-[hsl(var(--golden-200))] bg-white px-4 py-3 text-[hsl(var(--primary))] transition-colors hover:border-[#FDC500] hover:bg-[hsl(var(--golden-50))]"
+            :class="isActive(accountItem.href) ? 'border-[#FDC500] bg-[hsl(var(--golden-50))]' : ''"
             @click="closeDrawer"
           >
             <component :is="accountItem.icon" class="h-5 w-5 shrink-0 text-[hsl(var(--primary))]" />

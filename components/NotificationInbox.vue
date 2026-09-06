@@ -2,8 +2,8 @@
   <div v-if="isLoggedIn" ref="root" class="relative">
     <button
       type="button"
-      class="relative grid h-11 w-11 place-items-center rounded-full text-[hsl(var(--muted-foreground))] transition-colors hover:bg-[hsl(var(--muted))] hover:text-[#D9AE30]"
-      :class="open ? 'bg-[hsl(var(--muted))] text-[#D9AE30]' : ''"
+      class="relative grid h-11 w-11 place-items-center rounded-full text-[hsl(var(--muted-foreground))] transition-colors hover:bg-[hsl(var(--muted))] hover:text-[#FDC500]"
+      :class="open ? 'bg-[hsl(var(--muted))] text-[#FDC500]' : ''"
       :aria-label="unreadCount ? `Notifications, ${unreadCount} unread` : 'Notifications'"
       :aria-expanded="open"
       aria-haspopup="dialog"
@@ -45,7 +45,7 @@
             @pointerdown="onSheetHandleDown"
             @click="onSheetHandleClick"
           >
-            <span class="h-1.5 w-12 rounded-full bg-[#D9AE30]" />
+            <span class="h-1.5 w-12 rounded-full bg-[#FDC500]" />
           </button>
 
           <div class="flex shrink-0 items-center justify-between gap-3 border-b border-[hsl(var(--border))] px-4 py-3">

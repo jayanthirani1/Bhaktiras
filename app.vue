@@ -28,7 +28,7 @@ useHead({
     { rel: 'canonical', href: canonical }
   ],
   meta: [
-    { name: 'theme-color', content: '#3b2061' }
+    { name: 'theme-color', content: '#3D0066' }
   ]
 })
 

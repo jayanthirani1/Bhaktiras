@@ -2,31 +2,31 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Bhaktiras 10-year theme — light Awwwards: purple #382061 + gold #D9AE30 on white */
+/* Bhaktiras theme — purple #3D0066 + gold #FDC500 on white */
 :root {
-  --purple: 262 50% 25%;
-  --gold: 45 69% 52%;
-  --golden: 45 69% 52%;
-  --temple-red: 262 50% 25%;
-  --golden-50: 45 60% 97%;
-  --golden-100: 45 55% 92%;
-  --golden-200: 45 40% 82%;
-  --golden-300: 45 50% 68%;
-  --golden-600: 45 69% 42%;
-  --golden-500: 45 69% 52%;
-  --golden-900: 45 70% 28%;
+  --purple: 276 100% 20%;
+  --gold: 47 100% 50%;
+  --golden: 47 100% 50%;
+  --temple-red: 276 100% 20%;
+  --golden-50: 47 100% 97%;
+  --golden-100: 47 100% 92%;
+  --golden-200: 47 90% 80%;
+  --golden-300: 47 95% 68%;
+  --golden-600: 47 100% 42%;
+  --golden-500: 47 100% 50%;
+  --golden-900: 47 100% 28%;
   --background: 40 33% 99%;
-  --foreground: 262 40% 16%;
+  --foreground: 276 40% 16%;
   --card: 0 0% 100%;
-  --card-foreground: 262 40% 16%;
-  --primary: 262 50% 25%;
-  --primary-foreground: 45 69% 52%;
-  --secondary: 45 50% 94%;
-  --secondary-foreground: 262 50% 25%;
+  --card-foreground: 276 40% 16%;
+  --primary: 276 100% 20%;
+  --primary-foreground: 47 100% 50%;
+  --secondary: 47 80% 94%;
+  --secondary-foreground: 276 100% 20%;
   --muted: 40 20% 96%;
-  --muted-foreground: 262 12% 42%;
-  --accent: 45 69% 42%;
-  --accent-foreground: 262 50% 16%;
+  --muted-foreground: 276 12% 42%;
+  --accent: 47 100% 42%;
+  --accent-foreground: 276 100% 16%;
   --border: 40 18% 90%;
   /**
    * Deliberately darker than --border. WCAG 1.4.11 wants 3:1 for the boundary
@@ -35,7 +35,7 @@
    * computes to about 3.2:1 while the decorative card border stays light.
    */
   --input: 40 12% 56%;
-  --ring: 262 50% 25%;
+  --ring: 276 100% 20%;
   --radius: 1rem;
   --font-sans: 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
   --font-display: 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
@@ -93,7 +93,7 @@
     font-variation-settings: 'wght' 700, 'opsz' 8;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: #D9AE30;
+    color: #FDC500;
   }
 }
 
@@ -107,11 +107,11 @@
     color: hsl(var(--gold));
   }
   .card-surface {
-    @apply rounded-2xl border border-[hsl(var(--golden-200))] bg-white shadow-[0_8px_30px_-18px_rgba(56,32,97,0.18)];
+    @apply rounded-2xl border border-[hsl(var(--golden-200))] bg-white shadow-[0_8px_30px_-18px_rgba(61,0,102,0.18)];
     transition: transform 0.5s var(--ease-out-expo), box-shadow 0.5s var(--ease-out-expo), border-color 0.4s ease;
   }
   .card-surface:hover {
-    @apply -translate-y-1 border-[hsl(var(--golden-500))] shadow-[0_20px_50px_-24px_rgba(217,174,48,0.35)];
+    @apply -translate-y-1 border-[hsl(var(--golden-500))] shadow-[0_20px_50px_-24px_rgba(253,197,0,0.35)];
   }
   .admin-input {
     @apply w-full rounded-lg border border-input bg-white px-3 py-2 text-base focus:border-primary;
@@ -636,10 +636,10 @@
 
 @keyframes nectar-glow {
   0%, 100% {
-    box-shadow: 0 0 0 0 rgba(217, 174, 48, 0);
+    box-shadow: 0 0 0 0 rgba(253, 197, 0, 0);
   }
   50% {
-    box-shadow: 0 0 12px 4px rgba(217, 174, 48, 0.4);
+    box-shadow: 0 0 12px 4px rgba(253, 197, 0, 0.4);
   }
 }
 
@@ -655,7 +655,7 @@
   position: absolute;
   width: 6px;
   height: 8px;
-  background: #d9ae30;
+  background: #FDC500;
   border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
   pointer-events: none;
   animation: nectar-splash 0.55s cubic-bezier(0.2, 0.65, 0.3, 1) forwards;
