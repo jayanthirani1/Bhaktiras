@@ -7,8 +7,8 @@ export const GAME_LEADERBOARD_RULES: Record<GameLeaderboardId, string> = {
   connections: 'Ranked by fewest mistakes. Faster time breaks ties.',
   'bracket-city': 'Ranked by fewest peeks. Faster time breaks ties.',
   'one-percent': 'Ranked by most questions cleared. Faster time breaks ties.',
-  'surya-chandra': 'Ranked by fastest time. Fewer moves breaks ties.',
-  'bhakti-marg': 'Ranked by fastest time. Fewer moves breaks ties.',
+  'surya-chandra': 'Ranked by fastest time.',
+  'bhakti-marg': 'Ranked by fastest time.',
   'ras-rani': 'Ranked by fastest time. Fewer moves breaks ties.'
 }
 

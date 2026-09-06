@@ -349,7 +349,6 @@ const CROWN_LABELS = {
   'one-percent-highest': 'highest 1% Club score',
   'one-percent-fastest': 'fastest 1% Club clear',
   'bhakti-marg-fastest': 'fastest Surya Chandra',
-  'bhakti-marg-fewest-moves': 'fewest-move Surya Chandra',
   'ras-rani-fastest': 'fastest Ras Rani',
   'ras-rani-fewest-moves': 'fewest-move Ras Rani',
   'streak-longest': 'longest play streak'
@@ -1116,16 +1115,16 @@ async function handleGameAchievements(request) {
       })
     }
   } else if (game === 'bhakti-marg') {
-    const moves = intInRange(request.data?.moves, 1, 1000)
+    const moves = intInRange(request.data?.moves ?? 0, 0, 1000)
     const timeMs = intInRange(request.data?.timeMs, MIN_TIMED_PLAY_MS, 86_400_000)
     const hintsUsed = intInRange(request.data?.hintsUsed ?? 0, 0, 100)
     if (moves == null) throw new HttpsError('invalid-argument', 'Invalid Surya Chandra move count.')
     if (timeMs == null) throw new HttpsError('invalid-argument', 'Invalid Surya Chandra time.')
     if (hintsUsed == null) throw new HttpsError('invalid-argument', 'Invalid Surya Chandra hints.')
     Object.assign(candidate, { moves, timeMs, hintsUsed })
+    // Time-only crown — fewest-moves was retired because the board is ranked by clock.
     crownSpecs.push(
-      { id: 'bhakti-marg-fastest', metric: 'fastest-time', value: timeMs, better: isBetterFastestTime, extra: { moves, timeMs } },
-      { id: 'bhakti-marg-fewest-moves', metric: 'fewest-moves', value: moves, better: isBetterFewestMoves, extra: { moves, timeMs } }
+      { id: 'bhakti-marg-fastest', metric: 'fastest-time', value: timeMs, better: isBetterFastestTime, extra: { timeMs, hintsUsed } }
     )
   } else if (game === 'ras-rani') {
     const moves = intInRange(request.data?.moves, 1, 1000)

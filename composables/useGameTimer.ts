@@ -9,6 +9,25 @@ export function formatElapsed(ms: number): string {
   return `${m}:${String(s).padStart(2, '0')}`
 }
 
+/**
+ * Whole-second clock, with `.mmm` when another peer shares that second so the
+ * leaderboard can show who was actually faster.
+ */
+export function formatElapsedForLeaderboard(ms: number, peerTimesMs: Iterable<number>): string {
+  const base = formatElapsed(ms)
+  const second = Math.floor(Math.max(0, ms) / 1000)
+  let tied = false
+  for (const peer of peerTimesMs) {
+    if (peer === ms) continue
+    if (Math.floor(Math.max(0, peer) / 1000) === second) {
+      tied = true
+      break
+    }
+  }
+  if (!tied) return base
+  return `${base}.${String(Math.floor(Math.max(0, ms) % 1000)).padStart(3, '0')}`
+}
+
 type StoredTimer = {
   startedAt?: number | null
   finishedAt?: number | null

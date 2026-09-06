@@ -89,7 +89,6 @@
 
         <p class="text-center text-sm text-[hsl(var(--muted-foreground))]">
           Tap a cell to cycle sun, moon, empty.
-          <span v-if="moves"> · {{ moves }} move{{ moves === 1 ? '' : 's' }}</span>
         </p>
 
         <div v-if="!finished" class="flex justify-center">
@@ -133,7 +132,7 @@
           <p v-if="submitError" class="text-sm text-red-600">{{ submitError }}</p>
         </div>
 
-        <GameCrowns :ids="['bhakti-marg-fastest', 'bhakti-marg-fewest-moves']" />
+        <GameCrowns :ids="['bhakti-marg-fastest']" />
 
         <GameHowTo>
           <ol class="list-decimal space-y-2 pl-5">
@@ -160,7 +159,7 @@
 <script setup lang="ts">
 import { IconMoon, IconSun } from '@tabler/icons-vue'
 import { ukDateId } from '~/utils/gameDay'
-import { formatElapsed } from '~/composables/useGameTimer'
+import { formatElapsed, formatElapsedForLeaderboard } from '~/composables/useGameTimer'
 import {
   boardIsSolved,
   cellViolations,
@@ -196,13 +195,16 @@ const finished = computed(() => boardIsSolved(board.value, puzzle.value.links))
 
 const resultSummary = computed(() => [
   timer.display.value,
-  `${moves.value} move${moves.value === 1 ? '' : 's'}`,
-  `${hintsUsed.value} hint${hintsUsed.value === 1 ? '' : 's'}`
+  hintsUsed.value === 0 ? 'no hints' : `${hintsUsed.value} hint${hintsUsed.value === 1 ? '' : 's'}`
 ].join(' · '))
 
 const elsewhereSummary = computed(() => {
   const result = elsewhereResult.value
-  return [result?.detail, result?.timeMs != null ? formatElapsed(result.timeMs) : ''].filter(Boolean).join(' · ')
+  const parts = [
+    result?.timeMs != null ? formatElapsed(result.timeMs) : '',
+    result?.detail && !/\d+\s*moves?/i.test(result.detail) ? result.detail : ''
+  ]
+  return parts.filter(Boolean).join(' · ')
 })
 
 function isGiven(row: number, col: number) {
@@ -303,16 +305,23 @@ function finishGame() {
   timer.stop()
   saveState()
   void markDone({
-    score: moves.value,
     timeMs: timer.elapsedMs.value,
-    detail: `${moves.value} moves · ${hintsUsed.value} hints`
+    detail: hintsUsed.value === 0 ? 'no hints' : `${hintsUsed.value} hints`
   })
 }
 
 function shareResult() {
   const grid = board.value.map(row => row.map(cell => cell === 1 ? '☀️' : '🌙').join('')).join('\n')
   const shareUrl = typeof window !== 'undefined' ? `${window.location.origin}/play/surya-chandra` : ''
-  const text = [`Bhaktiras Surya Chandra`, timer.display.value, `${moves.value} moves · ${hintsUsed.value} hints`, '', grid, '', shareUrl].join('\n').trimEnd()
+  const text = [
+    `Bhaktiras Surya Chandra`,
+    timer.display.value,
+    hintsUsed.value === 0 ? 'no hints' : `${hintsUsed.value} hints`,
+    '',
+    grid,
+    '',
+    shareUrl
+  ].join('\n').trimEnd()
   if (navigator.clipboard?.writeText) {
     navigator.clipboard.writeText(text).then(() => {
       shareCopied.value = true
@@ -323,8 +332,14 @@ function shareResult() {
 
 function formatBoardScore(entry: { score?: number, timeMs?: number, detail?: string }) {
   const ms = entry.timeMs ?? (entry.score != null && entry.score >= 1000 ? entry.score : null)
-  const time = ms != null ? formatElapsed(ms) : `${entry.score ?? 0} moves`
-  return entry.detail ? `${time} · ${entry.detail}` : time
+  if (ms == null) return entry.detail || '—'
+  const peers = entries.value
+    .map(e => e.timeMs ?? (e.score != null && e.score >= 1000 ? e.score : null))
+    .filter((value): value is number => value != null)
+  const time = formatElapsedForLeaderboard(ms, peers)
+  // Strip legacy "N moves · …" detail so the board stays time-first.
+  const detail = entry.detail && !/\d+\s*moves?/i.test(entry.detail) ? entry.detail : ''
+  return detail ? `${time} · ${detail}` : time
 }
 
 async function submitToLeaderboard() {
@@ -336,7 +351,7 @@ async function submitToLeaderboard() {
     await submitScore({
       score: timer.elapsedMs.value,
       timeMs: timer.elapsedMs.value,
-      detail: `${moves.value} moves · ${hintsUsed.value} hints`,
+      detail: hintsUsed.value === 0 ? 'no hints' : `${hintsUsed.value} hints`,
       userId: auth.user.value.uid,
       userName,
       userEmail: auth.user.value.email || undefined

@@ -225,7 +225,10 @@
           :date-id="dateId"
           :current-user-id="auth.user.value?.uid"
           game="mini-crossword"
-          :format-score="(e) => formatElapsed(e.timeMs ?? (e.score || 0) * 1000)"
+          :format-score="(e) => formatElapsedForLeaderboard(
+            e.timeMs ?? (e.score || 0) * 1000,
+            entries.map(row => row.timeMs ?? (row.score || 0) * 1000)
+          )"
         />
       </div>
     </div>
@@ -292,7 +295,7 @@
 import { IconEye, IconHelp } from '@tabler/icons-vue'
 import { cellKey, layoutAnyCrossword, type LaidWord } from '~/utils/crosswordLayout'
 import { ukDateId } from '~/utils/gameDay'
-import { formatElapsed } from '~/composables/useGameTimer'
+import { formatElapsed, formatElapsedForLeaderboard } from '~/composables/useGameTimer'
 import { isPlayDoneLocally, readLocalPlayCompletion } from '~/utils/playCompletion'
 
 const STATE_KEY = `mini-crossword:${ukDateId()}`

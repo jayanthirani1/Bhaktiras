@@ -140,7 +140,6 @@ export const CROWN_DEFINITIONS = [
   { id: 'one-percent-highest', title: '1% Club High Score', description: 'Most rungs cleared in 1% Club this month.', game: 'one-percent' },
   { id: 'one-percent-fastest', title: 'Fastest 1% Club', description: 'Fastest full 1% Club clear this month.', game: 'one-percent' },
   { id: 'bhakti-marg-fastest', title: 'Fastest Surya Chandra', description: 'Fastest Surya Chandra completion this month.', game: 'bhakti-marg' },
-  { id: 'bhakti-marg-fewest-moves', title: 'Fewest Moves Surya Chandra', description: 'Fewest-move Surya Chandra completion this month.', game: 'bhakti-marg' },
   { id: 'ras-rani-fastest', title: 'Fastest Ras Rani', description: 'Fastest Ras Rani completion this month.', game: 'ras-rani' },
   { id: 'ras-rani-fewest-moves', title: 'Fewest Moves Ras Rani', description: 'Fewest moves Ras Rani completion this month.', game: 'ras-rani' },
   { id: 'streak-longest', title: 'Longest Streak', description: 'Longest active games streak this month.', game: 'streak' }
@@ -246,7 +245,7 @@ export function crownValue(crown: AchievementCrownRecord) {
   if (crown.id === 'bhakti-marg-fastest' || crown.id === 'ras-rani-fastest') {
     return formatElapsed(crown.timeMs || crown.value)
   }
-  if (crown.id === 'bhakti-marg-fewest-moves' || crown.id === 'ras-rani-fewest-moves') {
+  if (crown.id === 'ras-rani-fewest-moves') {
     const moves = (crown as { moves?: number }).moves || crown.value
     return `${moves} move${moves === 1 ? '' : 's'}${crown.timeMs ? ` · ${formatElapsed(crown.timeMs)}` : ''}`
   }

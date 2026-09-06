@@ -8,6 +8,7 @@ import {
   type Firestore
 } from 'firebase/firestore'
 import { getApp } from 'firebase/app'
+import type { Messaging } from 'firebase/messaging'
 import { isIos, isStandalone } from '~/utils/pwa'
 import { consumeInteractiveSignIn } from '~/utils/signInSignal'
 import { notificationPreviewBody } from '~/utils/notificationDetail'
@@ -19,6 +20,9 @@ const ALL_TOPICS: PushTopic[] = ['announcements', 'games', 'niyams', 'niyam-mile
 const SUBSCRIPTION_ID_KEY = 'bhaktiras-push-subscription-id'
 const TOPICS_KEY = 'bhaktiras-push-topics'
 let foregroundUnsubscribe: (() => void) | null = null
+
+/** One shared SW + messaging setup so toggles do not re-register from scratch. */
+let messagingSetup: Promise<{ messaging: Messaging; registration: ServiceWorkerRegistration }> | null = null
 
 function getDb(): Firestore | null {
   if (import.meta.server) return null
@@ -46,15 +50,72 @@ function normalizeTopics(raw: unknown): PushTopic[] {
   return ALL_TOPICS.filter(topic => next.has(topic))
 }
 
+function friendlyPushError(value: unknown): string {
+  const message = value instanceof Error ? value.message : String(value || '')
+  const code = typeof value === 'object' && value && 'code' in value
+    ? String((value as { code?: string }).code || '')
+    : ''
+  if (
+    code.includes('token-subscribe-failed')
+    || /token-subscribe-failed|subscribing the user to FCM/i.test(message)
+  ) {
+    return 'Could not finish setting up notifications on this device. Close other Bhaktiras tabs, wait a moment, and try again. If it still fails, clear site data for this site in Chrome and reopen the app.'
+  }
+  if (code.includes('permission-blocked') || /permission/i.test(message) && /denied|blocked/i.test(message)) {
+    return 'Notifications were blocked. Allow them for Bhaktiras in your browser or phone settings, then try again.'
+  }
+  return message || 'Could not enable notifications.'
+}
+
+/**
+ * Android Chrome often fails FCM subscribe while the messaging service worker
+ * is still installing. Wait until it is active before asking for a token.
+ */
+async function waitForActiveWorker(registration: ServiceWorkerRegistration) {
+  if (registration.active) return
+  const worker = registration.installing || registration.waiting
+  if (!worker) {
+    await navigator.serviceWorker.ready
+    return
+  }
+  if (worker.state === 'activated') return
+  await new Promise<void>((resolve) => {
+    const done = () => resolve()
+    const timer = setTimeout(done, 10_000)
+    worker.addEventListener('statechange', () => {
+      if (worker.state === 'activated' || registration.active) {
+        clearTimeout(timer)
+        done()
+      }
+    })
+  })
+}
+
+async function ensureMessaging() {
+  if (!messagingSetup) {
+    messagingSetup = (async () => {
+      const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js')
+      await navigator.serviceWorker.ready
+      await waitForActiveWorker(registration)
+      const { getMessaging } = await import('firebase/messaging')
+      return { messaging: getMessaging(getApp()), registration }
+    })().catch((error) => {
+      messagingSetup = null
+      throw error
+    })
+  }
+  return messagingSetup
+}
+
 /**
  * Reads the device's current FCM token. Only called once permission is granted,
  * so this never triggers a browser prompt.
  */
 async function currentToken(vapidKey: string) {
   try {
-    const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js')
-    const { getMessaging, getToken } = await import('firebase/messaging')
-    return await getToken(getMessaging(getApp()), {
+    const { messaging, registration } = await ensureMessaging()
+    const { getToken } = await import('firebase/messaging')
+    return await getToken(messaging, {
       serviceWorkerRegistration: registration,
       ...(vapidKey ? { vapidKey } : {})
     })
@@ -157,6 +218,8 @@ export function usePushNotifications() {
       const { isSupported } = await import('firebase/messaging')
       if (stale()) return
       supported.value = 'serviceWorker' in navigator && await isSupported()
+      // Warm the SW + messaging client so the first toggle is not cold.
+      if (supported.value) void ensureMessaging().catch(() => {})
     } catch {
       supported.value = false
     }
@@ -193,6 +256,17 @@ export function usePushNotifications() {
     if (supported.value == null) await initialise()
     if (!supported.value) throw new Error('Push notifications are not supported on this device.')
 
+    const previousEnabled = enabled.value
+    const previousTopics = [...topics.value]
+    const optimisticTopics = normalizeTopics([
+      ...previousTopics,
+      ...(topic ? [topic] : ALL_TOPICS)
+    ])
+
+    // Flip the switch immediately — the FCM handshake can take a few seconds on
+    // Android, and leaving the toggle stuck mid-press feels broken.
+    enabled.value = true
+    topics.value = optimisticTopics.length ? optimisticTopics : ALL_TOPICS
     busy.value = true
     error.value = ''
     try {
@@ -201,14 +275,31 @@ export function usePushNotifications() {
         throw new Error('Notifications were not allowed. You can change this in your browser settings.')
       }
 
-      const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js')
-      const { getMessaging, getToken } = await import('firebase/messaging')
-      const messaging = getMessaging(getApp())
       const vapidKey = String(config.firebaseVapidKey || '')
-      const token = await getToken(messaging, {
-        serviceWorkerRegistration: registration,
-        ...(vapidKey ? { vapidKey } : {})
-      })
+      const { messaging, registration } = await ensureMessaging()
+      const { getToken } = await import('firebase/messaging')
+
+      let token: string | null = null
+      try {
+        token = await getToken(messaging, {
+          serviceWorkerRegistration: registration,
+          ...(vapidKey ? { vapidKey } : {})
+        })
+      } catch (first) {
+        // One retry after forcing the SW ready again — Android intermittent
+        // token-subscribe-failed often clears on a second attempt.
+        messagingSetup = null
+        const retry = await ensureMessaging()
+        const { getToken: getTokenAgain } = await import('firebase/messaging')
+        try {
+          token = await getTokenAgain(retry.messaging, {
+            serviceWorkerRegistration: retry.registration,
+            ...(vapidKey ? { vapidKey } : {})
+          })
+        } catch (second) {
+          throw second || first
+        }
+      }
       if (!token) throw new Error('This device could not be registered for notifications.')
 
       const uid = auth.user.value.uid
@@ -239,8 +330,10 @@ export function usePushNotifications() {
       enabled.value = true
       return true
     } catch (value) {
-      error.value = value instanceof Error ? value.message : 'Could not enable notifications.'
-      throw value
+      enabled.value = previousEnabled
+      topics.value = previousTopics
+      error.value = friendlyPushError(value)
+      throw value instanceof Error ? value : new Error(error.value)
     } finally {
       busy.value = false
     }
@@ -248,6 +341,10 @@ export function usePushNotifications() {
 
   async function disable() {
     if (import.meta.server) return
+    const previousEnabled = enabled.value
+    const previousTopics = [...topics.value]
+    enabled.value = false
+    topics.value = []
     busy.value = true
     error.value = ''
     try {
@@ -268,9 +365,9 @@ export function usePushNotifications() {
       }
       localStorage.removeItem(SUBSCRIPTION_ID_KEY)
       localStorage.removeItem(TOPICS_KEY)
-      topics.value = []
-      enabled.value = false
     } catch (value) {
+      enabled.value = previousEnabled
+      topics.value = previousTopics
       error.value = value instanceof Error ? value.message : 'Could not disable notifications.'
       throw value
     } finally {
