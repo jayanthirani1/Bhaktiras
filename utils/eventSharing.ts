@@ -136,8 +136,16 @@ function foldIcsLine(line: string): string {
   return out.map((part, index) => (index ? ` ${part}` : part)).join('\r\n')
 }
 
-function eventUrl(origin: string): string {
-  return `${String(origin || '').replace(/\/$/, '')}/events`
+/**
+ * Events with a Flickr album deep-link into the gallery overlay via
+ * `/events?album=<eventId>`. Everything else lands on the events list.
+ */
+export function eventUrl(event: Event, origin: string): string {
+  const base = `${String(origin || '').replace(/\/$/, '')}/events`
+  if (event.flickrAlbumId && event.id) {
+    return `${base}?album=${encodeURIComponent(event.id)}`
+  }
+  return base
 }
 
 /** Where the event is held. Every event on this page is at the mandir. */
@@ -152,7 +160,7 @@ const VENUE = `${MANDIR_LOCATION.name}, ${MANDIR_LOCATION.address}`
 export function buildEventIcs(event: Event, origin: string, now: Date = new Date()): string | null {
   if (!isCalendarDate(event.date)) return null
 
-  const url = eventUrl(origin)
+  const url = eventUrl(event, origin)
   const description = [event.description, url].filter(Boolean).join('\n\n')
 
   const lines = [
@@ -198,6 +206,8 @@ export function eventIcsFilename(event: Event): string {
  * mandir invitation reads better without them.
  */
 export function buildEventMessage(event: Event, origin: string): string {
+  const url = eventUrl(event, origin)
+  const linkLabel = event.flickrAlbumId ? 'Photo album' : 'Event details'
   return [
     event.title,
     formatEventDateLong(event.date),
@@ -205,7 +215,7 @@ export function buildEventMessage(event: Event, origin: string): string {
     '',
     event.description,
     '',
-    `Event details: ${eventUrl(origin)}`
+    `${linkLabel}: ${url}`
   ]
     .filter(part => part !== undefined && part !== null)
     .join('\n')

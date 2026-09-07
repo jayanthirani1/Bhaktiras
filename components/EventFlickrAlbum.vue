@@ -49,14 +49,26 @@
             </h2>
             <p class="text-xs text-[hsl(var(--muted-foreground))]">{{ album?.photo.length }} photos</p>
           </div>
-          <button
-            type="button"
-            class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[hsl(var(--muted))] text-[hsl(var(--foreground))]"
-            aria-label="Close photo gallery"
-            @click="closeGallery"
-          >
-            <IconX class="h-5 w-5" />
-          </button>
+          <div class="flex shrink-0 items-center gap-1">
+            <button
+              type="button"
+              class="inline-flex h-10 items-center gap-1.5 rounded-full bg-[hsl(var(--muted))] px-3 text-sm font-semibold text-[hsl(var(--foreground))]"
+              :aria-label="`Share ${eventTitle} album`"
+              @click="shareAlbum"
+            >
+              <IconCheck v-if="shareState === 'copied'" class="h-4 w-4" />
+              <IconShare2 v-else class="h-4 w-4" />
+              {{ shareState === 'copied' ? 'Copied' : 'Share' }}
+            </button>
+            <button
+              type="button"
+              class="grid h-10 w-10 place-items-center rounded-full bg-[hsl(var(--muted))] text-[hsl(var(--foreground))]"
+              aria-label="Close photo gallery"
+              @click="closeGallery"
+            >
+              <IconX class="h-5 w-5" />
+            </button>
+          </div>
         </header>
 
         <div class="min-h-0 flex-1 overflow-y-auto p-1 sm:p-3">
@@ -143,23 +155,32 @@
 <script setup lang="ts">
 import {
   IconArrowLeft,
+  IconCheck,
   IconChevronLeft,
   IconChevronRight,
   IconPhoto,
+  IconShare2,
   IconX
 } from '@tabler/icons-vue'
 
 const props = defineProps<{
   albumId: string
+  eventId: string
   eventTitle: string
 }>()
 
+const route = useRoute()
+const router = useRouter()
 const { fetchPhotoset, photoUrl } = useFlickr()
 const album = ref<Awaited<ReturnType<typeof fetchPhotoset>>>(null)
 const loading = ref(true)
 const galleryOpen = ref(false)
 const selectedIndex = ref<number | null>(null)
 const galleryTitleId = `event-gallery-${useId()}`
+const shareState = ref<'idle' | 'copied'>('idle')
+let copiedTimer: ReturnType<typeof setTimeout> | null = null
+/** Prevents closeGallery → clearQuery from fighting a fresh open from the same tick. */
+let syncingFromRoute = false
 
 const preview = computed(() => album.value?.photo.slice(0, 3) || [])
 const selectedPhoto = computed(() =>
@@ -170,9 +191,33 @@ const hasNext = computed(() =>
   selectedIndex.value != null && selectedIndex.value < (album.value?.photo.length || 0) - 1
 )
 
+const albumQueryMatches = computed(() => {
+  const raw = route.query.album
+  const albumParam = Array.isArray(raw) ? raw[0] : raw
+  return typeof albumParam === 'string' && albumParam === props.eventId
+})
+
+function albumPageUrl(): string {
+  const origin = typeof window === 'undefined' ? '' : window.location.origin
+  return `${origin}/events?album=${encodeURIComponent(props.eventId)}`
+}
+
+function setAlbumQuery() {
+  if (albumQueryMatches.value) return
+  void router.replace({ query: { ...route.query, album: props.eventId } })
+}
+
+function clearAlbumQuery() {
+  if (!albumQueryMatches.value) return
+  const query = { ...route.query }
+  delete query.album
+  void router.replace({ query })
+}
+
 function openGallery() {
   galleryOpen.value = true
   document.body.style.overflow = 'hidden'
+  if (!syncingFromRoute) setAlbumQuery()
 }
 
 function openPhoto(index: number) {
@@ -184,6 +229,14 @@ function closeGallery() {
   galleryOpen.value = false
   selectedIndex.value = null
   document.body.style.overflow = ''
+  if (!syncingFromRoute) clearAlbumQuery()
+}
+
+function openFromRoute() {
+  if (!album.value?.photo.length || galleryOpen.value) return
+  syncingFromRoute = true
+  openGallery()
+  syncingFromRoute = false
 }
 
 function previousPhoto() {
@@ -192,6 +245,40 @@ function previousPhoto() {
 
 function nextPhoto() {
   if (hasNext.value && selectedIndex.value != null) selectedIndex.value += 1
+}
+
+function wasDismissed(error: unknown): boolean {
+  return error instanceof DOMException && error.name === 'AbortError'
+}
+
+function markCopied() {
+  shareState.value = 'copied'
+  if (copiedTimer) clearTimeout(copiedTimer)
+  copiedTimer = setTimeout(() => { shareState.value = 'idle' }, 2000)
+}
+
+async function shareAlbum() {
+  const url = albumPageUrl()
+  const text = `${props.eventTitle}\n\nPhoto album: ${url}`
+
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: props.eventTitle, text })
+      return
+    } catch (error) {
+      if (wasDismissed(error)) return
+    }
+  }
+
+  const clipboard = navigator.clipboard
+  if (!clipboard?.writeText) return
+
+  try {
+    await clipboard.writeText(text)
+    markCopied()
+  } catch {
+    // Permission refused — leave the button idle.
+  }
 }
 
 function onKeydown(event: KeyboardEvent) {
@@ -204,14 +291,26 @@ function onKeydown(event: KeyboardEvent) {
   if (event.key === 'ArrowRight') nextPhoto()
 }
 
+watch(albumQueryMatches, (matches) => {
+  if (loading.value) return
+  if (matches) openFromRoute()
+  else if (galleryOpen.value) {
+    syncingFromRoute = true
+    closeGallery()
+    syncingFromRoute = false
+  }
+})
+
 onMounted(async () => {
   window.addEventListener('keydown', onKeydown)
   album.value = await fetchPhotoset(props.albumId)
   loading.value = false
+  if (albumQueryMatches.value) openFromRoute()
 })
 
 onUnmounted(() => {
   window.removeEventListener('keydown', onKeydown)
+  if (copiedTimer) clearTimeout(copiedTimer)
   if (galleryOpen.value) document.body.style.overflow = ''
 })
 </script>

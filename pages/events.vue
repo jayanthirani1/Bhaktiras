@@ -41,6 +41,7 @@
                 <EventFlickrAlbum
                   v-if="event.flickrAlbumId"
                   :album-id="event.flickrAlbumId"
+                  :event-id="event.id"
                   :event-title="event.title"
                 />
               </article>
@@ -79,6 +80,7 @@
                 <EventFlickrAlbum
                   v-if="event.flickrAlbumId"
                   :album-id="event.flickrAlbumId"
+                  :event-id="event.id"
                   :event-title="event.title"
                 />
               </article>
