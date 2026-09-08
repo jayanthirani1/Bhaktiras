@@ -23,7 +23,17 @@ Narad stopped his dance, and stepping forward, accepted the offering of bananas.
 
 Vashrambhai and Rampratap bhai got up and ran excitedly into the house. Bhaktimata looked up from her cooking, and asked them why they were so excited. When they told her what they had seen, she quickly pushed aside her vegetables and rushed outside. She looked up to the skies, trying to see the divine beings. But Narad, Shankar and Tumaroo were no longer to be seen. Then she looked down at her darling baby. Ghanashyam was still clapping his hands in time to the divine music!
 
-STUDY 1. Who were watching Ghanashyam as he lay in his cradle on the verandah? 2. What was the instrument that Shankar was playing? 3. Fill in the gaps: "Ghanashyam's uncle's name is________ . 4. What did Rampratap offer to the three lords? 5. Can you do a dance like Narad? Try it!
+STUDY:
+
+1. Who were watching Ghanashyam as he lay in his cradle on the verandah?
+
+2. What was the instrument that Shankar was playing?
+
+3. Fill in the gaps: "Ghanashyam's uncle's name is________ .
+
+4. What did Rampratap offer to the three lords?
+
+5. Can you do a dance like Narad? Try it!
 
 ## Sheshnag and the Well
 
@@ -47,7 +57,15 @@ As the thousand-headed Sheshnag rose up in the well, the happy little Ghanashyam
 
 Lord Sheshnag bowed his head before Bhaktimata and Ghanashyam, and then descended into the waters. As he returned to his home in the centre of the earth, the light in the well went out.
 
-STUDY: 1. What was the name of Ghanshyam's cousin Sister? 2. Where does lord Sheshnag live? 3. How many heads does Sheshnag have? 4. What was the dream of Rampratap?
+STUDY:
+
+1. What was the name of Ghanshyam's cousin Sister?
+
+2. Where does lord Sheshnag live?
+
+3. How many heads does Sheshnag have?
+
+4. What was the dream of Rampratap?
 
 ## The Universe in Ghanshyam
 
@@ -71,7 +89,15 @@ Soon, she became dizzy from the experience, and briefly closed her eyes.
 
 When she opened them again, she saw her baby Ghanshyam smiling knowingly at her. Now she knew that the baby she had been blessed with was indeed God incarnate, the God of all things, and she rocked him gently in her lap as he fell asleep.
 
-STUDY: 1. What did Bhaktimata see when she looked into Ghanashyam's mouth? 2. How many oceans did Bhaktimata see? 3. How many continents did Bhaktimata see? 4. Draw a picture of the planets and stars, using your coloured pencils.
+STUDY:
+
+1. What did Bhaktimata see when she looked into Ghanashyam's mouth?
+
+2. How many oceans did Bhaktimata see?
+
+3. How many continents did Bhaktimata see?
+
+4. Draw a picture of the planets and stars, using your coloured pencils.
 
 ## The Visit of Vairajpurus
 
@@ -95,7 +121,17 @@ Ramdutt was fearful that Vairajpurus may have done some harm to Ghanshyam. He ru
 
 Ghanashyam was sound asleep in his cradle. But Dharmadev and Ramdutt were amazed to see that a bright light was glowing from the baby boy! They stared in wonder. Then slowly the light began to fade, and Ghanshyam opened his innocent eyes, and smiled at them. Ramdutt knew then, that Ghanshyam was indeed the Lord.
 
-STUDY: 1. Describe Vairajpurus in your own words. 2. How did Ghanshyam speak to Vairajpurus? 3. Fill in the blank. "There were many men like Vairajpurus in the age of ______." 4. Where was Vairajpurus going to? 5. What did Vairajpurus give to Ghanshyam?
+STUDY:
+
+1. Describe Vairajpurus in your own words.
+
+2. How did Ghanshyam speak to Vairajpurus?
+
+3. Fill in the blank. "There were many men like Vairajpurus in the age of ______."
+
+4. Where was Vairajpurus going to?
+
+5. What did Vairajpurus give to Ghanshyam?
 
 ## Ghanashyam Gets His Ears Pierced
 
@@ -119,7 +155,15 @@ Again there was a flash, and Ghanashyam suddenly appeared in his mother's arms. 
 
 And so it was that Ghanshyam got his ears pierced.
 
-STUDY: 1. How old was Ghanashyam when he got his ears pierced? 2. What kind of tree was Bhaktimata sitting under? 3. Do you know what the fruit of the tree is used for? 4. What did Bhaktimata bring for Ghanashyam, to entice him out of the tree?
+STUDY:
+
+1. How old was Ghanashyam when he got his ears pierced?
+
+2. What kind of tree was Bhaktimata sitting under?
+
+3. Do you know what the fruit of the tree is used for?
+
+4. What did Bhaktimata bring for Ghanashyam, to entice him out of the tree?
 
 ## Ghanashyam and the Asura
 
@@ -145,7 +189,17 @@ Rampratapbhai and Dharmadev were standing in the doorway, listening to this. Whe
 
 And so it was that all the people of the villages of Surval, Satya and Chhapaiya gathered in the forest to see the dead giant, and wondered at the miracle of Ghanashyam.
 
-STUDY: 1. Fill in the blank space. "Ghanashyam became as big and heavy as the ________." 2. What are the names of the three villages who saw the dead giant? 3. What did the people of Surval think had happened when they heard the crash? 4. Some people from Satwa were near the forest when the asura crashed. What were they doing? 5. Why was Hanumanji not guarding Ghanshyam when the asura came?
+STUDY:
+
+1. Fill in the blank space. "Ghanashyam became as big and heavy as the ________."
+
+2. What are the names of the three villages who saw the dead giant?
+
+3. What did the people of Surval think had happened when they heard the crash?
+
+4. Some people from Satwa were near the forest when the asura crashed. What were they doing?
+
+5. Why was Hanumanji not guarding Ghanshyam when the asura came?
 
 ## Ghanashyam and the Rattles
 
@@ -165,7 +219,15 @@ Bhaktimata, in the kitchen, heard the rattles, and the sucking sound of Ghanashy
 
 He told Bhaktimata what he had seen. Together they leaned over the cradle, and fussed and played with their baby boy. "Truly" they thought, "Nothing is impossible for our little lord Ghanshyam."
 
-STUDY: 1. Complete the sentence. "Ghanashyam loved to listen to the sound of the _________." 2. How did Ghanashyam get the rattles down? 3. Who was watching Ghanashyam from the verandah? 4. Make a rattle by getting a small cardboard box, and putting some buttons in it.
+STUDY:
+
+1. Complete the sentence. "Ghanashyam loved to listen to the sound of the _________."
+
+2. How did Ghanashyam get the rattles down?
+
+3. Who was watching Ghanashyam from the verandah?
+
+4. Make a rattle by getting a small cardboard box, and putting some buttons in it.
 
 ## The Two Goddesses
 
@@ -199,7 +261,17 @@ The baby Ghanashyam looked gently up at her, and spoke with his eyes. " Mother, 
 
 Lakshmi was overjoyed, and handing Ghanshyam back to Bhaktimata, she showered her blessings on him.
 
-STUDY: 1. Who is Saraswati? 2. Who was jealous of Saraswati? Why? 3. Sing a lullaby that you learnt from your Mother. 4. What plan did Lakshmi make to see Lord Ghanshyam? 5. Why was Bhaktimata afraid of the sparrow?
+STUDY:
+
+1. Who is Saraswati?
+
+2. Who was jealous of Saraswati? Why?
+
+3. Sing a lullaby that you learnt from your Mother.
+
+4. What plan did Lakshmi make to see Lord Ghanshyam?
+
+5. Why was Bhaktimata afraid of the sparrow?
 
 ---
 
