@@ -5,7 +5,6 @@ import { DEFAULT_CONNECTIONS_PUZZLES } from '~/data/connectionsPuzzles'
 import { DEFAULT_BRACKET_CITY_PUZZLES } from '~/data/bracketCityPuzzles'
 import { CHARITRA_BRACKET_CITY_PUZZLES } from '~/data/bracketCityCharitra'
 import { rngForSeed, shuffle } from '~/utils/seededRandom'
-import { buildDailyBracketCity } from '~/utils/bracketCityGenerator'
 import { parseBracketSource } from '~/utils/bracketCity'
 import {
   onePercentPackForDate,
@@ -202,11 +201,13 @@ function pooledPuzzleFor(pool: BracketCityPuzzle[], dateId: string): BracketCity
 
 export function useBracketCityPuzzle() {
   const dateId = ukDateId()
-  // Authored episodes first: a generated puzzle can only ever finish on a list
-  // of words, where these finish on a sentence that tells a story.
-  const authored = [...CHARITRA_BRACKET_CITY_PUZZLES, ...DEFAULT_BRACKET_CITY_PUZZLES]
+  // Every day's puzzle is one story from the Bal Charitra, so solving the last
+  // bracket always leaves a summary of that episode. The generated puzzles and
+  // the hand-written fallbacks finish on a list of words instead, so they are
+  // only reached if every authored story somehow failed to parse.
+  const stories = CHARITRA_BRACKET_CITY_PUZZLES
   const puzzle = ref<BracketCityPuzzle>(
-    playableBracketCity([pooledPuzzleFor(authored, dateId), buildDailyBracketCity(dateId)])
+    playableBracketCity([pooledPuzzleFor(stories, dateId), ...stories, ...DEFAULT_BRACKET_CITY_PUZZLES])
       ?? DEFAULT_BRACKET_CITY_PUZZLES[0]
   )
   const loading = ref(true)
@@ -215,22 +216,19 @@ export function useBracketCityPuzzle() {
     try {
       const db = getDb()
       if (!db) return
-      const [snap, wordSnap] = await Promise.all([
-        getDocs(collection(db, 'bracketCityPuzzles')),
-        getDocs(collection(db, 'gameWords'))
-      ])
+      const snap = await getDocs(collection(db, 'bracketCityPuzzles'))
       const remote = snap.docs
         .map(d => ({ id: d.id, ...d.data() } as BracketCityPuzzle))
         .filter(item => item.published !== false && item.source)
-      // A puzzle scheduled for today wins outright; undated admin puzzles join
-      // the rotating pool; the word-bank generator is the last resort.
+      // A puzzle an admin scheduled for today still wins outright — that is a
+      // deliberate choice for one named date. Undated admin puzzles no longer
+      // join the rotation, because a day they landed on would not finish on a
+      // story.
       const override = remote.find(item => item.id === `daily-${dateId}` || item.dateId === dateId)
-      const pool = [...authored, ...remote.filter(item => !item.dateId)]
-      const generated = buildDailyBracketCity(dateId, mergeGameWords(mapCustomGameWords(wordSnap)))
       puzzle.value = playableBracketCity([
         override || null,
-        pooledPuzzleFor(pool, dateId),
-        generated
+        pooledPuzzleFor(stories, dateId),
+        ...stories
       ]) ?? puzzle.value
     } finally {
       loading.value = false
