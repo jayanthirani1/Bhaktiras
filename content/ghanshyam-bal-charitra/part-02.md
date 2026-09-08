@@ -133,7 +133,7 @@ STUDY:
 
 5. What did Vairajpurus give to Ghanshyam?
 
-## Ghanashyam Gets His Ears Pierced
+## Ghanshyam Gets His Ears Pierced
 
 <!-- pages 15-18 -->
 
@@ -165,7 +165,7 @@ STUDY:
 
 4. What did Bhaktimata bring for Ghanashyam, to entice him out of the tree?
 
-## Ghanashyam and the Asura
+## Ghanshyam and the Asura
 
 <!-- pages 19-24 -->
 
@@ -201,7 +201,7 @@ STUDY:
 
 5. Why was Hanumanji not guarding Ghanshyam when the asura came?
 
-## Ghanashyam and the Rattles
+## Ghanshyam and the Rattles
 
 <!-- pages 25-28 -->
 
@@ -279,32 +279,32 @@ STUDY:
 
 ### The Dance of Narad
 
-Narad, Shankar and Tumbaroo watch baby Ghanashyam from the heavens, are moved by his joy, and come down to his cradle in Chhapaiya. Shankar keeps time on his damroo and Tumbaroo chants the beat while Narad dances, and Ghanashyam claps along. Vashrambhai and Rampratap arrive home, see the three lords, bow and offer them bananas, and receive their blessing before the lords ascend. When Bhaktimata runs outside the lords have gone, but Ghanashyam is still clapping in time to the divine music.
+Narad, Shankar and Tumbaroo watch baby Ghanshyam from the heavens, are moved by his joy, and come down to his cradle in Chhapaiya. Shankar keeps time on his damroo and Tumbaroo chants the beat while Narad dances, and Ghanshyam claps along. Vashram and Rampratap arrive home, see the three lords, bow and offer them bananas, and receive their blessing before the lords ascend. When Bhaktimata runs outside the lords have gone, but Ghanshyam is still clapping in time to the divine music.
 
 ### Sheshnag and the Well
 
-While his cousin sister Balwantabai chases a butterfly, little Ghanashyam crawls to the well, climbs the wall and falls in. Sheshnag, the many-headed cobra who lives at the centre of the earth, rushes up and spreads his hood so the child lands gently on it. Bhaktimata and Rampratap look into the well and see Ghanashyam seated on the giant snake's hood, and Rampratap recognises the scene from a dream of Krishna and Sheshnag at Vrindavan. Sheshnag rises, the mother lifts her baby out, and the snake bows and returns to the depths.
+While his cousin sister Balwantabai chases a butterfly, little Ghanshyam crawls to the well, climbs the wall and falls in. Sheshnag, the many-headed cobra who lives at the centre of the earth, rushes up and spreads his hood so the child lands gently on it. Bhaktimata and Rampratap look into the well and see Ghanshyam seated on the giant snake's hood, and Rampratap recognises the scene from a dream of Krishna and Sheshnag at Vrindavan. Sheshnag rises, the mother lifts her baby out, and the snake bows and returns to the depths.
 
 ### The Universe in Ghanshyam
 
-Bhaktimata feeds the baby Ghanashyam and watches him grow sleepy in the warm sunlight. When he yawns she looks into his mouth and is drawn into a vision of the whole universe: Brahma, Vishnu, Shiv and Indra blessing her, the mountains, the seven oceans and nine continents, then the stars and planets in unearthly colours. Dizzy, she closes her eyes; when she opens them the baby is smiling knowingly at her. She understands that her child is God incarnate, and rocks him to sleep.
+Bhaktimata feeds the baby Ghanshyam and watches him grow sleepy in the warm sunlight. When he yawns she looks into his mouth and is drawn into a vision of the whole universe: Brahma, Vishnu, Shiva and Indra blessing her, the mountains, the seven oceans and nine continents, then the stars and planets in unearthly colours. Dizzy, she closes her eyes; when she opens them the baby is smiling knowingly at her. She understands that her child is God incarnate, and rocks him to sleep.
 
 ### The Visit of Vairajpurus
 
-The giant sadhu Vairajpurus comes to the verandah where the baby Ghanashyam sleeps and asks whether other gods have visited him; Ghanashyam answers in his mind that many have come and many are still to come. Overjoyed, the sadhu leaves toys in the cradle, ties a sacred silk thread on the baby's wrist to protect him, and sets off for the fair at Shravan lake. At a lake near Agiyara he meets the brahmin Ramdutt, who is astonished at his size and asks where he has been. Fearing harm has come to the child, Ramdutt hurries to Chhapaiya with Dharmadev and finds Ghanashyam asleep and glowing with light, which convinces him the boy is the Lord.
+The giant sadhu Vairajpurus comes to the verandah where the baby Ghanshyam sleeps and asks whether other gods have visited him; Ghanshyam answers in his mind that many have come and many are still to come. Overjoyed, the sadhu leaves toys in the cradle, ties a sacred silk thread on the baby's wrist to protect him, and sets off for the fair at Shravan lake. At a lake near Agiyara he meets the brahmin Ramdutt, who is astonished at his size and asks where he has been. Fearing harm has come to the child, Ramdutt hurries to Chhapaiya with Dharmadev and finds Ghanshyam asleep and glowing with light, which convinces him the boy is the Lord.
 
-### Ghanashyam Gets His Ears Pierced
+### Ghanshyam Gets His Ears Pierced
 
-At seven months old Ghanashyam is held on his mother's lap under the Amli tree to have his ears pierced. A blinding light comes from his ear, the ear-piercer drops his wire, and the baby vanishes and reappears high on a branch of the tree. Rampratap climbs up to fetch him, but each time he is reached Ghanashyam flashes back to his mother's arms, and back to the tree again when Rampratap comes down. Bhaktimata finally tempts him down with a piece of sweet jagri, and once fed and contented he lets the ear-piercer finish the job.
+At seven months old Ghanshyam is held on his mother's lap under the Amli tree to have his ears pierced. A blinding light comes from his ear, the ear-piercer drops his wire, and the baby vanishes and reappears high on a branch of the tree. Rampratap climbs up to fetch him, but each time he is reached Ghanshyam flashes back to his mother's arms, and back to the tree again when Rampratap comes down. Bhaktimata finally tempts him down with a piece of sweet jagri, and once fed and contented he lets the ear-piercer finish the job.
 
-### Ghanashyam and the Asura
+### Ghanshyam and the Asura
 
-An evil asura sees the baby alone in his cradle, swoops down and carries him into the sky. Ghanashyam is unafraid and instead grows to the size and weight of the whole earth, so that the asura is dragged down and killed as he crashes into the forest near Surval. Villagers from Surval and shepherds from Satwa hear the crash and gather at the body of the giant. Hanuman, Ghanashyam's protector, sees the corpse from the air, hurries to the house and begs forgiveness for having left his post to eat, and the people of Surval, Satya and Chhapaiya come to see the dead asura and marvel at the miracle.
+An evil asura sees the baby alone in his cradle, swoops down and carries him into the sky. Ghanshyam is unafraid and instead grows to the size and weight of the whole earth, so that the asura is dragged down and killed as he crashes into the forest near Surval. Villagers from Surval and shepherds from Satwa hear the crash and gather at the body of the giant. Hanuman, Ghanshyam's protector, sees the corpse from the air, hurries to the house and begs forgiveness for having left his post to eat, and the people of Surval, Satya and Chhapaiya come to see the dead asura and marvel at the miracle.
 
-### Ghanashyam and the Rattles
+### Ghanshyam and the Rattles
 
-Bhaktimata ties bright rattles above the cradle, out of the baby's reach, and shakes them to amuse him. Left alone one day while she cooks, Ghanashyam stares at the rattles and his arms stretch longer and longer until his fingers close around them, then shorten again as he pulls them down. His mother hears the rattling and sucking and wonders aloud who could have got them down for him. Dharmadev, who watched the whole thing from the verandah, tells her what he saw, and the parents agree that nothing is impossible for their little lord.
+Bhaktimata ties bright rattles above the cradle, out of the baby's reach, and shakes them to amuse him. Left alone one day while she cooks, Ghanshyam stares at the rattles and his arms stretch longer and longer until his fingers close around them, then shorten again as he pulls them down. His mother hears the rattling and sucking and wonders aloud who could have got them down for him. Dharmadev, who watched the whole thing from the verandah, tells her what he saw, and the parents agree that nothing is impossible for their little lord.
 
 ### The Two Goddesses
 
-Saraswati, goddess of learning, is always with Ghanashyam: he sings along with his mother's lullabies and aarti, points at the words when his father reads, and grabs the pen when Dharmadev writes. Lakshmi, jealous that she cannot get near the child, sends a friend in the form of a sparrow to call him out to the verandah. Bhaktimata, fearing the bird will peck her son, throws a cloth over it; the sparrow becomes a woman, Lakshmi appears, and she picks up the baby and asks why he keeps only Saraswati's company. Ghanashyam answers with his eyes that he will have need of both goddesses, and that a time will come when he needs her very much, and Lakshmi blesses him and hands him back.
+Saraswati, goddess of learning, is always with Ghanshyam: he sings along with his mother's lullabies and aarti, points at the words when his father reads, and grabs the pen when Dharmadev writes. Lakshmi, jealous that she cannot get near the child, sends a friend in the form of a sparrow to call him out to the verandah. Bhaktimata, fearing the bird will peck her son, throws a cloth over it; the sparrow becomes a woman, Lakshmi appears, and she picks up the baby and asks why he keeps only Saraswati's company. Ghanshyam answers with his eyes that he will have need of both goddesses, and that a time will come when he needs her very much, and Lakshmi blesses him and hands him back.

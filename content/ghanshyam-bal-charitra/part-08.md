@@ -75,7 +75,7 @@ STUDY:
 
 5. Can you name a god who looks like an elephant?
 
-## Ghanashyam And The Birds
+## Ghanshyam And The Birds
 
 <!-- pages 10-13 -->
 
@@ -109,7 +109,7 @@ STUDY:
 
 5. Name some of the birds that were on the farm.
 
-## Ghanashyam Has A Toothache
+## Ghanshyam Has A Toothache
 
 <!-- pages 14-17 -->
 
@@ -147,7 +147,7 @@ STUDY:
 
 5. What kind of birds came down from heaven?
 
-## Prasad Of Ghanashyam
+## Prasad Of Ghanshyam
 
 <!-- pages 18-20 -->
 
@@ -294,25 +294,25 @@ STUDY:
 ## Story Summaries
 
 ### In The Soldiers' Camp
-Dharmadev takes Ghanashyam to visit his soldier brothers at the Nawab's army camp at Badki Gardens, where they are horrified to find goats and sheep being slaughtered for food. Ghanashyam meditates, and the camp's elephants and horses break loose and stampede, driving the king up a tree. Ghanashyam shakes the tree and warns the king that killing innocent animals is a terrible sin; when the king agrees to stop, he calms the animals with a raise of his arms. The king bows at his feet and bans the killing of animals in his camps.
+Dharmadev takes Ghanshyam to visit his soldier brothers at the Nawab's army camp at Badki Gardens, where they are horrified to find goats and sheep being slaughtered for food. Ghanshyam meditates, and the camp's elephants and horses break loose and stampede, driving the king up a tree. Ghanshyam shakes the tree and warns the king that killing innocent animals is a terrible sin; when the king agrees to stop, he calms the animals with a raise of his arms. The king bows at his feet and bans the killing of animals in his camps.
 
 ### The Bad Tempered Elephant
-Baldev Prasad's ill-tempered elephant turns on its keeper, the Mahavat, at the lake, throwing him into the water and charging at him. Ghanashyam, sitting in the house, sees the danger with his divine sight and projects a second body of himself onto the elephant's back, calming the animal with a touch and lifting the Mahavat to safety. Baldev Prasad and the villagers then see Ghanashyam in two places at once — walking beside them and riding the elephant. The elephant kneels and touches Ghanashyam's feet with its trunk, and the second form vanishes.
+Baldev Prasad's ill-tempered elephant turns on its keeper, the Mahavat, at the lake, throwing him into the water and charging at him. Ghanshyam, sitting in the house, sees the danger with his divine sight and projects a second body of himself onto the elephant's back, calming the animal with a touch and lifting the Mahavat to safety. Baldev Prasad and the villagers then see Ghanshyam in two places at once — walking beside them and riding the elephant. The elephant kneels and touches Ghanshyam's feet with its trunk, and the second form vanishes.
 
-### Ghanashyam And The Birds
-Dharmadev sends Ghanashyam to guard the ripening rice from birds, but Ghanashyam does not want either the birds or his father to go without. With a wave and a shout he freezes every bird in place, then goes off to play with his friends under a Mahuda tree. Rampratap comes to scold him for neglecting his duty and is astounded to find the whole flock suspended mid-motion. Ghanashyam claps and releases them, and Rampratap is ashamed to have forgotten that his little brother is God, holding life and death in his hands.
+### Ghanshyam And The Birds
+Dharmadev sends Ghanshyam to guard the ripening rice from birds, but Ghanshyam does not want either the birds or his father to go without. With a wave and a shout he freezes every bird in place, then goes off to play with his friends under a Mahuda tree. Rampratap comes to scold him for neglecting his duty and is astounded to find the whole flock suspended mid-motion. Ghanshyam claps and releases them, and Rampratap is ashamed to have forgotten that his little brother is God, holding life and death in his hands.
 
-### Ghanashyam Has A Toothache
-With a bad toothache, Ghanashyam cannot eat even the halwa his sister-in-law Suvasini cooks for him, so she pulls the aching tooth. He keeps pointing to the next one until all thirty-two teeth lie on her handkerchief. Terrified of Bhaktimata's anger, Suvasini confesses, but when Bhaktimata opens Ghanashyam's mouth every tooth is intact. The women throw the pile of teeth into the air, where each becomes a white pearl; divine swans fly down, swallow the pearls, bow to Ghanashyam and return to the heavens.
+### Ghanshyam Has A Toothache
+With a bad toothache, Ghanshyam cannot eat even the halwa his sister-in-law Suvasini cooks for him, so she pulls the aching tooth. He keeps pointing to the next one until all thirty-two teeth lie on her handkerchief. Terrified of Bhaktimata's anger, Suvasini confesses, but when Bhaktimata opens Ghanshyam's mouth every tooth is intact. The women throw the pile of teeth into the air, where each becomes a white pearl; divine swans fly down, swallow the pearls, bow to Ghanshyam and return to the heavens.
 
-### Prasad Of Ghanashyam
-Playing by a fish pond, Ghanashyam's hungry friends want to go home, so he promises to feed them if they stay. He has them tie a towel by its corners in a mahuda tree and takes them swimming while they wait. When they climb out, eight angelic women are filling the towel with fruits and sweets, and they feed the boys heavenly food on golden plates until the children can eat no more. When the boys thank them, the women say the thanks belong to their Lord, bow to Ghanashyam and vanish.
+### Prasad Of Ghanshyam
+Playing by a fish pond, Ghanshyam's hungry friends want to go home, so he promises to feed them if they stay. He has them tie a towel by its corners in a mahuda tree and takes them swimming while they wait. When they climb out, eight angelic women are filling the towel with fruits and sweets, and they feed the boys heavenly food on golden plates until the children can eat no more. When the boys thank them, the women say the thanks belong to their Lord, bow to Ghanshyam and vanish.
 
 ### The Gods Want Prasad!
-Watching the angels feed Ghanashyam, Brahma and Shiva long to taste prasad blessed by his hand, so they become fish in the pond, hoping to catch scraps when he washes. Knowing everything, Ghanashyam warns his friends of crocodiles and has them wash from a bowl instead. The gods then appear as sadhus begging for food, and he tells them the food is finished and sends them to the village. Realising he has been playing with them all along, they resume their true forms and ask openly, and he blesses them with a bowl of water, which they drink before returning to their abode.
+Watching the angels feed Ghanshyam, Brahma and Shiva long to taste prasad blessed by his hand, so they become fish in the pond, hoping to catch scraps when he washes. Knowing everything, Ghanshyam warns his friends of crocodiles and has them wash from a bowl instead. The gods then appear as sadhus begging for food, and he tells them the food is finished and sends them to the village. Realising he has been playing with them all along, they resume their true forms and ask openly, and he blesses them with a bowl of water, which they drink before returning to their abode.
 
 ### A Wedding And A Funeral
-At Prag's wedding feast in Nagipur, Unmath Tarvadi wins a fifty-one rupee bet from Lalbihari by devouring a whole plate of puris, half a bucket of jageri and two pots of ghee. Ghanashyam warns him that eating so much can kill him, and Unmath jokes that the little lord can simply bring him back. That night he dies of the gorging, and as his body is about to be burned Ghanashyam calls him back to life. Unmath rises from the pyre, describing the beauty of Akshardham, and the crowd realise that life and death are in the Lord's hands.
+At Prag's wedding feast in Nagipur, Unmath Tarwadi wins a fifty-one rupee bet from Lalbihari by devouring a whole plate of puris, half a bucket of jageri and two pots of ghee. Ghanshyam warns him that eating so much can kill him, and Unmath jokes that the little lord can simply bring him back. That night he dies of the gorging, and as his body is about to be burned Ghanshyam calls him back to life. Unmath rises from the pyre, describing the beauty of Akshardham, and the crowd realise that life and death are in the Lord's hands.
 
 ### The Mischievous Friends
-Ghanashyam and his best friend Veniram regularly raid each other's kitchens for curd, ghee, milk and jageri, then deny it. After Veniram's mother catches them and complains, Bhaktimata challenges her to tie the culprit up and call for witnesses. She lays a trap, catches Ghanashyam and binds his hands, but as she displays him to the gathered villagers he takes on Veniram's form. Her own son is in her grasp, and the villagers laugh as she unties him in shame.
+Ghanshyam and his best friend Veniram regularly raid each other's kitchens for curd, ghee, milk and jageri, then deny it. After Veniram's mother catches them and complains, Bhaktimata challenges her to tie the culprit up and call for witnesses. She lays a trap, catches Ghanshyam and binds his hands, but as she displays him to the gathered villagers he takes on Veniram's form. Her own son is in her grasp, and the villagers laugh as she unties him in shame.

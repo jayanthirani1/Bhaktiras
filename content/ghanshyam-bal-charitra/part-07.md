@@ -67,7 +67,7 @@ STUDY:
 
 4. What lesson did Gomti teach us?
 
-## Ghanashyam And The Giant Pumpkin
+## Ghanshyam And The Giant Pumpkin
 
 <!-- pages 8-10 -->
 
@@ -95,7 +95,7 @@ STUDY:
 
 5. In what holy book can you read about Lord Krishna?
 
-## Ghanashyam The Scholar
+## Ghanshyam The Scholar
 
 <!-- pages 11-14 -->
 
@@ -127,7 +127,7 @@ STUDY:
 
 5. Can you fill in this blank? " _________ comes before a fall."
 
-## Ghanashyam And The Sweets Shop
+## Ghanshyam And The Sweets Shop
 
 <!-- pages 15-21 -->
 
@@ -266,25 +266,25 @@ STUDY:
 ## Story Summaries
 
 ### Be Generous
-Uncle Vashram finds every cucumber on his farm bitter, but when Ghanashyam picks a basketful they are all sweet. His aunt complains that the boy is wasting the crop and forbids him from the farm, and the cucumbers immediately shrivel and die. Vashram realises what God gives, God can take away, invites Ghanashyam back, and that year the corn multiplies so abundantly that the family can give baskets away to friends.
+Uncle Vashram finds every cucumber on his farm bitter, but when Ghanshyam picks a basketful they are all sweet. His aunt complains that the boy is wasting the crop and forbids him from the farm, and the cucumbers immediately shrivel and die. Vashram realises what God gives, God can take away, invites Ghanshyam back, and that year the corn multiplies so abundantly that the family can give baskets away to friends.
 
 ### All Are Equal
-Gomti the cow gives plenty of milk each day until Suvasinibhabhi serves Ghanashyam less than Rampratapbhai, after which the cow yields almost nothing. Bhaktimata explains that Gomti loves Ghanashyam and was upset, and tells Suvasini to share the milk equally. When Suvasini apologises to Gomti the next morning, the cow fills the bowl to the brim, teaching the family to share what they have equally.
+Gomti the cow gives plenty of milk each day until Suvasini serves Ghanshyam less than Rampratap, after which the cow yields almost nothing. Bhaktimata explains that Gomti loves Ghanshyam and was upset, and tells Suvasini to share the milk equally. When Suvasini apologises to Gomti the next morning, the cow fills the bowl to the brim, teaching the family to share what they have equally.
 
-### Ghanashyam And The Giant Pumpkin
-A friend at Loghangeri gives Dharmadev and Rampratapbhai a pumpkin so huge that a servant is needed to carry it to Chappaiya. Bhaktimata tells Ghanashyam it is far too big for him to lift, so he raises it with godly strength and balances it on the tip of his little finger. He then appears to the family as Lord Krishna holding up Mount Govardhan, and when the vision fades they know who he really is.
+### Ghanshyam And The Giant Pumpkin
+A friend at Loghangeri gives Dharmadev and Rampratap a pumpkin so huge that a servant is needed to carry it to Chhapaiya. Bhaktimata tells Ghanshyam it is far too big for him to lift, so he raises it with godly strength and balances it on the tip of his little finger. He then appears to the family as Lord Krishna holding up Mount Govardhan, and when the vision fades they know who he really is.
 
-### Ghanashyam The Scholar
-Ghanashyam masters fourteen subjects in seventeen days, and four brahmins who come to test him find they cannot stump him. At the Hanuman temple he gently corrects an old pandit, Valmiki, who is misreading the Ramayana, and the proud pandit shouts him down. Lord Hanuman appears, declares Ghanashyam to be Purna Purshottam, and strikes the pandit blind; when the man begs forgiveness, Ghanashyam restores his sight.
+### Ghanshyam The Scholar
+Ghanshyam masters fourteen subjects in seventeen days, and four brahmins who come to test him find they cannot stump him. At the Hanuman temple he gently corrects an old pandit, Valmiki, who is misreading the Ramayana, and the proud pandit shouts him down. Lord Hanuman appears, declares Ghanshyam to be Purna Purshottam, and strikes the pandit blind; when the man begs forgiveness, Ghanshyam restores his sight.
 
-### Ghanashyam And The Sweets Shop
-Longing for sweets and having no money, Ghanashyam takes Suvasini's gold ring and trades it to a shopkeeper for as many sweets as he can eat. He eats every sweet in the shop. Finding Suvasini in tears over the lost ring, he returns and offers to give the sweets back; when the shopkeeper scoffs and agrees, the shelves are found fully restocked, and the ring is handed back.
+### Ghanshyam And The Sweets Shop
+Longing for sweets and having no money, Ghanshyam takes Suvasini's gold ring and trades it to a shopkeeper for as many sweets as he can eat. He eats every sweet in the shop. Finding Suvasini in tears over the lost ring, he returns and offers to give the sweets back; when the shopkeeper scoffs and agrees, the shelves are found fully restocked, and the ring is handed back.
 
 ### On The Road To Targam
-Walking to Targam for a sacred thread ceremony, Bhaktimata grows weak with thirst and Rampratap can find no water in the forest. Ghanashyam points to a spot Rampratap has already searched, and a well full of clear water has appeared there. At Targam, Ghanashyam's knowledge of the scriptures astounds Baldev Prashad, who persuades Dharmadev to let Ghanashyam take the sacred thread alongside Laxmi Prashad the next day.
+Walking to Targam for a sacred thread ceremony, Bhaktimata grows weak with thirst and Rampratap can find no water in the forest. Ghanshyam points to a spot Rampratap has already searched, and a well full of clear water has appeared there. At Targam, Ghanshyam's knowledge of the scriptures astounds Baldev Prasad, who persuades Dharmadev to let Ghanshyam take the sacred thread alongside Lakshmi Prasad the next day.
 
 ### The King's Soldiers
-While the family bathes near an ashram at Ayodhya, a mango tree the king's soldiers are felling falls and pins five of them down. Ghanashyam levers the tree up with a small cane and frees them. Summoned to court, he is dismissed as too small until he shows that he casts no shadow and bears the sixteen symbols on his feet, whereupon the king bows at his feet and rewards him.
+While the family bathes near an ashram at Ayodhya, a mango tree the king's soldiers are felling falls and pins five of them down. Ghanshyam levers the tree up with a small cane and frees them. Summoned to court, he is dismissed as too small until he shows that he casts no shadow and bears the sixteen symbols on his feet, whereupon the king bows at his feet and rewards him.
 
 ### At The Temple Of Krishna
-On the evening of the rescue, the family goes to the temple of Lord Krishna at Kunjgalli, performs parikrama, and enters during aarti. As Ghanashyam gazes at the idol, it comes alive and grows into the full form of Lord Krishna, who bows and touches Ghanashyam's feet before returning to his throne as an idol. The astonished crowd cries "Jai Shri Krishna! Jai Shri Ghanashyam!" and bows before the boy.
+On the evening of the rescue, the family goes to the temple of Lord Krishna at Kunjgalli, performs parikrama, and enters during aarti. As Ghanshyam gazes at the idol, it comes alive and grows into the full form of Lord Krishna, who bows and touches Ghanshyam's feet before returning to his throne as an idol. The astonished crowd cries "Jai Shri Krishna! Jai Shri Ghanshyam!" and bows before the boy.

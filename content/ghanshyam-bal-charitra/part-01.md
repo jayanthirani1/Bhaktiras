@@ -64,7 +64,7 @@ STUDY:
 "Chhappaiya is in the country of ________,
 near the town of ____________.
 
-## Birth of Ghanashyam
+## Birth of Ghanshyam
 
 <!-- pages 7-10 -->
 
@@ -177,7 +177,7 @@ STUDY:
 9. Describe in your own words how the evil Kalidutt was tortured.
 10. Fill in the blank: "_____ is always rewarded by its own hands."
 
-## The Naming of Ghanashyam
+## The Naming of Ghanshyam
 
 <!-- pages 22-25 -->
 
@@ -233,7 +233,7 @@ STUDY:
 6. Chant the name Ghanashyam twenty times, and as you chant clap your hands.
 7. What was Ghanashyam's moon sign?
 
-## Ghanashyam's First Test
+## Ghanshyam's First Test
 
 <!-- pages 26-27 -->
 
@@ -266,7 +266,7 @@ STUDY:
 4. Who is the goddess of knowledge?
 5. How old was Ghanashyam when he passed his first test ?
 
-## Ghanashyam and Moon Uncle
+## Ghanshyam and Moon Uncle
 
 <!-- pages 28-32 -->
 
@@ -308,22 +308,22 @@ STUDY:
 ## Story Summaries
 
 ### The Curse of Durvasa Becomes a Boon
-Demons torment the people of Bharat, so the gods gather at Badrikashram to ask Lord Purshottamnarayana what to do. The sage Durvasa arrives late, is not greeted, and curses everyone present to be born on earth and tormented by demons. Dharmadev and Murtidevi beg him to relent, and though a sage's curse cannot be withdrawn, Durvasa adds to it that God will be born on earth alongside them. God takes birth as the baby Ghanashyam, so the curse becomes a boon.
+Demons torment the people of Bharat, so the gods gather at Badrikashram to ask Lord Purshottamnarayana what to do. The sage Durvasa arrives late, is not greeted, and curses everyone present to be born on earth and tormented by demons. Dharmadev and Murtidevi beg him to relent, and though a sage's curse cannot be withdrawn, Durvasa adds to it that God will be born on earth alongside them. God takes birth as the baby Ghanshyam, so the curse becomes a boon.
 
 ### Surbhi the Heavenly Cow
-Gaulok is the heavenly place where holy cows live and their milk is like nectar, and Surbhi is the most beautiful cow there, wearing bells that make heavenly music. One day she is drawn by the holy music of Chhappaiya, a village in India near Ayodhya. The village is named for the six virtues that carry it like six wheels of a chariot. Surbhi leaves Gaulok and travels to Chhappaiya.
+Gaulok is the heavenly place where holy cows live and their milk is like nectar, and Surbhi is the most beautiful cow there, wearing bells that make heavenly music. One day she is drawn by the holy music of Chhapaiya, a village in India near Ayodhya. The village is named for the six virtues that carry it like six wheels of a chariot. Surbhi leaves Gaulok and travels to Chhapaiya.
 
-### Birth of Ghanashyam
-In the village of Chhapiya near Ayodha live a devout Brahmin, Dharmadev, and his wife Bhaktidevi, who pray for their coming child. On the night of the 2nd of April 1781, the child is born and his divinity is immediately obvious: birds sing in the middle of the night, a fragrant wind blows, and the villagers wake and gather at the house. The parents name him Ghanashyam because he is filled with the essence of Krishna, and the villagers sing and dance in celebration.
+### Birth of Ghanshyam
+In the village of Chhapaiya near Ayodhya live a devout Brahmin, Dharmadev, and his wife Bhaktimata, who pray for their coming child. On the night of the 2nd of April 1781, the child is born and his divinity is immediately obvious: birds sing in the middle of the night, a fragrant wind blows, and the villagers wake and gather at the house. The parents name him Ghanshyam because he is filled with the essence of Krishna, and the villagers sing and dance in celebration.
 
 ### Kalidutt the Evil One
-The asura Kalidutt cannot bear that a pure child has been born, so he sends his army of Krutiyas, black witches, to seize baby Ghanashyam and destroy him in the mango orchard. The fearless child lets them carry him off, but their fire turns on themselves and their screams reach Hanuman flying overhead. Hanuman blows out their fire, hurls them back to Kalidutt, whom they then beat in revenge, and blows them away for good. He returns the baby to Bhaktimata, telling her the child is God incarnate and that she may call on him whenever she needs.
+The asura Kalidutt cannot bear that a pure child has been born, so he sends his army of Krutiyas, black witches, to seize baby Ghanshyam and destroy him in the mango orchard. The fearless child lets them carry him off, but their fire turns on themselves and their screams reach Hanuman flying overhead. Hanuman blows out their fire, hurls them back to Kalidutt, whom they then beat in revenge, and blows them away for good. He returns the baby to Bhaktimata, telling her the child is God incarnate and that she may call on him whenever she needs.
 
-### The Naming of Ghanashyam
-Dharmadev's name means religion and Bhaktimata's means devotion, and they call the astrologer Muni Maharaj Markandeya to make the baby's birth-chart and choose his name. Markandeya finds the child's moon sign is Karka and suggests Hari, then HariKrishna for his colour, then Neelkantha for his sky-deep eyes. Finally he settles on Ghanashyam, because the child is dark like rain clouds and will shower blessings on the earth. He breaks into a chant of the name, and everyone joins the singing.
+### The Naming of Ghanshyam
+Dharmadev's name means religion and Bhaktimata's means devotion, and they call the astrologer Muni Maharaj Markandeya to make the baby's birth-chart and choose his name. Markandeya finds the child's moon sign is Karka and suggests Hari, then HariKrishna for his colour, then Neelkantha for his sky-deep eyes. Finally he settles on Ghanshyam, because the child is dark like rain clouds and will shower blessings on the earth. He breaks into a chant of the name, and everyone joins the singing.
 
-### Ghanashyam's First Test
-When Ghanashyam is two and a half months old, his parents test him by placing a gold coin, a sword and a book on a draped stool. Gold stands for wealth and the sword for power, but both are empty without wisdom, while the book stands for learning that leads to wisdom. Ghanashyam ignores the gold and the sword and picks up the book, leafing through its pages. His parents conclude he will be a great scholar and a teacher who leads mankind from ignorance into knowledge.
+### Ghanshyam's First Test
+When Ghanshyam is two and a half months old, his parents test him by placing a gold coin, a sword and a book on a draped stool. Gold stands for wealth and the sword for power, but both are empty without wisdom, while the book stands for learning that leads to wisdom. Ghanshyam ignores the gold and the sword and picks up the book, leafing through its pages. His parents conclude he will be a great scholar and a teacher who leads mankind from ignorance into knowledge.
 
-### Ghanashyam and Moon Uncle
-The story explains that "Ma" is a baby's whole world and that doubling it gives "Mama", the mother's brother, and that every child's special Mama is Chandamama, the Moon Uncle. One night the baby Ghanashyam lies awake and invites the moon to play, and Chandamama comes down into the cradle so that two moons seem to glow there. The light wakes Bhaktimata, who asks her son to let Chandamama go so the rest of the world will not be dark. Chandamama leaves promising to watch over children, and soothes Ghanashyam to sleep with his rays.
+### Ghanshyam and Moon Uncle
+The story explains that "Ma" is a baby's whole world and that doubling it gives "Mama", the mother's brother, and that every child's special Mama is Chandamama, the Moon Uncle. One night the baby Ghanshyam lies awake and invites the moon to play, and Chandamama comes down into the cradle so that two moons seem to glow there. The light wakes Bhaktimata, who asks her son to let Chandamama go so the rest of the world will not be dark. Chandamama leaves promising to watch over children, and soothes Ghanshyam to sleep with his rays.

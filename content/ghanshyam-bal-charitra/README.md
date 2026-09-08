@@ -1,6 +1,8 @@
-# Shree Ghanashyam Bal Charitra
+# Shree Ghanshyam Bal Charitra
 
-The ten-part illustrated English retelling of Bhagwan Swaminarayan's childhood, transcribed in full: **79 stories** across ten volumes of 32 printed pages each.
+The ten-part illustrated English retelling of Bhagwan Swaminarayan's childhood, transcribed in
+full: **79 stories** across ten volumes of 32 printed pages each. The stories feed the
+Bracket City daily puzzle — see [Using these stories](#using-these-stories).
 
 ## Where this came from
 
@@ -13,21 +15,41 @@ typed out. The PDFs themselves are not in the repo; they are roughly 40 MB each.
 
 One markdown file per volume. Inside each one:
 
-- `##` headings are the story titles, converted from the printed ALL-CAPS to title case.
+- `##` headings are the story titles.
 - An HTML comment under each heading gives the printed page range, so any passage can be
   checked against the original book.
-- Body text is **verbatim**. The books are inconsistent with their own transliterations —
-  "Ghanashyam" and "Ghanshyam" alternate inside a single paragraph, as do "Bhaktimata" and
-  "Bhaktidevi", "Chhapaiya" and "Chappaiya" — and they carry genuine printing errors. Both are
-  preserved rather than tidied, so anything drawn from these files should be normalised at
-  the point of use, not here.
-- Each story ends with the `STUDY:` questions printed in the book.
+- Body text is **verbatim**, down to the books' own printing errors. Each story ends with the
+  `STUDY:` questions printed in the book, also verbatim.
 - Every file closes with a `## Story Summaries` section, one short summary per story. All
   79 are collected together in [`SUMMARIES.md`](SUMMARIES.md).
 
-Two places where the printed books are defective, both left as found and marked in the text:
+### Spellings
+
+The books are inconsistent with their own transliterations — "Ghanashyam" and "Ghanshyam"
+alternate inside a single paragraph, as do "Bhaktimata" and "Bhaktidevi", "Chhapaiya" and
+"Chappaiya". The split here is deliberate:
+
+- **Story titles and summaries** use the spellings the rest of the app uses — Ghanshyam,
+  Bhaktimata, Dharmadev, Rampratap, Chhapaiya, Ayodhya, Akshardham — because these are what
+  players see in the games.
+- **Body text and STUDY questions** keep whatever the page printed, so the transcription stays
+  checkable against the original.
+
+So a story headed "Birth of Ghanshyam" can open with the words "Ghanashyam was born" — that is
+the intended split, not a slip.
+
+Two places where the printed books are defective are left as found and marked in the text:
 Part 1 jumps mid-story in "Kalidutt the Evil One" (page 13 to 14), and Part 2 breaks off
-mid-sentence at the end of page 1.
+mid-sentence at the end of page 1. One printed title carries a typo, "THE WORDLY SADHU", which
+the heading and summary give as "The Worldly Sadhu".
+
+## Using these stories
+
+`data/bracketCityCharitra.ts` turns each summary into a Bracket City puzzle, so the sentence a
+player is left with once every bracket is solved is that story's summary. The play page shows
+the story title, so a puzzle must never use a word from its own title as an answer.
+`node scripts/validateBracketCity.mjs` checks that, and everything else the format requires,
+against the app's own parser.
 
 ## The volumes
 
@@ -39,11 +61,11 @@ mid-sentence at the end of page 1.
 |---|---|
 | The Curse of Durvasa Becomes a Boon | 1-4 |
 | Surbhi the Heavenly Cow | 5-6 |
-| Birth of Ghanashyam | 7-10 |
+| Birth of Ghanshyam | 7-10 |
 | Kalidutt the Evil One | 11-21 |
-| The Naming of Ghanashyam | 22-25 |
-| Ghanashyam's First Test | 26-27 |
-| Ghanashyam and Moon Uncle | 28-32 |
+| The Naming of Ghanshyam | 22-25 |
+| Ghanshyam's First Test | 26-27 |
+| Ghanshyam and Moon Uncle | 28-32 |
 
 ### Part 2 — [`part-02.md`](part-02.md)
 
@@ -55,9 +77,9 @@ mid-sentence at the end of page 1.
 | Sheshnag and the Well | 5-8 |
 | The Universe in Ghanshyam | 9-11 |
 | The Visit of Vairajpurus | 12-14 |
-| Ghanashyam Gets His Ears Pierced | 15-18 |
-| Ghanashyam and the Asura | 19-24 |
-| Ghanashyam and the Rattles | 25-28 |
+| Ghanshyam Gets His Ears Pierced | 15-18 |
+| Ghanshyam and the Asura | 19-24 |
+| Ghanshyam and the Rattles | 25-28 |
 | The Two Goddesses | 29-32 |
 
 ### Part 3 — [`part-03.md`](part-03.md)
@@ -66,10 +88,10 @@ mid-sentence at the end of page 1.
 
 | Story | Pages |
 |---|---|
-| Ghanashyam Reveals Himself | 1-3 |
-| Has Ghanashyam Drowned? | 4-7 |
+| Ghanshyam Reveals Himself | 1-3 |
+| Has Ghanshyam Drowned? | 4-7 |
 | Lord Of Light | 8-11 |
-| The Twelve Mothers Of Ghanashyam | 12-16 |
+| The Twelve Mothers Of Ghanshyam | 12-16 |
 | The Signs In The Palm | 17-20 |
 | Open Your Mouth! | 21-23 |
 | The Bath Of The Gods | 24-27 |
@@ -86,8 +108,8 @@ mid-sentence at the end of page 1.
 | The Monkeys Meet Their Match | 9-12 |
 | The Mango Fight | 13-17 |
 | The Ghosts In The Well | 18-21 |
-| Ghanashyam Runs Away | 22-25 |
-| Ghanashyam And The Fish | 26-29 |
+| Ghanshyam Runs Away | 22-25 |
+| Ghanshyam And The Fish | 26-29 |
 | The Ghosts And The Jack Fruit | 30-32 |
 
 ### Part 5 — [`part-05.md`](part-05.md)
@@ -97,13 +119,13 @@ mid-sentence at the end of page 1.
 | Story | Pages |
 |---|---|
 | At The Mela | 1-4 |
-| Ghanashyam And The Divine Horse | 5-7 |
+| Ghanshyam And The Divine Horse | 5-7 |
 | The Rainy Day | 8-10 |
 | The Feet Of The Lord | 11-15 |
-| Ghanashyam Is Hungry | 16-19 |
+| Ghanshyam Is Hungry | 16-19 |
 | The Lord Of All Things | 20-23 |
 | Surbhi And Her Calf | 24-27 |
-| Ghanashyam Gets Plastered | 28-32 |
+| Ghanshyam Gets Plastered | 28-32 |
 
 ### Part 6 — [`part-06.md`](part-06.md)
 
@@ -113,7 +135,7 @@ mid-sentence at the end of page 1.
 |---|---|
 | The Demon Camp | 1-5 |
 | Escaping from the Nawab's Soldiers | 6-9 |
-| Guarding Ghanashyam | 10-12 |
+| Guarding Ghanshyam | 10-12 |
 | The Crocodile Asura | 13-16 |
 | The Wrestling Match | 17-22 |
 | The Khampa Talavadi | 23-27 |
@@ -128,9 +150,9 @@ mid-sentence at the end of page 1.
 |---|---|
 | Be Generous | 1-4 |
 | All Are Equal | 5-7 |
-| Ghanashyam And The Giant Pumpkin | 8-10 |
-| Ghanashyam The Scholar | 11-14 |
-| Ghanashyam And The Sweets Shop | 15-21 |
+| Ghanshyam And The Giant Pumpkin | 8-10 |
+| Ghanshyam The Scholar | 11-14 |
+| Ghanshyam And The Sweets Shop | 15-21 |
 | On The Road To Targam | 22-25 |
 | The King's Soldiers | 26-29 |
 | At The Temple Of Krishna | 30-32 |
@@ -143,9 +165,9 @@ mid-sentence at the end of page 1.
 |---|---|
 | In The Soldiers' Camp | 1-5 |
 | The Bad Tempered Elephant | 6-9 |
-| Ghanashyam And The Birds | 10-13 |
-| Ghanashyam Has A Toothache | 14-17 |
-| Prasad Of Ghanashyam | 18-20 |
+| Ghanshyam And The Birds | 10-13 |
+| Ghanshyam Has A Toothache | 14-17 |
+| Prasad Of Ghanshyam | 18-20 |
 | The Gods Want Prasad! | 21-24 |
 | A Wedding And A Funeral | 25-28 |
 | The Mischievous Friends | 29-32 |
@@ -160,9 +182,9 @@ mid-sentence at the end of page 1.
 | The Ghosts And The Mangoes | 5-8 |
 | Feeding The 1,000 Pilgrims | 9-13 |
 | The Monk And The Tiger | 14-17 |
-| Ghanashyam Becomes A Brahmin | 18-21 |
-| Ghanashyam And The Mad Boy | 22-24 |
-| The Wordly Sadhu | 25-27 |
+| Ghanshyam Becomes A Brahmin | 18-21 |
+| Ghanshyam And The Mad Boy | 22-24 |
+| The Worldly Sadhu | 25-27 |
 | The Lucknow Wrestlers | 28-32 |
 
 ### Part 10 — [`part-10.md`](part-10.md)

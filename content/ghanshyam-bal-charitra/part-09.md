@@ -141,7 +141,7 @@ STUDY:
 
 6. Can you draw a picture of a tiger?
 
-## Ghanashyam Becomes A Brahmin
+## Ghanshyam Becomes A Brahmin
 
 <!-- pages 18-21 -->
 
@@ -175,7 +175,7 @@ STUDY:
 
 “Ghanshyam came back because of his concern for his ___________.”
 
-## Ghanashyam And The Mad Boy
+## Ghanshyam And The Mad Boy
 
 <!-- pages 22-24 -->
 
@@ -207,7 +207,7 @@ STUDY:
 
 5. Where did Ghanshyam say the boy’s soul would go when he leaves this earth?
 
-## The Wordly Sadhu
+## The Worldly Sadhu
 
 <!-- pages 25-27 -->
 
@@ -285,32 +285,32 @@ STUDY:
 
 ### The Sun At Night
 
-During a twelve-day monsoon downpour, Rampratap vows not to eat until he sees the sun, and grows dangerously weak. Ghanashyam prays to the sun-god Surya Narayan, who appears at night in his golden chariot; when Rampratap doubts him, Surya Narayan blazes with light and declares Ghanashyam to be the Lord above all. Rampratap is ashamed, embraces his brother and breaks his fast, while Surya Narayan lights up Chappaiya as he speeds away.
+During a twelve-day monsoon downpour, Rampratap vows not to eat until he sees the sun, and grows dangerously weak. Ghanshyam prays to the sun-god Surya Narayan, who appears at night in his golden chariot; when Rampratap doubts him, Surya Narayan blazes with light and declares Ghanshyam to be the Lord above all. Rampratap is ashamed, embraces his brother and breaks his fast, while Surya Narayan lights up Chhapaiya as he speeds away.
 
 ### The Ghosts And The Mangoes
 
-Ghanashyam and Rampratap form rival teams and race to see who can reach uncle Vashram's mango orchard first. Rampratap plans to stay awake, but Ghanashyam reads his thoughts and sends the ghosts of the orchard's peepal tree to pick the fruit first. Rampratap's group is chased off by the ghosts and returns home to find Ghanashyam sitting with them beside a huge pile of mangoes, which he blesses and shares with the ghosts as prasad.
+Ghanshyam and Rampratap form rival teams and race to see who can reach uncle Vashram's mango orchard first. Rampratap plans to stay awake, but Ghanshyam reads his thoughts and sends the ghosts of the orchard's peepal tree to pick the fruit first. Rampratap's group is chased off by the ghosts and returns home to find Ghanshyam sitting with them beside a huge pile of mangoes, which he blesses and shares with the ghosts as prasad.
 
 ### Feeding The 1,000 Pilgrims
 
-A thousand Nepali monks and followers camp at the Khapa Talavadi and run short of food. Ghanashyam brings them to Dharmadev, who reluctantly offers whatever is in the house; Bhaktimata and Suvasinibhabhi carry out the supplies, and each time they return the kitchen shelves are full again. The food multiplies until all thousand pilgrims are fed, and the monks recognise God in Ghanashyam and touch his feet.
+A thousand Nepali monks and followers camp at the Khampa Talavadi and run short of food. Ghanshyam brings them to Dharmadev, who reluctantly offers whatever is in the house; Bhaktimata and Suvasini carry out the supplies, and each time they return the kitchen shelves are full again. The food multiplies until all thousand pilgrims are fed, and the monks recognise God in Ghanshyam and touch his feet.
 
 ### The Monk And The Tiger
 
-Visiting the pilgrims' camp with his father, Ghanashyam finds a monk sitting on a tiger skin and asks for it, saddened that the animal was killed. The monk refuses proudly and then demands three hundred rupees, revealing his greed. Ghanashyam brings the skin back to life as a living tiger that terrifies the monk, explains the monk's pride and greed to the onlookers, forgives him when he begs, and sets the tiger free.
+Visiting the pilgrims' camp with his father, Ghanshyam finds a monk sitting on a tiger skin and asks for it, saddened that the animal was killed. The monk refuses proudly and then demands three hundred rupees, revealing his greed. Ghanshyam brings the skin back to life as a living tiger that terrifies the monk, explains the monk's pride and greed to the onlookers, forgives him when he begs, and sets the tiger free.
 
-### Ghanashyam Becomes A Brahmin
+### Ghanshyam Becomes A Brahmin
 
-Dharmadev arranges Ghanashyam's sacred thread ceremony at Ayodhya, and the house is decorated with lamps, a canopy and an agni kund for the rite. Dressed symbolically as a Brahmachari during the ceremony, Ghanashyam feels this is what he was born for and runs off to the North; Vashram chases him but cannot catch him. Sensing his parents' grief, Ghanashyam turns back with a heavy heart and returns to complete the ceremony.
+Dharmadev arranges Ghanshyam's sacred thread ceremony at Ayodhya, and the house is decorated with lamps, a canopy and an agni kund for the rite. Dressed symbolically as a Brahmachari during the ceremony, Ghanshyam feels this is what he was born for and runs off to the North; Vashram chases him but cannot catch him. Sensing his parents' grief, Ghanshyam turns back with a heavy heart and returns to complete the ceremony.
 
-### Ghanashyam And The Mad Boy
+### Ghanshyam And The Mad Boy
 
-A mad boy of Chappaiya is teased by Ghanashyam's friends until his mother drives them off, asking why they are cruel to a pure and innocent soul. Ghanashyam sees that the boy was a great Yogi in a previous life, reveals his four-armed godly form to him, and blesses him. The boy's madness leaves him at once, and Ghanashyam returns him to his mother with the promise that his soul will go to Akshardham.
+A mad boy of Chhapaiya is teased by Ghanshyam's friends until his mother drives them off, asking why they are cruel to a pure and innocent soul. Ghanshyam sees that the boy was a great Yogi in a previous life, reveals his four-armed godly form to him, and blesses him. The boy's madness leaves him at once, and Ghanshyam returns him to his mother with the promise that his soul will go to Akshardham.
 
-### The Wordly Sadhu
+### The Worldly Sadhu
 
-At the Hanuman temple in Ayodhya, the sadhu Mohandas praises fasting while reciting the Ramayana, but a fat sadhu scoffs that bodies are made for enjoyment. Ghanashyam walks out in disapproval and, when the sadhu challenges him, sends him to Yampuri, where the spirits of death beat him and tell him he has insulted God Himself. The sadhu repents, is brought back, and vows to practise and preach fasting; Ghanashyam forgives him and briefly shows his four-armed form.
+At the Hanuman temple in Ayodhya, the sadhu Mohandas praises fasting while reciting the Ramayana, but a fat sadhu scoffs that bodies are made for enjoyment. Ghanshyam walks out in disapproval and, when the sadhu challenges him, sends him to Yampuri, where the spirits of death beat him and tell him he has insulted God Himself. The sadhu repents, is brought back, and vows to practise and preach fasting; Ghanshyam forgives him and briefly shows his four-armed form.
 
 ### The Lucknow Wrestlers
 
-Brutal wrestlers from Lucknow challenge the king of Ayodhya for a statue of twenty-five kilos of gold, and the king's men are quickly beaten and maimed. Ghanashyam steps forward with his young friends, fills them with courage and strength, and they wear the giants down until Ghanashyam throws the leader to the ground. The king embraces him and gives him the golden award, which Ghanashyam uses to serve the poor rather than keep for himself.
+Brutal wrestlers from Lucknow challenge the king of Ayodhya for a statue of twenty-five kilos of gold, and the king's men are quickly beaten and maimed. Ghanshyam steps forward with his young friends, fills them with courage and strength, and they wear the giants down until Ghanshyam throws the leader to the ground. The king embraces him and gives him the golden award, which Ghanshyam uses to serve the poor rather than keep for himself.

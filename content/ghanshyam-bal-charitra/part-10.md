@@ -289,32 +289,32 @@ STUDY:
 
 ### Crossing The River
 
-On Ram Navmi, Dharmadev's group from Chappaiya reach the Saryu river to find greedy boatmen overcharging and overloading their ferries. Ghanashyam leads his family onto a huge block of building stone, touches it, and it floats them safely across while onlookers stare in amazement. On the far shore the crowd bows at his feet, and news of the miracle spreads through the fair.
+On Ram Navmi, Dharmadev's group from Chhapaiya reach the Saryu river to find greedy boatmen overcharging and overloading their ferries. Ghanshyam leads his family onto a huge block of building stone, touches it, and it floats them safely across while onlookers stare in amazement. On the far shore the crowd bows at his feet, and news of the miracle spreads through the fair.
 
 ### The Flooded Field
 
-Four months of monsoon rain flood Moti Tarwadi's rice field beside Bhatiya lake, threatening his family with hunger. Ghanashyam wades in, presses his big toe into the earth to open a hole, and the whole flood drains away, leaving the crop standing. He then calls Indra, who carries the stranded fish to safety, and the farmer's harvest is saved.
+Four months of monsoon rain flood Moti Tarwadi's rice field beside Bhatiya lake, threatening his family with hunger. Ghanshyam wades in, presses his big toe into the earth to open a hole, and the whole flood drains away, leaving the crop standing. He then calls Indra, who carries the stranded fish to safety, and the farmer's harvest is saved.
 
 ### The Blind Men At The Lake
 
-At the Shravan lake on Ekadashi, a sadhu with the power to cure blindness heals only those who can pay him. Ghanashyam takes pity on the poor blind people turned away, assumes his divine four-armed form, and restores their sight. The shamed sadhu begs forgiveness and is warned never to profit from God's gifts again.
+At the Shravan lake on Ekadashi, a sadhu with the power to cure blindness heals only those who can pay him. Ghanshyam takes pity on the poor blind people turned away, assumes his divine four-armed form, and restores their sight. The shamed sadhu begs forgiveness and is warned never to profit from God's gifts again.
 
 ### The Wishing Tree
 
-Ghanashyam and his friends secretly eat the jackfruit Dharmadev had cut up to offer to god, and Suvasinibhabhi reports them to Bhaktimata. After his mother's gentle scolding, Ghanashyam leads her to the family's barren jackfruit tree, now heavy with ripe fruit. When Ramprasad scoffs and names other fruits, the branches sprout coconut, grapes, bananas and the rest, and the brothers gather them to offer to god.
+Ghanshyam and his friends secretly eat the jackfruit Dharmadev had cut up to offer to god, and Suvasini reports them to Bhaktimata. After his mother's gentle scolding, Ghanshyam leads her to the family's barren jackfruit tree, now heavy with ripe fruit. When Ramprasad scoffs and names other fruits, the branches sprout coconut, grapes, bananas and the rest, and the brothers gather them to offer to god.
 
 ### The Tears Of Mother Earth
 
-On Uttarayan, Ghanashyam and Dharmadev bathe at the Narayan lake and feed sweets to brahmins and cows. Mother Earth appears as a cow, weeps at the sins polluting her, and begs the Lord to cleanse the world; Varundev, god of wind, joins her plea and points to the fish killed by fishermen. Ghanashyam brings the fish back to life and promises the two deities that he will soon begin his mission to rid the Earth of evil.
+On Uttarayan, Ghanshyam and Dharmadev bathe at the Narayan lake and feed sweets to brahmins and cows. Mother Earth appears as a cow, weeps at the sins polluting her, and begs the Lord to cleanse the world; Varundev, god of wind, joins her plea and points to the fish killed by fishermen. Ghanshyam brings the fish back to life and promises the two deities that he will soon begin his mission to rid the Earth of evil.
 
 ### The Death Of Bhaktimata
 
-Aged and ailing, Bhaktimata asks to be taken to Chappaiya, falls into fever, and gathers her family round her bed. She makes Ghanashyam promise to obey Rampratap and Suvasini, and asks them to raise him as their own son. Ghanashyam comforts her with the Bhagwad Gita and reveals his Godly form, and she dies with a vision of Akshardham; the family cremates her at the Narayan lake.
+Aged and ailing, Bhaktimata asks to be taken to Chhapaiya, falls into fever, and gathers her family round her bed. She makes Ghanshyam promise to obey Rampratap and Suvasini, and asks them to raise him as their own son. Ghanshyam comforts her with the Bhagwad Gita and reveals his Godly form, and she dies with a vision of Akshardham; the family cremates her at the Narayan lake.
 
 ### The Death Of Dharmadev
 
-Grieving for Bhaktimata, Dharmadev weakens within days, hands the household to Rampratap, and tells him Ghanashyam is Krishna, Purna Purshottam. He asks to hear the Bhagawat Saptah from pandit Ramahari, and when he wishes to see God in many forms, Ghanashyam expands into his twenty-four incarnations around the bed. Dharmadev dies chanting; Ghanashyam alone does not weep, seeing his father at peace in Akshadham, and Rampratap plants two Tulsi plants where his parents were cremated.
+Grieving for Bhaktimata, Dharmadev weakens within days, hands the household to Rampratap, and tells him Ghanshyam is Krishna, Purna Purshottam. He asks to hear the Bhagwat Saptah from pandit Ramahari, and when he wishes to see God in many forms, Ghanshyam expands into his twenty-four incarnations around the bed. Dharmadev dies chanting; Ghanshyam alone does not weep, seeing his father at peace in Akshardham, and Rampratap plants two Tulsi plants where his parents were cremated.
 
 ### Ghanshyam Leaves Home
 
-Provoked into thrashing a group of wrestlers, Ghanashyam is scolded by Rampratap and decides the moment has come to leave. He folds his clothes and jewelry, goes to the Saryu for a bath, dresses as a young holy man with prayer beads and an alms pot, and never returns. The asura Kaushidutt throws him into the river seeking revenge for Kalidutt, but Ghanashyam survives and destroys the asuras with the rays of his gaze, then sits in meditation, withdrawn from the family still searching for him.
+Provoked into thrashing a group of wrestlers, Ghanshyam is scolded by Rampratap and decides the moment has come to leave. He folds his clothes and jewelry, goes to the Saryu for a bath, dresses as a young holy man with prayer beads and an alms pot, and never returns. The asura Kaushidutt throws him into the river seeking revenge for Kalidutt, but Ghanshyam survives and destroys the asuras with the rays of his gaze, then sits in meditation, withdrawn from the family still searching for him.

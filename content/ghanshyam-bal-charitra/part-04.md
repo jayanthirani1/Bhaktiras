@@ -153,7 +153,7 @@ STUDY:
 4. How did the ghosts come to know that Ghanashyam was God?
 5. When Ghanashyam released the ghosts, where did they go?
 
-## Ghanashyam Runs Away
+## Ghanshyam Runs Away
 
 <!-- pages 22-25 -->
 
@@ -190,7 +190,7 @@ STUDY:
 3. Why did Ghanashyam run away?
 4. How did Ghanashyam come out of the well?
 
-## Ghanashyam And The Fish
+## Ghanshyam And The Fish
 
 <!-- pages 26-29 -->
 
@@ -257,32 +257,32 @@ STUDY:
 
 ### The Demon Storm
 
-On the day of Ghanashyam's first haircut at the Narayan lake, an asura disguises himself as a boy and joins his playmates, hoping to snatch him away. Ghanashyam sees through the disguise and burns him with a glare, so the demon flies into the sky and raises a storm, splitting a tree with lightning over the meditating child. Ghanashyam is unharmed, and when he opens his eyes and looks at the clouds, a bolt of lightning strikes the demon dead and the storm clears.
+On the day of Ghanshyam's first haircut at the Narayan lake, an asura disguises himself as a boy and joins his playmates, hoping to snatch him away. Ghanshyam sees through the disguise and burns him with a glare, so the demon flies into the sky and raises a storm, splitting a tree with lightning over the meditating child. Ghanshyam is unharmed, and when he opens his eyes and looks at the clouds, a bolt of lightning strikes the demon dead and the storm clears.
 
 ### Never A Dull Moment
 
-Rampratap goes to buy milk but forgets his money, and the cow-herder refuses him; reading his brother's thoughts from home, Ghanashyam projects a second form of himself outside the house and hands Rampratap a coin. Bhaktimata is astonished to see Ghanashyam arrive with his brother while he is also sitting inside the house. Later a monkey snatches a chappati from her dish, and Ghanashyam freezes it in the tree for three days before releasing it, whereupon the humbled monkey bows at his feet.
+Rampratap goes to buy milk but forgets his money, and the cow-herder refuses him; reading his brother's thoughts from home, Ghanshyam projects a second form of himself outside the house and hands Rampratap a coin. Bhaktimata is astonished to see Ghanshyam arrive with his brother while he is also sitting inside the house. Later a monkey snatches a chappati from her dish, and Ghanshyam freezes it in the tree for three days before releasing it, whereupon the humbled monkey bows at his feet.
 
 ### The Monkeys Meet Their Match
 
-A monkey steals Ghanashyam's chappati from the verandah while Bhaktimata fetches water, so Ghanashyam stretches his arms up to the tree, seizes the animal and throws it to the ground. The other monkeys of the neighbourhood swarm in to defend it, and Ghanashyam multiplies himself into as many forms as there are monkeys, driving them off with sticks. Dharmadev arrives, sees the two armies, and laughs, saying the monkey will be a great man in his next life for having taken prasad from the Lord's hand.
+A monkey steals Ghanshyam's chappati from the verandah while Bhaktimata fetches water, so Ghanshyam stretches his arms up to the tree, seizes the animal and throws it to the ground. The other monkeys of the neighbourhood swarm in to defend it, and Ghanshyam multiplies himself into as many forms as there are monkeys, driving them off with sticks. Dharmadev arrives, sees the two armies, and laughs, saying the monkey will be a great man in his next life for having taken prasad from the Lord's hand.
 
 ### The Mango Fight
 
-Ghanashyam climbs a mango tree by the Narayan lake and passes fruit down to his friend Veniram, who piles it on the ground. Older brahmin boys arrive, and a bully helps himself to the pile and slaps Veniram, so Ghanashyam snatches his water pot and rope. When the bully and his friends climb after him, Ghanashyam repeatedly vanishes and reappears until they are all up the tree, then he and his friends pelt them with mangoes; the older boys apologise, touch his feet, and gather the mangoes for them.
+Ghanshyam climbs a mango tree by the Narayan lake and passes fruit down to his friend Veniram, who piles it on the ground. Older brahmin boys arrive, and a bully helps himself to the pile and slaps Veniram, so Ghanshyam snatches his water pot and rope. When the bully and his friends climb after him, Ghanshyam repeatedly vanishes and reappears until they are all up the tree, then he and his friends pelt them with mangoes; the older boys apologise, touch his feet, and gather the mangoes for them.
 
 ### The Ghosts In The Well
 
-Fleeing the Nawab's soldiers, Dharmadev's family stay with friends in the village of Tinva, where Bhaktimata is warned not to use the haunted well at night. She forgets, and ghostly forms clutch at her rope, so Ghanashyam runs to the well and lowers himself in; his glowing body burns the ghosts, who recognise him as God and beg forgiveness. They explain they were gamblers killed in a fight and barred from heaven, and Ghanashyam blesses and releases them, after which the well at Tinva is never haunted again.
+Fleeing the Nawab's soldiers, Dharmadev's family stay with friends in the village of Tinva, where Bhaktimata is warned not to use the haunted well at night. She forgets, and ghostly forms clutch at her rope, so Ghanshyam runs to the well and lowers himself in; his glowing body burns the ghosts, who recognise him as God and beg forgiveness. They explain they were gamblers killed in a fight and barred from heaven, and Ghanshyam blesses and releases them, after which the well at Tinva is never haunted again.
 
-### Ghanashyam Runs Away
+### Ghanshyam Runs Away
 
-At the family farm in Targam, Ghanashyam dislikes sowing and scatters the seed carelessly, disturbing the workers. Rampratap raises his hand to slap him, and Ghanashyam reveals his four-armed form of God, so his brother begs forgiveness. Still upset, Ghanashyam leaves before dawn, and the family search until a villager reports seeing him near an old well; Rampratap finds him at the bottom, apologises, and Ghanashyam stretches his arms upward until his brother can pull him out.
+At the family farm in Targam, Ghanshyam dislikes sowing and scatters the seed carelessly, disturbing the workers. Rampratap raises his hand to slap him, and Ghanshyam reveals his four-armed form of God, so his brother begs forgiveness. Still upset, Ghanshyam leaves before dawn, and the family search until a villager reports seeing him near an old well; Rampratap finds him at the bottom, apologises, and Ghanshyam stretches his arms upward until his brother can pull him out.
 
-### Ghanashyam And The Fish
+### Ghanshyam And The Fish
 
-At the Meensagar lake Ghanashyam sees fishermen tipping their catch on the shore to die, and weeping, he waves his hand and sends the fish flipping back into the water. The angry fishermen advance on him, so he takes the form of the eighteen-armed god of Death and transports them to the kingdom of Death, where demons torment them until they can bear no more. Returned to the shore, they beg forgiveness and promise to burn their nets, as Ghanashyam tells them all creatures are his creation and harming them is a sin.
+At the Meensagar lake Ghanshyam sees fishermen tipping their catch on the shore to die, and weeping, he waves his hand and sends the fish flipping back into the water. The angry fishermen advance on him, so he takes the form of the eighteen-armed god of Death and transports them to the kingdom of Death, where demons torment them until they can bear no more. Returned to the shore, they beg forgiveness and promise to burn their nets, as Ghanshyam tells them all creatures are his creation and harming them is a sin.
 
 ### The Ghosts And The Jack Fruit
 
-Two thieves steal the ripening jack-fruits from the family garden and rest with them by the Narayan lake, planning to sell them at market. Ghanashyam sees it all from his bed and summons the ghosts of a nearby peepal tree, who terrify the thieves into carrying the fruit back to his verandah, where they beg forgiveness and flee into the night. As a reward, Ghanashyam forgives the ghosts their past sins and releases their souls, and they rise to find peace in Badrik Ashram.
+Two thieves steal the ripening jack-fruits from the family garden and rest with them by the Narayan lake, planning to sell them at market. Ghanshyam sees it all from his bed and summons the ghosts of a nearby peepal tree, who terrify the thieves into carrying the fruit back to his verandah, where they beg forgiveness and flee into the night. As a reward, Ghanshyam forgives the ghosts their past sins and releases their souls, and they rise to find peace in Badrik Ashram.

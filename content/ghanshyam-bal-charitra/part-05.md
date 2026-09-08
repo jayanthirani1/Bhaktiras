@@ -34,7 +34,7 @@ STUDY:
 3. What was the name of the giant eagle?
 4. What happened when Dharmadev took his holy bath?
 
-## Ghanashyam And The Divine Horse
+## Ghanshyam And The Divine Horse
 
 <!-- pages 5-7 -->
 
@@ -118,7 +118,7 @@ STUDY:
 3. How many of the symbols can you name?
 4. Who appeared in the middle of the bright light?
 
-## Ghanashyam Is Hungry
+## Ghanshyam Is Hungry
 
 <!-- pages 16-19 -->
 
@@ -198,7 +198,7 @@ STUDY:
 2. Where does Surbhi live?
 3. Draw a picture of Surbhi and her calf.
 
-## Ghanashyam Gets Plastered
+## Ghanshyam Gets Plastered
 
 <!-- pages 28-32 -->
 
@@ -230,32 +230,32 @@ STUDY:
 
 ### At The Mela
 
-Dharmadev refuses to take Ghanashyam on the long journey to the holy mela at Harihar, so the boy creates a second body, calls the giant eagle Garuda, and flies to the fair overnight. He surprises his father there, and when Dharmadev dips under the water for the holy bath he sees his son as God with four arms. Ghanashyam spends the day at the mela, vanishes in the evening, and later he and his father tell an astonished Bhaktimata the whole story.
+Dharmadev refuses to take Ghanshyam on the long journey to the holy mela at Harihar, so the boy creates a second body, calls the giant eagle Garuda, and flies to the fair overnight. He surprises his father there, and when Dharmadev dips under the water for the holy bath he sees his son as God with four arms. Ghanshyam spends the day at the mela, vanishes in the evening, and later he and his father tell an astonished Bhaktimata the whole story.
 
-### Ghanashyam And The Divine Horse
+### Ghanshyam And The Divine Horse
 
-Playing at the Narayan lake, Ghanashyam's friends boast that their pretend tree-branch horses are faster than his. He turns his branch into a real seven-headed horse and races it around the lakes, wells and villages of the region, scaring the women drawing water and drawing praise from bathing brahmins. He returns, makes the horse vanish, and his friends declare that his horse is the fastest.
+Playing at the Narayan lake, Ghanshyam's friends boast that their pretend tree-branch horses are faster than his. He turns his branch into a real seven-headed horse and races it around the lakes, wells and villages of the region, scaring the women drawing water and drawing praise from bathing brahmins. He returns, makes the horse vanish, and his friends declare that his horse is the fastest.
 
 ### The Rainy Day
 
-Bhaktimata is teaching the baby Ghanashyam to stand in the garden when rain drives them indoors, and he cries because he cannot play outside. Brahma, Sharda and Narad appear in the house; Narad plays his veena in time with the raindrops while the others play games with the child. When the rain stops they bow to him and return to the skies.
+Bhaktimata is teaching the baby Ghanshyam to stand in the garden when rain drives them indoors, and he cries because he cannot play outside. Brahma, Sharda and Narad appear in the house; Narad plays his veena in time with the raindrops while the others play games with the child. When the rain stops they bow to him and return to the skies.
 
 ### The Feet Of The Lord
 
-While Dharmadev reads the Bhagwat Geeta to Vashram, Sundari notices strange marks on baby Ghanashyam's feet, and Bhaktimata points out the nine symbols on his right foot and seven on his left. A great light streams from his feet, and Lord Laxminarayan appears enthroned among the gods. He tells Dharmadev that Lord Purshottam has been born as his son for the benefit of mankind, worships the child, then returns him to Sundari's lap as the vision fades.
+While Dharmadev reads the Bhagwad Gita to Vashram, Sundari notices strange marks on baby Ghanshyam's feet, and Bhaktimata points out the nine symbols on his right foot and seven on his left. A great light streams from his feet, and Lord Lakshminarayan appears enthroned among the gods. He tells Dharmadev that Lord Purshottam has been born as his son for the benefit of mankind, worships the child, then returns him to Sundari's lap as the vision fades.
 
-### Ghanashyam Is Hungry
+### Ghanshyam Is Hungry
 
-Bhaktimata puts the still-hungry baby down to get on with cleaning rice for lunch. Ghanashyam crawls out to the verandah and tumbles down the steps, and when his mother rushes to him he tells her with his mind that he is unhurt and only pretended to fall because he is hungry, since as Purshottam he would never fall unless he chose to. She feeds him warm sweetened milk from a saucer and rocks him to sleep in his cradle.
+Bhaktimata puts the still-hungry baby down to get on with cleaning rice for lunch. Ghanshyam crawls out to the verandah and tumbles down the steps, and when his mother rushes to him he tells her with his mind that he is unhurt and only pretended to fall because he is hungry, since as Purshottam he would never fall unless he chose to. She feeds him warm sweetened milk from a saucer and rocks him to sleep in his cradle.
 
 ### The Lord Of All Things
 
-Lord Satwagunabhimani, who releases pure souls to Akshadham, visits the baby Ghanashyam and offers to do his bidding. Ghanashyam teasingly asks why his own soul has never been released, and Satwagunabhimani replies that all his power comes from God and that many souls will be purified because God has come to earth. He offers his arrows against evil asuras; Ghanashyam says his thoughts alone can burn up evil, so Satwagunabhimani asks Hanumanji to guard him instead.
+Lord Satwagunabhimani, who releases pure souls to Akshardham, visits the baby Ghanshyam and offers to do his bidding. Ghanshyam teasingly asks why his own soul has never been released, and Satwagunabhimani replies that all his power comes from God and that many souls will be purified because God has come to earth. He offers his arrows against evil asuras; Ghanshyam says his thoughts alone can burn up evil, so Satwagunabhimani asks Hanuman to guard him instead.
 
 ### Surbhi And Her Calf
 
-As Ghanashyam learns to walk with a wooden three-wheeled toy Chandanbai has had made, a calf comes into the compound and licks him. Its mother is Surbhi, the heavenly cow, sent from Gaulok to feed him. Ghanashyam, already fed, promises to call on her whenever he is hungry; she licks his head and returns to Gaulok, leaving Chandanbai amazed.
+As Ghanshyam learns to walk with a wooden three-wheeled toy Chandanbai has had made, a calf comes into the compound and licks him. Its mother is Surbhi, the heavenly cow, sent from Gaulok to feed him. Ghanshyam, already fed, promises to call on her whenever he is hungry; she licks his head and returns to Gaulok, leaving Chandanbai amazed.
 
-### Ghanashyam Gets Plastered
+### Ghanshyam Gets Plastered
 
-Before Diwali, Bhaktimata plasters the floors with a mixture of cow-dung and mud while Ghanashyam, left alone next door, crawls back to her with his ankle bells tinkling. He smears the plaster all over himself, and his mother scolds him and takes the basket away. A visiting carpenter carries the crying, muddy child to Dharmadev but finds him growing impossibly heavy, and says the boy is no ordinary child; Bhaktimata then bathes him at the well, both of them laughing.
+Before Diwali, Bhaktimata plasters the floors with a mixture of cow-dung and mud while Ghanshyam, left alone next door, crawls back to her with his ankle bells tinkling. He smears the plaster all over himself, and his mother scolds him and takes the basket away. A visiting carpenter carries the crying, muddy child to Dharmadev but finds him growing impossibly heavy, and says the boy is no ordinary child; Bhaktimata then bathes him at the well, both of them laughing.

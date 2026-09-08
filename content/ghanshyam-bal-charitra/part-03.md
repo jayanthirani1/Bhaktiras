@@ -3,7 +3,7 @@
 > Source: https://www.swaminarayan.faith/media/3545/ghanshyam-charitra-3.pdf (34 pages)
 > Transcribed from the scanned English edition. Body text is verbatim; names keep the book's spellings.
 
-## Ghanashyam Reveals Himself
+## Ghanshyam Reveals Himself
 
 <!-- pages 1-3 -->
 
@@ -29,7 +29,7 @@ STUDY:
 
 3. What were the other names of Ghanashyam that he revealed to his mother?
 
-## Has Ghanashyam Drowned?
+## Has Ghanshyam Drowned?
 
 <!-- pages 4-7 -->
 
@@ -97,7 +97,7 @@ STUDY:
 
 5. Why did God choose Bhaktimata to take his birth from?
 
-## The Twelve Mothers Of Ghanashyam
+## The Twelve Mothers Of Ghanshyam
 
 <!-- pages 12-16 -->
 
@@ -263,26 +263,26 @@ STUDY:
 
 ## Story Summaries
 
-### Ghanashyam Reveals Himself
-A sparrow startles the infant Ghanashyam as Bhaktimata feeds him on the verandah, and she scolds the bird for frightening her baby. Ghanashyam answers her in her mind, asking why she worries when nothing can harm him. He tells her he is Aksharatit and Purnapurshottam, that she is Bhakti, his father is Dharma, and his elder brother is Shankarshana. Bhaktimata is amazed and weeps as she holds him.
+### Ghanshyam Reveals Himself
+A sparrow startles the infant Ghanshyam as Bhaktimata feeds him on the verandah, and she scolds the bird for frightening her baby. Ghanshyam answers her in her mind, asking why she worries when nothing can harm him. He tells her he is Aksharatit and Purna Purshottam, that she is Bhakti, his father is Dharma, and his elder brother is Sankarshan. Bhaktimata is amazed and weeps as she holds him.
 
-### Has Ghanashyam Drowned?
-Ghanashyam, skilled at wrestling and swimming, is playing with friends in Meensagar lake when he sinks to the bottom, sits cross-legged and meditates, his body slowing so he needs no breath. His friends cannot find him and fear he has drowned or been taken by a crocodile, so the village and his family rush to the lake. Sensing their worry, Ghanashyam rises and stands on the surface, then walks ashore without making a ripple. Bhaktimata begs him not to frighten her again, Dharmadev makes him promise never to swim without his brother, and the villagers touch his feet.
+### Has Ghanshyam Drowned?
+Ghanshyam, skilled at wrestling and swimming, is playing with friends in Meensagar lake when he sinks to the bottom, sits cross-legged and meditates, his body slowing so he needs no breath. His friends cannot find him and fear he has drowned or been taken by a crocodile, so the village and his family rush to the lake. Sensing their worry, Ghanshyam rises and stands on the surface, then walks ashore without making a ripple. Bhaktimata begs him not to frighten her again, Dharmadev makes him promise never to swim without his brother, and the villagers touch his feet.
 
 ### Lord Of Light
-While Bhaktimata tickles the baby Ghanashyam, a light pours from his navel and fills the world, and Chaturbuj and Bhumapurush emerge with a message that Purushottam has taken birth as her child. Later, feeding him again, she sees light come from his thumb and is frightened. Ghanashyam speaks in her mind, saying he is Lord Purshottam, who chose birth from her because in a previous life she devoted herself to him as though he were her son. Her love and devotion for him grow daily.
+While Bhaktimata tickles the baby Ghanshyam, a light pours from his navel and fills the world, and Chaturbuj and Bhumapurush emerge with a message that Purshottam has taken birth as her child. Later, feeding him again, she sees light come from his thumb and is frightened. Ghanshyam speaks in her mind, saying he is Lord Purshottam, who chose birth from her because in a previous life she devoted herself to him as though he were her son. Her love and devotion for him grow daily.
 
-### The Twelve Mothers Of Ghanashyam
-Bhaktimata is too ill with fever to feed the crying baby, and Rampratapbhai calms the cradle before leaving for the lake. Ghanashyam's cries reach the heavens, and twelve heavenly women come down; Shrada feeds him first, then each takes a turn until he sleeps. Dharmadev returns to find them there, and the women bow and leave, passing Rampratapbhai at the lake, where Shrada tells him who they are. Ghanashyam explains to his mother that he called his twelve heavenly mothers because she was too ill to feed him.
+### The Twelve Mothers Of Ghanshyam
+Bhaktimata is too ill with fever to feed the crying baby, and Rampratap calms the cradle before leaving for the lake. Ghanshyam's cries reach the heavens, and twelve heavenly women come down; Shrada feeds him first, then each takes a turn until he sleeps. Dharmadev returns to find them there, and the women bow and leave, passing Rampratap at the lake, where Shrada tells him who they are. Ghanshyam explains to his mother that he called his twelve heavenly mothers because she was too ill to feed him.
 
 ### The Signs In The Palm
-Bhaktimata cannot read the strange marks on baby Ghanashyam's palm, so Dharmadev identifies a lotus, a flag and an Ankush. As they look, a light bursts from the baby's hand and blinds them, and when they open their eyes Lord Vasudev is seated on a white island. Vasudev tells Rampratap that his parents are Dharma and Bhakti, that he himself is the incarnation of Sankararshan, and that his baby brother is Purshottam Narayan, born to enlighten millions. Vasudev bows to the baby, blesses him and disappears.
+Bhaktimata cannot read the strange marks on baby Ghanshyam's palm, so Dharmadev identifies a lotus, a flag and an Ankush. As they look, a light bursts from the baby's hand and blinds them, and when they open their eyes Lord Vasudev is seated on a white island. Vasudev tells Rampratap that his parents are Dharma and Bhakti, that he himself is the incarnation of Sankarshan, and that his baby brother is Purshottam Narayan, born to enlighten millions. Vasudev bows to the baby, blesses him and disappears.
 
 ### Open Your Mouth!
-While the women cook, Chandanbai cleans rice on the verandah and sets her bangles down, and Ghanashyam throws one into the garden so she will play with him. When she refuses to fetch it, he crawls after it and pushes earth into his mouth. Chandanbai rushes over and tells him to open his mouth, and as she pulls out the earth she sees the whole universe inside it. Bhaktimata only smiles at the news, having seen the same vision when he was a tiny baby.
+While the women cook, Chandanbai cleans rice on the verandah and sets her bangles down, and Ghanshyam throws one into the garden so she will play with him. When she refuses to fetch it, he crawls after it and pushes earth into his mouth. Chandanbai rushes over and tells him to open his mouth, and as she pulls out the earth she sees the whole universe inside it. Bhaktimata only smiles at the news, having seen the same vision when he was a tiny baby.
 
 ### The Bath Of The Gods
-Brahma, Vishnu and Shiva sit invisibly on the wall of the family well while Bhaktimata bathes her son. When she goes indoors for cold water, the three gods come down and bathe Ghanashyam themselves, glad to serve their Lord. Bhaktimata returns to find him already bathed, then finds him dressed inside the house while three men bathe him outside, and thinks she is going mad. The gods tell her that her son is the Lord and creator of all things, and that they simply wanted to be near him, before rising into the sky.
+Brahma, Vishnu and Shiva sit invisibly on the wall of the family well while Bhaktimata bathes her son. When she goes indoors for cold water, the three gods come down and bathe Ghanshyam themselves, glad to serve their Lord. Bhaktimata returns to find him already bathed, then finds him dressed inside the house while three men bathe him outside, and thinks she is going mad. The gods tell her that her son is the Lord and creator of all things, and that they simply wanted to be near him, before rising into the sky.
 
 ### The First Haircut
-At three years old Ghanashyam is taken to Narayan lake with a brahmin and a barber for his first haircut and holy bath. The razor hurts him, so he raises his arm and makes himself invisible to the barber alone, who sits baffled while everyone else can still see the boy with his hair half cut. Shiva and Parvati come down on Nandi, and Shiva tells Ghanashyam not to tease the man, reminding him that as lord of all things he feels pain only if he chooses to. Ghanashyam understands, reappears to the barber and tells him to cut it all off.
+At three years old Ghanshyam is taken to Narayan lake with a brahmin and a barber for his first haircut and holy bath. The razor hurts him, so he raises his arm and makes himself invisible to the barber alone, who sits baffled while everyone else can still see the boy with his hair half cut. Shiva and Parvati come down on Nandi, and Shiva tells Ghanshyam not to tease the man, reminding him that as lord of all things he feels pain only if he chooses to. Ghanshyam understands, reappears to the barber and tells him to cut it all off.
