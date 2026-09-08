@@ -1,10 +1,15 @@
 import {
+  collection,
   deleteDoc,
   doc,
   getDoc,
+  getDocs,
+  query,
   serverTimestamp,
   setDoc,
   updateDoc,
+  where,
+  writeBatch,
   type Firestore
 } from 'firebase/firestore'
 import { getApp } from 'firebase/app'
@@ -191,15 +196,78 @@ async function syncSubscription(db: Firestore, uid: string, vapidKey: string): P
   return { id, topics }
 }
 
+type AccountSubscription = { id: string; topics: PushTopic[]; enabled: boolean }
+
+/**
+ * Every subscription document on the account — one per device the devotee has
+ * ever turned notifications on for.
+ *
+ * Topic preferences are chosen in Account settings, which reads as an account
+ * setting rather than a per-device one, so every read and every write below
+ * spans the account. Editing only the document belonging to the browser making
+ * the change is what let a devotee turn "Daily games and records" off on their
+ * laptop and keep getting game pushes on their phone.
+ */
+async function loadAccountSubscriptions(db: Firestore, uid: string): Promise<AccountSubscription[]> {
+  const snap = await getDocs(query(collection(db, 'pushSubscriptions'), where('userId', '==', uid)))
+  return snap.docs.map(item => ({
+    id: item.id,
+    topics: normalizeTopics(item.data().topics),
+    enabled: item.data().enabled === true
+  }))
+}
+
+function enabledOnly(subscriptions: AccountSubscription[]) {
+  return subscriptions.filter(item => item.enabled)
+}
+
+/**
+ * What the account is actually receiving: a topic is on if any device is
+ * subscribed to it. Devices only diverge on records written before preferences
+ * became account-wide, and the first toggle converges them.
+ */
+function unionTopics(subscriptions: AccountSubscription[]): PushTopic[] {
+  const chosen = new Set<PushTopic>()
+  enabledOnly(subscriptions).forEach(item => item.topics.forEach(topic => chosen.add(topic)))
+  return ALL_TOPICS.filter(topic => chosen.has(topic))
+}
+
+function sameTopics(left: PushTopic[], right: PushTopic[]) {
+  return left.length === right.length && left.every((topic, index) => topic === right[index])
+}
+
+/** Writes one topic set to every subscribed device on the account. */
+async function writeAccountTopics(db: Firestore, subscriptions: AccountSubscription[], topics: PushTopic[]) {
+  const behind = enabledOnly(subscriptions).filter(item => !sameTopics(item.topics, topics))
+  if (!behind.length) return
+  const write = writeBatch(db)
+  behind.forEach(item => write.update(doc(db, 'pushSubscriptions', item.id), {
+    topics,
+    updatedAt: serverTimestamp()
+  }))
+  await write.commit()
+}
+
+/** Unsubscribes every device on the account, so "off" means off everywhere. */
+async function deleteAccountSubscriptions(db: Firestore, ids: string[]) {
+  if (!ids.length) return
+  const write = writeBatch(db)
+  ids.forEach(id => write.delete(doc(db, 'pushSubscriptions', id)))
+  await write.commit()
+}
+
 let initialiseRun = 0
 
-/** Browser permission, FCM token registration and per-device topic preferences. */
+/** Browser permission, FCM token registration and account-wide topic preferences. */
 export function usePushNotifications() {
   const auth = useAuth()
   const config = useRuntimeConfig().public
   const supported = useState<boolean | null>('push-supported', () => null)
   const needsHomeScreen = useState<boolean>('push-needs-home-screen', () => false)
+  // `enabled` is the account switch — on while any device is subscribed.
+  // `deviceEnabled` is whether this browser is one of them.
   const enabled = useState<boolean>('push-enabled', () => false)
+  const deviceEnabled = useState<boolean>('push-device-enabled', () => false)
   const topics = useState<PushTopic[]>('push-topics', () => [])
   const busy = useState<boolean>('push-busy', () => false)
   const error = useState<string>('push-error', () => '')
@@ -227,25 +295,32 @@ export function usePushNotifications() {
 
     const uid = auth.user.value?.uid
     const db = getDb()
-    if (!uid || !db || permission.value !== 'granted' || !supported.value) {
+    if (!uid || !db) {
       if (stale()) return
       enabled.value = false
+      deviceEnabled.value = false
       topics.value = []
       return
     }
 
     try {
-      const synced = await syncSubscription(db, uid, String(config.firebaseVapidKey || ''))
+      // A device that cannot hold a token still reads the account's settings —
+      // an iOS browser tab should show what the Home Screen app is receiving.
+      const synced = permission.value === 'granted' && supported.value
+        ? await syncSubscription(db, uid, String(config.firebaseVapidKey || ''))
+        : null
       if (stale()) return
-      enabled.value = !!synced
-      topics.value = synced?.topics ?? []
-      if (synced) {
-        localStorage.setItem(SUBSCRIPTION_ID_KEY, synced.id)
-        localStorage.setItem(TOPICS_KEY, JSON.stringify(synced.topics))
-      }
+      const subscriptions = await loadAccountSubscriptions(db, uid)
+      if (stale()) return
+      deviceEnabled.value = !!synced
+      enabled.value = enabledOnly(subscriptions).length > 0
+      topics.value = unionTopics(subscriptions)
+      if (synced) localStorage.setItem(SUBSCRIPTION_ID_KEY, synced.id)
+      localStorage.setItem(TOPICS_KEY, JSON.stringify(topics.value))
     } catch {
       if (stale()) return
       enabled.value = false
+      deviceEnabled.value = false
       topics.value = []
     }
   }
@@ -257,15 +332,20 @@ export function usePushNotifications() {
     if (!supported.value) throw new Error('Push notifications are not supported on this device.')
 
     const previousEnabled = enabled.value
+    const previousDeviceEnabled = deviceEnabled.value
     const previousTopics = [...topics.value]
+    // With no category named this is the master switch, or a second device
+    // joining an account that is already on: adopt what the account receives,
+    // and only fall back to everything when nothing is chosen yet.
     const optimisticTopics = normalizeTopics([
       ...previousTopics,
-      ...(topic ? [topic] : ALL_TOPICS)
+      ...(topic ? [topic] : previousTopics.length ? previousTopics : ALL_TOPICS)
     ])
 
     // Flip the switch immediately — the FCM handshake can take a few seconds on
     // Android, and leaving the toggle stuck mid-press feels broken.
     enabled.value = true
+    deviceEnabled.value = true
     topics.value = optimisticTopics.length ? optimisticTopics : ALL_TOPICS
     busy.value = true
     error.value = ''
@@ -310,9 +390,14 @@ export function usePushNotifications() {
 
       const ref = doc(db, 'pushSubscriptions', subscriptionId)
       const existing = await getDoc(ref)
-      const requested = topic ? [topic] : ALL_TOPICS
-      const previous = existing.exists() ? normalizeTopics(existing.data().topics) : []
-      const nextTopics = normalizeTopics([...previous, ...requested])
+      // Turning a category on is an account choice, so it starts from what the
+      // account already receives rather than from this device's own record.
+      const subscriptions = await loadAccountSubscriptions(db, uid)
+      const accountTopics = unionTopics(subscriptions)
+      const requested = topic
+        ? [topic]
+        : accountTopics.length ? accountTopics : ALL_TOPICS
+      const nextTopics = normalizeTopics([...accountTopics, ...requested])
 
       await setDoc(ref, {
         userId: uid,
@@ -323,14 +408,21 @@ export function usePushNotifications() {
         createdAt: existing.exists() ? existing.data().createdAt : serverTimestamp(),
         updatedAt: serverTimestamp()
       })
+      await writeAccountTopics(
+        db,
+        subscriptions.filter(item => item.id !== subscriptionId),
+        nextTopics
+      )
 
       localStorage.setItem(SUBSCRIPTION_ID_KEY, subscriptionId)
       localStorage.setItem(TOPICS_KEY, JSON.stringify(nextTopics))
       topics.value = nextTopics
       enabled.value = true
+      deviceEnabled.value = true
       return true
     } catch (value) {
       enabled.value = previousEnabled
+      deviceEnabled.value = previousDeviceEnabled
       topics.value = previousTopics
       error.value = friendlyPushError(value)
       throw value instanceof Error ? value : new Error(error.value)
@@ -339,11 +431,14 @@ export function usePushNotifications() {
     }
   }
 
+  /** Turns notifications off for the whole account, every device included. */
   async function disable() {
     if (import.meta.server) return
     const previousEnabled = enabled.value
+    const previousDeviceEnabled = deviceEnabled.value
     const previousTopics = [...topics.value]
     enabled.value = false
+    deviceEnabled.value = false
     topics.value = []
     busy.value = true
     error.value = ''
@@ -352,10 +447,21 @@ export function usePushNotifications() {
       const db = getDb()
       // The live token may have rotated since this device last saved an id, so
       // clear both the current record and any stranded predecessor.
-      const synced = uid && db ? await syncSubscription(db, uid, String(config.firebaseVapidKey || '')) : null
-      const ids = new Set([synced?.id, localStorage.getItem(SUBSCRIPTION_ID_KEY)].filter(Boolean) as string[])
-      if (db) {
-        for (const id of ids) await deleteDoc(doc(db, 'pushSubscriptions', id))
+      const synced = uid && db && permission.value === 'granted' && supported.value
+        ? await syncSubscription(db, uid, String(config.firebaseVapidKey || ''))
+        : null
+      if (uid && db) {
+        const subscriptions = await loadAccountSubscriptions(db, uid)
+        const ids = new Set(subscriptions.map(item => item.id))
+        // A stranded id is only safe to delete once it is known to exist and to
+        // belong to this account — the rules reject a delete of a missing doc.
+        const strays = [synced?.id, localStorage.getItem(SUBSCRIPTION_ID_KEY)]
+          .filter((id): id is string => !!id && !ids.has(id))
+        for (const id of strays) {
+          const stray = await getDoc(doc(db, 'pushSubscriptions', id))
+          if (stray.exists() && stray.data().userId === uid) ids.add(id)
+        }
+        await deleteAccountSubscriptions(db, [...ids])
       }
       try {
         const { deleteToken, getMessaging } = await import('firebase/messaging')
@@ -367,6 +473,7 @@ export function usePushNotifications() {
       localStorage.removeItem(TOPICS_KEY)
     } catch (value) {
       enabled.value = previousEnabled
+      deviceEnabled.value = previousDeviceEnabled
       topics.value = previousTopics
       error.value = value instanceof Error ? value.message : 'Could not disable notifications.'
       throw value
@@ -382,29 +489,33 @@ export function usePushNotifications() {
     }
     if (!enabled.value || !topics.value.includes(topic)) return
 
-    const nextTopics = topics.value.filter(item => item !== topic)
-    if (!nextTopics.length) {
-      await disable()
-      return
-    }
-
+    const previousTopics = [...topics.value]
     busy.value = true
     error.value = ''
     try {
       const uid = auth.user.value?.uid
       const db = getDb()
       if (!uid || !db) throw new Error('Sign in to update notification preferences.')
-      const synced = await syncSubscription(db, uid, String(config.firebaseVapidKey || ''))
-      const id = synced?.id
-      if (!id) throw new Error('This notification subscription could not be found.')
-      await updateDoc(doc(db, 'pushSubscriptions', id), {
-        topics: nextTopics,
-        updatedAt: serverTimestamp()
-      })
-      localStorage.setItem(SUBSCRIPTION_ID_KEY, id)
+      // Bring this device's own record under its live token first, so it is in
+      // the account list about to be rewritten rather than left on the old id.
+      const synced = permission.value === 'granted' && supported.value
+        ? await syncSubscription(db, uid, String(config.firebaseVapidKey || ''))
+        : null
+      if (synced) localStorage.setItem(SUBSCRIPTION_ID_KEY, synced.id)
+
+      const subscriptions = await loadAccountSubscriptions(db, uid)
+      const nextTopics = unionTopics(subscriptions).filter(item => item !== topic)
+      // An empty topic list still matches an "everyone" send, so the last
+      // category going off unsubscribes the account rather than muting it.
+      if (!nextTopics.length) {
+        await disable()
+        return
+      }
+      await writeAccountTopics(db, subscriptions, nextTopics)
       localStorage.setItem(TOPICS_KEY, JSON.stringify(nextTopics))
       topics.value = nextTopics
     } catch (value) {
+      topics.value = previousTopics
       error.value = value instanceof Error ? value.message : 'Could not update notification preferences.'
       throw value
     } finally {
@@ -445,6 +556,7 @@ export function usePushNotifications() {
     supported,
     needsHomeScreen,
     enabled,
+    deviceEnabled,
     topics,
     busy,
     error,

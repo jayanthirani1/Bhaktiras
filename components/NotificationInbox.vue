@@ -84,7 +84,7 @@
               </div>
               <p class="mt-3 text-sm font-medium text-[hsl(var(--foreground))]">You're all caught up</p>
               <NuxtLink
-                v-if="!push.enabled.value"
+                v-if="!push.deviceEnabled.value"
                 to="/account"
                 class="mt-1 inline-block text-xs font-semibold text-[hsl(var(--golden-900))]"
                 @click="close"

@@ -82,7 +82,8 @@
               <div>
                 <h2 class="font-display text-xl font-semibold text-[hsl(var(--primary))]">Push notifications</h2>
                 <p class="mt-2 text-sm leading-relaxed text-[hsl(var(--muted-foreground))]">
-                  Receive announcements, niyam reminders and daily game reminders on this device. You can turn them off at any time.
+                  Receive announcements, niyam reminders and daily game reminders. These choices apply to
+                  your whole account, on every device you are signed in on, and you can change them at any time.
                 </p>
               </div>
             </div>
@@ -134,6 +135,22 @@
               </button>
             </div>
           </div>
+          <div
+            v-if="push.enabled.value && !push.deviceEnabled.value && push.supported.value !== false"
+            class="mt-3 rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--muted))] p-3"
+          >
+            <p class="text-xs leading-relaxed text-[hsl(var(--muted-foreground))]">
+              Your account receives notifications, but this device is not set up for them yet.
+            </p>
+            <button
+              type="button"
+              :disabled="push.busy.value"
+              class="mt-2 text-xs font-semibold text-[hsl(var(--primary))] underline disabled:opacity-40"
+              @click="enablePushHere"
+            >
+              Turn on for this device
+            </button>
+          </div>
           <p v-if="push.needsHomeScreen.value" class="mt-3 text-xs text-amber-700">
             On iPhone and iPad, notifications only work once Bhaktiras is installed. Tap Share, choose
             “Add to Home Screen”, then open Bhaktiras from your Home Screen and turn notifications on there.
@@ -143,7 +160,7 @@
             and make sure iOS is on version 16.4 or newer.
           </p>
           <p v-else-if="push.enabled.value" class="mt-3 text-xs font-medium text-emerald-700">
-            Choose the updates you want to receive above.
+            Choose the updates you want to receive above. Turning one off stops it on every device.
           </p>
           <p v-if="push.error.value" role="alert" class="mt-3 text-sm text-red-600">{{ push.error.value }}</p>
         </section>
@@ -436,6 +453,14 @@ async function togglePush() {
   try {
     if (push.enabled.value) await push.disable()
     else await push.enable()
+  } catch {
+    // A user-friendly error is displayed in the notification section.
+  }
+}
+
+async function enablePushHere() {
+  try {
+    await push.enable()
   } catch {
     // A user-friendly error is displayed in the notification section.
   }

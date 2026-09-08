@@ -276,6 +276,22 @@ and the game banks (`connectionsPuzzles`, `miniCrossword`,
 
 **Push** — `pushSubscriptions` `pushMessages`
 
+One `pushSubscriptions` document per device (`{uid}_{tokenHash}`), holding that device's
+FCM token and the chosen `topics` — `announcements` `games` `niyams` `niyam-milestones`.
+Cloud Functions fan out by querying `topics`, so the document is what decides whether a
+send reaches someone.
+
+The **preferences are account-level, the documents are per-device**, and
+`usePushNotifications` is what bridges the two: it reads every subscription the account
+owns and writes each change to all of them. Turning a category off in `/account` clears
+it on every device, and the master switch unsubscribes the account rather than just the
+browser it was pressed in. Editing only the local document was the bug where a devotee
+turned daily games off on their laptop and kept getting them on their phone.
+
+A category going off everywhere deletes the subscriptions rather than leaving them with
+an empty `topics` list — an empty list still matches an admin send to "everyone", which
+queries `enabled` alone.
+
 ## Environment
 
 Beyond the six `NUXT_PUBLIC_FIREBASE_*` values, the app needs
