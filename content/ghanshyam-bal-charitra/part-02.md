@@ -15,7 +15,7 @@ At that time, high above in the heavens, Lord Narad, along with Shankar and Tumb
 
 All three holy beings bowed down in reverence to the baby Lord Ghanashyam. Then Shankar and Tambaroo sat on the floor beside the cradle, while Narad struck a dancing pose. Tumbaroo then began to chant the beat - Tha - Thaya - Tha - Thaya, while Shankar set the rhythm with his damroo. Baby Ghanashyam also joined in the rhythm with his clapping hands.
 
-Then Narad began his divine dance. Ghanashyam's eyes [illegible]
+Then Narad began his divine dance. Ghanashyam's eyes [text missing in the printed book — page 1 ends mid-sentence and page 2 opens a new paragraph]
 
 That day, Ghanashyam's uncle, Vashrambhai and Rampratapbhai had been visiting a neighbouring village, and now they were on their way home. While Narad was still performing his dance, they approached the house. As they got near, they rubbed their eyes in amazement. They could not believe their eyes when they saw the three lords entertaining the baby Ghanashyam! They immediately fell to their knees in praise in front of the heavenly beings. Then they took out some bananas they had been carrying, and offered them reverently to the divine lords.
 
