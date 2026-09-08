@@ -23,6 +23,18 @@ Rampratap hung his head in shame. The going to his brother, he hugged him tightl
 
 Then Surya Narayan raised his hand in blessing over the two brothers, and turned his chariot toward the skies. As he sped off, over the village of Chappaiya, he released his power, glowing brightly. In the darkness, there was a trail of light speeding through the skies, turning night into day. The people of Chappaiya woke up from their sleep, and rushed to their windows to see the wondrous sight of Surya Narayan dashing through the skies.
 
+STUDY:
+
+1. Why did Rampratap go on a fast?
+
+2. How many days did the rains continue?
+
+3. In your own words, describe Surya Narayan’s chariot.
+
+4. How did Surya Narayan convince Rampratap that he really was the sun-god?
+
+5. Fill in the blank. “ As Surya Narayan sped off, the night became like ______.”
+
 ## The Ghosts And The Mangoes
 
 <!-- pages 5-8 -->
@@ -42,6 +54,18 @@ But there they got the shock of their lives when they saw the ghostly forms, plu
 Reaching his home, Rampratap and his friends got another shock. The ghosts had reached there before them! There they all were, gathered on the verandah. And right in the middle of them all sat his little brother Ghanashyam. He was smiling and laughing, and there in front of him was a big pile of mangoes!
 
 As they watched from a distance, Rampratap and his friends heard Ghanashyam thanking the ghosts. Then he blessed the mangoes, and gave ten of the ripe fruits to each of the ghosts as prasad. The ghosts gratefully accepted the fruits from the hands of the little lord, and bowing before him, flew off over the heads of the startled friends, and disappeared into the darkness.
+
+STUDY:
+
+1. Fill in the blank. “Brothers always like to ____________ with each other.”
+
+2. Complete the sentence. “ Ghanashyam loved to sleep, and never woke up before ...................”
+
+3. What kind of tree did the ghosts live in?
+
+4. What is your favourite fruit?
+
+5. What did Ghanashyam give to the ghosts as prasad?
 
 ## Feeding The 1,000 Pilgrims
 
@@ -67,6 +91,18 @@ Soon there was a great mountain of food before the monks. At last there was enou
 
 Smiling happily, the monks recognized the God in Ghanashyam, and one by one touched his feet in reverence.
 
+STUDY:
+
+1. Which country did the monks come from?
+
+2. Where did the pilgrims make their camp?
+
+3. Do you remember how Khapa Talavadi got its name?
+
+4. How did Ghanshyam feed the one thousand pilgrims?
+
+5. Fill in the blank. “Whatever his people need, God will ___________.”
+
 ## The Monk And The Tiger
 
 <!-- pages 14-17 -->
@@ -91,6 +127,20 @@ Whimpering in fear and shame, the old monk begged Ghanashyam’s forgiveness. Gh
 
 With one last, loving lick of Ghanashyam’s feet, the tiger turned, and running and leaping in the joy of freedom, he disappeared into the forest.
 
+STUDY:
+
+1. When Ghanashyam and his father saw the monk, what was he doing?
+
+2. What did Ghanashyam feel when he saw the tiger skin?
+
+3. What sins was the monk guilty of?
+
+4. How much money did the monk ask for the tiger skin?
+
+5. Complete the sentence. “Ghanashyam gave the tiger the gift of ___________.”
+
+6. Can you draw a picture of a tiger?
+
 ## Ghanashyam Becomes A Brahmin
 
 <!-- pages 18-21 -->
@@ -111,6 +161,20 @@ The people were stunned. Then Vashram stood up and began to chase after Ghanashy
 
 Back in the crowd, Ghanashyam’s parents were worried. How would they live without their beloved son? Far away, Ghanashyam caught their thoughts. He slowed down, and stopped running. He was filled with concern for his aged parents, and didn’t want to cause them any pain. With a heavy heart, he turned and headed back to the gathering, to continue the ceremony.
 
+STUDY:
+
+1. What is the agni kund?
+
+2. How many kinds of wood were burnt on the fire?
+
+3. Before the ceremony, whose statue was installed in the house?
+
+4. What is a brahmachari?
+
+5. Complete the sentence.
+
+“Ghanshyam came back because of his concern for his ___________.”
+
 ## Ghanashyam And The Mad Boy
 
 <!-- pages 22-24 -->
@@ -130,6 +194,18 @@ The boy looked in wonder at Ghanashyam. He saw the four-armed God, standing befo
 Instantly the madness flew from the boy, and his mind became clear and sharp. With tears in his eyes, the boy gazed lovingly at the little lord, and praised him. Gently, Ghanashyam raised him to his feet, and returned the boy to his mother.
 
 “Take care of him, Ma.” he said, “Your son is a great soul, and when it is time for him to leave this earth, his soul will go straight to Akshardham.” Tears of happiness welled up in her eyes, and she bent to touch Ghanashyam’s feet in gratitude.
+
+STUDY:
+
+1. How were Ghanashyam’s friends cruel to the boy?
+
+2. Fill in the blank. “The boy was a great Yogi in his __________ life.”
+
+3. How many arms did the godly form of Ghanashyam have?
+
+4. How did Ghanshyam cure the boy?
+
+5. Where did Ghanshyam say the boy’s soul would go when he leaves this earth?
 
 ## The Wordly Sadhu
 
@@ -152,6 +228,16 @@ The sadhu was stunned. Immediately he realised his mistake, and while the spirit
 Immediately Ghanashyam called him back from Yampuri, and the weeping sadhu found himself at the temple, cringing on the floor in front of the young man. Touching his feet, he begged forgiveness from Ghanashyam. “Forgive me Lord” he said, “From this day forward, I will never speak against fasting. I will practice and preach it wherever I go!”
 
 Smiling benignly, Ghanashyam forgave the sadhu.. Then for a brief moment, he assumed the form of God, raised his four arms in blessing, and disappeared.
+
+STUDY:
+
+1. What was the name of the sadhu reciting the Ramayana?
+
+2. Why was Ghanashyam upset with the fat sadhu’s words?
+
+3. Where did Ghanashyam send the fat sadhu?
+
+4. Write in your own words why it is good to fast.
 
 ## The Lucknow Wrestlers
 
@@ -180,6 +266,18 @@ The crowd went wild with joy, and the king rushed forward and embraced Ghanashya
 “You have saved the honour of the people of Ayodhya!” he said, and he presented Ghanashyam with the wrestlers’ golden statue award.
 
 But Ghanashyam had no real interest in fighting and winning awards. His only aim in life was to serve humanity. And so he used the twenty-five kilos of gold to serve the poor, and to bring enlightenment and happiness to the people of the world.
+
+STUDY:
+
+1. Where is Lucknow? Can you find it on a map of India?
+
+2. How much gold was in the statue?
+
+3. How were such small friends of Ghanashyam able to beat such huge wrestlers?
+
+4. Fill in the blank. “Ghanashyam saved the ________ of the people of Ayodhya.”
+
+5. What was Ghanashyam’s only aim in life?
 
 ---
 
