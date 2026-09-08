@@ -37,7 +37,7 @@ The asura Kalidutt cannot bear that a pure child has been born, so he sends his 
 
 Dharmadev's name means religion and Bhaktimata's means devotion, and they call the astrologer Muni Maharaj Markandeya to make the baby's birth-chart and choose his name. Markandeya finds the child's moon sign is Karka and suggests Hari, then HariKrishna for his colour, then Neelkantha for his sky-deep eyes. Finally he settles on Ghanshyam, because the child is dark like rain clouds and will shower blessings on the earth. He breaks into a chant of the name, and everyone joins the singing.
 
-### Ghanshyam's First Test
+### Ghanshyam’s First Test
 
 *Part 1, pages 26-27*
 
@@ -257,7 +257,7 @@ Before Diwali, Bhaktimata plasters the floors with a mixture of cow-dung and mud
 
 While Dharmadev and Rampratap are away at market, a band of asuras disguised as soldiers camps near the house and two of them steal the sleeping baby Ghanshyam from his cradle. They darken the sky and rain arrows to scatter the watching villagers, then dance around the child chanting that they will kill him. Ghanshyam opens his eyes and gazes on them with love, and the asuras burn up into little piles of ash. Hanuman arrives too late to fight, carries the child home, and shows the disbelieving Bhaktimata the ashes in the field.
 
-### Escaping from the Nawab's Soldiers
+### Escaping from the Nawab’s Soldiers
 
 *Part 6, pages 6-9*
 
@@ -293,7 +293,7 @@ Ghanshyam and his friends often sit by a pond with the holy man Haridas, who rea
 
 When the Jamun fruits ripen, Ghanshyam, Rampratap and their friends go to Anand Tarwadi's farm, and Ghanshyam shakes the purple fruits down from the tree for the others to gather and eat. The orchard watchman comes running with his stick and the boys scatter, but he catches Ghanshyam. Unafraid, Ghanshyam grips the man's arm, whirls him round and lets go, and the watchman is dashed against a tree and knocked unconscious. At home Ghanshyam scolds Rampratap for running off, then tells him how he escaped, and his brother is amazed and proud.
 
-### Don't Kill Animals!
+### Don’t Kill Animals!
 
 *Part 6, pages 31-32*
 
@@ -337,7 +337,7 @@ Longing for sweets and having no money, Ghanshyam takes Suvasini's gold ring and
 
 Walking to Targam for a sacred thread ceremony, Bhaktimata grows weak with thirst and Rampratap can find no water in the forest. Ghanshyam points to a spot Rampratap has already searched, and a well full of clear water has appeared there. At Targam, Ghanshyam's knowledge of the scriptures astounds Baldev Prasad, who persuades Dharmadev to let Ghanshyam take the sacred thread alongside Lakshmi Prasad the next day.
 
-### The King's Soldiers
+### The King’s Soldiers
 
 *Part 7, pages 26-29*
 
@@ -351,7 +351,7 @@ On the evening of the rescue, the family goes to the temple of Lord Krishna at K
 
 ## Part 8
 
-### In The Soldiers' Camp
+### In The Soldiers’ Camp
 
 *Part 8, pages 1-5*
 

@@ -13,7 +13,7 @@
  * directory with their imports rewritten, and run through Node's type
  * stripping. Nothing in the repo is modified.
  */
-import { mkdtemp, readFile, writeFile } from 'node:fs/promises'
+import { mkdtemp, readdir, readFile, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, dirname } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -133,6 +133,33 @@ for (const puzzle of puzzles) {
   for (const node of nodes) {
     if (titleWords.has(normalize(node.answer))) fail(`title "${puzzle.title}" gives away the answer "${node.answer}"`)
   }
+}
+
+// When checking the real data file, every story in the transcription must have
+// exactly one puzzle — that is what lets the daily rotation be stories alone.
+if (!source.endsWith('.json')) {
+  const stories = new Map()
+  const dir = join(root, 'content/ghanshyam-bal-charitra')
+  for (const name of (await readdir(dir)).filter(file => /^part-\d+\.md$/.test(file)).sort()) {
+    const part = String(Number(/part-(\d+)/.exec(name)[1]))
+    const [body] = (await readFile(join(dir, name), 'utf8')).split('\n## Story Summaries')
+    for (const [, title] of body.matchAll(/^## (?!Story Summaries)(.+)$/gm)) {
+      stories.set(`Part ${part} — ${title.trim()}`, true)
+    }
+  }
+
+  const covered = new Map()
+  for (const puzzle of puzzles) {
+    const part = /Part (\d+)/.exec(puzzle.credit || '')?.[1]
+    const key = `Part ${part} — ${puzzle.title}`
+    if (!stories.has(key)) problems.push(`${puzzle.id}: "${puzzle.title}" is not a story in Part ${part}`)
+    if (covered.has(key)) problems.push(`${puzzle.id}: "${puzzle.title}" already has a puzzle`)
+    covered.set(key, true)
+  }
+  for (const key of stories.keys()) {
+    if (!covered.has(key)) problems.push(`no puzzle for ${key}`)
+  }
+  console.log(`${stories.size} stories, ${covered.size} covered`)
 }
 
 const byPart = new Map()

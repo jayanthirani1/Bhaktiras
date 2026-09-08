@@ -43,7 +43,7 @@ STUDY:
 
 6. Who came and took Ghanashyam back into the house?
 
-## Escaping from the Nawab's Soldiers
+## Escaping from the Nawab’s Soldiers
 
 <!-- pages 6-9 -->
 
@@ -245,7 +245,7 @@ STUDY:
 
 3. In whose farm were the Jamun trees?
 
-## Don't Kill Animals!
+## Don’t Kill Animals!
 
 <!-- pages 31-32 -->
 
@@ -280,7 +280,7 @@ STUDY:
 ### The Demon Camp
 While Dharmadev and Rampratap are away at market, a band of asuras disguised as soldiers camps near the house and two of them steal the sleeping baby Ghanshyam from his cradle. They darken the sky and rain arrows to scatter the watching villagers, then dance around the child chanting that they will kill him. Ghanshyam opens his eyes and gazes on them with love, and the asuras burn up into little piles of ash. Hanuman arrives too late to fight, carries the child home, and shows the disbelieving Bhaktimata the ashes in the field.
 
-### Escaping from the Nawab's Soldiers
+### Escaping from the Nawab’s Soldiers
 A cruel Nawab sends soldiers to terrorise the villages, and Ghanshyam's grandfather senses they are coming. Ghanshyam grows taller than the trees, spots the soldiers far to the north, and the whole of Chhapaiya flees with their cattle towards Nabpur. Resting by a banyan tree, Rampratap finds a well but no rope for the bucket, so Ghanshyam stretches his hands over the water and raises it to the top of the well. Everyone drinks and the village escapes the Nawab's army.
 
 ### Guarding Ghanshyam
@@ -298,5 +298,5 @@ Ghanshyam and his friends often sit by a pond with the holy man Haridas, who rea
 ### The Jamun Tree
 When the Jamun fruits ripen, Ghanshyam, Rampratap and their friends go to Anand Tarwadi's farm, and Ghanshyam shakes the purple fruits down from the tree for the others to gather and eat. The orchard watchman comes running with his stick and the boys scatter, but he catches Ghanshyam. Unafraid, Ghanshyam grips the man's arm, whirls him round and lets go, and the watchman is dashed against a tree and knocked unconscious. At home Ghanshyam scolds Rampratap for running off, then tells him how he escaped, and his brother is amazed and proud.
 
-### Don't Kill Animals!
+### Don’t Kill Animals!
 During an outbreak of cholera the villagers blame the Mother Goddess and gather goats at her temple, hiring a Bhuva to sacrifice them. Ghanshyam runs to the spot, snatches the sword away and takes on the form of the Goddess, speaking in her voice. She forbids the killing, telling them that sacrificing animals in her name turns her into an asura, that the disease comes because God wills it, and that they should pray to Ghanshyam Maharaj instead. Ghanshyam resumes his own form, the crowd worships him, and that day he appears in many forms in every house of Chhapaiya and cures the sick.

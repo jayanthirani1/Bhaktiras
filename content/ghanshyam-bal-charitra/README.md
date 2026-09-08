@@ -64,7 +64,7 @@ against the app's own parser.
 | Birth of Ghanshyam | 7-10 |
 | Kalidutt the Evil One | 11-21 |
 | The Naming of Ghanshyam | 22-25 |
-| Ghanshyam's First Test | 26-27 |
+| Ghanshyam’s First Test | 26-27 |
 | Ghanshyam and Moon Uncle | 28-32 |
 
 ### Part 2 — [`part-02.md`](part-02.md)
@@ -134,13 +134,13 @@ against the app's own parser.
 | Story | Pages |
 |---|---|
 | The Demon Camp | 1-5 |
-| Escaping from the Nawab's Soldiers | 6-9 |
+| Escaping from the Nawab’s Soldiers | 6-9 |
 | Guarding Ghanshyam | 10-12 |
 | The Crocodile Asura | 13-16 |
 | The Wrestling Match | 17-22 |
 | The Khampa Talavadi | 23-27 |
 | The Jamun Tree | 28-30 |
-| Don't Kill Animals! | 31-32 |
+| Don’t Kill Animals! | 31-32 |
 
 ### Part 7 — [`part-07.md`](part-07.md)
 
@@ -154,7 +154,7 @@ against the app's own parser.
 | Ghanshyam The Scholar | 11-14 |
 | Ghanshyam And The Sweets Shop | 15-21 |
 | On The Road To Targam | 22-25 |
-| The King's Soldiers | 26-29 |
+| The King’s Soldiers | 26-29 |
 | At The Temple Of Krishna | 30-32 |
 
 ### Part 8 — [`part-08.md`](part-08.md)
@@ -163,7 +163,7 @@ against the app's own parser.
 
 | Story | Pages |
 |---|---|
-| In The Soldiers' Camp | 1-5 |
+| In The Soldiers’ Camp | 1-5 |
 | The Bad Tempered Elephant | 6-9 |
 | Ghanshyam And The Birds | 10-13 |
 | Ghanshyam Has A Toothache | 14-17 |

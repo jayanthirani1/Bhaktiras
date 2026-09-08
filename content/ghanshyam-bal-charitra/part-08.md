@@ -3,7 +3,7 @@
 > Source: https://www.swaminarayan.faith/media/3550/ghanshyam-charitra-8.pdf (34 pages)
 > Transcribed from the scanned English edition. Body text is verbatim; names keep the book's spellings.
 
-## In The Soldiers' Camp
+## In The Soldiers’ Camp
 
 <!-- pages 1-5 -->
 
@@ -293,7 +293,7 @@ STUDY:
 
 ## Story Summaries
 
-### In The Soldiers' Camp
+### In The Soldiers’ Camp
 Dharmadev takes Ghanshyam to visit his soldier brothers at the Nawab's army camp at Badki Gardens, where they are horrified to find goats and sheep being slaughtered for food. Ghanshyam meditates, and the camp's elephants and horses break loose and stampede, driving the king up a tree. Ghanshyam shakes the tree and warns the king that killing innocent animals is a terrible sin; when the king agrees to stop, he calms the animals with a raise of his arms. The king bows at his feet and bans the killing of animals in his camps.
 
 ### The Bad Tempered Elephant

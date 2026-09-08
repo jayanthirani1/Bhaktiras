@@ -233,7 +233,7 @@ STUDY:
 6. Chant the name Ghanashyam twenty times, and as you chant clap your hands.
 7. What was Ghanashyam's moon sign?
 
-## Ghanshyam's First Test
+## Ghanshyam’s First Test
 
 <!-- pages 26-27 -->
 
@@ -322,7 +322,7 @@ The asura Kalidutt cannot bear that a pure child has been born, so he sends his 
 ### The Naming of Ghanshyam
 Dharmadev's name means religion and Bhaktimata's means devotion, and they call the astrologer Muni Maharaj Markandeya to make the baby's birth-chart and choose his name. Markandeya finds the child's moon sign is Karka and suggests Hari, then HariKrishna for his colour, then Neelkantha for his sky-deep eyes. Finally he settles on Ghanshyam, because the child is dark like rain clouds and will shower blessings on the earth. He breaks into a chant of the name, and everyone joins the singing.
 
-### Ghanshyam's First Test
+### Ghanshyam’s First Test
 When Ghanshyam is two and a half months old, his parents test him by placing a gold coin, a sword and a book on a draped stool. Gold stands for wealth and the sword for power, but both are empty without wisdom, while the book stands for learning that leads to wisdom. Ghanshyam ignores the gold and the sword and picks up the book, leafing through its pages. His parents conclude he will be a great scholar and a teacher who leads mankind from ignorance into knowledge.
 
 ### Ghanshyam and Moon Uncle

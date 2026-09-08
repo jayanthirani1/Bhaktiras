@@ -199,7 +199,7 @@ STUDY:
 
 "There are _______ Vedas, and ___________ Puranas."
 
-## The King's Soldiers
+## The King’s Soldiers
 
 <!-- pages 26-29 -->
 
@@ -283,7 +283,7 @@ Longing for sweets and having no money, Ghanshyam takes Suvasini's gold ring and
 ### On The Road To Targam
 Walking to Targam for a sacred thread ceremony, Bhaktimata grows weak with thirst and Rampratap can find no water in the forest. Ghanshyam points to a spot Rampratap has already searched, and a well full of clear water has appeared there. At Targam, Ghanshyam's knowledge of the scriptures astounds Baldev Prasad, who persuades Dharmadev to let Ghanshyam take the sacred thread alongside Lakshmi Prasad the next day.
 
-### The King's Soldiers
+### The King’s Soldiers
 While the family bathes near an ashram at Ayodhya, a mango tree the king's soldiers are felling falls and pins five of them down. Ghanshyam levers the tree up with a small cane and frees them. Summoned to court, he is dismissed as too small until he shows that he casts no shadow and bears the sixteen symbols on his feet, whereupon the king bows at his feet and rewards him.
 
 ### At The Temple Of Krishna
