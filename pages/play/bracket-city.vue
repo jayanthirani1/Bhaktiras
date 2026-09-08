@@ -33,6 +33,15 @@
         </ol>
       </GameHowTo>
       <div v-else class="space-y-4">
+        <div v-if="puzzle.title" class="text-center">
+          <p class="text-xs font-semibold uppercase tracking-wide text-[hsl(var(--muted-foreground))]">
+            Today’s story
+          </p>
+          <h2 class="font-display text-xl font-semibold text-[hsl(var(--primary))]">
+            {{ puzzle.title }}
+          </h2>
+        </div>
+
         <div class="card-surface p-4 text-lg leading-loose text-[hsl(var(--foreground))] sm:p-6 sm:text-xl">
           <template v-for="(part, index) in parts" :key="index">
             <template v-if="typeof part === 'string'">{{ part }}</template>

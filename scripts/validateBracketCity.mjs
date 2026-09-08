@@ -2,7 +2,10 @@
  * Checks every authored Bracket City puzzle against the rules the game and the
  * play page rely on.
  *
- * Run with: node scripts/validateBracketCity.mjs
+ * Run with: node scripts/validateBracketCity.mjs [file]
+ *
+ * With no argument it checks data/bracketCityCharitra.ts. Pass a .json file
+ * holding an array of puzzles to check a batch before it is merged in.
  *
  * The puzzles are parsed with the app's own parseBracketSource rather than a
  * copy of it, so a puzzle that passes here cannot fail to render. Node cannot
@@ -42,13 +45,18 @@ async function loadModules() {
   const parser = await readFile(join(root, 'utils/bracketCity.ts'), 'utf8')
   await writeFile(join(dir, 'bracketCity.ts'), parser.replace("~/utils/gameWordBank", './gameWordBank.ts'))
 
-  const data = await readFile(join(root, 'data/bracketCityCharitra.ts'), 'utf8')
-  await writeFile(join(dir, 'charitra.ts'), data.replace(/^import type .*$/m, ''))
+  const bracket = await import(pathToFileURL(join(dir, 'bracketCity.ts')).href)
 
-  return {
-    bracket: await import(pathToFileURL(join(dir, 'bracketCity.ts')).href),
-    data: await import(pathToFileURL(join(dir, 'charitra.ts')).href)
+  const target = process.argv[2]
+  if (target?.endsWith('.json')) {
+    return { bracket, puzzles: JSON.parse(await readFile(target, 'utf8')), source: target }
   }
+
+  const file = target || 'data/bracketCityCharitra.ts'
+  const data = await readFile(join(root, file), 'utf8')
+  await writeFile(join(dir, 'charitra.ts'), data.replace(/^import type .*$/m, ''))
+  const loaded = await import(pathToFileURL(join(dir, 'charitra.ts')).href)
+  return { bracket, puzzles: loaded.CHARITRA_BRACKET_CITY_PUZZLES, source: file }
 }
 
 /** The sentence a player is left with once every bracket is solved. */
@@ -69,8 +77,7 @@ function clueText(node) {
     .trim()
 }
 
-const { bracket, data } = await loadModules()
-const puzzles = data.CHARITRA_BRACKET_CITY_PUZZLES
+const { bracket, puzzles, source } = await loadModules()
 const problems = []
 const seenIds = new Map()
 
@@ -134,7 +141,7 @@ for (const puzzle of puzzles) {
   byPart.set(part, (byPart.get(part) || 0) + 1)
 }
 
-console.log(`${puzzles.length} puzzles checked`)
+console.log(`${puzzles.length} puzzles checked in ${source}`)
 console.log([...byPart.entries()].sort((a, b) => Number(a[0]) - Number(b[0])).map(([part, n]) => `  Part ${part}: ${n}`).join('\n'))
 
 if (problems.length) {
