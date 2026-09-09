@@ -362,7 +362,7 @@ export function sortSubmissionsNewestFirst(list: NiyamSubmission[]): NiyamSubmis
 /** Short gap so a double-tap does not count twice (all niyams). */
 export const NIYAM_DOUBLE_TAP_MS = 60 * 1000
 
-/** Longer gap for mandir check-in — auto + manual can race. */
+/** Longer gap for mandir check-in — two taps in a minute are the same sabha. */
 export const MANDIR_CHECKIN_DOUBLE_TAP_MS = 2 * 60 * 1000
 
 /** One morning and one evening check-in per UK day. */

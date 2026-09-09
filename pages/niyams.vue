@@ -49,18 +49,10 @@
       :my-pending="activeChallenge ? myPendingTotal(activeChallenge.id) : 0"
       :is-logged-in="isLoggedIn"
       :submitting="submitting"
-      :at-mandir="isAtMandir"
-      :checking-location="checkingLocation"
-      :location-error="locationError"
-      :auto-check-in-enabled="alwaysAllowLocation"
-      :geolocation-supported="isGeolocationSupported"
-      :location-permission="permissionState"
       :withdraw-error="withdrawError"
       @close="closeSheet"
       @submit="onSubmit"
       @withdraw="withdraw"
-      @enable-auto-check-in="enableLocationTracking"
-      @disable-auto-check-in="disableLocationTracking"
     />
 
     <NiyamDetailSheet
@@ -87,7 +79,7 @@
 
 <script setup lang="ts">
 import type { MandirCheckinSlot, NiyamChallenge, NiyamChallengeStats, NiyamSubmission, NiyamSubmissionStatus } from '~/types'
-import { inputModeFor, isChallengeOpen, isPublished, mandirCheckinCooldown, mandirDailyCheckinComplete, validateMandirCheckinSubmission, type MandirCheckinCooldown } from '~/utils/niyamChallenge'
+import { inputModeFor, mandirDailyCheckinComplete, validateMandirCheckinSubmission } from '~/utils/niyamChallenge'
 
 const MANDIR_CHALLENGE_ID = 'mandir-darshan'
 
@@ -118,20 +110,8 @@ const copy = useNiyamCopy()
 
 const auth = useAuth()
 
-const {
-  isAtMandir,
-  checking: checkingLocation,
-  error: locationError,
-  alwaysAllowLocation,
-  isGeolocationSupported,
-  permissionState,
-  enableLocationTracking,
-  disableLocationTracking
-} = useMandirVisit()
-
 const sheet = ref<'none' | 'log' | 'detail'>('none')
 const activeId = ref('')
-const autoCheckInBusy = ref(false)
 
 const activeChallenge = computed<NiyamChallenge | null>(
   () => challenges.value.find(c => c.id === activeId.value) ?? null
@@ -151,47 +131,9 @@ const activeSubmissions = computed(() => (activeId.value ? submissionsFor(active
 
 const pulseStats = computed(() => publishedChallenges.value.map(c => statsFor(c.id)))
 
-const mandirChallenge = computed(() => challenges.value.find(c => c.id === MANDIR_CHALLENGE_ID) ?? null)
-
 const mandirDailyFull = computed(() =>
   mandirDailyCheckinComplete(submissionsFor(MANDIR_CHALLENGE_ID))
 )
-
-function mandirCheckinBlocked(): MandirCheckinCooldown {
-  const challenge = mandirChallenge.value
-  return mandirCheckinCooldown(
-    submissionsFor(MANDIR_CHALLENGE_ID),
-    challenge?.maxPerSubmission ?? 2
-  )
-}
-
-async function tryAutoCheckIn() {
-  if (
-    autoCheckInBusy.value
-    || !alwaysAllowLocation.value
-    || !isAtMandir.value
-    || !isLoggedIn.value
-    || mandirCheckinBlocked().blocked
-  ) {
-    return
-  }
-
-  const challenge = mandirChallenge.value
-  if (!challenge || !isPublished(challenge) || !isChallengeOpen(challenge)) return
-
-  autoCheckInBusy.value = true
-  try {
-    await submit(challenge, 1)
-  } catch {
-    // A failed write should not block a later manual check-in.
-  } finally {
-    autoCheckInBusy.value = false
-  }
-}
-
-watch([isAtMandir, alwaysAllowLocation, isLoggedIn, mandirChallenge], () => {
-  void tryAutoCheckIn()
-})
 
 function goSignIn() {
   navigateTo('/login?redirect=/niyams')

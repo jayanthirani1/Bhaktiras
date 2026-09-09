@@ -168,7 +168,7 @@
           class="flex-1 rounded-xl bg-[hsl(var(--primary))] px-4 py-3 text-sm font-semibold text-white hover:bg-[hsl(var(--primary))]/90"
           @click="emit('log')"
         >
-          {{ isCheckin ? "I'm here" : `Add ${challenge.unit}` }}
+          {{ isCheckin ? 'Log' : `Add ${challenge.unit}` }}
         </button>
       </div>
     </template>

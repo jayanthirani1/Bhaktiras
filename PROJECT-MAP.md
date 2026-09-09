@@ -131,8 +131,8 @@ rendered (`safeResourceUrl`), since the href reaches an anchor tag straight from
 The page is a **sangat board**: five compact rows, each with the counted total, the next
 milestone and a `+ Log` pill; input happens in a bottom sheet (`NiyamLogSheet`), never
 inline — five inline forms was the thing that did not scale. Tapping a row body opens the
-detail sheet instead. The private "Visit Mandir" streak card still sits below the board,
-and both it and the board read one shared `useMandirVisit` instance.
+detail sheet instead. Daily Darshan is logged by hand — you pick morning, evening or both
+— and the day is capped at two sabhas; there is no location-driven auto check-in.
 
 The detail sheet ends with **your own last five entries** (`NiyamMyEntries`), each removable.
 The 30-second undo on the log sheet only catches a mis-tap you notice immediately; this is

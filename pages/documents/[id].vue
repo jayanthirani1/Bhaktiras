@@ -194,17 +194,9 @@
       :my-pending="myPendingTotal(challenge.id)"
       :is-logged-in="isLoggedIn"
       :submitting="submitting"
-      :at-mandir="isAtMandir"
-      :checking-location="checkingLocation"
-      :location-error="locationError"
-      :auto-check-in-enabled="alwaysAllowLocation"
-      :geolocation-supported="isGeolocationSupported"
-      :location-permission="permissionState"
       @close="sheetOpen = false"
       @submit="onSubmit"
       @withdraw="withdraw"
-      @enable-auto-check-in="enableLocationTracking"
-      @disable-auto-check-in="disableLocationTracking"
     />
   </div>
 </template>
@@ -252,17 +244,6 @@ const {
   submit,
   withdraw
 } = useNiyamChallenges()
-
-const {
-  isAtMandir,
-  checking: checkingLocation,
-  error: locationError,
-  alwaysAllowLocation,
-  isGeolocationSupported,
-  permissionState,
-  enableLocationTracking,
-  disableLocationTracking
-} = useMandirVisit()
 
 const sheetOpen = ref(false)
 const language = ref<NiyamDocumentLanguage>('en')

@@ -36,7 +36,7 @@
             >
               <IconPlus v-if="!isCheckin" class="h-4 w-4" aria-hidden="true" />
               <IconMapPin v-else class="h-4 w-4" aria-hidden="true" />
-              <span>{{ isCheckin ? "I'm here" : 'Log' }}</span>
+              <span>Log</span>
               <span class="sr-only">— add to {{ challenge.title }}</span>
             </button>
             <span

@@ -46,8 +46,7 @@ export default defineNuxtConfig({
       headers: {
         'X-Content-Type-Options': 'nosniff',
         'Referrer-Policy': 'strict-origin-when-cross-origin',
-        // `self` for geolocation: the mandir-visit check-in needs it.
-        'Permissions-Policy': 'geolocation=(self), microphone=(), camera=(), payment=(), usb=()',
+        'Permissions-Policy': 'geolocation=(), microphone=(), camera=(), payment=(), usb=()',
         // Google sign-in uses a popup, which same-origin alone would sever.
         'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
         // No `preload`, and no `includeSubDomains` — a future custom domain may

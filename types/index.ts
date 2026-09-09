@@ -587,10 +587,3 @@ export interface MandirVisit {
   createdAt?: FirestoreTimestampLike
 }
 
-/** User's location tracking preferences, stored in localStorage. */
-export interface LocationPreferences {
-  /** Whether the user has opted in to always-allow location for auto check-in. */
-  alwaysAllowLocation: boolean
-  /** Last date the permission prompt was shown (to avoid nagging). */
-  lastPromptDate?: string
-}

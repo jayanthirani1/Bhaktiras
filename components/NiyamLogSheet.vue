@@ -113,47 +113,6 @@
         </div>
 
         <p
-          v-if="atMandir"
-          class="mt-4 inline-flex items-center gap-1.5 rounded-full bg-[hsl(var(--golden-50))] px-3 py-1.5 text-xs font-semibold text-[hsl(var(--golden-900))]"
-        >
-          <IconMapPin class="h-3.5 w-3.5" aria-hidden="true" />
-          You're at the Mandir
-        </p>
-
-        <div
-          v-if="geolocationSupported"
-          class="mt-5 rounded-xl border border-[hsl(var(--border))] px-4 py-4 text-left"
-        >
-          <div class="flex items-center justify-between gap-4">
-            <div>
-              <p class="text-sm font-semibold text-[hsl(var(--foreground))]">Auto check-in</p>
-              <p class="mt-0.5 text-xs text-[hsl(var(--muted-foreground))]">
-                Record a sabha automatically when you arrive at the Mandir
-              </p>
-            </div>
-            <button
-              type="button"
-              role="switch"
-              :aria-checked="autoCheckInEnabled"
-              class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[hsl(var(--primary))] focus:ring-offset-2"
-              :class="autoCheckInEnabled ? 'bg-[hsl(var(--primary))]' : 'bg-[hsl(var(--muted))]'"
-              @click="toggleAutoCheckIn"
-            >
-              <span
-                class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
-                :class="autoCheckInEnabled ? 'translate-x-5' : 'translate-x-0'"
-              />
-            </button>
-          </div>
-          <p
-            v-if="permissionDenied"
-            class="mt-3 text-xs text-amber-700"
-          >
-            Location access was denied. Enable it in your browser settings to use auto check-in.
-          </p>
-        </div>
-
-        <p
           v-if="dailyCheckinComplete"
           class="mt-5 flex items-start gap-2 rounded-xl bg-[hsl(var(--golden-50))] px-3 py-2.5 text-left text-sm text-[hsl(var(--golden-900))]"
         >
@@ -161,7 +120,7 @@
           <span>You have logged both sabhas for today. You can check in again tomorrow.</span>
         </p>
         <p
-          v-else-if="checkinCooldown.blocked"
+          v-else-if="manualCheckinBlocked"
           class="mt-5 flex items-start gap-2 rounded-xl bg-[hsl(var(--muted))] px-3 py-2.5 text-left text-sm"
         >
           <IconInfoCircle class="mt-0.5 h-4 w-4 shrink-0 text-[hsl(var(--golden-900))]" aria-hidden="true" />
@@ -172,8 +131,7 @@
         </p>
         <p v-else class="mt-5 text-sm text-[hsl(var(--muted-foreground))]">
           One morning and one evening sabha each day — Aarti, Chesta or Katha in person.
-          <span v-if="atMandir"> Tap below to check in for this sabha.</span>
-          <span v-else> Tap below to log which sabha you attended.</span>
+          Tap below to log which sabha you attended.
         </p>
 
         <div
@@ -434,15 +392,14 @@
           v-if="!showSabhaPicker"
           type="button"
           class="flex w-full items-center justify-center gap-2 rounded-xl bg-[hsl(var(--primary))] px-4 py-5 font-display text-lg font-semibold text-white transition-colors hover:bg-[hsl(var(--primary))]/90 disabled:opacity-50"
-          :disabled="submitting || checkingLocation || (atMandir ? atMandirCheckinBlocked : sabhaPickerBlocked)"
+          :disabled="submitting || sabhaPickerBlocked"
           @click="onCheckinClick"
         >
           <IconMapPin class="h-5 w-5" aria-hidden="true" />
           {{ checkinButtonLabel }}
         </button>
         <p v-if="!showSabhaPicker" class="text-center text-xs text-[hsl(var(--muted-foreground))]">
-          <template v-if="atMandir">Check in for the {{ currentSabhaLabel }} sabha.</template>
-          <template v-else>{{ copy('checkinFooterNote') }}</template>
+          {{ copy('checkinFooterNote') }}
         </p>
       </div>
       </div>
@@ -471,8 +428,6 @@ import {
   isPublished,
   mandirCheckinBlockedMessage,
   mandirCheckinCooldown,
-  mandirCheckinSlot,
-  mandirCheckinSlotLabel,
   mandirManualCheckinPlan,
   mandirSabhaLoggedToday,
   validateMandirCheckinSubmission,
@@ -503,12 +458,6 @@ const props = defineProps<{
   myPending: number
   isLoggedIn: boolean
   submitting: boolean
-  atMandir?: boolean
-  checkingLocation?: boolean
-  locationError?: string | null
-  autoCheckInEnabled?: boolean
-  geolocationSupported?: boolean
-  locationPermission?: string
   /** Set when a withdraw — the undo below, usually — was refused. */
   withdrawError?: string
 }>()
@@ -523,8 +472,6 @@ const emit = defineEmits<{
     fail: (message: string) => void
   }]
   withdraw: [submission: NiyamSubmission]
-  'enable-auto-check-in': []
-  'disable-auto-check-in': []
 }>()
 
 const copy = useNiyamCopy()
@@ -566,17 +513,20 @@ const showSabhaPicker = ref(false)
 const published = computed(() => !!props.challenge && isPublished(props.challenge))
 const isCheckin = computed(() => !!props.challenge && inputModeFor(props.challenge) === 'checkin')
 const presets = computed(() => (props.challenge ? presetsFor(props.challenge) : []))
-const permissionDenied = computed(() => props.locationPermission === 'denied')
 const sabhaLogged = computed(() => mandirSabhaLoggedToday(props.mySubmissions))
 const dailyCheckinComplete = computed(() => sabhaLogged.value.morning && sabhaLogged.value.evening)
-const currentSabhaLabel = computed(() => mandirCheckinSlotLabel(mandirCheckinSlot(now.value)))
 
-const atMandirCheckinBlocked = computed(() => dailyCheckinComplete.value || checkinCooldown.value.blocked)
+/**
+ * Only the double-tap gap stops the picker. A slot already logged is not a
+ * block: the other sabha of the day is still there to log.
+ */
+const manualCheckinBlocked = computed(() =>
+  checkinCooldown.value.blocked && checkinCooldown.value.reason === 'double-tap'
+)
 
 const sabhaPickerBlocked = computed(() => {
   if (!isCheckin.value) return false
-  if (dailyCheckinComplete.value) return true
-  return checkinCooldown.value.blocked && checkinCooldown.value.reason === 'double-tap'
+  return dailyCheckinComplete.value || manualCheckinBlocked.value
 })
 
 const checkinCooldown = computed(() => {
@@ -595,24 +545,12 @@ const submitCooldown = computed(() => {
 
 const checkinButtonLabel = computed(() => {
   if (props.submitting) return 'Adding…'
-  if (props.checkingLocation) return 'Checking location…'
-  if (checkinCooldown.value.blocked) {
-    if (checkinCooldown.value.reason === 'daily') return 'Both sabhas logged today'
-    if (checkinCooldown.value.reason === 'slot') {
-      return checkinCooldown.value.slot === 'morning'
-        ? 'Morning already logged'
-        : 'Evening already logged'
-    }
+  if (dailyCheckinComplete.value) return 'Both sabhas logged today'
+  if (manualCheckinBlocked.value) {
     return `Next sabha in ${formatCheckinCooldownRemaining(checkinCooldown.value.remainingMs)}`
   }
-  if (props.atMandir) return `Check in — ${currentSabhaLabel.value} sabha`
   return 'Log sabha'
 })
-
-function toggleAutoCheckIn() {
-  if (props.autoCheckInEnabled) emit('disable-auto-check-in')
-  else emit('enable-auto-check-in')
-}
 
 const sheetSubtitle = computed(() => {
   if (!props.challenge) return ''
@@ -724,7 +662,7 @@ function startUndoTimer() {
 }
 
 function commit(amount: number, checkinSlot?: MandirCheckinSlot | null) {
-  if (!props.challenge || props.submitting || props.checkingLocation || submitCooldown.value.blocked) return
+  if (!props.challenge || props.submitting || submitCooldown.value.blocked) return
   localError.value = ''
 
   const requested = clamp(amount)
@@ -767,12 +705,7 @@ function commit(amount: number, checkinSlot?: MandirCheckinSlot | null) {
 }
 
 function onCheckinClick() {
-  if (!props.challenge || props.submitting || props.checkingLocation) return
-  if (props.atMandir) {
-    if (atMandirCheckinBlocked.value) return
-    commit(1)
-    return
-  }
+  if (!props.challenge || props.submitting) return
   if (sabhaPickerBlocked.value) return
   showSabhaPicker.value = true
   localError.value = ''

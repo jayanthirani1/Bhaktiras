@@ -35,7 +35,7 @@ export const DEFAULT_NIYAM_COPY = {
   emptyBody: 'When the mandir opens one it will appear here, and everyone\'s count will add up towards it.',
   signedOutNote: 'Your entries are private to you and the mandir\'s admins, so you need to be signed in to add them.',
   notPublishedNote: 'The mandir has not opened this niyam for entries yet. It will start counting as soon as they do.',
-  checkinFooterNote: 'Log from home if you forgot to check in at mandir.',
+  checkinFooterNote: 'Log the sabha you attended — up to two a day.',
   resourceLinkLabel: 'Read the words',
   myEntriesTitle: 'Your recent entries',
   myEntriesNote: 'Your last five entries, private to you. Removing one takes it back out of the total.',
