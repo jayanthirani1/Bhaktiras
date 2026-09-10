@@ -113,4 +113,14 @@ const menuItems = computed(() => homeTiles.value.map(item => ({
   ...item,
   icon: SITE_ICON_COMPONENTS[item.icon]
 })))
+
+const { request: requestPushPrompt } = usePushPrompt()
+let pushPromptTimer: number | null = null
+
+onMounted(() => {
+  pushPromptTimer = window.setTimeout(() => requestPushPrompt('home'), 2500)
+})
+onUnmounted(() => {
+  if (pushPromptTimer) window.clearTimeout(pushPromptTimer)
+})
 </script>

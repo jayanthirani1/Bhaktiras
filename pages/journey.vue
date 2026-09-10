@@ -168,6 +168,16 @@ watch(isLoading, async loading => {
 
 onUnmounted(() => observer?.disconnect())
 
+const { request: requestPushPrompt } = usePushPrompt()
+let pushPromptTimer: number | null = null
+
+onMounted(() => {
+  pushPromptTimer = window.setTimeout(() => requestPushPrompt('journey'), 1800)
+})
+onUnmounted(() => {
+  if (pushPromptTimer) window.clearTimeout(pushPromptTimer)
+})
+
 function itemMedia(item: TimelineItem): TimelineMedia[] {
   if (item.media?.length) return item.media
   const out: TimelineMedia[] = []

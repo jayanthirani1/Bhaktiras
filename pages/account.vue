@@ -76,15 +76,41 @@
         </section>
 
         <section class="card-surface p-5 sm:p-6">
-          <div class="flex items-start justify-between gap-4">
-            <div class="flex items-start gap-3">
-              <IconBell class="mt-0.5 h-6 w-6 shrink-0 text-[hsl(var(--golden-900))]" />
-              <div>
-                <h2 class="font-display text-xl font-semibold text-[hsl(var(--primary))]">Push notifications</h2>
-                <p class="mt-2 text-sm leading-relaxed text-[hsl(var(--muted-foreground))]">
-                  Receive announcements, niyam reminders and daily game reminders on this device. You can turn them off at any time.
-                </p>
-              </div>
+          <div class="flex items-start gap-3">
+            <IconBell class="mt-0.5 h-6 w-6 shrink-0 text-[hsl(var(--golden-900))]" />
+            <div class="min-w-0 flex-1">
+              <h2 class="font-display text-xl font-semibold text-[hsl(var(--primary))]">Notifications</h2>
+              <p class="mt-2 text-sm leading-relaxed text-[hsl(var(--muted-foreground))]">
+                Temple announcements are kept in the bell at the top of the app while you're signed in.
+                You do not need device alerts switched on to read them there.
+              </p>
+            </div>
+          </div>
+
+          <div
+            v-if="!push.enabled.value"
+            class="mt-5 rounded-xl border border-[hsl(var(--golden-200))] bg-[hsl(var(--golden-50))] px-4 py-4"
+          >
+            <p class="text-sm font-semibold text-[hsl(var(--primary))]">Also get alerts on this device?</p>
+            <p class="mt-1 text-xs leading-relaxed text-[hsl(var(--muted-foreground))]">
+              Optional. Sabha times, Patotsav dates and game reminders can arrive even when the app is closed.
+            </p>
+            <button
+              type="button"
+              class="mt-3 inline-flex rounded-xl bg-[hsl(var(--primary))] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+              :disabled="push.busy.value || push.supported.value === false"
+              @click="togglePush"
+            >
+              {{ push.busy.value ? 'Turning on…' : 'Turn on device alerts' }}
+            </button>
+          </div>
+
+          <div class="mt-5 flex items-start justify-between gap-4 border-t border-[hsl(var(--border))] pt-5">
+            <div>
+              <h3 class="text-sm font-semibold text-[hsl(var(--foreground))]">Device alerts (push)</h3>
+              <p class="mt-1 text-xs leading-relaxed text-[hsl(var(--muted-foreground))]">
+                Receive announcements, niyam reminders and daily game reminders on this device. You can turn them off at any time.
+              </p>
             </div>
             <button
               type="button"
@@ -356,6 +382,7 @@ import {
 
 const auth = useAuth()
 const push = usePushNotifications()
+const { request: requestPushPrompt } = usePushPrompt()
 const {
   exporting,
   deleting,
@@ -549,6 +576,11 @@ function linkFriendlyError(value: unknown) {
 }
 
 useHead({ title: 'Your account · Bhaktiras' })
+
+onMounted(() => {
+  // Soft ask for device alerts — inbox already works without them.
+  window.setTimeout(() => requestPushPrompt('account'), 1200)
+})
 
 useNoIndex()
 </script>

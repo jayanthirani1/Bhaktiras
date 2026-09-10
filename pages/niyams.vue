@@ -230,4 +230,14 @@ async function onSubmit(payload: {
 }
 
 useHead({ title: 'Niyams · Bhaktiras' })
+
+const { request: requestPushPrompt } = usePushPrompt()
+let pushPromptTimer: number | null = null
+
+onMounted(() => {
+  pushPromptTimer = window.setTimeout(() => requestPushPrompt('niyams'), 1800)
+})
+onUnmounted(() => {
+  if (pushPromptTimer) window.clearTimeout(pushPromptTimer)
+})
 </script>

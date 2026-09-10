@@ -14,7 +14,15 @@ import { consumeInteractiveSignIn } from '~/utils/signInSignal'
 import { notificationPreviewBody } from '~/utils/notificationDetail'
 
 export type PushTopic = 'announcements' | 'games' | 'niyams' | 'niyam-milestones'
-export type PushPromptMoment = 'game-complete' | 'events' | 'signed-in'
+export type PushPromptMoment =
+  | 'game-complete'
+  | 'events'
+  | 'signed-in'
+  | 'niyams'
+  | 'home'
+  | 'journey'
+  | 'album'
+  | 'account'
 
 const ALL_TOPICS: PushTopic[] = ['announcements', 'games', 'niyams', 'niyam-milestones']
 const SUBSCRIPTION_ID_KEY = 'bhaktiras-push-subscription-id'
@@ -467,6 +475,7 @@ export function usePushPrompt() {
 
   function topicFor(value: PushPromptMoment): PushTopic {
     if (value === 'game-complete') return 'games'
+    if (value === 'niyams') return 'niyams'
     return 'announcements'
   }
 
@@ -475,11 +484,10 @@ export function usePushPrompt() {
     const topic = topicFor(value)
     if (push.topics.value.includes(topic)) return
     if (localStorage.getItem(`bhaktiras-push-prompt-seen:${value}`) === '1') return
+    // On iOS, push only works from a Home Screen launch — don't spend the ask
+    // in a browser tab where it cannot be granted.
+    if (push.needsHomeScreen.value) return
     if (value === 'signed-in') {
-      // On iOS, push arrives only through a Home Screen launch. Asking in a
-      // browser tab spends the one ask on something that cannot be granted, so
-      // the install prompt gets this devotee instead.
-      if (push.needsHomeScreen.value) return
       // Only the sign-in that just happened counts. Firebase restores a session
       // on every launch, which would otherwise read as signing in again.
       if (!consumeInteractiveSignIn()) return
@@ -500,6 +508,14 @@ export function usePushPrompt() {
     if (!moment.value) return
     const current = moment.value
     await push.enable(topicFor(current))
+    // The niyams prompt promises milestones too — opt them in with the same tap.
+    if (current === 'niyams') {
+      try {
+        await push.setTopicEnabled('niyam-milestones', true)
+      } catch {
+        // Primary topic already saved; milestones can be toggled from Account.
+      }
+    }
     close(true)
   }
 

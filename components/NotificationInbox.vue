@@ -49,7 +49,10 @@
           </button>
 
           <div class="flex shrink-0 items-center justify-between gap-3 border-b border-[hsl(var(--border))] px-4 py-3">
-            <h2 class="font-display text-sm font-semibold text-[hsl(var(--primary))]">Notifications</h2>
+            <div class="min-w-0">
+              <h2 class="font-display text-sm font-semibold text-[hsl(var(--primary))]">Notifications</h2>
+              <p class="text-[11px] text-[hsl(var(--muted-foreground))]">In-app · while signed in</p>
+            </div>
             <button
               v-if="messages.length"
               type="button"
@@ -83,13 +86,16 @@
                 <IconBell class="h-5 w-5" aria-hidden="true" />
               </div>
               <p class="mt-3 text-sm font-medium text-[hsl(var(--foreground))]">You're all caught up</p>
+              <p class="mt-1 text-xs leading-relaxed text-[hsl(var(--muted-foreground))]">
+                Mandir announcements appear here if you're signed in — turn on notifications to get them straight to your device.
+              </p>
               <NuxtLink
                 v-if="!push.enabled.value"
                 to="/account"
-                class="mt-1 inline-block text-xs font-semibold text-[hsl(var(--golden-900))]"
+                class="mt-3 inline-block text-xs font-semibold text-[hsl(var(--golden-900))]"
                 @click="close"
               >
-                Turn on notifications
+                Turn on device alerts too
               </NuxtLink>
             </div>
 

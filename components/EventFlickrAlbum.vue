@@ -171,6 +171,7 @@ const props = defineProps<{
 
 const route = useRoute()
 const router = useRouter()
+const { request: requestPushPrompt } = usePushPrompt()
 const { fetchPhotoset, photoUrl } = useFlickr()
 const album = ref<Awaited<ReturnType<typeof fetchPhotoset>>>(null)
 const loading = ref(true)
@@ -218,6 +219,7 @@ function openGallery() {
   galleryOpen.value = true
   document.body.style.overflow = 'hidden'
   if (!syncingFromRoute) setAlbumQuery()
+  requestPushPrompt('album')
 }
 
 function openPhoto(index: number) {

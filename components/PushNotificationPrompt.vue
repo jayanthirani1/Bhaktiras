@@ -48,11 +48,39 @@ const copy = computed(() => {
       action: 'Remind me'
     }
   }
-  if (moment.value === 'signed-in') {
+  if (moment.value === 'niyams') {
+    return {
+      title: 'Niyam reminders?',
+      body: 'Get a nudge when the sangat hits a milestone, and soft reminders to keep your niyams going.',
+      action: 'Remind me'
+    }
+  }
+  if (moment.value === 'signed-in' || moment.value === 'account') {
     return {
       title: 'Turn on notifications?',
       body: 'Sabha times, Patotsav dates and mandir announcements come through to this device. You can change this any time from your account.',
       action: 'Turn them on'
+    }
+  }
+  if (moment.value === 'journey') {
+    return {
+      title: 'Patotsav updates?',
+      body: 'Stay in the loop as the journey to Patotsav unfolds — dates, sabhas and announcements on this device.',
+      action: 'Stay updated'
+    }
+  }
+  if (moment.value === 'album') {
+    return {
+      title: 'More from the mandir?',
+      body: 'Get temple and Patotsav announcements on this device when new photos and dates go live.',
+      action: 'Stay updated'
+    }
+  }
+  if (moment.value === 'home') {
+    return {
+      title: 'Stay updated?',
+      body: 'Receive temple and Patotsav announcements on this device. You can change this any time from your account.',
+      action: 'Stay updated'
     }
   }
   return {
