@@ -147,21 +147,32 @@ const SURYA_STAT_LEGACY: Record<string, string> = {
 }
 
 export const CROWN_DEFINITIONS = [
-  { id: 'wordle-fastest', title: 'Fastest Wordle', description: 'Fastest winning Wordle this month.', game: 'wordle' },
-  { id: 'wordle-fewest-guesses', title: 'Fewest Guesses Wordle', description: 'Fewest-guesses winning Wordle this month.', game: 'wordle' },
-  { id: 'crossword-fastest', title: 'Fastest Crossword', description: 'Fastest Crossword finish this month.', game: 'crossword' },
-  { id: 'crossword-fewest-hints', title: 'Fewest Hints Crossword', description: 'Crossword finish with the fewest hints this month.', game: 'crossword' },
-  { id: 'connections-fastest', title: 'Fastest Connections', description: 'Fastest Connections solve this month.', game: 'connections' },
-  { id: 'connections-fewest-mistakes', title: 'Fewest Mistakes Connections', description: 'Fewest-mistake Connections solve this month.', game: 'connections' },
-  { id: 'bracket-city-fastest', title: 'Fastest Bracket City', description: 'Fastest Bracket City finish this month.', game: 'bracket-city' },
-  { id: 'bracket-city-fewest-peeks', title: 'Fewest Peeks Bracket City', description: 'Fewest-peek Bracket City finish this month.', game: 'bracket-city' },
-  { id: 'one-percent-highest', title: '1% Club High Score', description: 'Most rungs cleared in 1% Club this month.', game: 'one-percent' },
-  { id: 'one-percent-fastest', title: 'Fastest 1% Club', description: 'Fastest full 1% Club clear this month.', game: 'one-percent' },
-  { id: 'surya-chandra-fastest', title: 'Fastest Surya Chandra', description: 'Fastest Surya Chandra completion this month.', game: 'surya-chandra' },
-  { id: 'ras-rani-fastest', title: 'Fastest Ras Rani', description: 'Fastest Ras Rani completion this month.', game: 'ras-rani' },
-  { id: 'ras-rani-fewest-moves', title: 'Fewest Moves Ras Rani', description: 'Fewest moves Ras Rani completion this month.', game: 'ras-rani' },
-  { id: 'streak-longest', title: 'Longest Streak', description: 'Longest active games streak this month.', game: 'streak' }
+  { id: 'wordle-fastest', title: 'Fastest Wordle', description: 'Fastest winning Wordle this month.', game: 'wordle', scope: 'monthly' },
+  { id: 'wordle-fewest-guesses', title: 'Fewest Guesses Wordle', description: 'Fewest-guesses winning Wordle this month.', game: 'wordle', scope: 'monthly' },
+  { id: 'crossword-fastest', title: 'Fastest Crossword', description: 'Fastest Crossword finish this month.', game: 'crossword', scope: 'monthly' },
+  { id: 'crossword-fewest-hints', title: 'Fewest Hints Crossword', description: 'Crossword finish with the fewest hints this month.', game: 'crossword', scope: 'monthly' },
+  { id: 'connections-fastest', title: 'Fastest Connections', description: 'Fastest Connections solve this month.', game: 'connections', scope: 'monthly' },
+  { id: 'connections-fewest-mistakes', title: 'Fewest Mistakes Connections', description: 'Fewest-mistake Connections solve this month.', game: 'connections', scope: 'monthly' },
+  { id: 'bracket-city-fastest', title: 'Fastest Bracket City', description: 'Fastest Bracket City finish this month.', game: 'bracket-city', scope: 'monthly' },
+  { id: 'bracket-city-fewest-peeks', title: 'Fewest Peeks Bracket City', description: 'Fewest-peek Bracket City finish this month.', game: 'bracket-city', scope: 'monthly' },
+  { id: 'one-percent-highest', title: '1% Club High Score', description: 'Most rungs cleared in 1% Club this month.', game: 'one-percent', scope: 'monthly' },
+  { id: 'one-percent-fastest', title: 'Fastest 1% Club', description: 'Fastest full 1% Club clear this month.', game: 'one-percent', scope: 'monthly' },
+  { id: 'surya-chandra-fastest', title: 'Fastest Surya Chandra', description: 'Fastest Surya Chandra completion this month.', game: 'surya-chandra', scope: 'monthly' },
+  { id: 'ras-rani-fastest', title: 'Fastest Ras Rani', description: 'Fastest Ras Rani completion this month.', game: 'ras-rani', scope: 'monthly' },
+  { id: 'ras-rani-fewest-moves', title: 'Fewest Moves Ras Rani', description: 'Fewest moves Ras Rani completion this month.', game: 'ras-rani', scope: 'monthly' },
+  { id: 'streak-longest', title: 'Longest Streak', description: 'Longest games streak of all time.', game: 'streak', scope: 'all-time' }
 ] as const
+
+export function crownScope(id: string): 'monthly' | 'all-time' {
+  const def = CROWN_DEFINITIONS.find(item => item.id === id)
+  return def?.scope === 'all-time' ? 'all-time' : 'monthly'
+}
+
+export function isAllTimeCrown(crown: Pick<AchievementCrownRecord, 'id' | 'scope'>): boolean {
+  if (crown.scope === 'all-time') return true
+  if (crown.scope === 'monthly') return false
+  return crownScope(crown.id) === 'all-time'
+}
 
 const LEGACY_CROWN_IDS: Record<string, string> = {
   'surya-chandra-fastest': 'bhakti-marg-fastest'
@@ -230,12 +241,14 @@ export function crownTitle(id: string) {
  * Monthly crowns: prefer explicit `monthId`. Pre-monthly holders (no monthId)
  * stay on the board — they must be beaten on score, not cleared by the filter.
  * Only a crown tagged with a previous monthId is treated as vacant.
+ * All-time crowns (e.g. longest streak) always belong.
  */
 export function crownBelongsToMonth(
-  crown: Pick<AchievementCrownRecord, 'monthId' | 'updatedAt' | 'holderUserId'>,
+  crown: Pick<AchievementCrownRecord, 'id' | 'monthId' | 'updatedAt' | 'holderUserId' | 'scope'>,
   monthId: string = ukMonthId()
 ): boolean {
   if (!crown.holderUserId) return false
+  if (isAllTimeCrown(crown)) return true
   if (crown.monthId) return crown.monthId === monthId
   return true
 }

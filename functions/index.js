@@ -184,15 +184,15 @@ function ukMonthIdNow() {
 }
 
 /**
- * Who still holds the board for this UK month.
+ * Who still holds the board.
  *
- * Vacant only when the stored crown is explicitly tagged with a *previous*
- * monthId (the monthly reset). A legacy doc with no monthId is still the bar
- * to beat — treating it as empty let any score steal the crown when monthly
- * crowns first shipped.
+ * All-time crowns never vacate on a month change. Monthly crowns are vacant
+ * only when tagged with a *previous* monthId. A legacy doc with no monthId is
+ * still the bar to beat.
  */
-function crownHoldsBoard(stored, monthId) {
+function crownHoldsBoard(stored, monthId, scope = 'monthly') {
   if (!stored || !stored.holderUserId) return false
+  if (scope === 'all-time' || stored.scope === 'all-time') return true
   if (stored.monthId && stored.monthId !== monthId) return false
   return true
 }
@@ -1188,17 +1188,18 @@ async function handleGameAchievements(request) {
   } else if (game === 'streak') {
     const streakSnap = await db.doc(`playStreaks/${uid}`).get()
     if (!streakSnap.exists) return { unlockedIds: [], crowns: [] }
-    // Monthly crown tracks the active streak, not the all-time personal best —
-    // otherwise a long historical streak would re-claim the board on day one.
-    const currentStreak = intInRange(streakSnap.data().currentStreak, 1, 10_000)
-    if (currentStreak == null) throw new HttpsError('failed-precondition', 'Invalid streak record.')
-    Object.assign(candidate, { longestStreak: currentStreak })
+    // All-time crown: personal best, not the live active streak. A broken
+    // streak must not hand the board to whoever is on day one this month.
+    const longestStreak = intInRange(streakSnap.data().longestStreak, 1, 10_000)
+    if (longestStreak == null) throw new HttpsError('failed-precondition', 'Invalid streak record.')
+    Object.assign(candidate, { longestStreak })
     crownSpecs.push({
       id: 'streak-longest',
       metric: 'longest-streak',
-      value: currentStreak,
+      value: longestStreak,
+      scope: 'all-time',
       better: isBetterLongestStreak,
-      extra: { longestStreak: currentStreak }
+      extra: { longestStreak }
     })
   }
 
@@ -1251,16 +1252,17 @@ async function handleGameAchievements(request) {
 
     let legacySnapOffset = 1 + crownRefs.length
     crownSpecs.forEach((spec, index) => {
+      const scope = spec.scope === 'all-time' ? 'all-time' : 'monthly'
       const primarySnap = snaps[index + 1]
       let stored = primarySnap.exists ? primarySnap.data() : null
-      let holds = crownHoldsBoard(stored, monthId)
+      let holds = crownHoldsBoard(stored, monthId, scope)
       let holdingLegacy = false
       const legacyRef = legacyCrownRefs[index]
       if (!holds && legacyRef) {
         const legacySnap = snaps[legacySnapOffset]
         legacySnapOffset += 1
         const legacyStored = legacySnap.exists ? legacySnap.data() : null
-        if (crownHoldsBoard(legacyStored, monthId)) {
+        if (crownHoldsBoard(legacyStored, monthId, scope)) {
           stored = legacyStored
           holds = true
           holdingLegacy = true
@@ -1270,9 +1272,9 @@ async function handleGameAchievements(request) {
       }
       const current = holds ? stored : null
       if (!spec.better(current, candidate)) {
-        // Stamp monthId onto legacy holders so the client filter stays aligned
-        // and the board can reset cleanly on the 1st.
-        if (holds && stored && stored.monthId !== monthId) {
+        // Stamp monthId onto monthly legacy holders so the client filter stays
+        // aligned and the board can reset cleanly on the 1st.
+        if (scope === 'monthly' && holds && stored && stored.monthId !== monthId) {
           const stampRef = holdingLegacy ? legacyRef : crownRefs[index]
           transaction.set(stampRef, {
             scope: 'monthly',
@@ -1288,17 +1290,22 @@ async function handleGameAchievements(request) {
         previousHolderId: holds ? (stored?.holderUserId || null) : null,
         previousHolderName: holds ? (stored?.holderName || null) : null
       })
-      transaction.set(crownRefs[index], {
+      const payload = {
         holderUserId: uid,
         holderName: userName,
         game,
         metric: spec.metric,
-        scope: 'monthly',
-        monthId,
+        scope,
         value: spec.value,
         ...spec.extra,
         updatedAt: FieldValue.serverTimestamp()
-      }, { merge: true })
+      }
+      if (scope === 'all-time') {
+        payload.monthId = FieldValue.delete()
+      } else {
+        payload.monthId = monthId
+      }
+      transaction.set(crownRefs[index], payload, { merge: true })
       if (legacyRef) transaction.delete(legacyRef)
     })
   })

@@ -13,20 +13,24 @@
         subtitle="Long-term medals you work toward, plus a few rare one-shots. Progress saves to your account."
       />
 
-      <section class="card-surface mt-8 p-5 sm:p-6">
+      <section
+        v-for="section in crownSections"
+        :key="section.id"
+        class="card-surface mt-8 p-5 sm:p-6"
+      >
         <div class="flex items-center gap-2">
           <IconCrown class="h-5 w-5 text-[hsl(var(--golden-900))]" />
-          <h2 class="font-display text-xl font-semibold text-[hsl(var(--primary))]">Monthly Crowns</h2>
+          <h2 class="font-display text-xl font-semibold text-[hsl(var(--primary))]">{{ section.title }}</h2>
         </div>
         <p class="mt-1 text-sm text-[hsl(var(--muted-foreground))]">
-          Best results this month. Resets on the {{ resetLabel }}.
+          {{ section.subtitle }}
         </p>
         <div v-if="achievements.loading.value && !achievements.crowns.value.length" class="mt-4 text-sm text-[hsl(var(--muted-foreground))]">
           Loading crowns…
         </div>
         <div class="mt-4 grid gap-3 md:grid-cols-2">
           <div
-            v-for="def in crownDefinitions"
+            v-for="def in section.definitions"
             :key="def.id"
             class="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--background))] p-4"
           >
@@ -57,7 +61,9 @@
                     You currently hold this crown.
                   </p>
                 </template>
-                <p v-else class="mt-1 text-sm text-[hsl(var(--muted-foreground))]">Unclaimed this month</p>
+                <p v-else class="mt-1 text-sm text-[hsl(var(--muted-foreground))]">
+                  {{ section.id === 'all-time' ? 'Unclaimed' : 'Unclaimed this month' }}
+                </p>
               </div>
             </div>
           </div>
@@ -123,8 +129,26 @@ import { nextUkMonthCrownResetLabel } from '~/utils/gameDay'
 
 const auth = useAuth()
 const achievements = useAchievements()
-const crownDefinitions = CROWN_DEFINITIONS
 const resetLabel = nextUkMonthCrownResetLabel()
+
+const crownSections = computed(() => {
+  const allTime = CROWN_DEFINITIONS.filter(def => def.scope === 'all-time')
+  const monthly = CROWN_DEFINITIONS.filter(def => def.scope !== 'all-time')
+  return [
+    {
+      id: 'all-time',
+      title: 'All-time Crowns',
+      subtitle: 'Records that do not reset. Beat them to take the crown.',
+      definitions: allTime
+    },
+    {
+      id: 'monthly',
+      title: 'Monthly Crowns',
+      subtitle: `Best results this month. Resets on the ${resetLabel}.`,
+      definitions: monthly
+    }
+  ].filter(section => section.definitions.length)
+})
 
 function crownById(id: string) {
   return achievements.crowns.value.find(crown => crown.id === id) || null

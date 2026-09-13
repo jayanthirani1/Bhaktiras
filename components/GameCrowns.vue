@@ -5,9 +5,9 @@
   >
     <p class="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-amber-800">
       <IconCrown class="h-4 w-4" />
-      Monthly Crowns
+      {{ heading }}
     </p>
-    <p class="mt-1 text-xs text-[hsl(var(--muted-foreground))]">Resets on the {{ resetLabel }}.</p>
+    <p v-if="subtitle" class="mt-1 text-xs text-[hsl(var(--muted-foreground))]">{{ subtitle }}</p>
     <div class="mt-3 space-y-2 text-sm text-[hsl(var(--muted-foreground))]">
       <p v-for="row in rows" :key="row.id">
         <span class="font-semibold text-[hsl(var(--primary))]">{{ row.title }}:</span>
@@ -29,7 +29,7 @@
           </span>
         </template>
         <template v-else>
-          Unclaimed this month
+          {{ allTime ? 'Unclaimed' : 'Unclaimed this month' }}
         </template>
       </p>
     </div>
@@ -38,7 +38,7 @@
 
 <script setup lang="ts">
 import { IconCrown } from '@tabler/icons-vue'
-import { crownTitle, crownValue } from '~/composables/useAchievements'
+import { crownScope, crownTitle, crownValue } from '~/composables/useAchievements'
 import { nextUkMonthCrownResetLabel } from '~/utils/gameDay'
 
 const props = defineProps<{
@@ -49,6 +49,17 @@ const auth = useAuth()
 const achievements = useAchievements()
 const currentUserId = computed(() => auth.user.value?.uid)
 const resetLabel = nextUkMonthCrownResetLabel()
+
+const allTime = computed(() =>
+  props.ids.length > 0 && props.ids.every(id => crownScope(id) === 'all-time')
+)
+
+const heading = computed(() => (allTime.value ? 'All-time Crown' : 'Monthly Crowns'))
+const subtitle = computed(() => (
+  allTime.value
+    ? 'Does not reset each month — beat the record to take it.'
+    : `Resets on the ${resetLabel}.`
+))
 
 onMounted(() => {
   void achievements.fetchAll()

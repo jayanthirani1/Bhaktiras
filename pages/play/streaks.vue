@@ -86,7 +86,7 @@
       </div>
 
       <p class="mt-4 text-center text-xs text-[hsl(var(--muted-foreground))]">
-        Current streaks reset after a full missed day. Your personal best remains recorded.
+        Current streaks reset after a full missed day. Your personal best — and the all-time crown — remain.
       </p>
     </div>
   </div>
