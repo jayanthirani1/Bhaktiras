@@ -19,6 +19,7 @@
       <InstallAppPrompt />
       <PushNotificationPrompt />
       <AchievementUnlockToast />
+      <PlayStreakRestartToast />
     </ClientOnly>
   </div>
 </template>

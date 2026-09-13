@@ -25,6 +25,22 @@
             <p class="mt-1 text-xs text-[hsl(var(--muted-foreground))]">Play a game every day to keep it alive.</p>
           </div>
         </div>
+        <div
+          v-if="restartNotice"
+          class="border-t border-orange-200/70 bg-white/70 px-5 py-3"
+          role="status"
+        >
+          <p class="text-sm leading-snug text-[hsl(var(--primary))]">
+            Your {{ restartNotice.previousStreak }}-day streak ended after a missed day. It has restarted from day 1 — keep going!
+          </p>
+          <button
+            type="button"
+            class="mt-2 text-xs font-semibold text-orange-800 underline underline-offset-2 hover:text-orange-950"
+            @click="dismissRestartNotice"
+          >
+            Got it
+          </button>
+        </div>
         <NuxtLink
           to="/play/streaks"
           class="flex items-center justify-between border-t border-orange-200/70 bg-white/55 px-5 py-3 text-sm font-semibold text-[hsl(var(--primary))] hover:bg-white/80"
@@ -115,7 +131,7 @@ import type { PlayGameSlug } from '~/utils/playCompletion'
 
 const auth = useAuth()
 const isLoggedIn = computed(() => !!auth.user.value)
-const { record: streak, recording: streakLoading } = usePlayStreak()
+const { record: streak, recording: streakLoading, restartNotice, dismissRestartNotice } = usePlayStreak()
 
 const games: Array<{
   slug: PlayGameSlug

@@ -10,9 +10,35 @@ import type { PlayStreakRecord } from '~/types'
 import { addUkDays, ukDateId } from '~/utils/gameDay'
 import { callGameAchievements } from '~/composables/useAchievements'
 
+export interface PlayStreakRestartNotice {
+  previousStreak: number
+}
+
 function getDb(): Firestore | null {
   if (import.meta.server) return null
   return (useNuxtApp().$firebaseDb as Firestore | null) ?? null
+}
+
+function restartNoticeStorageKey(uid: string, day: string) {
+  return `bhaktiras-streak-restart:${uid}:${day}`
+}
+
+function readDismissedRestart(uid: string, day: string): boolean {
+  if (!import.meta.client) return false
+  try {
+    return sessionStorage.getItem(restartNoticeStorageKey(uid, day)) === 'dismissed'
+  } catch {
+    return false
+  }
+}
+
+function markRestartDismissed(uid: string, day: string) {
+  if (!import.meta.client) return
+  try {
+    sessionStorage.setItem(restartNoticeStorageKey(uid, day), 'dismissed')
+  } catch {
+    /* ignore private-mode / quota */
+  }
 }
 
 export function usePlayStreak() {
@@ -21,6 +47,13 @@ export function usePlayStreak() {
   const recording = useState<boolean>('play-streak-recording', () => false)
   const recordedKey = useState<string>('play-streak-recorded-key', () => '')
   const error = useState<string>('play-streak-error', () => '')
+  const restartNotice = useState<PlayStreakRestartNotice | null>('play-streak-restart-notice', () => null)
+
+  function dismissRestartNotice() {
+    const user = auth.user.value
+    if (user) markRestartDismissed(user.uid, ukDateId())
+    restartNotice.value = null
+  }
 
   async function recordVisit() {
     const user = auth.user.value
@@ -35,15 +68,22 @@ export function usePlayStreak() {
     error.value = ''
     try {
       const ref = doc(db, 'playStreaks', user.uid)
-      const next = await runTransaction(db, async (transaction) => {
+      const { next, brokenFrom } = await runTransaction(db, async (transaction) => {
         const snap = await transaction.get(ref)
         const existing = snap.exists() ? snap.data() : null
         const lastVisitDate = String(existing?.lastVisitDate || '')
         const previousDay = addUkDays(today, -1)
+        const previousStreak = Number(existing?.currentStreak) || 0
 
-        let currentStreak = Number(existing?.currentStreak) || 0
+        let currentStreak = previousStreak
+        let brokenFrom: number | null = null
         if (lastVisitDate !== today) {
-          currentStreak = lastVisitDate === previousDay ? currentStreak + 1 : 1
+          if (lastVisitDate === previousDay) {
+            currentStreak = previousStreak + 1
+          } else {
+            if (lastVisitDate && previousStreak >= 2) brokenFrom = previousStreak
+            currentStreak = 1
+          }
         }
         const longestStreak = Math.max(Number(existing?.longestStreak) || 0, currentStreak)
         const userName = auth.userName.value || auth.userEmail.value || 'Player'
@@ -58,17 +98,23 @@ export function usePlayStreak() {
         }, { merge: true })
 
         return {
-          id: user.uid,
-          userId: user.uid,
-          userName: userName.slice(0, 32),
-          currentStreak,
-          longestStreak,
-          lastVisitDate: today
-        } satisfies PlayStreakRecord
+          next: {
+            id: user.uid,
+            userId: user.uid,
+            userName: userName.slice(0, 32),
+            currentStreak,
+            longestStreak,
+            lastVisitDate: today
+          } satisfies PlayStreakRecord,
+          brokenFrom
+        }
       })
 
       record.value = next
       recordedKey.value = key
+      if (brokenFrom != null && !readDismissedRestart(user.uid, today)) {
+        restartNotice.value = { previousStreak: brokenFrom }
+      }
       void callGameAchievements('streak', { userName: next.userName }).catch(() => {})
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Could not update your streak.'
@@ -77,7 +123,7 @@ export function usePlayStreak() {
     }
   }
 
-  return { record, recording, error, recordVisit }
+  return { record, recording, error, recordVisit, restartNotice, dismissRestartNotice }
 }
 
 export const STREAK_PAGE_SIZE = 20
