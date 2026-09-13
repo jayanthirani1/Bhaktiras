@@ -1,17 +1,34 @@
 <template>
   <div>
     <p v-if="error" class="mb-3 text-sm text-red-600">{{ error }}</p>
+
+    <div class="mb-3 flex flex-wrap gap-2">
+      <button
+        v-for="tab in sectionTabs"
+        :key="tab.id"
+        type="button"
+        class="rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors"
+        :class="listFilter === tab.id
+          ? 'border-[hsl(var(--primary))] bg-[hsl(var(--primary))] text-white'
+          : 'border-[hsl(var(--border))] bg-white text-[hsl(var(--muted-foreground))] hover:border-[hsl(var(--golden-200))]'"
+        @click="listFilter = tab.id"
+      >
+        {{ tab.label }}
+        <span class="ml-1 opacity-80">({{ tab.count }})</span>
+      </button>
+    </div>
+
     <AdminEditorLayout
-      :count-label="`${sorted.length} document${sorted.length === 1 ? '' : 's'}`"
+      :count-label="`${filtered.length} document${filtered.length === 1 ? '' : 's'}`"
       create-label="New document"
-      empty-label="No documents yet. Add one to link from a niyam."
+      empty-label="No documents in this section yet. Add one and set its section to Nitya Niyam or General."
       :loading="loading"
-      :empty="!sorted.length"
+      :empty="!filtered.length"
       @create="openNew"
     >
       <template #list>
         <button
-          v-for="item in sorted"
+          v-for="item in filtered"
           :key="item.id"
           type="button"
           class="admin-row"
@@ -20,11 +37,12 @@
         >
           <p class="font-semibold text-[hsl(var(--primary))]">{{ item.title || 'Untitled' }}</p>
           <p class="mt-1 text-sm text-[hsl(var(--muted-foreground))]">
-            <span v-if="chapterCount(item)">{{ chapterCount(item) }} chapter{{ chapterCount(item) === 1 ? '' : 's' }}</span>
-            <span v-else-if="hasEnglish(item)">English</span>
+            <span>{{ niyamDocumentSectionLabel(item.section) }}</span>
+            <span v-if="chapterCount(item)"> · {{ chapterCount(item) }} chapter{{ chapterCount(item) === 1 ? '' : 's' }}</span>
+            <span v-else-if="hasEnglish(item)"> · English</span>
             <span v-if="!chapterCount(item) && hasEnglish(item) && hasGujarati(item)"> · </span>
-            <span v-if="!chapterCount(item) && hasGujarati(item)">Gujarati</span>
-            <span v-if="!chapterCount(item) && !hasEnglish(item) && !hasGujarati(item)">No body text yet</span>
+            <span v-if="!chapterCount(item) && hasGujarati(item)">{{ hasEnglish(item) ? '' : ' · ' }}Gujarati</span>
+            <span v-if="!chapterCount(item) && !hasEnglish(item) && !hasGujarati(item)"> · No body text yet</span>
             <span v-if="!item.active" class="ml-1 text-amber-700">· hidden</span>
           </p>
         </button>
@@ -45,6 +63,22 @@
             <input v-model="form.title" required class="admin-input" :maxlength="NIYAM_DOCUMENT_TITLE_MAX">
             <p class="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
               Shown on the link card unless the niyam has its own link text.
+            </p>
+          </div>
+
+          <div>
+            <label class="admin-label">Section</label>
+            <select v-model="form.section" class="admin-input">
+              <option
+                v-for="option in NIYAM_DOCUMENT_SECTIONS"
+                :key="option.id"
+                :value="option.id"
+              >
+                {{ option.label }}
+              </option>
+            </select>
+            <p class="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
+              Nitya Niyam readings appear in the continuous scroll on /nitya-niyams. General texts are for linking from a niyam or other pages.
             </p>
           </div>
 
@@ -212,15 +246,17 @@
 </template>
 
 <script setup lang="ts">
-import type { NiyamDocument, NiyamDocumentChapter } from '~/types'
+import type { NiyamDocument, NiyamDocumentChapter, NiyamDocumentSection } from '~/types'
 import {
   NIYAM_DOCUMENT_BODY_MAX,
   NIYAM_DOCUMENT_CHAPTER_TITLE_MAX,
   NIYAM_DOCUMENT_MAX_CHAPTERS,
+  NIYAM_DOCUMENT_SECTIONS,
   NIYAM_DOCUMENT_TITLE_MAX,
   newNiyamDocumentChapterId,
   niyamDocumentChapterHasContent,
-  niyamDocumentChapters
+  niyamDocumentChapters,
+  niyamDocumentSectionLabel
 } from '~/utils/niyamDocument'
 import { safeResourceUrl } from '~/utils/niyamChallenge'
 
@@ -233,26 +269,46 @@ type ChapterForm = {
   bodyGujarati: string
 }
 
+type ListFilter = 'all' | NiyamDocumentSection
+
 const { items, loading, saving, error, fetchAll, create, updateItem, remove } = useAdminNiyamDocuments()
 
 const showForm = ref(false)
 const isEditing = ref(false)
 const editingId = ref<string | null>(null)
+const listFilter = ref<ListFilter>('nitya')
 const form = reactive({
   title: '',
   bodyEnglish: '',
   bodyGujarati: '',
   audioUrl: '',
   chapters: [] as ChapterForm[],
+  section: 'nitya' as NiyamDocumentSection,
   active: true,
   order: 0
 })
 
 const sorted = computed(() =>
-  [...items.value].sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.title.localeCompare(b.title))
+  [...items.value]
+    .map(item => ({
+      ...item,
+      section: item.section === 'nitya' ? 'nitya' as const : 'general' as const
+    }))
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.title.localeCompare(b.title))
 )
 
-const previewPath = computed(() => (editingId.value ? `/documents/${editingId.value}` : '/documents'))
+const filtered = computed(() => {
+  if (listFilter.value === 'all') return sorted.value
+  return sorted.value.filter(item => item.section === listFilter.value)
+})
+
+const sectionTabs = computed(() => [
+  { id: 'nitya' as const, label: 'Nitya Niyams', count: sorted.value.filter(i => i.section === 'nitya').length },
+  { id: 'general' as const, label: 'General', count: sorted.value.filter(i => i.section === 'general').length },
+  { id: 'all' as const, label: 'All', count: sorted.value.length }
+])
+
+const previewPath = computed(() => (editingId.value ? `/documents/${editingId.value}` : '/nitya-niyams'))
 
 function hasEnglish(item: NiyamDocument) {
   return !!(item.bodyEnglish || '').trim()
@@ -278,14 +334,16 @@ function chapterToForm(chapter: NiyamDocumentChapter): ChapterForm {
 function openNew() {
   isEditing.value = false
   editingId.value = null
+  const section: NiyamDocumentSection = listFilter.value === 'general' ? 'general' : 'nitya'
   Object.assign(form, {
     title: '',
     bodyEnglish: '',
     bodyGujarati: '',
     audioUrl: '',
     chapters: [],
+    section,
     active: true,
-    order: sorted.value.length
+    order: filtered.value.length
   })
   showForm.value = true
 }
@@ -299,6 +357,7 @@ function openEdit(item: NiyamDocument) {
     bodyGujarati: item.bodyGujarati || '',
     audioUrl: item.audioUrl || '',
     chapters: niyamDocumentChapters(item).map(chapterToForm),
+    section: item.section === 'nitya' ? 'nitya' : 'general',
     active: item.active !== false,
     order: item.order ?? 0
   })
@@ -375,6 +434,7 @@ async function save() {
     bodyEnglish: bodyEnglish.slice(0, NIYAM_DOCUMENT_BODY_MAX),
     bodyGujarati: bodyGujarati.slice(0, NIYAM_DOCUMENT_BODY_MAX),
     audioUrl: safeResourceUrl(form.audioUrl) || '',
+    section: form.section === 'nitya' ? 'nitya' : 'general',
     active: !!form.active,
     order: Math.max(0, Math.floor(Number(form.order) || 0))
   }

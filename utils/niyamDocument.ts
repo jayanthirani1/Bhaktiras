@@ -1,4 +1,4 @@
-import type { NiyamDocument, NiyamDocumentChapter } from '~/types'
+import type { NiyamDocument, NiyamDocumentChapter, NiyamDocumentSection } from '~/types'
 import { safeResourceUrl } from '~/utils/niyamChallenge'
 
 export const NIYAM_DOCUMENT_TITLE_MAX = 120
@@ -7,6 +7,19 @@ export const NIYAM_DOCUMENT_CHAPTER_TITLE_MAX = 120
 export const NIYAM_DOCUMENT_MAX_CHAPTERS = 100
 
 export type NiyamDocumentLanguage = 'en' | 'gu'
+
+export const NIYAM_DOCUMENT_SECTIONS: { id: NiyamDocumentSection, label: string }[] = [
+  { id: 'nitya', label: 'Nitya Niyam' },
+  { id: 'general', label: 'General' }
+]
+
+export function mapNiyamDocumentSection(raw: unknown): NiyamDocumentSection {
+  return raw === 'nitya' ? 'nitya' : 'general'
+}
+
+export function niyamDocumentSectionLabel(section: NiyamDocumentSection | undefined): string {
+  return section === 'nitya' ? 'Nitya Niyam' : 'General'
+}
 
 type NiyamDocumentBodySource = Pick<NiyamDocument, 'bodyEnglish' | 'bodyGujarati'>
 
@@ -121,6 +134,7 @@ export function mapNiyamDocument(id: string, data: Record<string, unknown>): Niy
     bodyGujarati: trimBody(data.bodyGujarati as string | undefined),
     chapters: chapters?.length ? chapters : undefined,
     audioUrl: safeResourceUrl(data.audioUrl) || undefined,
+    section: mapNiyamDocumentSection(data.section),
     active: data.active !== false,
     order: Number(data.order) || 0,
     createdAt: data.createdAt as NiyamDocument['createdAt'],

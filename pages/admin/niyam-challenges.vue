@@ -298,7 +298,7 @@
                     <select :id="`${uid}-resource-doc`" v-model="form.resourceDocumentId" class="admin-input">
                       <option value="">None</option>
                       <option v-for="doc in documentOptions" :key="doc.id" :value="doc.id">
-                        {{ doc.title }}
+                        {{ doc.title }} ({{ doc.section === 'nitya' ? 'Nitya' : 'General' }})
                       </option>
                     </select>
                     <p class="mt-1 text-xs text-[hsl(var(--muted-foreground))]">

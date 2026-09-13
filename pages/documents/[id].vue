@@ -80,52 +80,7 @@
                 <IconHeadphones class="h-3 w-3 shrink-0" aria-hidden="true" />
                 AUDIO
               </a>
-            </div>
-
-            <div
-              class="inline-flex items-center rounded-full border border-[hsl(var(--border))] bg-white p-0.5"
-              role="group"
-              aria-label="Text size"
-            >
-              <button
-                type="button"
-                class="rounded-full px-2.5 py-1 font-semibold leading-none transition-colors"
-                :class="fontSize === 'sm'
-                  ? 'bg-[hsl(var(--primary))] text-white'
-                  : 'text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]'"
-                style="font-size: 0.7rem"
-                :aria-pressed="fontSize === 'sm'"
-                aria-label="Smaller text"
-                @click="fontSize = 'sm'"
-              >
-                A
-              </button>
-              <button
-                type="button"
-                class="rounded-full px-2.5 py-1 font-semibold leading-none transition-colors"
-                :class="fontSize === 'md'
-                  ? 'bg-[hsl(var(--primary))] text-white'
-                  : 'text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]'"
-                style="font-size: 0.85rem"
-                :aria-pressed="fontSize === 'md'"
-                aria-label="Medium text"
-                @click="fontSize = 'md'"
-              >
-                A
-              </button>
-              <button
-                type="button"
-                class="rounded-full px-2.5 py-1 font-semibold leading-none transition-colors"
-                :class="fontSize === 'lg'
-                  ? 'bg-[hsl(var(--primary))] text-white'
-                  : 'text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]'"
-                style="font-size: 1rem"
-                :aria-pressed="fontSize === 'lg'"
-                aria-label="Larger text"
-                @click="fontSize = 'lg'"
-              >
-                A
-              </button>
+              <NiyamDocumentFontSizeControl v-model="fontRem" />
             </div>
           </div>
         </div>
@@ -212,18 +167,15 @@ import {
   niyamDocumentLanguagesAvailable,
   type NiyamDocumentLanguage
 } from '~/utils/niyamDocument'
+import {
+  DOC_FONT_REM_DEFAULT,
+  docProseStyleFromRem,
+  readStoredDocFontRem,
+  writeStoredDocFontRem
+} from '~/utils/niyamDocumentFont'
 import { inputModeFor, validateMandirCheckinSubmission } from '~/utils/niyamChallenge'
 
 const LANG_KEY = 'bhaktiras-doc-lang'
-const FONT_KEY = 'bhaktiras-doc-font'
-
-type DocFontSize = 'sm' | 'md' | 'lg'
-
-const FONT_SIZES: Record<DocFontSize, { size: string, line: string, lineGu: string }> = {
-  sm: { size: '1.05rem', line: '1.75', lineGu: '1.9' },
-  md: { size: '1.175rem', line: '1.85', lineGu: '2' },
-  lg: { size: '1.35rem', line: '1.9', lineGu: '2.1' }
-}
 
 const route = useRoute()
 const router = useRouter()
@@ -248,7 +200,7 @@ const {
 const sheetOpen = ref(false)
 const language = ref<NiyamDocumentLanguage>('en')
 const chapterIndex = ref(0)
-const fontSize = ref<DocFontSize>('md')
+const fontRem = ref(DOC_FONT_REM_DEFAULT)
 
 const challenge = computed(() =>
   challenges.value.find(item => item.id === niyamId.value) ?? null
@@ -279,16 +231,9 @@ const html = computed(() => {
   return renderSimpleMarkdown(niyamDocumentBody(document.value, language.value, chapterIndex.value))
 })
 
-const proseStyle = computed(() => {
-  const scale = FONT_SIZES[fontSize.value]
-  return {
-    '--doc-font-size': scale.size,
-    '--doc-line-height': scale.line,
-    '--doc-line-height-gu': scale.lineGu
-  }
-})
+const proseStyle = computed(() => docProseStyleFromRem(fontRem.value))
 
-const backPath = computed(() => (niyamId.value ? '/niyams' : '/niyams'))
+const backPath = computed(() => (niyamId.value ? '/niyams' : '/nitya-niyams'))
 
 function clampChapterIndex(index: number) {
   const max = Math.max(chapters.value.length - 1, 0)
@@ -323,13 +268,11 @@ function goToPreviousChapter() {
 }
 
 onMounted(() => {
-  const stored = localStorage.getItem(FONT_KEY)
-  if (stored === 'sm' || stored === 'md' || stored === 'lg') fontSize.value = stored
+  fontRem.value = readStoredDocFontRem()
 })
 
-watch(fontSize, (value) => {
-  if (!import.meta.client) return
-  localStorage.setItem(FONT_KEY, value)
+watch(fontRem, (value) => {
+  writeStoredDocFontRem(value)
 })
 
 watch(document, (doc) => {

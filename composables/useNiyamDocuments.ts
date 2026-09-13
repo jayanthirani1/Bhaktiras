@@ -1,5 +1,5 @@
 import { collection, doc, getDoc, getDocs, type Firestore } from 'firebase/firestore'
-import type { NiyamDocument } from '~/types'
+import type { NiyamDocument, NiyamDocumentSection } from '~/types'
 import { mapNiyamDocument } from '~/utils/niyamDocument'
 
 function getDb(): Firestore | null {
@@ -7,26 +7,33 @@ function getDb(): Firestore | null {
   return (useNuxtApp().$firebaseDb as Firestore | null) ?? null
 }
 
-/** Public read of niyam reading documents. */
+function sortDocuments(list: NiyamDocument[]) {
+  return [...list].sort(
+    (a, b) => (a.order ?? 0) - (b.order ?? 0) || a.title.localeCompare(b.title)
+  )
+}
+
+/** Public read of niyam reading documents from Firestore. */
 export function useNiyamDocuments() {
   const documents = useState<NiyamDocument[]>('niyam-documents-all', () => [])
   const loading = ref(false)
   const error = ref('')
 
-  async function fetchAll(activeOnly = true) {
+  async function fetchAll(activeOnly = true, section?: NiyamDocumentSection | 'all') {
     const db = getDb()
-    if (!db) {
-      error.value = 'Firebase is not configured'
-      return
-    }
     loading.value = true
     error.value = ''
     try {
+      if (!db) {
+        error.value = 'Firebase is not configured'
+        documents.value = []
+        return
+      }
       const snap = await getDocs(collection(db, 'niyamDocuments'))
       let list = snap.docs.map(d => mapNiyamDocument(d.id, d.data() as Record<string, unknown>))
       if (activeOnly) list = list.filter(item => item.active)
-      list.sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.title.localeCompare(b.title))
-      documents.value = list
+      if (section && section !== 'all') list = list.filter(item => item.section === section)
+      documents.value = sortDocuments(list)
     } catch (e) {
       error.value = (e as Error).message
       documents.value = []
@@ -65,15 +72,15 @@ export function useNiyamDocument(documentId: Ref<string> | ComputedRef<string>) 
       return
     }
     const db = getDb()
-    if (!db) {
-      error.value = 'Firebase is not configured'
-      return
-    }
     loading.value = true
     error.value = ''
     notFound.value = false
     document.value = null
     try {
+      if (!db) {
+        error.value = 'Firebase is not configured'
+        return
+      }
       const snap = await getDoc(doc(db, 'niyamDocuments', id))
       if (!snap.exists()) {
         notFound.value = true

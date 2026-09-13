@@ -38,6 +38,26 @@
           {{ copy('boardHint') }}
         </p>
       </section>
+
+      <section class="mt-8" aria-label="Nitya Niyams">
+        <NuxtLink
+          to="/nitya-niyams"
+          class="card-surface flex items-center gap-4 px-5 py-4 transition-colors hover:bg-[hsl(var(--golden-50))]"
+        >
+          <div class="min-w-0 flex-1">
+            <p class="text-xs font-bold uppercase tracking-[0.16em] text-[hsl(var(--golden-900))]">
+              Daily practice
+            </p>
+            <h2 class="mt-1 font-display text-lg font-semibold text-[hsl(var(--primary))]">
+              Nitya Niyams
+            </h2>
+            <p class="mt-1 text-sm text-[hsl(var(--muted-foreground))]">
+              Scroll through Chesta and the daily readings in one place.
+            </p>
+          </div>
+          <span class="text-[hsl(var(--muted-foreground))]" aria-hidden="true">→</span>
+        </NuxtLink>
+      </section>
     </div>
 
     <NiyamLogSheet

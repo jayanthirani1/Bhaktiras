@@ -42,6 +42,7 @@ export default defineNuxtConfig({
    * report-only run rather than guessing at the origin list here.
    */
   routeRules: {
+    '/documents': { redirect: { to: '/nitya-niyams', statusCode: 301 } },
     '/**': {
       headers: {
         'X-Content-Type-Options': 'nosniff',

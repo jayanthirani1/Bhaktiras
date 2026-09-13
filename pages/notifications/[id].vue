@@ -111,7 +111,7 @@ const linkLabel = computed(() => {
   if (path.startsWith('/events')) return 'View events'
   if (path.startsWith('/niyams')) return 'Open niyams'
   if (path.startsWith('/play')) return 'Open games'
-  if (path.startsWith('/documents')) return 'Open reading'
+  if (path.startsWith('/documents') || path.startsWith('/nitya-niyams')) return 'Open reading'
   return 'Continue'
 })
 

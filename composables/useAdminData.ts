@@ -12,6 +12,7 @@ import {
   type Firestore
 } from 'firebase/firestore'
 import type { BracketCityPuzzle, ConnectionsPuzzle, CrosswordPuzzle, Event, GameWordEntry, NiyamDocument, OnePercentQuestion, RasRaniPuzzle, SiteContentSettings, SitePage, TimelineItem, WordleWordDoc, YajmanOpportunity } from '~/types'
+import { mapNiyamDocument } from '~/utils/niyamDocument'
 import {
   communityPromptsFromSource,
   homeTilesAreStale,
@@ -179,7 +180,28 @@ export function useAdminRasRani() {
 }
 
 export function useAdminNiyamDocuments() {
-  return useAdminCollection<NiyamDocument>('niyamDocuments')
+  const { items, loading, saving, error, fetchAll, create, setItem, updateItem, update, remove } = useAdminCollection<NiyamDocument>('niyamDocuments')
+
+  async function fetchMapped() {
+    await fetchAll()
+    items.value = items.value.map((item) => {
+      const { id, ...rest } = item as NiyamDocument & Record<string, unknown>
+      return mapNiyamDocument(id, rest)
+    })
+  }
+
+  return {
+    items,
+    loading,
+    saving,
+    error,
+    fetchAll: fetchMapped,
+    create,
+    setItem,
+    updateItem,
+    update,
+    remove
+  }
 }
 
 export function useAdminSitePages() {

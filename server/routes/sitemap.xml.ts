@@ -15,6 +15,7 @@ const PATHS = [
   '/community',
   '/seva',
   '/niyams',
+  '/nitya-niyams',
   '/yajman',
   '/darshan',
   '/legacy',

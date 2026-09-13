@@ -250,6 +250,9 @@ export interface NiyamDocumentChapter {
   bodyGujarati: string
 }
 
+/** Where a reading appears: continuous Nitya scroll vs general / niyam-linked texts. */
+export type NiyamDocumentSection = 'nitya' | 'general'
+
 export interface NiyamDocument {
   id: string
   title: string
@@ -259,6 +262,11 @@ export interface NiyamDocument {
   chapters?: NiyamDocumentChapter[]
   /** Optional external audio link shown on the reading page. */
   audioUrl?: string
+  /**
+   * `nitya` — listed on /nitya-niyams continuous reader.
+   * `general` — linked from a niyam or used elsewhere; not in that scroll.
+   */
+  section: NiyamDocumentSection
   active: boolean
   order?: number
   createdAt?: FirestoreTimestampLike
