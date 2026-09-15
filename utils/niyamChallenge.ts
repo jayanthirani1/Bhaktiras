@@ -489,6 +489,46 @@ export function mandirSabhaLoggedToday(
   return { morning, evening }
 }
 
+/**
+ * Empty morning/evening slots from launch through `throughDay`, newest first,
+ * for admin backfill up to a target sabha total.
+ */
+export function planAdminCheckinCredits(
+  submissions: NiyamSubmission[],
+  targetTotal: number,
+  throughDay: string = ukDateId()
+): Array<{ dayKey: string; checkinSlot: MandirCheckinSlot }> {
+  const target = Math.max(0, Math.floor(Number(targetTotal) || 0))
+  const current = mandirApprovedSabhasSinceLaunch(submissions)
+  let need = Math.max(0, target - current)
+  if (need < 1 || throughDay < MANDIR_DARSHAN_LAUNCH_DAY) return []
+
+  const days: string[] = []
+  let day = MANDIR_DARSHAN_LAUNCH_DAY
+  while (day <= throughDay) {
+    days.push(day)
+    day = addUkDays(day, 1)
+  }
+
+  const plans: Array<{ dayKey: string; checkinSlot: MandirCheckinSlot }> = []
+  for (let i = days.length - 1; i >= 0 && need > 0; i -= 1) {
+    const dayKey = days[i]!
+    const logged = mandirSabhaLoggedToday(submissions, dayKey)
+    const slots: MandirCheckinSlot[] =
+      dayKey === MANDIR_DARSHAN_LAUNCH_DAY ? ['evening'] : ['evening', 'morning']
+    for (const checkinSlot of slots) {
+      if (need < 1) break
+      if (checkinSlot === 'morning' && logged.morning) continue
+      if (checkinSlot === 'evening' && logged.evening) continue
+      plans.push({ dayKey, checkinSlot })
+      need -= 1
+      if (checkinSlot === 'morning') logged.morning = true
+      else logged.evening = true
+    }
+  }
+  return plans
+}
+
 /** Plan a manual check-in from home — amount 2 fills both sabhas. */
 export function mandirManualCheckinPlan(
   submissions: NiyamSubmission[],

@@ -293,6 +293,8 @@ export interface NiyamSubmission {
   reviewNote?: string | null
   /** Manual check-in away from mandir — which sabha this entry is for. */
   checkinSlot?: MandirCheckinSlot | null
+  /** Set when an admin credited this entry to the devotee (missed auto check-in, etc.). */
+  adminCredited?: boolean
 }
 
 /**

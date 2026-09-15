@@ -665,15 +665,17 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly([
              'challengeId', 'userId', 'userName', 'amount', 'note',
              'status', 'statusKey', 'userChallengeKey', 'dayKey', 'createdAt',
-             'checkinSlot'
+             'checkinSlot', 'adminCredited'
            ])
         && request.resource.data.keys().hasAll([
              'challengeId', 'userId', 'userName', 'amount',
              'status', 'statusKey', 'userChallengeKey', 'dayKey', 'createdAt'
            ])
-        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.userId is string
+        && request.resource.data.userId.size() >= 1
+        && request.resource.data.userId.size() <= 128
         && request.resource.data.userChallengeKey ==
-             request.auth.uid + '__' + request.resource.data.challengeId
+             request.resource.data.userId + '__' + request.resource.data.challengeId
         && request.resource.data.statusKey ==
              request.resource.data.challengeId + '__' + request.resource.data.status
         && request.resource.data.userName is string
@@ -702,16 +704,31 @@ service cloud.firestore {
                && request.resource.data.checkinSlot in ['morning', 'evening']
                && request.resource.data.amount == 1
              )
+           )
+        && (
+             (
+               // Own entry — the usual devotee path.
+               request.resource.data.userId == request.auth.uid
+               && !('adminCredited' in request.resource.data)
+             )
+             || (
+               // Admin correction: credit a check-in (or count) to another devotee.
+               isAdmin()
+               && request.resource.data.adminCredited == true
+               && request.resource.data.note is string
+               && request.resource.data.note.size() >= 1
+             )
            );
 
       // Only an admin decides what counts. Identity, amount, day and the
       // challenge it belongs to are immutable — a review changes the verdict,
-      // never the claim.
+      // never the claim. `adminCredited` is set at create and must not move.
       allow update: if isAdmin()
         && request.resource.data.keys().hasOnly([
              'challengeId', 'userId', 'userName', 'amount', 'note',
              'status', 'statusKey', 'userChallengeKey', 'dayKey', 'createdAt',
-             'checkinSlot', 'reviewedAt', 'reviewedBy', 'reviewNote'
+             'checkinSlot', 'adminCredited', 'reviewedAt', 'reviewedBy', 'reviewNote',
+             'spamRejected'
            ])
         && request.resource.data.challengeId == resource.data.challengeId
         && request.resource.data.userId == resource.data.userId
@@ -719,6 +736,10 @@ service cloud.firestore {
         && request.resource.data.amount == resource.data.amount
         && request.resource.data.dayKey == resource.data.dayKey
         && request.resource.data.createdAt == resource.data.createdAt
+        && (
+             !('adminCredited' in resource.data)
+             || request.resource.data.adminCredited == resource.data.adminCredited
+           )
         && request.resource.data.status in ['approved', 'pending', 'rejected']
         && request.resource.data.statusKey ==
              resource.data.challengeId + '__' + request.resource.data.status

@@ -440,6 +440,93 @@
             </p>
           </div>
 
+          <!-- ── Credit check-ins for a devotee ───────────────────── -->
+          <div
+            v-if="editingId && editingPublished && form.inputMode === 'checkin'"
+            class="border-t border-[hsl(var(--border))] pt-5"
+          >
+            <h3 class="font-display text-lg font-semibold text-[hsl(var(--primary))]">
+              Credit check-ins for a devotee
+            </h3>
+            <p class="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
+              Use this when someone attended but their Daily Darshan total is short — for example a
+              missed check-in. Pick the devotee and the total they should have; missing sabhas are
+              filled into empty morning/evening slots (newest days first).
+            </p>
+            <form class="mt-3 space-y-3" @submit.prevent="onCreditCheckins">
+              <div>
+                <label :for="`${uid}-credit-person`" class="admin-label">Devotee</label>
+                <select
+                  :id="`${uid}-credit-person`"
+                  v-model="credit.userId"
+                  class="admin-input"
+                  @change="onCreditPersonChange"
+                >
+                  <option value="">Choose someone…</option>
+                  <option
+                    v-for="person in creditPeople"
+                    :key="person.userId"
+                    :value="person.userId"
+                  >
+                    {{ person.userName }} — {{ formatCount(person.approvedTotal) }} {{ form.unit }}
+                  </option>
+                </select>
+              </div>
+              <div class="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label :for="`${uid}-credit-target`" class="admin-label">
+                    Should have this many {{ form.unit }}
+                  </label>
+                  <input
+                    :id="`${uid}-credit-target`"
+                    v-model.number="credit.targetTotal"
+                    type="number"
+                    inputmode="numeric"
+                    min="1"
+                    step="1"
+                    class="admin-input"
+                    placeholder="e.g. 11"
+                  >
+                </div>
+                <div>
+                  <label :for="`${uid}-credit-note`" class="admin-label">Why (kept on each entry)</label>
+                  <input
+                    :id="`${uid}-credit-note`"
+                    v-model="credit.note"
+                    type="text"
+                    :maxlength="SUBMISSION_NOTE_MAX"
+                    class="admin-input"
+                    placeholder="Missed check-ins — attended in person"
+                  >
+                </div>
+              </div>
+              <p v-if="credit.userId" class="text-xs text-[hsl(var(--muted-foreground))]">
+                Currently counted:
+                <span class="font-semibold text-[hsl(var(--primary))]">{{ formatCount(creditCurrentTotal) }}</span>.
+                <template v-if="creditMissing > 0">
+                  Will add {{ formatCount(creditMissing) }} check-in{{ creditMissing === 1 ? '' : 's' }}.
+                </template>
+                <template v-else-if="credit.targetTotal">
+                  Already at or above that total.
+                </template>
+              </p>
+              <button
+                type="submit"
+                class="admin-btn min-h-[44px]"
+                :disabled="mandirSaving || !credit.userId || creditMissing < 1 || !isChallengeOpen(previewChallenge)"
+              >
+                {{ mandirSaving ? 'Crediting…' : 'Add missing check-ins' }}
+              </button>
+            </form>
+            <p v-if="mandirError" class="mt-2 text-sm text-red-600">{{ mandirError }}</p>
+            <p
+              v-else-if="creditResult"
+              class="mt-2 rounded-lg bg-[hsl(var(--golden-50))] px-3 py-2 text-sm text-[hsl(var(--primary))]"
+            >
+              {{ creditResult }}
+            </p>
+          </div>
+
           <!-- ── Logging on behalf of the mandir ─────────────────── -->
           <div
             v-if="editingId && editingPublished && form.inputMode !== 'checkin'"
@@ -733,7 +820,7 @@ import { Timestamp } from 'firebase/firestore'
 import type { NiyamSubmission, NiyamSubmissionStatus } from '~/types'
 import type { NiyamChallenge, NiyamIconKey, NiyamInputMode } from '~/types'
 import { formatBigCount, NIYAM_ICON_NAMES } from '~/composables/useAdminNiyamChallenges'
-import { iconFor, isPublished, mandirCheckinSlot, mandirCheckinSlotLabel } from '~/utils/niyamChallenge'
+import { iconFor, isPublished, mandirApprovedSabhasSinceLaunch, mandirCheckinSlot, mandirCheckinSlotLabel, planAdminCheckinCredits, userChallengeKey } from '~/utils/niyamChallenge'
 import {
   DEFAULT_AUTO_APPROVE_MAX,
   DEFAULT_MAX_PER_SUBMISSION,
@@ -766,6 +853,7 @@ const {
   loadOverview,
   refreshChallenge,
   historyLoading,
+  historyByKey,
   loadHistory,
   loading,
   saving,
@@ -789,6 +877,7 @@ const {
   publishDefault,
   publishAllDefaults,
   logMandirEntry,
+  creditCheckinsForDevotee,
   mandirSaving,
   mandirError,
   purgeChallenge
@@ -869,6 +958,54 @@ const mandir = reactive({
   dayKey: ''
 })
 const mandirResult = ref<{ held: boolean; message: string } | null>(null)
+
+const credit = reactive({
+  userId: '',
+  userName: '',
+  targetTotal: 11 as number | '',
+  note: 'Missed check-ins — attended in person'
+})
+const creditResult = ref<string | null>(null)
+
+const creditPeople = computed(() => {
+  const byId = new Map<string, { userId: string; userName: string; approvedTotal: number }>()
+  for (const person of contributors.value) {
+    byId.set(person.userId, {
+      userId: person.userId,
+      userName: person.userName,
+      approvedTotal: person.approvedTotal
+    })
+  }
+  for (const entry of submissions.value) {
+    if (!entry.userId || byId.has(entry.userId)) continue
+    byId.set(entry.userId, {
+      userId: entry.userId,
+      userName: entry.userName,
+      approvedTotal: 0
+    })
+  }
+  return [...byId.values()].sort((a, b) => a.userName.localeCompare(b.userName))
+})
+
+const creditHistory = computed(() => {
+  if (!credit.userId || !editingId.value) return []
+  return historyByKey.value[userChallengeKey(credit.userId, editingId.value)] || []
+})
+
+const creditCurrentTotal = computed(() => {
+  if (creditHistory.value.length) return mandirApprovedSabhasSinceLaunch(creditHistory.value)
+  const person = contributors.value.find(p => p.userId === credit.userId)
+  return person?.approvedTotal || 0
+})
+
+const creditMissing = computed(() => {
+  const target = Math.floor(Number(credit.targetTotal) || 0)
+  if (target < 1) return 0
+  if (creditHistory.value.length) {
+    return planAdminCheckinCredits(creditHistory.value, target).length
+  }
+  return Math.max(0, target - creditCurrentTotal.value)
+})
 
 const iconOptions = NIYAM_ICON_NAMES
 const inputModes: { id: NiyamInputMode; label: string; hint: string }[] = [
@@ -1019,6 +1156,39 @@ function resetMandirForm() {
   mandir.dayKey = ukDateId()
   mandirResult.value = null
   mandirError.value = ''
+  credit.userId = ''
+  credit.userName = ''
+  credit.targetTotal = 11
+  credit.note = 'Missed check-ins — attended in person'
+  creditResult.value = null
+}
+
+async function onCreditPersonChange() {
+  creditResult.value = null
+  mandirError.value = ''
+  const person = contributors.value.find(p => p.userId === credit.userId)
+  credit.userName = person?.userName || ''
+  if (!credit.userId || !editingId.value) return
+  await loadHistory(userChallengeKey(credit.userId, editingId.value))
+}
+
+async function onCreditCheckins() {
+  const challenge = allChallenges.value.find(c => c.id === editingId.value)
+  if (!challenge) return
+  creditResult.value = null
+  try {
+    const result = await creditCheckinsForDevotee(challenge, {
+      userId: credit.userId,
+      userName: credit.userName,
+      targetTotal: Number(credit.targetTotal) || 0,
+      note: credit.note
+    })
+    creditResult.value = result.added
+      ? `Added ${formatCount(result.added)} check-in${result.added === 1 ? '' : 's'} for ${credit.userName}. Total is now ${formatCount(result.total)}.`
+      : `${credit.userName} already has ${formatCount(result.total)} — nothing to add.`
+  } catch {
+    /* mandirError is already set by the composable */
+  }
 }
 
 function openNew() {

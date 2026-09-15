@@ -218,6 +218,7 @@ export function mapSubmission(id: string, data: Record<string, unknown>): NiyamS
     userChallengeKey: String(data.userChallengeKey || ''),
     dayKey: String(data.dayKey || ''),
     checkinSlot,
+    adminCredited: data.adminCredited === true,
     createdAt: data.createdAt as NiyamSubmission['createdAt'],
     reviewedAt: (data.reviewedAt as NiyamSubmission['reviewedAt']) ?? null,
     reviewedBy: (data.reviewedBy as string | null) ?? null,

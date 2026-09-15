@@ -14,6 +14,7 @@ import {
   type Firestore
 } from 'firebase/firestore'
 import type {
+  MandirCheckinSlot,
   NiyamChallenge,
   NiyamChallengeStats,
   NiyamContributor,
@@ -33,6 +34,8 @@ import {
   isPublished,
   mergeChallenges,
   GLOSS_MAX,
+  mandirApprovedSabhasSinceLaunch,
+  planAdminCheckinCredits,
   percentOf,
   RESOURCE_LABEL_MAX,
   safeMemberName,
@@ -44,6 +47,7 @@ import {
   SUBMISSION_NOTE_MAX,
   userChallengeKey
 } from '~/utils/niyamChallenge'
+import { ukDateId } from '~/utils/gameDay'
 
 /** Newest-first because submission ids embed an inverted timestamp. */
 const SUBMISSION_PAGE = 300
@@ -602,6 +606,127 @@ export function useAdminNiyamChallenges() {
   }
 
   /**
+   * Credit Daily Darshan check-ins to a devotee (missed logs). Writes under
+   * their userId with `adminCredited` so anti-spam does not reject a backfill.
+   */
+  async function creditCheckinsForDevotee(
+    challenge: NiyamChallenge,
+    input: {
+      userId: string
+      userName: string
+      targetTotal?: number
+      dayKey?: string
+      checkinSlot?: MandirCheckinSlot
+      note?: string
+    }
+  ): Promise<{ added: number; total: number; ids: string[] }> {
+    mandirError.value = ''
+    const adminUid = user.value?.uid
+    const db = getDb()
+    const devoteeId = input.userId.trim()
+    const devoteeName = safeMemberName(input.userName || 'Devotee')
+    const note = (input.note || 'Admin credit for missed Daily Darshan check-in')
+      .trim()
+      .slice(0, SUBMISSION_NOTE_MAX)
+
+    function refusalReason(): string {
+      if (mandirSaving.value) return 'Still saving the last credit.'
+      if (!db) return 'Firebase is not configured.'
+      if (!adminUid) return 'Sign in again as an admin.'
+      if (challenge.inputMode !== 'checkin') {
+        return 'This tool is only for check-in niyams such as Daily Darshan.'
+      }
+      if (!isPublished(challenge)) return 'Publish this niyam before adding to it.'
+      if (!isChallengeOpen(challenge)) return 'This niyam is not open for entries.'
+      if (!devoteeId) return 'Choose whose check-ins to credit.'
+      if (!note) return 'Add a short note explaining the credit.'
+      return ''
+    }
+
+    const refusal = refusalReason()
+    if (refusal || !db) {
+      mandirError.value = refusal || 'Could not credit check-ins.'
+      throw new Error(mandirError.value)
+    }
+
+    mandirSaving.value = true
+    try {
+      const key = userChallengeKey(devoteeId, challenge.id)
+      const { [key]: _drop, ...rest } = historyByKey.value
+      historyByKey.value = rest
+      await loadHistory(key)
+      let history = historyByKey.value[key] || []
+
+      let plans: Array<{ dayKey: string; checkinSlot: MandirCheckinSlot }> = []
+      if (typeof input.targetTotal === 'number' && Number.isFinite(input.targetTotal)) {
+        plans = planAdminCheckinCredits(history, input.targetTotal)
+      } else if (input.dayKey && (input.checkinSlot === 'morning' || input.checkinSlot === 'evening')) {
+        plans = [{ dayKey: input.dayKey, checkinSlot: input.checkinSlot }]
+      } else {
+        mandirError.value = 'Set a target total, or pick a day and sabha.'
+        throw new Error(mandirError.value)
+      }
+
+      if (!plans.length) {
+        return { added: 0, total: mandirApprovedSabhasSinceLaunch(history), ids: [] }
+      }
+
+      const ids: string[] = []
+      let clock = Date.now()
+      for (const plan of plans) {
+        clock += 1
+        const id = buildSubmissionId(challenge.id, new Date(clock))
+        await setDoc(doc(db, 'niyamSubmissions', id), {
+          challengeId: challenge.id,
+          userId: devoteeId,
+          userName: devoteeName,
+          amount: 1,
+          note,
+          status: 'approved',
+          statusKey: statusKey(challenge.id, 'approved'),
+          userChallengeKey: key,
+          dayKey: plan.dayKey,
+          checkinSlot: plan.checkinSlot,
+          adminCredited: true,
+          createdAt: serverTimestamp()
+        })
+        ids.push(id)
+        history = [
+          {
+            id,
+            challengeId: challenge.id,
+            userId: devoteeId,
+            userName: devoteeName,
+            amount: 1,
+            note,
+            status: 'approved',
+            statusKey: statusKey(challenge.id, 'approved'),
+            userChallengeKey: key,
+            dayKey: plan.dayKey,
+            checkinSlot: plan.checkinSlot,
+            adminCredited: true,
+            createdAt: new Date(clock)
+          },
+          ...history
+        ]
+      }
+
+      historyByKey.value = { ...historyByKey.value, [key]: history }
+      await refreshChallenge(challenge.id, key)
+      return {
+        added: ids.length,
+        total: mandirApprovedSabhasSinceLaunch(history),
+        ids
+      }
+    } catch (e) {
+      if (!mandirError.value) mandirError.value = (e as Error).message
+      throw e
+    } finally {
+      mandirSaving.value = false
+    }
+  }
+
+  /**
    * Deleting a challenge on its own would leave its submissions and its totals
    * behind, so clear the entries first and let the trigger unwind the rollups,
    * then drop the stats document.
@@ -670,6 +795,7 @@ export function useAdminNiyamChallenges() {
     publishDefault,
     publishAllDefaults,
     logMandirEntry,
+    creditCheckinsForDevotee,
     mandirSaving,
     mandirError,
     purgeChallenge

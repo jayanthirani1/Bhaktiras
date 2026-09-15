@@ -1718,6 +1718,8 @@ async function rejectMandirCheckinSpam(db, submissionId, afterSnap) {
   if (!afterSnap?.exists) return false
   const after = afterSnap.data() || {}
   if (after.challengeId !== MANDIR_CHECKIN_CHALLENGE_ID) return false
+  // Admin backfill credits skip anti-spam — they are intentional corrections.
+  if (after.adminCredited === true) return false
   const userChallengeKey = typeof after.userChallengeKey === 'string' ? after.userChallengeKey.trim() : ''
   const dayKey = typeof after.dayKey === 'string' ? after.dayKey.trim() : ''
   if (!userChallengeKey || !dayKey) return false
