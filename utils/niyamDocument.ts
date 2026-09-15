@@ -21,6 +21,16 @@ export function niyamDocumentSectionLabel(section: NiyamDocumentSection | undefi
   return section === 'nitya' ? 'Nitya Niyam' : 'General'
 }
 
+/** Whether the document's audio should use the in-app player (uploaded file). */
+export function niyamDocumentAudioIsFile(
+  doc: Pick<NiyamDocument, 'audioUrl' | 'audioKind'> | null | undefined
+): boolean {
+  if (!doc?.audioUrl) return false
+  if (doc.audioKind === 'file') return true
+  if (doc.audioKind === 'link') return false
+  return /firebasestorage\.googleapis\.com|firebasestorage\.app/i.test(doc.audioUrl)
+}
+
 type NiyamDocumentBodySource = Pick<NiyamDocument, 'bodyEnglish' | 'bodyGujarati'>
 
 function trimBody(value: string | null | undefined, max = NIYAM_DOCUMENT_BODY_MAX) {
@@ -134,6 +144,7 @@ export function mapNiyamDocument(id: string, data: Record<string, unknown>): Niy
     bodyGujarati: trimBody(data.bodyGujarati as string | undefined),
     chapters: chapters?.length ? chapters : undefined,
     audioUrl: safeResourceUrl(data.audioUrl) || undefined,
+    audioKind: data.audioKind === 'file' || data.audioKind === 'link' ? data.audioKind : undefined,
     section: mapNiyamDocumentSection(data.section),
     active: data.active !== false,
     order: Number(data.order) || 0,

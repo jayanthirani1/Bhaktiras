@@ -64,24 +64,42 @@
           class="sticky top-0 z-20 -mx-4 mb-4 border-b border-[hsl(var(--border))] bg-[hsl(var(--background))]/95 px-4 py-2.5 backdrop-blur supports-[backdrop-filter]:bg-[hsl(var(--background))]/80"
         >
           <div class="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-2">
-            <div class="flex items-center gap-2">
+            <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2">
               <NiyamDocumentLanguageToggle
                 v-model="language"
                 :languages="languages"
               />
+              <NiyamDocumentFontSizeControl v-model="fontRem" />
+              <button
+                v-if="audioHref && (audioIsFile || audioEmbed)"
+                type="button"
+                class="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-bold tracking-[0.14em] transition-colors"
+                :class="audioOpen
+                  ? 'border-[hsl(var(--primary))] bg-[hsl(var(--primary))] text-white'
+                  : 'border-[hsl(var(--golden-200))] bg-[hsl(var(--golden-50))] text-[hsl(var(--primary))] hover:bg-[hsl(var(--golden-100))]'"
+                :aria-pressed="audioOpen"
+                aria-label="Toggle audio player"
+                @click="audioOpen = !audioOpen"
+              >
+                <IconHeadphones class="h-3 w-3 shrink-0" aria-hidden="true" />
+                Audio
+              </button>
               <a
-                v-if="audioHref"
+                v-else-if="audioHref"
                 :href="audioHref"
                 target="_blank"
                 rel="noopener noreferrer"
-                class="inline-flex shrink-0 items-center gap-1 rounded-full border border-[hsl(var(--golden-200))] bg-[hsl(var(--golden-50))] px-2.5 py-1 text-[10px] font-bold tracking-[0.14em] text-[hsl(var(--primary))] transition-colors hover:bg-[hsl(var(--golden-100))]"
+                class="inline-flex items-center gap-1 rounded-full border border-[hsl(var(--golden-200))] bg-[hsl(var(--golden-50))] px-2.5 py-1 text-[10px] font-bold tracking-[0.14em] text-[hsl(var(--primary))] transition-colors hover:bg-[hsl(var(--golden-100))]"
                 aria-label="Open audio in a new tab"
               >
                 <IconHeadphones class="h-3 w-3 shrink-0" aria-hidden="true" />
-                AUDIO
+                Audio
               </a>
-              <NiyamDocumentFontSizeControl v-model="fontRem" />
             </div>
+          </div>
+          <div v-if="audioOpen && audioHref && (audioIsFile || audioEmbed)" class="mx-auto mt-2 max-w-3xl">
+            <NiyamDocumentAudioPlayer v-if="audioIsFile" :src="audioHref" />
+            <NiyamDocumentAudioEmbed v-else-if="audioEmbed" :src="audioHref" />
           </div>
         </div>
 
@@ -162,11 +180,13 @@ import type { MandirCheckinSlot, NiyamSubmission, NiyamSubmissionStatus } from '
 import { renderSimpleMarkdown } from '~/utils/simpleMarkdown'
 import {
   defaultNiyamDocumentLanguage,
+  niyamDocumentAudioIsFile,
   niyamDocumentBody,
   niyamDocumentChapters,
   niyamDocumentLanguagesAvailable,
   type NiyamDocumentLanguage
 } from '~/utils/niyamDocument'
+import { niyamAudioEmbed } from '~/utils/niyamAudioEmbed'
 import {
   DOC_FONT_REM_DEFAULT,
   docProseStyleFromRem,
@@ -201,6 +221,7 @@ const sheetOpen = ref(false)
 const language = ref<NiyamDocumentLanguage>('en')
 const chapterIndex = ref(0)
 const fontRem = ref(DOC_FONT_REM_DEFAULT)
+const audioOpen = ref(false)
 
 const challenge = computed(() =>
   challenges.value.find(item => item.id === niyamId.value) ?? null
@@ -221,6 +242,8 @@ const isLastChapter = computed(() =>
 const showRecordEntry = computed(() => !!challenge.value && isLastChapter.value)
 
 const audioHref = computed(() => (document.value?.audioUrl || '').trim())
+const audioIsFile = computed(() => niyamDocumentAudioIsFile(document.value))
+const audioEmbed = computed(() => (!audioIsFile.value ? niyamAudioEmbed(audioHref.value) : null))
 
 const languages = computed(() =>
   document.value ? niyamDocumentLanguagesAvailable(document.value, chapterIndex.value) : []
@@ -277,6 +300,7 @@ watch(fontRem, (value) => {
 
 watch(document, (doc) => {
   if (!doc) return
+  audioOpen.value = false
   syncChapterFromQuery()
   const stored = import.meta.client
     ? (localStorage.getItem(LANG_KEY) as NiyamDocumentLanguage | null)

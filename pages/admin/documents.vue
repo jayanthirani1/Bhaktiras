@@ -94,16 +94,11 @@
           </div>
 
           <div>
-            <label class="admin-label">Audio URL (optional)</label>
-            <input
+            <label class="admin-label">Audio (optional)</label>
+            <AdminNiyamAudioField
               v-model="form.audioUrl"
-              type="url"
-              class="admin-input"
-              placeholder="https://…"
-            >
-            <p class="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
-              External link shown next to the language switcher on the reading page. Opens in a new tab.
-            </p>
+              v-model:kind="form.audioKind"
+            />
           </div>
 
           <AdminMarkdownHint class="mb-1" />
@@ -254,6 +249,7 @@ import {
   NIYAM_DOCUMENT_SECTIONS,
   NIYAM_DOCUMENT_TITLE_MAX,
   newNiyamDocumentChapterId,
+  niyamDocumentAudioIsFile,
   niyamDocumentChapterHasContent,
   niyamDocumentChapters,
   niyamDocumentSectionLabel
@@ -282,6 +278,7 @@ const form = reactive({
   bodyEnglish: '',
   bodyGujarati: '',
   audioUrl: '',
+  audioKind: 'link' as 'file' | 'link',
   chapters: [] as ChapterForm[],
   section: 'nitya' as NiyamDocumentSection,
   active: true,
@@ -340,6 +337,7 @@ function openNew() {
     bodyEnglish: '',
     bodyGujarati: '',
     audioUrl: '',
+    audioKind: 'link' as const,
     chapters: [],
     section,
     active: true,
@@ -356,6 +354,7 @@ function openEdit(item: NiyamDocument) {
     bodyEnglish: item.bodyEnglish || '',
     bodyGujarati: item.bodyGujarati || '',
     audioUrl: item.audioUrl || '',
+    audioKind: niyamDocumentAudioIsFile(item) ? 'file' : 'link',
     chapters: niyamDocumentChapters(item).map(chapterToForm),
     section: item.section === 'nitya' ? 'nitya' : 'general',
     active: item.active !== false,
@@ -434,6 +433,9 @@ async function save() {
     bodyEnglish: bodyEnglish.slice(0, NIYAM_DOCUMENT_BODY_MAX),
     bodyGujarati: bodyGujarati.slice(0, NIYAM_DOCUMENT_BODY_MAX),
     audioUrl: safeResourceUrl(form.audioUrl) || '',
+    audioKind: form.audioUrl.trim()
+      ? (form.audioKind === 'file' ? 'file' : 'link')
+      : '',
     section: form.section === 'nitya' ? 'nitya' : 'general',
     active: !!form.active,
     order: Math.max(0, Math.floor(Number(form.order) || 0))

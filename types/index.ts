@@ -260,8 +260,10 @@ export interface NiyamDocument {
   bodyGujarati: string
   /** When present, the reader paginates these instead of the top-level body. */
   chapters?: NiyamDocumentChapter[]
-  /** Optional external audio link shown on the reading page. */
+  /** Optional audio — uploaded file (in-app player) or external link. */
   audioUrl?: string
+  /** How `audioUrl` should be presented. Missing values are inferred from the URL. */
+  audioKind?: 'file' | 'link'
   /**
    * `nitya` — listed on /nitya-niyams continuous reader.
    * `general` — linked from a niyam or used elsewhere; not in that scroll.

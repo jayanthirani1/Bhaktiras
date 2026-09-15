@@ -25,6 +25,11 @@ service firebase.storage {
         && request.resource.contentType.matches('image/(jpeg|png|webp|gif|avif)');
     }
 
+    function isSafeAudio() {
+      return request.resource.size < 40 * 1024 * 1024
+        && request.resource.contentType.matches('audio/(mpeg|mp4|aac|wav|ogg|webm|x-m4a)');
+    }
+
     /**
      * Admin-uploaded site imagery: event posters and timeline photographs.
      * `AdminImageUpload` writes `{folder}/{timestamp}-{name}`, so every upload
@@ -49,8 +54,16 @@ service firebase.storage {
       allow read: if true;
       allow create: if isSignedIn()
         && isNewObject()
-        && isSafeImage()
-        && (folder == 'events' || folder == 'timeline' || folder == 'uploads');
+        && (
+          (
+            isSafeImage()
+            && (folder == 'events' || folder == 'timeline' || folder == 'uploads')
+          )
+          || (
+            isSafeAudio()
+            && folder == 'niyam-audio'
+          )
+        );
       allow update, delete: if false;
     }
 
