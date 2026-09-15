@@ -18,6 +18,13 @@
         <RasRaniTitle honey />
       </PageHeader>
 
+      <p
+        v-if="!playedElsewhere && !loading"
+        class="mb-4 text-center text-xs font-bold uppercase tracking-[0.16em] text-amber-800"
+      >
+        Today · {{ difficultyLabel }} · {{ puzzle.gridSize }}×{{ puzzle.gridSize }}
+      </p>
+
       <GamePlayedElsewhere
         v-if="playedElsewhere"
         title="Ras Rani"
@@ -48,7 +55,7 @@
       <div v-else class="space-y-4">
         <div
           class="mx-auto w-full overflow-hidden rounded-xl border-2 border-slate-800"
-          :style="{ maxWidth: `${Math.min(puzzle.gridSize * 56, 420)}px` }"
+          :style="{ maxWidth: `${Math.min(puzzle.gridSize * (puzzle.gridSize >= 10 ? 32 : puzzle.gridSize >= 9 ? 40 : 56), 520)}px` }"
         >
           <div
             class="grid"
@@ -153,7 +160,7 @@
           <p v-if="submitError" class="text-sm text-red-600">{{ submitError }}</p>
         </div>
 
-        <GameCrowns :ids="['ras-rani-fastest', 'ras-rani-fewest-moves']" />
+        <GameCrowns :ids="crownIds" />
 
         <GameHowTo>
           <ol class="list-decimal space-y-3 pl-5">
@@ -186,7 +193,7 @@
 <script setup lang="ts">
 import { ukDateId } from '~/utils/gameDay'
 import { formatElapsed } from '~/composables/useGameTimer'
-import { getRegionColor } from '~/data/rasRaniPuzzles'
+import { getRegionColor, inferRasRaniDifficulty } from '~/data/rasRaniPuzzles'
 import {
   createEmptyGrid,
   getQueenPositions,
@@ -200,7 +207,7 @@ import {
 } from '~/utils/rasRani'
 
 const STORAGE_KEY = `ras-rani-v3:${ukDateId()}`
-const { puzzle, loading } = useRasRaniPuzzle()
+const { puzzle, loading, difficultyLabel } = useRasRaniPuzzle()
 const timer = useGameTimer(`ras-rani-timer:${ukDateId()}`)
 const howto = useHowToPlay('ras-rani', ['ras-rani', 'ras-rani-v3:', 'ras-rani-timer:'])
 const auth = useAuth()
@@ -208,6 +215,17 @@ const isLoggedIn = computed(() => !!auth.user.value)
 const { playedElsewhere, result: elsewhereResult, markDone } = useDailyGameCompletion('ras-rani')
 const { entries, loading: boardLoading, dateId, submitScore } = useGameLeaderboard('ras-rani', { sort: 'asc', rankBy: 'timeMs' })
 const achievements = useAchievements()
+
+const crownIds = computed(() => {
+  const difficulty = puzzle.value.difficulty || inferRasRaniDifficulty(puzzle.value.gridSize)
+  const fastest =
+    difficulty === 'easy'
+      ? 'ras-rani-easy-fastest'
+      : difficulty === 'medium'
+        ? 'ras-rani-medium-fastest'
+        : 'ras-rani-hard-fastest'
+  return [fastest, 'ras-rani-fewest-moves']
+})
 
 const grid = ref<CellState[][]>([])
 const history = ref<CellState[][][]>([])
@@ -351,14 +369,13 @@ function useHint() {
     feedback.value = `That drop at row ${hint.row + 1}, column ${hint.col + 1} breaks a rule.`
   } else {
     history.value = [...history.value, grid.value.map(r => [...r])]
+    // Hint only marks the cell — the player still places the nectar drop.
     grid.value = grid.value.map((r, ri) =>
-      r.map((c, ci) => (ri === hint.row && ci === hint.col ? 'queen' : c))
+      r.map((c, ci) => (ri === hint.row && ci === hint.col ? 'marked' : c))
     )
-    triggerNectarAnimation(hint.row, hint.col)
     moves.value += 1
     feedbackOk.value = true
-    feedback.value = `Nectar drop placed at row ${hint.row + 1}, column ${hint.col + 1}`
-    if (isPuzzleSolved(grid.value, puzzle.value)) finishGame()
+    feedback.value = `Try a nectar drop at row ${hint.row + 1}, column ${hint.col + 1}`
   }
 
   saveState()
@@ -424,7 +441,8 @@ async function submitToLeaderboard() {
       userName,
       timeMs: timer.elapsedMs.value,
       moves: moves.value,
-      hintsUsed: hintsUsed.value
+      hintsUsed: hintsUsed.value,
+      difficulty: puzzle.value.difficulty || inferRasRaniDifficulty(puzzle.value.gridSize)
     })
   } catch (error) {
     submitError.value = (error as Error).message

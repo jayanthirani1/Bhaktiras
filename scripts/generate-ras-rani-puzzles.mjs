@@ -25,7 +25,9 @@ const RASA_IDS = [
   'karuna',
   'bhakti',
   'prema',
-  'ananda'
+  'ananda',
+  'shraddha',
+  'seva'
 ]
 
 function arg(name, fallback) {
@@ -331,6 +333,7 @@ const TIER_RANK = { easy: 0, medium: 1, hard: 2 }
 /**
  * A board where one colour swallows half the grid and another is a single
  * square is unpleasant to look at and gives the tiny region away for free.
+ * Never allow a 1-cell region.
  */
 function wellShaped(n, regionGrid) {
   const sizes = new Map()
@@ -338,11 +341,13 @@ function wellShaped(n, regionGrid) {
     for (const id of row) sizes.set(id, (sizes.get(id) || 0) + 1)
   }
   const counts = [...sizes.values()]
-  return Math.min(...counts) >= 3 && Math.max(...counts) <= n * 2
+  const minSize = n <= 7 ? 2 : 3
+  return Math.min(...counts) >= minSize && Math.max(...counts) <= n * 2
 }
 
-function generate(n, tier) {
-  for (let attempt = 0; attempt < 20000; attempt++) {
+function generate(n, tier, exact = false) {
+  const attempts = n >= 10 ? 80000 : n >= 9 ? 50000 : 30000
+  for (let attempt = 0; attempt < attempts; attempt++) {
     const solution = randomSolution(n)
     if (!solution) continue
     const grown = growRegions(n, solution)
@@ -356,7 +361,7 @@ function generate(n, tier) {
     if (new Set(regionGrid.flat()).size !== n) continue
     if (!wellShaped(n, regionGrid)) continue
     const rating = classify(n, regionGrid)
-    if (TIER_RANK[rating] < TIER_RANK[tier]) continue
+    if (exact ? rating !== tier : TIER_RANK[rating] < TIER_RANK[tier]) continue
     return { solution, regionGrid, rating, attempt }
   }
   return null
@@ -368,12 +373,17 @@ function toTypeScript({ solution, regionGrid, rating }, n, index) {
     .map(row => `      [${row.map(id => `'${id}'`).join(', ')}]`)
     .join(',\n')
   const drops = solution.map(([r, c]) => `[${r}, ${c}]`).join(', ')
+  const titleByTier = {
+    easy: 'Gentle Ras',
+    medium: 'Deepening Ras',
+    hard: 'Intense Ras'
+  }
   return `  {
     id: 'ras-rani-${index}',
     dateId: null,
-    title: 'TODO',
+    title: '${titleByTier[rating] || 'Ras Rani'} ${n}×${n}',
     gridSize: ${n},
-    // ${rating}: verified single solution
+    difficulty: '${rating}',
     regionGrid: [
 ${grid}
     ],
@@ -383,15 +393,18 @@ ${grid}
   },`
 }
 
+const EXACT = process.argv.includes('--exact')
+const LABEL = String(arg('label', TIER))
 const results = []
 for (let i = 0; i < COUNT; i++) {
-  const puzzle = generate(SIZE, TIER)
+  const puzzle = generate(SIZE, TIER, EXACT)
   if (!puzzle) {
     console.error(`Could not find a ${TIER} ${SIZE}×${SIZE} puzzle — try another --seed.`)
     process.exit(1)
   }
-  results.push(puzzle)
+  results.push({ ...puzzle, rating: LABEL })
 }
 
-console.log(`// ${SIZE}×${SIZE} · tier ${TIER} · seed ${SEED}\n`)
+console.log(`// ${SIZE}×${SIZE} · solver≥${TIER} · label ${LABEL} · seed ${SEED}\n`)
 results.forEach((puzzle, i) => console.log(toTypeScript(puzzle, SIZE, i + 1)))
+console.error(`Generated ${results.length} × ${SIZE} (solver: ${results.map(r => r.rating).join(', ')} → label ${LABEL})`)

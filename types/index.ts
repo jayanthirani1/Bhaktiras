@@ -525,11 +525,15 @@ export interface RasRaniRegion {
   meaning?: string
 }
 
+export type RasRaniDifficulty = 'easy' | 'medium' | 'hard'
+
 export interface RasRaniPuzzle {
   id: string
   title: string
   dateId?: string | null
   gridSize: number
+  /** Player-facing tier for the daily Easy → Medium → Difficult rotation. */
+  difficulty?: RasRaniDifficulty
   regionGrid: string[][]
   regions: RasRaniRegion[]
   solution: Array<[number, number]>

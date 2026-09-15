@@ -306,6 +306,13 @@ export function validateRasRaniPuzzle(puzzle: Pick<RasRaniPuzzle, 'gridSize' | '
   if (regions.length !== gridSize) {
     return `Need exactly ${gridSize} colour regions (one per nectar drop), found ${regions.length}.`
   }
+  const sizes = new Map<string, number>()
+  for (const row of regionGrid) {
+    for (const id of row) sizes.set(id, (sizes.get(id) || 0) + 1)
+  }
+  for (const [id, count] of sizes) {
+    if (count < 2) return `Region “${id}” is only one square — enlarge it so the drop is not given away.`
+  }
   if (solution.length !== gridSize) {
     return `Solution must have exactly ${gridSize} nectar positions.`
   }

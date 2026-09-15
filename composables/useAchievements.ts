@@ -46,6 +46,8 @@ export type GameAchievementPayload = {
   hintsUsed?: number
   pathsFound?: number
   perfect?: boolean
+  /** Ras Rani daily tier — drives Easy / Medium / Difficult fastest crowns. */
+  difficulty?: 'easy' | 'medium' | 'hard'
 }
 
 export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
@@ -158,8 +160,10 @@ export const CROWN_DEFINITIONS = [
   { id: 'one-percent-highest', title: '1% Club High Score', description: 'Most rungs cleared in 1% Club this month.', game: 'one-percent', scope: 'monthly' },
   { id: 'one-percent-fastest', title: 'Fastest 1% Club', description: 'Fastest full 1% Club clear this month.', game: 'one-percent', scope: 'monthly' },
   { id: 'surya-chandra-fastest', title: 'Fastest Surya Chandra', description: 'Fastest Surya Chandra completion this month.', game: 'surya-chandra', scope: 'monthly' },
-  { id: 'ras-rani-fastest', title: 'Fastest Ras Rani', description: 'Fastest Ras Rani completion this month.', game: 'ras-rani', scope: 'monthly' },
-  { id: 'ras-rani-fewest-moves', title: 'Fewest Moves Ras Rani', description: 'Fewest moves Ras Rani completion this month.', game: 'ras-rani', scope: 'monthly' },
+  { id: 'ras-rani-easy-fastest', title: 'Fastest Easy Ras Rani', description: 'Fastest Easy (7×7) Ras Rani this month.', game: 'ras-rani', scope: 'monthly' },
+  { id: 'ras-rani-medium-fastest', title: 'Fastest Medium Ras Rani', description: 'Fastest Medium (8–9×9) Ras Rani this month.', game: 'ras-rani', scope: 'monthly' },
+  { id: 'ras-rani-hard-fastest', title: 'Fastest Difficult Ras Rani', description: 'Fastest Difficult (10–11×11) Ras Rani this month.', game: 'ras-rani', scope: 'monthly' },
+  { id: 'ras-rani-fewest-moves', title: 'Fewest Moves Ras Rani', description: 'Fewest moves Ras Rani this month, without using hints.', game: 'ras-rani', scope: 'monthly' },
   { id: 'streak-longest', title: 'Longest Streak', description: 'Longest games streak of all time.', game: 'streak', scope: 'all-time' }
 ] as const
 
@@ -175,7 +179,9 @@ export function isAllTimeCrown(crown: Pick<AchievementCrownRecord, 'id' | 'scope
 }
 
 const LEGACY_CROWN_IDS: Record<string, string> = {
-  'surya-chandra-fastest': 'bhakti-marg-fastest'
+  'surya-chandra-fastest': 'bhakti-marg-fastest',
+  // Retired overall crown — keep Vinay (and anyone else) under Easy.
+  'ras-rani-easy-fastest': 'ras-rani-fastest'
 }
 
 function getDb(): Firestore | null {
@@ -279,7 +285,14 @@ export function crownValue(crown: AchievementCrownRecord) {
     const rungs = crown.score || crown.value
     return `${rungs} cleared${crown.timeMs ? ` · ${formatElapsed(crown.timeMs)}` : ''}`
   }
-  if (crown.id === 'surya-chandra-fastest' || crown.id === 'bhakti-marg-fastest' || crown.id === 'ras-rani-fastest') {
+  if (
+    crown.id === 'surya-chandra-fastest'
+    || crown.id === 'bhakti-marg-fastest'
+    || crown.id === 'ras-rani-easy-fastest'
+    || crown.id === 'ras-rani-medium-fastest'
+    || crown.id === 'ras-rani-hard-fastest'
+    || crown.id === 'ras-rani-fastest'
+  ) {
     return formatElapsed(crown.timeMs || crown.value)
   }
   if (crown.id === 'ras-rani-fewest-moves') {
@@ -361,7 +374,12 @@ export function useAchievements() {
       for (const [nextId, legacyId] of Object.entries(LEGACY_CROWN_IDS)) {
         if (!byId.has(nextId) && byId.has(legacyId)) {
           const legacy = byId.get(legacyId)!
-          byId.set(nextId, { ...legacy, id: nextId, game: 'surya-chandra' })
+          const nextDef = CROWN_DEFINITIONS.find(item => item.id === nextId)
+          byId.set(nextId, {
+            ...legacy,
+            id: nextId,
+            ...(nextDef ? { game: nextDef.game } : {})
+          })
         }
         byId.delete(legacyId)
       }

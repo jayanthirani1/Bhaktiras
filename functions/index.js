@@ -387,7 +387,9 @@ const CROWN_LABELS = {
   'one-percent-fastest': 'fastest 1% Club clear',
   'surya-chandra-fastest': 'fastest Surya Chandra',
   'bhakti-marg-fastest': 'fastest Surya Chandra',
-  'ras-rani-fastest': 'fastest Ras Rani',
+  'ras-rani-easy-fastest': 'fastest Easy Ras Rani',
+  'ras-rani-medium-fastest': 'fastest Medium Ras Rani',
+  'ras-rani-hard-fastest': 'fastest Difficult Ras Rani',
   'ras-rani-fewest-moves': 'fewest-move Ras Rani',
   'streak-longest': 'longest play streak'
 }
@@ -1177,14 +1179,50 @@ async function handleGameAchievements(request) {
     const moves = intInRange(request.data?.moves, 1, 1000)
     const timeMs = intInRange(request.data?.timeMs, MIN_TIMED_PLAY_MS, 86_400_000)
     const hintsUsed = intInRange(request.data?.hintsUsed ?? 0, 0, 100)
+    const difficultyRaw = typeof request.data?.difficulty === 'string' ? request.data.difficulty.trim() : ''
+    const difficulty = difficultyRaw === 'easy' || difficultyRaw === 'medium' || difficultyRaw === 'hard'
+      ? difficultyRaw
+      : null
     if (moves == null) throw new HttpsError('invalid-argument', 'Invalid Ras Rani move count.')
     if (timeMs == null) throw new HttpsError('invalid-argument', 'Invalid Ras Rani time.')
     if (hintsUsed == null) throw new HttpsError('invalid-argument', 'Invalid Ras Rani hints.')
-    Object.assign(candidate, { moves, timeMs, hintsUsed })
-    crownSpecs.push(
-      { id: 'ras-rani-fastest', metric: 'fastest-time', value: timeMs, better: isBetterFastestTime, extra: { moves, timeMs } },
-      { id: 'ras-rani-fewest-moves', metric: 'fewest-moves', value: moves, better: isBetterFewestMoves, extra: { moves, timeMs } }
-    )
+    Object.assign(candidate, { moves, timeMs, hintsUsed, ...(difficulty ? { difficulty } : {}) })
+    // Overall "Fastest Ras Rani" retired — Easy inherits its legacy crown doc.
+    if (hintsUsed === 0) {
+      crownSpecs.push({
+        id: 'ras-rani-fewest-moves',
+        metric: 'fewest-moves',
+        value: moves,
+        better: isBetterFewestMoves,
+        extra: { moves, timeMs }
+      })
+    }
+    if (difficulty === 'easy') {
+      crownSpecs.push({
+        id: 'ras-rani-easy-fastest',
+        legacyId: 'ras-rani-fastest',
+        metric: 'fastest-time',
+        value: timeMs,
+        better: isBetterFastestTime,
+        extra: { moves, timeMs, difficulty }
+      })
+    } else if (difficulty === 'medium') {
+      crownSpecs.push({
+        id: 'ras-rani-medium-fastest',
+        metric: 'fastest-time',
+        value: timeMs,
+        better: isBetterFastestTime,
+        extra: { moves, timeMs, difficulty }
+      })
+    } else if (difficulty === 'hard') {
+      crownSpecs.push({
+        id: 'ras-rani-hard-fastest',
+        metric: 'fastest-time',
+        value: timeMs,
+        better: isBetterFastestTime,
+        extra: { moves, timeMs, difficulty }
+      })
+    }
   } else if (game === 'streak') {
     const streakSnap = await db.doc(`playStreaks/${uid}`).get()
     if (!streakSnap.exists) return { unlockedIds: [], crowns: [] }
