@@ -166,7 +166,32 @@ function isBetterFewestGuessWordle(current, candidate) {
 function isBetterFastestTime(current, candidate) {
   if (!Number.isFinite(candidate.timeMs) || candidate.timeMs < MIN_TIMED_PLAY_MS) return false
   if (!current) return true
-  return candidate.timeMs < Number(current.timeMs)
+  // Prefer timeMs; fall back to value for older crown docs that only stored value.
+  const currentMs = Number(current.timeMs ?? current.value)
+  if (!Number.isFinite(currentMs) || currentMs < MIN_TIMED_PLAY_MS) return true
+  return candidate.timeMs < currentMs
+}
+
+/** Same Easy → Medium → Difficult cycle as `data/rasRaniPuzzles.ts` (UK calendar day). */
+function rasRaniDifficultyForDate(dateId) {
+  const [year, month, day] = String(dateId || '').split('-').map(Number)
+  if (!year || !month || !day) return 'easy'
+  const ordinal = Math.floor(Date.UTC(year, month - 1, day) / 86_400_000)
+  return ['easy', 'medium', 'hard'][((ordinal % 3) + 3) % 3]
+}
+
+function inferRasRaniDifficulty(gridSize) {
+  if (gridSize <= 7) return 'easy'
+  if (gridSize <= 9) return 'medium'
+  return 'hard'
+}
+
+function resolveRasRaniDifficulty(data) {
+  const raw = typeof data?.difficulty === 'string' ? data.difficulty.trim().toLowerCase() : ''
+  if (raw === 'easy' || raw === 'medium' || raw === 'hard') return raw
+  const gridSize = intInRange(data?.gridSize, 4, 20)
+  if (gridSize != null) return inferRasRaniDifficulty(gridSize)
+  return rasRaniDifficultyForDate(ukDateIdNow())
 }
 
 function ukDateIdNow() {
@@ -1179,14 +1204,16 @@ async function handleGameAchievements(request) {
     const moves = intInRange(request.data?.moves, 1, 1000)
     const timeMs = intInRange(request.data?.timeMs, MIN_TIMED_PLAY_MS, 86_400_000)
     const hintsUsed = intInRange(request.data?.hintsUsed ?? 0, 0, 100)
-    const difficultyRaw = typeof request.data?.difficulty === 'string' ? request.data.difficulty.trim() : ''
-    const difficulty = difficultyRaw === 'easy' || difficultyRaw === 'medium' || difficultyRaw === 'hard'
-      ? difficultyRaw
-      : null
+    // Never skip a fastest crown because an older client omitted difficulty —
+    // fall back to gridSize, then today's UK difficulty cycle.
+    const difficulty = resolveRasRaniDifficulty(request.data)
     if (moves == null) throw new HttpsError('invalid-argument', 'Invalid Ras Rani move count.')
     if (timeMs == null) throw new HttpsError('invalid-argument', 'Invalid Ras Rani time.')
     if (hintsUsed == null) throw new HttpsError('invalid-argument', 'Invalid Ras Rani hints.')
-    Object.assign(candidate, { moves, timeMs, hintsUsed, ...(difficulty ? { difficulty } : {}) })
+    if (!request.data?.difficulty) {
+      logger.warn('ras-rani achievement missing difficulty; inferred', { uid, difficulty })
+    }
+    Object.assign(candidate, { moves, timeMs, hintsUsed, difficulty })
     // Overall "Fastest Ras Rani" retired — Easy inherits its legacy crown doc.
     if (hintsUsed === 0) {
       crownSpecs.push({

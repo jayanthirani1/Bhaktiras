@@ -216,16 +216,12 @@ const { playedElsewhere, result: elsewhereResult, markDone } = useDailyGameCompl
 const { entries, loading: boardLoading, dateId, submitScore } = useGameLeaderboard('ras-rani', { sort: 'asc', rankBy: 'timeMs' })
 const achievements = useAchievements()
 
-const crownIds = computed(() => {
-  const difficulty = puzzle.value.difficulty || inferRasRaniDifficulty(puzzle.value.gridSize)
-  const fastest =
-    difficulty === 'easy'
-      ? 'ras-rani-easy-fastest'
-      : difficulty === 'medium'
-        ? 'ras-rani-medium-fastest'
-        : 'ras-rani-hard-fastest'
-  return [fastest, 'ras-rani-fewest-moves']
-})
+const crownIds = [
+  'ras-rani-easy-fastest',
+  'ras-rani-medium-fastest',
+  'ras-rani-hard-fastest',
+  'ras-rani-fewest-moves'
+]
 
 const grid = ref<CellState[][]>([])
 const history = ref<CellState[][][]>([])
@@ -442,7 +438,8 @@ async function submitToLeaderboard() {
       timeMs: timer.elapsedMs.value,
       moves: moves.value,
       hintsUsed: hintsUsed.value,
-      difficulty: puzzle.value.difficulty || inferRasRaniDifficulty(puzzle.value.gridSize)
+      difficulty: puzzle.value.difficulty || inferRasRaniDifficulty(puzzle.value.gridSize),
+      gridSize: puzzle.value.gridSize
     })
   } catch (error) {
     submitError.value = (error as Error).message

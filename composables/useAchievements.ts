@@ -48,6 +48,8 @@ export type GameAchievementPayload = {
   perfect?: boolean
   /** Ras Rani daily tier — drives Easy / Medium / Difficult fastest crowns. */
   difficulty?: 'easy' | 'medium' | 'hard'
+  /** Backup for Ras Rani crown routing when difficulty is omitted. */
+  gridSize?: number
 }
 
 export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
