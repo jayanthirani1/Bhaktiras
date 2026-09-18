@@ -22,27 +22,38 @@
       <li
         v-for="row in visibleRows"
         :key="row.entry.id"
-        class="flex items-center justify-between px-4 py-2 text-sm"
+        class="flex items-center justify-between gap-3 px-4 py-2 text-sm"
         :class="row.mine ? 'bg-[hsl(var(--golden-50))]' : ''"
       >
-        <span class="flex min-w-0 items-center gap-1.5 font-medium text-[hsl(var(--foreground))]">
-          <span class="tabular-nums">{{ row.rank }}.</span>
-          <NuxtLink
-            v-if="row.profilePath"
-            :to="row.profilePath"
-            class="truncate hover:underline"
-          >
-            {{ row.entry.userName }}
-          </NuxtLink>
-          <span v-else class="truncate">{{ row.entry.userName }}</span>
-          <IconCrown
-            v-if="row.hasCrown"
-            class="h-3.5 w-3.5 shrink-0 text-amber-600"
-            aria-label="Crown holder"
-          />
-          <span v-if="row.mine" class="shrink-0 text-xs font-semibold text-[hsl(var(--golden-900))]">you</span>
+        <span class="flex min-w-0 items-start gap-1.5">
+          <span class="shrink-0 tabular-nums font-medium text-[hsl(var(--foreground))]">{{ row.rank }}.</span>
+          <span class="min-w-0">
+            <span class="flex min-w-0 items-center gap-1.5 font-medium text-[hsl(var(--foreground))]">
+              <NuxtLink
+                v-if="row.profilePath"
+                :to="row.profilePath"
+                class="truncate hover:underline"
+              >
+                {{ row.entry.userName }}
+              </NuxtLink>
+              <span v-else class="truncate">{{ row.entry.userName }}</span>
+              <IconCrown
+                v-for="(label, index) in row.crownLabels"
+                :key="`${row.entry.id}-crown-${index}`"
+                class="crown-sparkle h-3.5 w-3.5 shrink-0 text-amber-600"
+                :aria-label="label"
+              />
+              <span v-if="row.mine" class="shrink-0 text-xs font-semibold text-[hsl(var(--golden-900))]">you</span>
+            </span>
+            <p
+              v-if="row.crownLabels.length"
+              class="mt-0.5 truncate text-[11px] leading-tight text-amber-700/90"
+            >
+              {{ row.crownLabels.join(' · ') }}
+            </p>
+          </span>
         </span>
-        <span class="shrink-0 text-[hsl(var(--muted-foreground))]">{{ displayScore(row.entry) }}</span>
+        <span class="shrink-0 self-center text-[hsl(var(--muted-foreground))]">{{ displayScore(row.entry) }}</span>
       </li>
       <li
         v-if="entries.length === 0"
@@ -58,6 +69,7 @@
 import { IconCrown } from '@tabler/icons-vue'
 import {
   CROWN_DEFINITIONS,
+  crownTitle,
   useAchievements
 } from '~/composables/useAchievements'
 import { devoteeProfilePath } from '~/composables/usePublicProfile'
@@ -108,23 +120,40 @@ const rulesText = computed(() => {
   return ''
 })
 
-/** Crown holders for this game. */
-const crownHolderIds = computed(() => {
-  const ids = new Set<string>()
-  if (!props.game) return ids
+/** Crown titles held by each user for this game (order follows CROWN_DEFINITIONS). */
+const crownsByUserId = computed(() => {
+  const map = new Map<string, string[]>()
+  if (!props.game) return map
   const crownGame = CROWN_GAME_ALIASES[props.game] || props.game
-  const crownIds = new Set<string>(
-    CROWN_DEFINITIONS.filter(def => def.game === crownGame).map(def => def.id)
-  )
-  for (const crown of achievements.crowns.value) {
-    if (!crownIds.has(crown.id) || !crown.holderUserId) continue
-    ids.add(crown.holderUserId)
+  const defs = CROWN_DEFINITIONS.filter(def => def.game === crownGame)
+  for (const def of defs) {
+    const crown = achievements.crowns.value.find(item => item.id === def.id)
+    const uid = crown?.holderUserId
+    if (!uid) continue
+    const labels = map.get(uid) || []
+    labels.push(shortCrownLabel(def.id, def.title))
+    map.set(uid, labels)
   }
-  return ids
+  return map
 })
 
-function hasCrown(userId?: string) {
-  return !!userId && crownHolderIds.value.has(userId)
+/** Drop the repeated game name so the line stays short under the player. */
+function shortCrownLabel(id: string, title: string) {
+  const trimmed = title
+    .replace(/\s+Ras Rani$/i, '')
+    .replace(/\s+Wordle$/i, '')
+    .replace(/\s+Crossword$/i, '')
+    .replace(/\s+Connections$/i, '')
+    .replace(/\s+Bracket City$/i, '')
+    .replace(/\s+1% Club$/i, '')
+    .replace(/\s+Surya Chandra$/i, '')
+    .trim()
+  return trimmed || crownTitle(id)
+}
+
+function crownsFor(userId?: string) {
+  if (!userId) return [] as string[]
+  return crownsByUserId.value.get(userId) || []
 }
 
 const visibleRows = computed(() => {
@@ -133,7 +162,7 @@ const visibleRows = computed(() => {
     entry,
     rank: idx + 1,
     mine: !!props.currentUserId && entry.userId === props.currentUserId,
-    hasCrown: hasCrown(entry.userId),
+    crownLabels: crownsFor(entry.userId),
     profilePath: devoteeProfilePath(entry.userId)
   }))
   if (!props.currentUserId) return top
@@ -145,7 +174,7 @@ const visibleRows = computed(() => {
     entry,
     rank: idx + 1,
     mine: true,
-    hasCrown: hasCrown(entry.userId),
+    crownLabels: crownsFor(entry.userId),
     profilePath: devoteeProfilePath(entry.userId)
   }]
 })

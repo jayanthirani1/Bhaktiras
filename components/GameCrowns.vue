@@ -4,7 +4,7 @@
     class="mt-10 rounded-2xl border border-amber-200 bg-amber-50/70 p-5 text-left"
   >
     <p class="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-amber-800">
-      <IconCrown class="h-4 w-4" />
+      <IconCrown class="crown-sparkle h-4 w-4" />
       {{ heading }}
     </p>
     <p v-if="subtitle" class="mt-1 text-xs text-[hsl(var(--muted-foreground))]">{{ subtitle }}</p>
