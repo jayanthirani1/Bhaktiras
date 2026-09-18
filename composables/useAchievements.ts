@@ -165,7 +165,6 @@ export const CROWN_DEFINITIONS = [
   { id: 'ras-rani-easy-fastest', title: 'Fastest Easy Ras Rani', description: 'Fastest Easy (7×7) Ras Rani this month.', game: 'ras-rani', scope: 'monthly' },
   { id: 'ras-rani-medium-fastest', title: 'Fastest Medium Ras Rani', description: 'Fastest Medium (8–9×9) Ras Rani this month.', game: 'ras-rani', scope: 'monthly' },
   { id: 'ras-rani-hard-fastest', title: 'Fastest Difficult Ras Rani', description: 'Fastest Difficult (10–11×11) Ras Rani this month.', game: 'ras-rani', scope: 'monthly' },
-  { id: 'ras-rani-fewest-moves', title: 'Fewest Moves Ras Rani', description: 'Fewest moves Ras Rani this month, without using hints.', game: 'ras-rani', scope: 'monthly' },
   { id: 'streak-longest', title: 'Longest Streak', description: 'Longest games streak of all time.', game: 'streak', scope: 'all-time' }
 ] as const
 
@@ -296,10 +295,6 @@ export function crownValue(crown: AchievementCrownRecord) {
     || crown.id === 'ras-rani-fastest'
   ) {
     return formatElapsed(crown.timeMs || crown.value)
-  }
-  if (crown.id === 'ras-rani-fewest-moves') {
-    const moves = (crown as { moves?: number }).moves || crown.value
-    return `${moves} move${moves === 1 ? '' : 's'}${crown.timeMs ? ` · ${formatElapsed(crown.timeMs)}` : ''}`
   }
   if (crown.id === 'streak-longest') {
     const days = crown.longestStreak || crown.value

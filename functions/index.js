@@ -346,13 +346,6 @@ function isBetterOnePercentScore(current, candidate) {
   return isFasterPlayTime(candidate.timeMs, current.timeMs)
 }
 
-function isBetterFewestMoves(current, candidate) {
-  if (!current) return true
-  const currentMoves = Number(current.moves || current.value)
-  if (candidate.moves !== currentMoves) return candidate.moves < currentMoves
-  return isFasterPlayTime(candidate.timeMs, current.timeMs)
-}
-
 function isBetterFewestPeeks(current, candidate) {
   if (!current) return true
   const currentPeeks = Number(current.score || current.value)
@@ -415,7 +408,6 @@ const CROWN_LABELS = {
   'ras-rani-easy-fastest': 'fastest Easy Ras Rani',
   'ras-rani-medium-fastest': 'fastest Medium Ras Rani',
   'ras-rani-hard-fastest': 'fastest Difficult Ras Rani',
-  'ras-rani-fewest-moves': 'fewest-move Ras Rani',
   'streak-longest': 'longest play streak'
 }
 
@@ -1214,16 +1206,8 @@ async function handleGameAchievements(request) {
       logger.warn('ras-rani achievement missing difficulty; inferred', { uid, difficulty })
     }
     Object.assign(candidate, { moves, timeMs, hintsUsed, difficulty })
-    // Overall "Fastest Ras Rani" retired — Easy inherits its legacy crown doc.
-    if (hintsUsed === 0) {
-      crownSpecs.push({
-        id: 'ras-rani-fewest-moves',
-        metric: 'fewest-moves',
-        value: moves,
-        better: isBetterFewestMoves,
-        extra: { moves, timeMs }
-      })
-    }
+    // Time-only crowns — fewest-moves retired (board is ranked by clock; Easy
+    // days also dominate move count vs Difficult).
     if (difficulty === 'easy') {
       crownSpecs.push({
         id: 'ras-rani-easy-fastest',

@@ -219,8 +219,7 @@ const achievements = useAchievements()
 const crownIds = [
   'ras-rani-easy-fastest',
   'ras-rani-medium-fastest',
-  'ras-rani-hard-fastest',
-  'ras-rani-fewest-moves'
+  'ras-rani-hard-fastest'
 ]
 
 const grid = ref<CellState[][]>([])
