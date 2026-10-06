@@ -116,6 +116,18 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
+## Test site
+
+Pushing to the `test` branch builds the App Hosting backend `bhaktiras-test`
+(same Firebase project, its own `…hosted.app` URL). Pushing to `main` builds the
+live backend as before. To release, merge `test` into `main`.
+
+The test site uses `apphosting.test.yaml`, which shows a "Test site" badge and
+adds `noindex`. Only the website is separate: Firestore, Auth, Cloud Functions
+and rules are the production ones, so scores and admin edits made on the test
+site are real. Functions and rules changes still need deploying to production
+before the test site can use them.
+
 ## Deploy on Firebase Hosting
 
 The app is configured to deploy as a **static site** to [Firebase Hosting](https://firebase.google.com/docs/hosting) (same project as your Firestore/Auth).

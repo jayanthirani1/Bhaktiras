@@ -1,0 +1,10 @@
+# Overrides for the test backend (bhaktiras-test, live branch `test`).
+# App Hosting merges this over apphosting.yaml for any backend whose
+# environment name is "test". It shares the production Firebase project, so
+# Firestore, Auth and Cloud Functions are the live ones.
+env:
+  - variable: NUXT_PUBLIC_APP_ENV
+    value: test
+    availability:
+      - BUILD
+      - RUNTIME
