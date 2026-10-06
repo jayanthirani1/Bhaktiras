@@ -95,6 +95,17 @@ const GAME_ACHIEVEMENTS = {
     { id: 'ras-rani-no-hints-10', when: ({ rasRaniNoHints }) => rasRaniNoHints >= 10 },
     { id: 'ras-rani-sub-60s', when: ({ timeMs }) => timeMs >= MIN_TIMED_PLAY_MS && timeMs < 60_000 }
   ],
+  sopan: [
+    { id: 'sopan-first-win', when: ({ sopanWins }) => sopanWins >= 1 },
+    { id: 'sopan-wins-7', when: ({ sopanWins }) => sopanWins >= 7 },
+    { id: 'sopan-wins-30', when: ({ sopanWins }) => sopanWins >= 30 },
+    { id: 'sopan-wins-100', when: ({ sopanWins }) => sopanWins >= 100 },
+    { id: 'sopan-wins-200', when: ({ sopanWins }) => sopanWins >= 200 },
+    { id: 'sopan-wins-300', when: ({ sopanWins }) => sopanWins >= 300 },
+    { id: 'sopan-no-hints', when: ({ hintsUsed }) => hintsUsed === 0 },
+    { id: 'sopan-no-hints-10', when: ({ sopanNoHints }) => sopanNoHints >= 10 },
+    { id: 'sopan-sub-90s', when: ({ timeMs }) => timeMs >= MIN_TIMED_PLAY_MS && timeMs < 90_000 }
+  ],
   streak: [
     { id: 'streak-7', when: ({ longestStreak }) => longestStreak >= 7 },
     { id: 'streak-30', when: ({ longestStreak }) => longestStreak >= 30 },
@@ -309,6 +320,9 @@ function applyGameStats(game, candidate, stats, today) {
   } else if (game === 'ras-rani') {
     bumpOncePerDay(stats, 'rasRaniWins', 'rasRaniWinsDate', today)
     if (candidate.hintsUsed === 0) bumpOncePerDay(stats, 'rasRaniNoHints', 'rasRaniNoHintsDate', today)
+  } else if (game === 'sopan') {
+    bumpOncePerDay(stats, 'sopanWins', 'sopanWinsDate', today)
+    if (candidate.hintsUsed === 0) bumpOncePerDay(stats, 'sopanNoHints', 'sopanNoHintsDate', today)
   }
   Object.assign(candidate, stats)
 }
@@ -408,6 +422,7 @@ const CROWN_LABELS = {
   'ras-rani-easy-fastest': 'fastest Easy Ras Rani',
   'ras-rani-medium-fastest': 'fastest Medium Ras Rani',
   'ras-rani-hard-fastest': 'fastest Difficult Ras Rani',
+  'sopan-fastest': 'fastest Sopan',
   'streak-longest': 'longest play streak'
 }
 
@@ -1234,6 +1249,19 @@ async function handleGameAchievements(request) {
         extra: { moves, timeMs, difficulty }
       })
     }
+  } else if (game === 'sopan') {
+    const timeMs = intInRange(request.data?.timeMs, MIN_TIMED_PLAY_MS, 86_400_000)
+    const hintsUsed = intInRange(request.data?.hintsUsed ?? 0, 0, 100)
+    if (timeMs == null) throw new HttpsError('invalid-argument', 'Invalid Sopan time.')
+    if (hintsUsed == null) throw new HttpsError('invalid-argument', 'Invalid Sopan hints.')
+    Object.assign(candidate, { timeMs, hintsUsed })
+    crownSpecs.push({
+      id: 'sopan-fastest',
+      metric: 'fastest-time',
+      value: timeMs,
+      better: isBetterFastestTime,
+      extra: { timeMs, hintsUsed }
+    })
   } else if (game === 'streak') {
     const streakSnap = await db.doc(`playStreaks/${uid}`).get()
     if (!streakSnap.exists) return { unlockedIds: [], crowns: [] }
@@ -1405,7 +1433,8 @@ const DAILY_LEADERBOARD_GAMES = [
   'bracket-city',
   'surya-chandra',
   'bhakti-marg',
-  'ras-rani'
+  'ras-rani',
+  'sopan'
 ]
 
 /** Firestore caps a batch at 500 writes; stay under it with room to spare. */

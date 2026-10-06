@@ -28,6 +28,8 @@ const GAME_STORAGE_PREFIXES = [
   'bhakti-marg-timer:',
   'ras-rani:',
   'ras-rani-timer:',
+  'sopan:',
+  'sopan-timer:',
   'leaderboard-submitted:',
   'play-done:',
 ] as const
@@ -56,7 +58,8 @@ const GAME_DAY_KEYS: Record<PlayGameSlug, (dateId: string) => string[]> = {
     `leaderboard-submitted:surya-chandra:${dateId}`,
     `leaderboard-submitted:bhakti-marg:${dateId}`
   ],
-  'ras-rani': dateId => [`ras-rani-v3:${dateId}`, `ras-rani:${dateId}`, `ras-rani-timer:${dateId}`]
+  'ras-rani': dateId => [`ras-rani-v3:${dateId}`, `ras-rani:${dateId}`, `ras-rani-timer:${dateId}`],
+  'sopan': dateId => [`sopan:${dateId}`, `sopan-timer:${dateId}`]
 }
 
 /** Every local key holding this device's play of one game on one day. */

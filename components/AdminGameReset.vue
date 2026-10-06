@@ -56,7 +56,8 @@ const games: Array<{ slug: PlayGameSlug; title: string; href: string }> = [
   { slug: 'connections', title: 'Connections', href: '/play/connections' },
   { slug: 'bracket-city', title: 'Bracket City', href: '/play/bracket-city' },
   { slug: 'surya-chandra', title: 'Surya Chandra', href: '/play/surya-chandra' },
-  { slug: 'ras-rani', title: 'Ras Rani', href: '/play/ras-rani' }
+  { slug: 'ras-rani', title: 'Ras Rani', href: '/play/ras-rani' },
+  { slug: 'sopan', title: 'Sopan', href: '/play/sopan' }
 ]
 
 function legacyScoreIds(slug: PlayGameSlug, dateId: string, uid: string): string[] {

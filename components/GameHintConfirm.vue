@@ -18,13 +18,13 @@
           <IconHelp v-else class="h-5 w-5" aria-hidden="true" />
         </div>
         <h2 :id="titleId" class="font-display text-xl font-semibold text-[hsl(var(--primary))]">
-          {{ kind === 'letter' ? 'Reveal a letter?' : 'Reveal this word?' }}
+          {{ title || (kind === 'letter' ? 'Reveal a letter?' : 'Reveal this word?') }}
         </h2>
         <p class="mt-2 text-sm text-[hsl(var(--muted-foreground))]">
           {{
-            kind === 'letter'
+            message || (kind === 'letter'
               ? 'This will reveal one letter and add +5 seconds to your total time.'
-              : 'This will fill the selected word and add +20 seconds to your total time.'
+              : 'This will fill the selected word and add +20 seconds to your total time.')
           }}
         </p>
         <div class="mt-5 flex gap-2">
@@ -40,7 +40,7 @@
             class="flex-1 rounded-xl bg-amber-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-800"
             @click="emit('confirm')"
           >
-            {{ kind === 'letter' ? 'Reveal (+5s)' : 'Reveal (+20s)' }}
+            {{ confirmLabel || (kind === 'letter' ? 'Reveal (+5s)' : 'Reveal (+20s)') }}
           </button>
         </div>
       </div>
@@ -54,6 +54,9 @@ import { IconEye, IconHelp } from '@tabler/icons-vue'
 defineProps<{
   open: boolean
   kind: 'letter' | 'word' | null
+  title?: string
+  message?: string
+  confirmLabel?: string
 }>()
 
 const emit = defineEmits<{ confirm: []; cancel: [] }>()

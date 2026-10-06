@@ -209,7 +209,8 @@ const GAME_LABELS: Record<string, string> = {
   'surya-chandra': 'Surya Chandra',
   // Legacy score rows may still appear until prune/migrate finishes.
   'bhakti-marg': 'Surya Chandra',
-  'ras-rani': 'Ras Rani'
+  'ras-rani': 'Ras Rani',
+  sopan: 'Sopan'
 }
 
 const data = ref<Overview | null>(null)

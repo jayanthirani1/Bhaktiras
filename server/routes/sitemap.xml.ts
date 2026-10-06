@@ -27,6 +27,7 @@ const PATHS = [
   '/play/bracket-city',
   '/play/surya-chandra',
   '/play/ras-rani',
+  '/play/sopan',
   '/play/achievements',
   '/play/streaks',
   '/privacy',

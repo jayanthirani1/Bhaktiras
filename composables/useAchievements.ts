@@ -13,6 +13,7 @@ export type AchievementGroup =
   | 'bracket-city'
   | 'surya-chandra'
   | 'ras-rani'
+  | 'sopan'
   | 'streak'
 
 export type AchievementMedal = 'bronze' | 'silver' | 'gold' | 'platinum'
@@ -114,6 +115,15 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
   { id: 'ras-rani-no-hints', title: 'Pure Nectar', description: 'Complete Ras Rani without using any hints.', group: 'ras-rani', medal: 'gold' },
   { id: 'ras-rani-no-hints-10', title: 'Nectar Master', description: 'Complete 10 Ras Rani puzzles without hints.', group: 'ras-rani', medal: 'platinum', progress: { stat: 'rasRaniNoHints', goal: 10, unit: 'perfects' } },
   { id: 'ras-rani-sub-60s', title: 'Swift Collector', description: 'Complete Ras Rani in under 60 seconds.', group: 'ras-rani', medal: 'gold' },
+  { id: 'sopan-first-win', title: 'First Step', description: 'Climb a Sopan ladder for the first time.', group: 'sopan', medal: 'bronze' },
+  { id: 'sopan-wins-7', title: 'Week of Steps', description: 'Climb 7 Sopan ladders.', group: 'sopan', medal: 'silver', progress: { stat: 'sopanWins', goal: 7, unit: 'wins' } },
+  { id: 'sopan-wins-30', title: 'Sopan Sadhak', description: 'Climb 30 Sopan ladders.', group: 'sopan', medal: 'gold', progress: { stat: 'sopanWins', goal: 30, unit: 'wins' } },
+  { id: 'sopan-wins-100', title: '100-Day Sopan', description: 'Climb 100 Sopan ladders.', group: 'sopan', medal: 'gold', progress: { stat: 'sopanWins', goal: 100, unit: 'wins' } },
+  { id: 'sopan-wins-200', title: '200-Day Sopan', description: 'Climb 200 Sopan ladders.', group: 'sopan', medal: 'gold', progress: { stat: 'sopanWins', goal: 200, unit: 'wins' } },
+  { id: 'sopan-wins-300', title: '300-Day Sopan', description: 'Climb 300 Sopan ladders.', group: 'sopan', medal: 'platinum', progress: { stat: 'sopanWins', goal: 300, unit: 'wins' } },
+  { id: 'sopan-no-hints', title: 'Sure-Footed', description: 'Climb Sopan without using any hints.', group: 'sopan', medal: 'gold' },
+  { id: 'sopan-no-hints-10', title: 'Steady Climber', description: 'Climb 10 Sopan ladders without hints.', group: 'sopan', medal: 'platinum', progress: { stat: 'sopanNoHints', goal: 10, unit: 'perfects' } },
+  { id: 'sopan-sub-90s', title: 'Swift Ascent', description: 'Climb Sopan in under 90 seconds.', group: 'sopan', medal: 'gold' },
   { id: 'streak-7', title: '7-Day Streak', description: 'Keep your games streak going for 7 days.', group: 'streak', medal: 'silver', progress: { stat: 'gamesStreak', goal: 7, unit: 'days' } },
   { id: 'streak-30', title: '30-Day Streak', description: 'Keep your games streak going for 30 days.', group: 'streak', medal: 'gold', progress: { stat: 'gamesStreak', goal: 30, unit: 'days' } },
   { id: 'streak-100', title: '100-Day Streak', description: 'Keep your games streak going for 100 days.', group: 'streak', medal: 'gold', progress: { stat: 'gamesStreak', goal: 100, unit: 'days' } },
@@ -129,6 +139,7 @@ export const ACHIEVEMENT_GROUP_TITLES: Record<AchievementGroup, string> = {
   'one-percent': '1% Club',
   'surya-chandra': 'Surya Chandra',
   'ras-rani': 'Ras Rani',
+  sopan: 'Sopan',
   streak: 'Streaks'
 }
 
@@ -165,6 +176,7 @@ export const CROWN_DEFINITIONS = [
   { id: 'ras-rani-easy-fastest', title: 'Fastest Easy Ras Rani', description: 'Fastest Easy (7×7) Ras Rani this month.', game: 'ras-rani', scope: 'monthly' },
   { id: 'ras-rani-medium-fastest', title: 'Fastest Medium Ras Rani', description: 'Fastest Medium (8–9×9) Ras Rani this month.', game: 'ras-rani', scope: 'monthly' },
   { id: 'ras-rani-hard-fastest', title: 'Fastest Difficult Ras Rani', description: 'Fastest Difficult (10–11×11) Ras Rani this month.', game: 'ras-rani', scope: 'monthly' },
+  { id: 'sopan-fastest', title: 'Fastest Sopan', description: 'Fastest Sopan climb this month.', game: 'sopan', scope: 'monthly' },
   { id: 'streak-longest', title: 'Longest Streak', description: 'Longest games streak of all time.', game: 'streak', scope: 'all-time' }
 ] as const
 
@@ -293,6 +305,7 @@ export function crownValue(crown: AchievementCrownRecord) {
     || crown.id === 'ras-rani-medium-fastest'
     || crown.id === 'ras-rani-hard-fastest'
     || crown.id === 'ras-rani-fastest'
+    || crown.id === 'sopan-fastest'
   ) {
     return formatElapsed(crown.timeMs || crown.value)
   }
