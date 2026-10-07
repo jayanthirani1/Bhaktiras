@@ -53,7 +53,8 @@ const GAME_DAY_KEYS: Record<PlayGameSlug, (dateId: string) => string[]> = {
     `leaderboard-submitted:surya-chandra:${dateId}`,
     `leaderboard-submitted:bhakti-marg:${dateId}`
   ],
-  'ras-rani': dateId => [`ras-rani-v3:${dateId}`, `ras-rani:${dateId}`, `ras-rani-timer:${dateId}`]
+  'ras-rani': dateId => [`ras-rani-v3:${dateId}`, `ras-rani:${dateId}`, `ras-rani-timer:${dateId}`],
+  'lanka-leap': dateId => [`lanka-leap:${dateId}`]
 }
 
 /** Every local key holding this device's play of one game on one day. */

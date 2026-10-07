@@ -10,7 +10,8 @@ export const GAME_PAGE_PATHS = [
   '/play/connections',
   '/play/bhakti-marg',
   '/play/surya-chandra',
-  '/play/ras-rani'
+  '/play/ras-rani',
+  '/play/lanka-leap'
 ]
 
 export function isGamePagePath(path: string): boolean {

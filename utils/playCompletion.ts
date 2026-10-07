@@ -7,6 +7,7 @@ export type PlayGameSlug =
   | 'connections'
   | 'surya-chandra'
   | 'ras-rani'
+  | 'lanka-leap'
 
 export interface PlayCompletionEntry {
   /** Game-specific headline number (guesses, cleared rungs, words found). */
@@ -83,6 +84,13 @@ export function readLocalPlayCompletion(
       if (!state) return null
       const data = JSON.parse(state)
       return data.finished ? { score: Number(data.moves) || 0 } : null
+    }
+
+    if (slug === 'lanka-leap') {
+      const state = localStorage.getItem(`lanka-leap:${dateId}`)
+      if (!state) return null
+      const data = JSON.parse(state)
+      return data.runs > 0 ? { score: Number(data.best) || 0 } : null
     }
 
     return null
