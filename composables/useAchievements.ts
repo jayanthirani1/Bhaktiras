@@ -29,7 +29,8 @@ export type AchievementDefinition = {
   }
 }
 
-export type GameAchievementGame = AchievementGroup
+/** Lanka Leap has a crown but no achievements, so it is not an achievement group. */
+export type GameAchievementGame = AchievementGroup | 'lanka-leap'
 
 export type GameAchievementPayload = {
   userName: string
@@ -49,6 +50,9 @@ export type GameAchievementPayload = {
   difficulty?: 'easy' | 'medium' | 'hard'
   /** Backup for Ras Rani crown routing when difficulty is omitted. */
   gridSize?: number
+  /** Lanka Leap: the course day and leap ticks, replayed by the callable to score the run. */
+  dateId?: string
+  leaps?: number[]
 }
 
 export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
@@ -151,6 +155,7 @@ export const CROWN_DEFINITIONS = [
   { id: 'ras-rani-easy-fastest', title: 'Fastest Easy Ras Rani', description: 'Fastest Easy (7×7) Ras Rani this month.', game: 'ras-rani', scope: 'monthly' },
   { id: 'ras-rani-medium-fastest', title: 'Fastest Medium Ras Rani', description: 'Fastest Medium (8–9×9) Ras Rani this month.', game: 'ras-rani', scope: 'monthly' },
   { id: 'ras-rani-hard-fastest', title: 'Fastest Difficult Ras Rani', description: 'Fastest Difficult (10–11×11) Ras Rani this month.', game: 'ras-rani', scope: 'monthly' },
+  { id: 'lanka-leap-highest', title: 'Lanka Leap Record', description: 'Highest Lanka Leap score of all time.', game: 'lanka-leap', scope: 'all-time' },
   { id: 'streak-longest', title: 'Longest Streak', description: 'Longest games streak of all time.', game: 'streak', scope: 'all-time' }
 ] as const
 
@@ -281,6 +286,10 @@ export function crownValue(crown: AchievementCrownRecord) {
   if (crown.id === 'streak-longest') {
     const days = crown.longestStreak || crown.value
     return `${days} day${days === 1 ? '' : 's'}`
+  }
+  if (crown.id === 'lanka-leap-highest') {
+    const points = crown.score || crown.value
+    return `${points} point${points === 1 ? '' : 's'}`
   }
   return String(crown.value)
 }

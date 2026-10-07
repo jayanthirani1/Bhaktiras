@@ -58,6 +58,12 @@
                 {{ lastRun.tulsi }} tulsi {{ lastRun.tulsi === 1 ? 'leaf' : 'leaves' }}<span v-if="lastRun.reachedLanka"> · reached Lanka</span>
               </p>
               <p class="text-xs text-[hsl(var(--muted-foreground))]">{{ deathTip }}</p>
+              <p v-if="savingRun" class="text-xs font-medium text-sky-700">Saving to the leaderboard…</p>
+              <p v-else-if="saveError" class="text-xs font-medium text-red-600">{{ saveError }}</p>
+              <p v-else-if="!isLoggedIn && lastRun.score > 0" class="text-xs text-[hsl(var(--muted-foreground))]">
+                <NuxtLink to="/login?redirect=/play/lanka-leap" class="font-semibold text-sky-700 underline">Sign in</NuxtLink>
+                to put your best on the all-time leaderboard.
+              </p>
               <button
                 type="button"
                 class="w-full rounded-xl bg-sky-700 px-4 py-3 text-sm font-semibold text-white"
@@ -78,6 +84,21 @@
         <GameHowTo>
           <LankaLeapRules />
         </GameHowTo>
+
+        <GameLeaderboard
+          :entries="boardEntries"
+          :loading="boardLoading"
+          all-time
+          :current-user-id="auth.user.value?.uid"
+          game="lanka-leap"
+          rules="Ranked by highest score of all time. Signed in, your best run is checked and saved automatically."
+        >
+          <template v-if="!isLoggedIn">
+            <NuxtLink to="/login?redirect=/play/lanka-leap" class="text-[hsl(var(--primary))] underline">Sign in</NuxtLink>
+            to get on the board.
+          </template>
+        </GameLeaderboard>
+        <GameCrowns :ids="['lanka-leap-highest']" />
       </div>
     </div>
   </div>
@@ -122,6 +143,47 @@ const seed = lankaLeapSeed(dateId)
 const storageKey = `lanka-leap:${dateId}`
 const howto = useHowToPlay('lanka-leap', ['lanka-leap:'])
 const { markDone } = useDailyGameCompletion('lanka-leap')
+
+const auth = useAuth()
+const achievements = useAchievements()
+const isLoggedIn = computed(() => !!auth.user.value)
+const {
+  entries: boardEntries,
+  loading: boardLoading,
+  refetch: refetchBoard
+} = useGameLeaderboard('lanka-leap', { allTime: true, sort: 'desc' })
+const savingRun = ref(false)
+const saveError = ref('')
+/** Highest score sent this session, so a run is never sent twice. */
+let lastSentScore = 0
+
+const myRecord = computed(() =>
+  boardEntries.value.find(entry => entry.userId === auth.user.value?.uid)?.score ?? 0
+)
+
+/** The callable replays the leaps and keeps the score only if it beats the stored record. */
+async function sendRun(score: number, runLeaps: number[]) {
+  if (!auth.user.value || score <= 0 || score <= myRecord.value || score <= lastSentScore) return
+  lastSentScore = score
+  savingRun.value = true
+  saveError.value = ''
+  try {
+    await achievements.processResult('lanka-leap', {
+      userName: auth.userName.value || auth.userEmail.value || 'Player',
+      dateId,
+      leaps: runLeaps
+    })
+    await refetchBoard()
+  } catch {
+    saveError.value = 'Could not save your score to the leaderboard.'
+  } finally {
+    savingRun.value = false
+  }
+}
+
+watch([() => auth.user.value?.uid, boardLoading], ([uid, loading]) => {
+  if (uid && !loading && day.bestLeaps.length) void sendRun(day.best, day.bestLeaps)
+})
 
 const canvasEl = ref<HTMLCanvasElement | null>(null)
 const stageEl = ref<HTMLDivElement | null>(null)
@@ -275,6 +337,7 @@ function endRun() {
   day.reachedLanka = day.reachedLanka || run.reachedLanka
   saveDay()
   void markDone({ score: day.best, detail: `Best ${day.best}${day.reachedLanka ? ' · reached Lanka' : ''}` })
+  void sendRun(run.score, leaps.slice())
   overAt = performance.now()
   phase.value = 'over'
   if (navigator.vibrate) navigator.vibrate(40)

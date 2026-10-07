@@ -458,6 +458,7 @@ export type GameLeaderboardId =
   | 'connections'
   | 'surya-chandra'
   | 'ras-rani'
+  | 'lanka-leap'
 
 /** Retired Surya Chandra score/crown game id — read as an alias only. */
 export type LegacyGameLeaderboardId = 'bhakti-marg'

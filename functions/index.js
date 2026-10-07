@@ -83,6 +83,7 @@ const GAME_ACHIEVEMENTS = {
     { id: 'ras-rani-no-hints-10', when: ({ rasRaniNoHints }) => rasRaniNoHints >= 10 },
     { id: 'ras-rani-sub-60s', when: ({ timeMs }) => timeMs >= MIN_TIMED_PLAY_MS && timeMs < 60_000 }
   ],
+  'lanka-leap': [],
   streak: [
     { id: 'streak-7', when: ({ longestStreak }) => longestStreak >= 7 },
     { id: 'streak-30', when: ({ longestStreak }) => longestStreak >= 30 },
@@ -331,6 +332,59 @@ function isBetterOnePercentScore(current, candidate) {
   return isFasterPlayTime(candidate.timeMs, current.timeMs)
 }
 
+/** Ties keep the holder: the record belongs to whoever got there first. */
+function isBetterHighScore(current, candidate) {
+  if (!current) return true
+  return candidate.score > Number(current.score ?? current.value)
+}
+
+/**
+ * Re-flies a Lanka Leap run from its leap ticks on the day's course, so the
+ * score is the simulation's, never the client's. Yesterday's course is still
+ * accepted for a run that was started before midnight.
+ */
+async function replayLankaLeap(data) {
+  const { simulateRun, lankaLeapSeed, MAX_RUN_TICKS } = await import('./shared/lankaLeap.mjs')
+  const today = ukDateIdNow()
+  const dateId = String(data?.dateId || '')
+  if (dateId !== today && dateId !== previousUkDate(today)) {
+    throw new HttpsError('invalid-argument', 'That Lanka Leap course has closed.')
+  }
+  const leaps = data?.leaps
+  if (!Array.isArray(leaps) || leaps.length > MAX_RUN_TICKS) {
+    throw new HttpsError('invalid-argument', 'Invalid Lanka Leap run.')
+  }
+  let previous = -1
+  for (const tick of leaps) {
+    if (!Number.isInteger(tick) || tick <= previous || tick > MAX_RUN_TICKS) {
+      throw new HttpsError('invalid-argument', 'Invalid Lanka Leap run.')
+    }
+    previous = tick
+  }
+  return { ...simulateRun(lankaLeapSeed(dateId), leaps), dateId }
+}
+
+/**
+ * Lanka Leap's board is all-time: one row per player, `lanka-leap_{uid}`,
+ * written only here after a replay. The rules refuse browser writes for it.
+ */
+async function saveLankaLeapBest(db, uid, userName, run) {
+  const ref = db.doc(`gameScores/lanka-leap_${uid}`)
+  await db.runTransaction(async (transaction) => {
+    const snap = await transaction.get(ref)
+    if (snap.exists && Number(snap.data().score) >= run.score) return
+    transaction.set(ref, {
+      game: 'lanka-leap',
+      dateId: run.dateId,
+      userId: uid,
+      userName,
+      score: run.score,
+      detail: `${run.tulsi} tulsi${run.reachedLanka ? ' · reached Lanka' : ''}`,
+      completedAt: FieldValue.serverTimestamp()
+    })
+  })
+}
+
 function isBetterFewestMistakes(current, candidate) {
   if (!current) return true
   const currentMistakes = Number(current.mistakes ?? current.value)
@@ -384,6 +438,7 @@ const CROWN_LABELS = {
   'ras-rani-easy-fastest': 'fastest Easy Ras Rani',
   'ras-rani-medium-fastest': 'fastest Medium Ras Rani',
   'ras-rani-hard-fastest': 'fastest Difficult Ras Rani',
+  'lanka-leap-highest': 'highest Lanka Leap score',
   'streak-longest': 'longest play streak'
 }
 
@@ -1196,6 +1251,20 @@ async function handleGameAchievements(request) {
         value: timeMs,
         better: isBetterFastestTime,
         extra: { moves, timeMs, difficulty }
+      })
+    }
+  } else if (game === 'lanka-leap') {
+    const run = await replayLankaLeap(request.data)
+    Object.assign(candidate, { score: run.score, tulsi: run.tulsi, reachedLanka: run.reachedLanka })
+    if (run.score > 0) {
+      await saveLankaLeapBest(db, uid, userName, run)
+      crownSpecs.push({
+        id: 'lanka-leap-highest',
+        metric: 'high-score',
+        value: run.score,
+        scope: 'all-time',
+        better: isBetterHighScore,
+        extra: { score: run.score, tulsi: run.tulsi }
       })
     }
   } else if (game === 'streak') {
