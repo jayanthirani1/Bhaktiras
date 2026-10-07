@@ -29,6 +29,14 @@ const FIRST_GATE_X = 460
 const SHRINK_TICKS = 150
 const GRACE_TICKS = 70
 const PICKUP_RADIUS = 14
+/**
+ * Hanumanji's drawn body around the head hit circle (tail and legs behind,
+ * hand ahead). Pickups are collected anywhere on it; obstacles only hit the head.
+ */
+const BODY_BACK = 58
+const BODY_FRONT = 30
+const BODY_TOP = 22
+const BODY_BOTTOM = 28
 const SURASA_GAP = 72
 const GAP_TOP_LIMIT = 130
 const GAP_BOTTOM_LIMIT = SEA_LEVEL - 110
@@ -306,9 +314,11 @@ export function step(s, leap) {
 
   const x = s.distance + HERO_X
   const rNow = heroRadius(s)
+  const body = rNow / HERO_RADIUS
+  const front = Math.max(rNow, BODY_FRONT * body)
   for (let i = s.firstActive; i < s.course.length; i++) {
     const o = s.course[i]
-    if (o.x > x + rNow + PICKUP_RADIUS) break
+    if (o.x > x + front + PICKUP_RADIUS) break
     if (o.x + PILLAR_WIDTH < x - HERO_X - 40) {
       if (i === s.firstActive) s.firstActive = i + 1
       continue
@@ -316,10 +326,7 @@ export function step(s, leap) {
 
     const p = o.pickup
     if (p && !p.taken) {
-      const dx = x - p.x
-      const dy = s.y - p.y
-      const reach = rNow + PICKUP_RADIUS
-      if (dx * dx + dy * dy < reach * reach) {
+      if (hitsRect(p.x, p.y, PICKUP_RADIUS, x - BODY_BACK * body, s.y - BODY_TOP * body, x + BODY_FRONT * body, s.y + BODY_BOTTOM * body)) {
         p.taken = true
         if (p.kind === 'tulsi') {
           s.tulsi++
