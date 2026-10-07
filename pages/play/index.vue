@@ -123,7 +123,6 @@ import {
   IconCheck,
   IconCirclesRelation,
   IconBrackets,
-  IconStairsUp,
   IconSun
 } from '@tabler/icons-vue'
 import NectarIcon from '~/components/NectarIcon.vue'
@@ -151,7 +150,6 @@ const games: Array<{
   { slug: 'bracket-city', title: 'Bracket City', description: 'Clues nested inside clues. Solve the innermost one first.', icon: IconBrackets, href: '/play/bracket-city', tile: 'bg-indigo-100 text-indigo-700', button: 'bg-indigo-600 text-white' },
   { slug: 'surya-chandra', title: 'Surya Chandra', description: 'Suns and moons on a 6×6 grid. Three of each per row and column, never three in a line.', icon: IconSun, href: '/play/surya-chandra', tile: 'bg-amber-100 text-amber-800', button: 'bg-amber-600 text-white' },
   { slug: 'ras-rani', title: 'Ras Rani 🍯', description: 'One nectar drop per row, column and colour. Easy 7×7, Medium 8–9×9 and Difficult 10–11×11 rotate daily.', icon: NectarIcon, href: '/play/ras-rani', tile: 'bg-amber-100 text-amber-700', button: 'bg-amber-700 text-white' },
-  { slug: 'sopan', title: 'Sopan', description: 'A seven-rung word ladder. Solve the clues, then order the rungs so each step changes one letter.', icon: IconStairsUp, href: '/play/sopan', tile: 'bg-teal-100 text-teal-700', button: 'bg-teal-700 text-white' },
 ]
 
 const { done, results } = usePlayCompletion(games.map(g => g.slug))
@@ -171,5 +169,5 @@ function resultLine(slug: PlayGameSlug) {
   return parts.length ? parts.join(' · ') : 'Come back tomorrow for a new challenge'
 }
 
-usePageSeo('Games', 'Daily satsang games — Wordle, Crossword, Connections, 1% Club, Bracket City, Surya Chandra, Ras Rani and Sopan.')
+usePageSeo('Games', 'Daily satsang games — Wordle, Crossword, Connections, 1% Club, Bracket City, Surya Chandra and Ras Rani.')
 </script>

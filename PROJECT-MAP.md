@@ -46,11 +46,11 @@ Requires the **Blaze** plan (Functions + Storage).
 `/darshan` `/legacy` `/account` `/login` `/signup` `/privacy` `/policy` `/submit-bug`
 
 **Games** — `/play` plus `wordle`, `crossword`, `mini-crossword`, `connections`,
-`one-percent`, `sopan`, `achievements`, `streaks`
+`one-percent`, `achievements`, `streaks`
 
 **Admin** — `/admin` plus `auth`, `timeline`, `events`, `niyam-challenges`, `yajman`,
 `notifications`, `legal`, `bugs`, `content/{index,homepage,community,navigation,seva,sections}`,
-`games/{wordle,crossword,mini-crossword,connections,one-percent,sopan,word-bank}`
+`games/{wordle,crossword,mini-crossword,connections,one-percent,word-bank}`
 
 ## Sections
 
@@ -268,7 +268,7 @@ and the game banks (`connectionsPuzzles`, `miniCrossword`,
 
 **Games** — `gameScores` `wordleScores` (legacy) `playStreaks` `playCompletions`
 `userAchievements` `achievementCrowns` `gameWords` `wordleWords` `wordleDaily`
-`miniCrosswordPuzzles` `connectionsPuzzles` `onePercentQuestions` `sopanPuzzles`
+`miniCrosswordPuzzles` `connectionsPuzzles` `onePercentQuestions`
 
 **Niyams** — `niyamChallenges` (+ `contributors` subcollection)
 `niyamChallengeStats` `niyamSubmissions` `mandirVisits`. `niyamProgress`, `niyams` and

@@ -8,8 +8,7 @@ export const GAME_LEADERBOARD_RULES: Record<GameLeaderboardId, string> = {
   'bracket-city': 'Ranked by fewest peeks. Faster time breaks ties.',
   'one-percent': 'Ranked by most questions cleared. Faster time breaks ties.',
   'surya-chandra': 'Ranked by fastest time.',
-  'ras-rani': 'Ranked by fastest time. Fewer moves breaks ties.',
-  sopan: 'Ranked by fastest time, hint penalties included.'
+  'ras-rani': 'Ranked by fastest time. Fewer moves breaks ties.'
 }
 
 export const LEADERBOARD_SUBMIT_HINT =

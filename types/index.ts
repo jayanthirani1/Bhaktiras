@@ -459,7 +459,6 @@ export type GameLeaderboardId =
   | 'bracket-city'
   | 'surya-chandra'
   | 'ras-rani'
-  | 'sopan'
 
 /** Retired Surya Chandra score/crown game id — read as an alias only. */
 export type LegacyGameLeaderboardId = 'bhakti-marg'
@@ -519,27 +518,6 @@ export interface BracketCityPuzzle {
   source: string
   /** Where the episode comes from, shown once the puzzle is solved. */
   credit?: string
-}
-
-export interface SopanRung {
-  word: string
-  clue: string
-}
-
-/**
- * A Sopan word ladder, read top to bottom: `top`, the five `rungs`, `bottom`.
- * Every neighbouring pair differs by exactly one letter in the same position.
- */
-export interface SopanPuzzle {
-  id: string
-  title?: string
-  dateId?: string | null
-  top: string
-  bottom: string
-  /** One clue covering both end words, revealed once the middle is in order. */
-  endsClue: string
-  rungs: SopanRung[]
-  published?: boolean
 }
 
 export interface RasRaniRegion {

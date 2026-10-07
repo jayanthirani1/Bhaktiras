@@ -8,7 +8,6 @@ export type PlayGameSlug =
   | 'bracket-city'
   | 'surya-chandra'
   | 'ras-rani'
-  | 'sopan'
 
 export interface PlayCompletionEntry {
   /** Game-specific headline number (guesses, cleared rungs, words found). */
@@ -92,13 +91,6 @@ export function readLocalPlayCompletion(
       if (!state) return null
       const data = JSON.parse(state)
       return data.finished ? { score: Number(data.moves) || 0 } : null
-    }
-
-    if (slug === 'sopan') {
-      const state = localStorage.getItem(`sopan:${dateId}`)
-      if (!state) return null
-      const data = JSON.parse(state)
-      return data.finished ? { score: Number(data.hintsUsed) || 0 } : null
     }
 
     return null
