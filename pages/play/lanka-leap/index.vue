@@ -115,20 +115,6 @@ interface DayRecord {
   bestLeaps: number[]
 }
 
-const LankaLeapRules = defineComponent({
-  setup() {
-    return () => h('ol', { class: 'list-decimal space-y-2 pl-5' }, [
-      h('li', 'Tap the sky, or press Space, to make Hanumanji leap. Let go and he glides down.'),
-      h('li', 'Fly through the gaps. Every gate you pass scores a point. Touching a rock or the sea ends the run.'),
-      h('li', 'Collect tulsi leaves along the way.'),
-      h('li', 'Before Surasa, take the blue Laghima orb. Hanumanji becomes tiny and slips through her narrow mouth.'),
-      h('li', 'Mainak rises from the sea with a golden orb. Take it and the next hit is forgiven.'),
-      h('li', 'Over Simhika’s dark water, stay high. She seizes your shadow and drags you down.'),
-      h('li', 'Pass Lankini’s gate to reach Lanka, then keep going for a higher score. Fly as often as you like; your best run of the day counts.')
-    ])
-  }
-})
-
 const available = showPrototypeGames()
 const dateId = ukDateId()
 const seed = lankaLeapSeed(dateId)
