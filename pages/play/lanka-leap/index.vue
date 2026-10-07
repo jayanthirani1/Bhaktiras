@@ -138,6 +138,10 @@ let rafId = 0
 let ctx: CanvasRenderingContext2D | null = null
 let resizeObserver: ResizeObserver | null = null
 let banner: { text: string; until: number } | null = null
+let heroSprite: HTMLImageElement | null = null
+
+/** World-unit size of the Hanumanji sprite; the anchor (head and chest) sits on the hit circle. */
+const HERO_SPRITE = { src: '/games/lanka-leap/hanuman.png', width: 96, aspect: 0.758, anchorX: 0.628, anchorY: 0.346 }
 
 const DEATH_TITLES: Record<DeathCause, string> = {
   rock: 'Struck a rock',
@@ -288,6 +292,8 @@ watch(canvasEl, (el) => {
 })
 
 onMounted(() => {
+  heroSprite = new Image()
+  heroSprite.src = HERO_SPRITE.src
   loadDay()
   lastFrame = performance.now()
   rafId = requestAnimationFrame(frame)
@@ -512,59 +518,26 @@ function drawHero(c: CanvasRenderingContext2D, now: number) {
   if (run.graceTicks > 0 && Math.floor(now / 90) % 2 === 0) return
   const r = heroRadius(run)
   const bob = phase.value === 'ready' ? Math.sin(now / 300) * 6 : 0
-  const tilt = phase.value === 'ready' ? 0 : Math.max(-0.45, Math.min(0.8, run.vy * 0.07))
+  const tilt = phase.value === 'ready' ? 0 : Math.max(-0.35, Math.min(0.6, run.vy * 0.06))
 
   c.save()
   c.translate(HERO_X, run.y + bob)
   c.rotate(tilt)
   c.scale(r / HERO_RADIUS, r / HERO_RADIUS)
-
-  c.strokeStyle = '#ea580c'
-  c.lineWidth = 4
-  c.lineCap = 'round'
-  c.beginPath()
-  c.moveTo(-12, 6)
-  c.bezierCurveTo(-30, 10, -34, -10, -24, -18)
-  c.stroke()
-
-  c.fillStyle = '#f97316'
-  c.beginPath()
-  c.arc(0, 0, HERO_RADIUS, 0, Math.PI * 2)
-  c.fill()
-  c.fillStyle = '#fdba74'
-  c.beginPath()
-  c.arc(6, -3, 9, 0, Math.PI * 2)
-  c.fill()
-  c.fillStyle = '#1f2937'
-  c.beginPath()
-  c.arc(9, -6, 1.8, 0, Math.PI * 2)
-  c.fill()
-  c.fillStyle = '#facc15'
-  c.beginPath()
-  c.moveTo(-6, -15)
-  c.lineTo(0, -26)
-  c.lineTo(6, -15)
-  c.closePath()
-  c.fill()
-  c.strokeStyle = '#a16207'
-  c.lineWidth = 3
-  c.beginPath()
-  c.moveTo(8, 8)
-  c.lineTo(16, 16)
-  c.stroke()
-  c.fillStyle = '#facc15'
-  c.beginPath()
-  c.arc(18, 18, 6, 0, Math.PI * 2)
-  c.fill()
-  c.restore()
-
-  if (run.shield) {
-    c.strokeStyle = `rgba(250, 204, 21, ${0.6 + Math.sin(now / 160) * 0.3})`
-    c.lineWidth = 3
-    c.beginPath()
-    c.arc(HERO_X, run.y + bob, r + 8, 0, Math.PI * 2)
-    c.stroke()
+  if (run.shield || run.shrinkTicks > 0) {
+    c.shadowColor = run.shrinkTicks > 0 ? 'rgba(56, 189, 248, 0.95)' : 'rgba(250, 204, 21, 0.95)'
+    c.shadowBlur = 14 + Math.sin(now / 160) * 6
   }
+  if (heroSprite?.complete && heroSprite.naturalWidth) {
+    const height = HERO_SPRITE.width * HERO_SPRITE.aspect
+    c.drawImage(heroSprite, -HERO_SPRITE.width * HERO_SPRITE.anchorX, -height * HERO_SPRITE.anchorY, HERO_SPRITE.width, height)
+  } else {
+    c.fillStyle = '#f97316'
+    c.beginPath()
+    c.arc(0, 0, HERO_RADIUS, 0, Math.PI * 2)
+    c.fill()
+  }
+  c.restore()
 }
 
 function drawHud(c: CanvasRenderingContext2D) {
