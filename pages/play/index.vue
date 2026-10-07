@@ -122,7 +122,6 @@ import {
   IconArrowRight,
   IconCheck,
   IconCirclesRelation,
-  IconBrackets,
   IconSun
 } from '@tabler/icons-vue'
 import NectarIcon from '~/components/NectarIcon.vue'
@@ -147,7 +146,6 @@ const games: Array<{
   { slug: 'mini-crossword', title: 'Crossword', description: 'A quick Telegraph-style grid. Beat the clock.', icon: IconGrid3x3, href: '/play/crossword', tile: 'bg-sky-100 text-sky-700', button: 'bg-sky-700 text-white' },
   { slug: 'one-percent', title: '1% Club', description: 'Daily Vachnamrut climb from 90% to 1%. One wrong answer ends your run.', icon: IconChartBar, href: '/play/one-percent', tile: 'bg-orange-100 text-orange-700', button: 'bg-orange-800 text-white' },
   { slug: 'connections', title: 'Connections', description: 'Find four groups of four satsang-related words.', icon: IconCirclesRelation, href: '/play/connections', tile: 'bg-fuchsia-100 text-fuchsia-700', button: 'bg-fuchsia-600 text-white' },
-  { slug: 'bracket-city', title: 'Bracket City', description: 'Clues nested inside clues. Solve the innermost one first.', icon: IconBrackets, href: '/play/bracket-city', tile: 'bg-indigo-100 text-indigo-700', button: 'bg-indigo-600 text-white' },
   { slug: 'surya-chandra', title: 'Surya Chandra', description: 'Suns and moons on a 6×6 grid. Three of each per row and column, never three in a line.', icon: IconSun, href: '/play/surya-chandra', tile: 'bg-amber-100 text-amber-800', button: 'bg-amber-600 text-white' },
   { slug: 'ras-rani', title: 'Ras Rani 🍯', description: 'One nectar drop per row, column and colour. Easy 7×7, Medium 8–9×9 and Difficult 10–11×11 rotate daily.', icon: NectarIcon, href: '/play/ras-rani', tile: 'bg-amber-100 text-amber-700', button: 'bg-amber-700 text-white' },
 ]
@@ -169,5 +167,5 @@ function resultLine(slug: PlayGameSlug) {
   return parts.length ? parts.join(' · ') : 'Come back tomorrow for a new challenge'
 }
 
-usePageSeo('Games', 'Daily satsang games — Wordle, Crossword, Connections, 1% Club, Bracket City, Surya Chandra and Ras Rani.')
+usePageSeo('Games', 'Daily satsang games — Wordle, Crossword, Connections, 1% Club, Surya Chandra and Ras Rani.')
 </script>

@@ -456,7 +456,6 @@ export type GameLeaderboardId =
   | 'one-percent'
   | 'mini-crossword'
   | 'connections'
-  | 'bracket-city'
   | 'surya-chandra'
   | 'ras-rani'
 
@@ -507,17 +506,6 @@ export interface ConnectionsPuzzle {
   dateId?: string | null
   groups: ConnectionsGroup[]
   published?: boolean
-}
-
-export interface BracketCityPuzzle {
-  id: string
-  title: string
-  dateId?: string | null
-  published?: boolean
-  /** Inline nested source, e.g. "[outer clue [inner clue::murti]::aarti]". */
-  source: string
-  /** Where the episode comes from, shown once the puzzle is solved. */
-  credit?: string
 }
 
 export interface RasRaniRegion {

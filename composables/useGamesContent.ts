@@ -1,11 +1,7 @@
 import { collection, doc, getDoc, getDocs, type Firestore } from 'firebase/firestore'
-import type { BracketCityPuzzle, ConnectionsPuzzle, CrosswordPuzzle, GameWordEntry, OnePercentQuestion, WordleWordDoc } from '~/types'
+import type { ConnectionsPuzzle, CrosswordPuzzle, GameWordEntry, OnePercentQuestion, WordleWordDoc } from '~/types'
 import { DEFAULT_MINI_CROSSWORD } from '~/data/miniCrossword'
 import { DEFAULT_CONNECTIONS_PUZZLES } from '~/data/connectionsPuzzles'
-import { DEFAULT_BRACKET_CITY_PUZZLES } from '~/data/bracketCityPuzzles'
-import { CHARITRA_BRACKET_CITY_PUZZLES } from '~/data/bracketCityCharitra'
-import { rngForSeed, shuffle } from '~/utils/seededRandom'
-import { parseBracketSource } from '~/utils/bracketCity'
 import {
   onePercentPackForDate,
   withShuffledOptions,
@@ -162,80 +158,6 @@ export function useConnectionsPuzzle() {
   })
 
   return { puzzle, loading }
-}
-
-/** Falls back to the next candidate when a source will not parse, so the day is never unplayable. */
-function playableBracketCity(candidates: Array<BracketCityPuzzle | null>): BracketCityPuzzle | null {
-  for (const candidate of candidates) {
-    if (!candidate?.source) continue
-    try {
-      parseBracketSource(candidate.source)
-      return candidate
-    } catch {
-      // Try the next candidate.
-    }
-  }
-  return null
-}
-
-function dayNumber(dateId: string): number {
-  const [year, month, day] = dateId.split('-').map(Number)
-  return Math.floor(Date.UTC(year, month - 1, day) / 86400000)
-}
-
-/**
- * One puzzle from the authored pool per day.
- *
- * Every puzzle is used once before any repeats, and the order is reshuffled
- * each time the pool has been worked through, so the cycle is as long as the
- * pool is deep — adding puzzles is what pushes a repeat further away.
- */
-function pooledPuzzleFor(pool: BracketCityPuzzle[], dateId: string): BracketCityPuzzle | null {
-  if (!pool.length) return null
-  const day = dayNumber(dateId)
-  const size = pool.length
-  const cycle = Math.floor(day / size)
-  const order = shuffle(pool, rngForSeed(`bracket-city-pool:${size}:${cycle}`))
-  return order[((day % size) + size) % size] ?? null
-}
-
-export function useBracketCityPuzzle() {
-  const dateId = ukDateId()
-  // Every day's puzzle is one story from the Bal Charitra, so solving the last
-  // bracket always leaves a summary of that episode. The generated puzzles and
-  // the hand-written fallbacks finish on a list of words instead, so they are
-  // only reached if every authored story somehow failed to parse.
-  const stories = CHARITRA_BRACKET_CITY_PUZZLES
-  const puzzle = ref<BracketCityPuzzle>(
-    playableBracketCity([pooledPuzzleFor(stories, dateId), ...stories, ...DEFAULT_BRACKET_CITY_PUZZLES])
-      ?? DEFAULT_BRACKET_CITY_PUZZLES[0]
-  )
-  const loading = ref(true)
-
-  onMounted(async () => {
-    try {
-      const db = getDb()
-      if (!db) return
-      const snap = await getDocs(collection(db, 'bracketCityPuzzles'))
-      const remote = snap.docs
-        .map(d => ({ id: d.id, ...d.data() } as BracketCityPuzzle))
-        .filter(item => item.published !== false && item.source)
-      // A puzzle an admin scheduled for today still wins outright — that is a
-      // deliberate choice for one named date. Undated admin puzzles no longer
-      // join the rotation, because a day they landed on would not finish on a
-      // story.
-      const override = remote.find(item => item.id === `daily-${dateId}` || item.dateId === dateId)
-      puzzle.value = playableBracketCity([
-        override || null,
-        pooledPuzzleFor(stories, dateId),
-        ...stories
-      ]) ?? puzzle.value
-    } finally {
-      loading.value = false
-    }
-  })
-
-  return { puzzle, dateId, loading }
 }
 
 export async function fetchWordleRemote(date = new Date()) {

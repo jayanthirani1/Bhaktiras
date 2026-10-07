@@ -1,8 +1,7 @@
 # Shree Ghanshyam Bal Charitra
 
 The ten-part illustrated English retelling of Bhagwan Swaminarayan's childhood, transcribed in
-full: **79 stories** across ten volumes of 32 printed pages each. The stories feed the
-Bracket City daily puzzle — see [Using these stories](#using-these-stories).
+full: **79 stories** across ten volumes of 32 printed pages each.
 
 ## Where this came from
 
@@ -42,14 +41,6 @@ Two places where the printed books are defective are left as found and marked in
 Part 1 jumps mid-story in "Kalidutt the Evil One" (page 13 to 14), and Part 2 breaks off
 mid-sentence at the end of page 1. One printed title carries a typo, "THE WORDLY SADHU", which
 the heading and summary give as "The Worldly Sadhu".
-
-## Using these stories
-
-`data/bracketCityCharitra.ts` turns each summary into a Bracket City puzzle, so the sentence a
-player is left with once every bracket is solved is that story's summary. The play page shows
-the story title, so a puzzle must never use a word from its own title as an answer.
-`node scripts/validateBracketCity.mjs` checks that, and everything else the format requires,
-against the app's own parser.
 
 ## The volumes
 

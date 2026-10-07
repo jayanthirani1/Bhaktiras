@@ -5,7 +5,6 @@ export type PlayGameSlug =
   | 'mini-crossword'
   | 'one-percent'
   | 'connections'
-  | 'bracket-city'
   | 'surya-chandra'
   | 'ras-rani'
 
@@ -69,13 +68,6 @@ export function readLocalPlayCompletion(
       if (!state) return null
       const data = JSON.parse(state)
       return data.finished ? { score: Number(data.cleared) || 0 } : null
-    }
-
-    if (slug === 'bracket-city') {
-      const state = localStorage.getItem(`bracket-city:${dateId}`)
-      if (!state) return null
-      const data = JSON.parse(state)
-      return data.finished ? { score: Number(data.peekedIds?.length) || 0 } : null
     }
 
     if (slug === 'surya-chandra') {

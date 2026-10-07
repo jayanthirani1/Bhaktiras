@@ -5,7 +5,6 @@ export const GAME_LEADERBOARD_RULES: Record<GameLeaderboardId, string> = {
   wordle: 'Ranked by fewest guesses. Faster time breaks ties.',
   'mini-crossword': 'Ranked by fastest finish time.',
   connections: 'Ranked by fewest mistakes. Faster time breaks ties.',
-  'bracket-city': 'Ranked by fewest peeks. Faster time breaks ties.',
   'one-percent': 'Ranked by most questions cleared. Faster time breaks ties.',
   'surya-chandra': 'Ranked by fastest time.',
   'ras-rani': 'Ranked by fastest time. Fewer moves breaks ties.'

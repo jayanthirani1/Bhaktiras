@@ -144,7 +144,6 @@ function shortCrownLabel(id: string, title: string) {
     .replace(/\s+Wordle$/i, '')
     .replace(/\s+Crossword$/i, '')
     .replace(/\s+Connections$/i, '')
-    .replace(/\s+Bracket City$/i, '')
     .replace(/\s+1% Club$/i, '')
     .replace(/\s+Surya Chandra$/i, '')
     .trim()

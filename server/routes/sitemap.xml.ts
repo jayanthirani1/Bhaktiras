@@ -24,7 +24,6 @@ const PATHS = [
   '/play/crossword',
   '/play/connections',
   '/play/one-percent',
-  '/play/bracket-city',
   '/play/surya-chandra',
   '/play/ras-rani',
   '/play/achievements',
