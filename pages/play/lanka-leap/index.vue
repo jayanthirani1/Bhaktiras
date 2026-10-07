@@ -140,6 +140,19 @@ let resizeObserver: ResizeObserver | null = null
 let banner: { text: string; until: number } | null = null
 let heroSheet: HTMLImageElement | null = null
 
+const DEMON_SRC = {
+  surasa: '/games/lanka-leap/surasa.webp',
+  simhika: '/games/lanka-leap/simhika.webp',
+  mainak: '/games/lanka-leap/mainak.webp',
+  lankini: '/games/lanka-leap/lankini.webp',
+} as const
+const demonImages: Partial<Record<keyof typeof DEMON_SRC, HTMLImageElement>> = {}
+
+function demonImage(key: keyof typeof DEMON_SRC) {
+  const img = demonImages[key]
+  return img?.complete && img.naturalWidth ? img : null
+}
+
 /** Frame rectangles in the sprite sheet; (ax, ay) is the head, which sits on the hit circle. */
 type HeroFrame = readonly [x: number, y: number, w: number, h: number, ax: number, ay: number]
 const HERO_SHEET_SRC = '/games/lanka-leap/hanuman-sheet.webp'
@@ -323,6 +336,11 @@ watch(canvasEl, (el) => {
 onMounted(() => {
   heroSheet = new Image()
   heroSheet.src = HERO_SHEET_SRC
+  for (const [key, src] of Object.entries(DEMON_SRC) as Array<[keyof typeof DEMON_SRC, string]>) {
+    const img = new Image()
+    img.src = src
+    demonImages[key] = img
+  }
   loadDay()
   lastFrame = performance.now()
   rafId = requestAnimationFrame(frame)
@@ -546,84 +564,219 @@ function drawLabel(c: CanvasRenderingContext2D, text: string, x: number, y: numb
   c.fillText(text, x, y)
 }
 
+/**
+ * Draws a sprite rising out of the sea: `top` is the sprite's top edge and `centerX` lines up with
+ * `anchorX` across its width. If it ends above the sea, its bottom row is stretched down to the water.
+ */
+function drawFromSea(c: CanvasRenderingContext2D, img: HTMLImageElement, centerX: number, top: number, width: number, anchorX = 0.5) {
+  const height = width * img.naturalHeight / img.naturalWidth
+  const left = centerX - width * anchorX
+  c.drawImage(img, left, top, width, height)
+  const bottom = top + height
+  if (bottom < SEA_LEVEL + 8) {
+    const inset = 6
+    const insetWorld = inset * height / img.naturalHeight
+    c.drawImage(img, 0, img.naturalHeight - inset, img.naturalWidth, 2, left, bottom - insetWorld, width, SEA_LEVEL + 9 - bottom + insetWorld)
+  }
+}
+
+/** Surasa's sprite ends in a cut-off neck; a drawn neck carries it down into the sea. */
+function drawSurasa(c: CanvasRenderingContext2D, img: HTMLImageElement, centerX: number, top: number) {
+  const width = 132
+  const left = centerX - width * 0.45
+  const neckTop = top + width * (img.naturalHeight - 12) / img.naturalWidth
+  if (neckTop < SEA_LEVEL + 8) {
+    const neckLeft = left + width * 0.27
+    const split = left + width * 0.486
+    const neckRight = left + width * 0.596
+    const bottom = SEA_LEVEL + 9
+    c.fillStyle = '#7d8d22'
+    c.fillRect(neckLeft, neckTop, split - neckLeft, bottom - neckTop)
+    c.fillStyle = '#0a5a2c'
+    c.fillRect(split, neckTop, neckRight - split, bottom - neckTop)
+    c.fillStyle = 'rgba(255, 255, 255, 0.14)'
+    c.fillRect(neckLeft + 4, neckTop, 5, bottom - neckTop)
+    c.strokeStyle = 'rgba(40, 50, 10, 0.5)'
+    c.lineWidth = 1.5
+    c.beginPath()
+    for (let y = neckTop + 10; y < bottom; y += 13) {
+      c.moveTo(neckLeft, y)
+      c.lineTo(split, y + 2)
+    }
+    c.stroke()
+    c.strokeStyle = '#0a2e0a'
+    c.lineWidth = 2.5
+    c.beginPath()
+    c.moveTo(neckLeft, neckTop)
+    c.lineTo(neckLeft, bottom)
+    c.moveTo(neckRight, neckTop)
+    c.lineTo(neckRight, bottom)
+    c.stroke()
+  }
+  c.drawImage(img, left, top, width, width * img.naturalHeight / img.naturalWidth)
+}
+
 function drawStormColumn(c: CanvasRenderingContext2D, sx: number, bottom: number) {
-  c.fillStyle = '#cbd5e1'
-  c.fillRect(sx, -10, PILLAR_WIDTH, bottom - 2)
+  const outline = new Path2D()
+  outline.rect(sx, -10, PILLAR_WIDTH, bottom - 4)
+  for (let i = 0; i < 4; i++) {
+    const x = sx + 4 + (PILLAR_WIDTH - 8) * (i / 3)
+    const r = i === 1 || i === 2 ? 14 : 12
+    outline.moveTo(x + r, bottom - 13)
+    outline.arc(x, bottom - 13, r, 0, Math.PI * 2)
+  }
+  c.strokeStyle = 'rgba(51, 65, 85, 0.6)'
+  c.lineWidth = 3
+  c.stroke(outline)
+  const body = c.createLinearGradient(sx, 0, sx + PILLAR_WIDTH, 0)
+  body.addColorStop(0, '#d5dee8')
+  body.addColorStop(0.55, '#b4c2d1')
+  body.addColorStop(1, '#8a9bb0')
+  c.fillStyle = body
+  c.fill(outline)
+  c.fillStyle = 'rgba(255, 255, 255, 0.55)'
   c.beginPath()
-  for (let i = 0; i <= 3; i++) c.arc(sx + (PILLAR_WIDTH / 3) * i, bottom - 12, 12, 0, Math.PI * 2)
+  for (let i = 0; i < 4; i++) {
+    const x = sx + 1 + (PILLAR_WIDTH - 8) * (i / 3)
+    c.moveTo(x + 5, bottom - 17)
+    c.arc(x, bottom - 17, 5, 0, Math.PI * 2)
+  }
   c.fill()
-  c.fillStyle = 'rgba(100, 116, 139, 0.35)'
-  c.fillRect(sx + PILLAR_WIDTH - 10, -10, 10, bottom - 2)
+  c.fillStyle = 'rgba(255, 255, 255, 0.25)'
+  for (let y = bottom - 70; y > -10; y -= 56) {
+    c.beginPath()
+    c.ellipse(sx + 20, y, 12, 7, 0, 0, Math.PI * 2)
+    c.ellipse(sx + 40, y - 22, 9, 5, 0, 0, Math.PI * 2)
+    c.fill()
+  }
+}
+
+function drawRockPillar(c: CanvasRenderingContext2D, sx: number, top: number) {
+  const outline = new Path2D()
+  outline.moveTo(sx - 2, SEA_LEVEL + 8)
+  outline.lineTo(sx + 2, top + 14)
+  outline.quadraticCurveTo(sx + 4, top + 2, sx + 16, top)
+  outline.lineTo(sx + PILLAR_WIDTH - 14, top + 1)
+  outline.quadraticCurveTo(sx + PILLAR_WIDTH - 2, top + 3, sx + PILLAR_WIDTH - 1, top + 16)
+  outline.lineTo(sx + PILLAR_WIDTH + 3, SEA_LEVEL + 8)
+  outline.closePath()
+  const body = c.createLinearGradient(sx, 0, sx + PILLAR_WIDTH, 0)
+  body.addColorStop(0, '#a8a29e')
+  body.addColorStop(0.5, '#8a817c')
+  body.addColorStop(1, '#5f5752')
+  c.fillStyle = body
+  c.fill(outline)
+  c.strokeStyle = '#3f3a36'
+  c.lineWidth = 2.5
+  c.stroke(outline)
+
+  c.strokeStyle = 'rgba(63, 58, 54, 0.45)'
+  c.lineWidth = 1.5
+  c.beginPath()
+  for (let y = top + 34; y < SEA_LEVEL; y += 46) {
+    c.moveTo(sx + 10, y)
+    c.lineTo(sx + 26, y + 6)
+    c.moveTo(sx + 38, y + 22)
+    c.lineTo(sx + 54, y + 16)
+  }
+  c.stroke()
+  c.fillStyle = '#4d7c0f'
+  c.beginPath()
+  c.ellipse(sx + PILLAR_WIDTH / 2, top + 3, PILLAR_WIDTH / 2 - 6, 5, 0, 0, Math.PI * 2)
+  c.fill()
+  c.fillStyle = '#84cc16'
+  c.beginPath()
+  c.ellipse(sx + PILLAR_WIDTH / 2 - 6, top + 1, PILLAR_WIDTH / 2 - 16, 3, 0, 0, Math.PI * 2)
+  c.fill()
+}
+
+function drawGateTower(c: CanvasRenderingContext2D, sx: number, bottom: number) {
+  const body = c.createLinearGradient(sx, 0, sx + PILLAR_WIDTH, 0)
+  body.addColorStop(0, '#b45309')
+  body.addColorStop(0.35, '#fbbf24')
+  body.addColorStop(0.6, '#f59e0b')
+  body.addColorStop(1, '#92400e')
+  c.fillStyle = body
+  c.fillRect(sx, -10, PILLAR_WIDTH, bottom - 4)
+  c.strokeStyle = '#78350f'
+  c.lineWidth = 2.5
+  c.strokeRect(sx, -10, PILLAR_WIDTH, bottom - 4)
+
+  for (let y = bottom - 54; y > -10; y -= 48) {
+    c.fillStyle = '#fcd34d'
+    c.fillRect(sx - 3, y, PILLAR_WIDTH + 6, 7)
+    c.strokeRect(sx - 3, y, PILLAR_WIDTH + 6, 7)
+    c.fillStyle = '#dc2626'
+    c.beginPath()
+    c.arc(sx + PILLAR_WIDTH / 2, y - 18, 5, 0, Math.PI * 2)
+    c.fill()
+    c.stroke()
+  }
+
+  c.fillStyle = '#fcd34d'
+  c.beginPath()
+  c.moveTo(sx - 8, bottom - 16)
+  c.lineTo(sx + PILLAR_WIDTH + 8, bottom - 16)
+  c.lineTo(sx + PILLAR_WIDTH + 8, bottom - 6)
+  for (let i = 4; i >= 0; i--) {
+    const x = sx - 8 + ((PILLAR_WIDTH + 16) / 5) * i
+    c.quadraticCurveTo(x + (PILLAR_WIDTH + 16) / 10, bottom + 2, x, bottom - 6)
+  }
+  c.closePath()
+  c.fill()
+  c.stroke()
 }
 
 function drawObstacle(c: CanvasRenderingContext2D, o: Obstacle, sx: number, now: number) {
   const mid = sx + PILLAR_WIDTH / 2
 
   if (o.kind === 'simhika') {
-    c.fillStyle = 'rgba(76, 29, 149, 0.5)'
-    c.beginPath()
-    const left = sx - SIMHIKA_REACH
-    const right = sx + PILLAR_WIDTH + SIMHIKA_REACH
-    c.moveTo(left, SEA_LEVEL + 6)
-    const fingers = 7
-    const width = (right - left) / fingers
-    for (let i = 0; i < fingers; i++) {
-      const x = left + i * width
-      const rise = Math.sin(now / 260 + i) * 8
-      c.quadraticCurveTo(x + width / 2, o.reachY - 16 + rise, x + width, o.reachY + 14)
-    }
-    c.lineTo(right, SEA_LEVEL + 6)
-    c.closePath()
-    c.fill()
-    drawLabel(c, 'Simhika', mid, o.reachY - 20)
+    const depth = SEA_LEVEL - o.reachY + 30
+    c.save()
+    c.translate(mid, SEA_LEVEL)
+    c.scale((PILLAR_WIDTH / 2 + SIMHIKA_REACH) / depth, 1)
+    const haze = c.createRadialGradient(0, 0, 0, 0, 0, depth)
+    haze.addColorStop(0, 'rgba(46, 16, 101, 0.65)')
+    haze.addColorStop(0.8, 'rgba(76, 29, 149, 0.4)')
+    haze.addColorStop(1, 'rgba(76, 29, 149, 0)')
+    c.fillStyle = haze
+    c.fillRect(-depth, -depth, depth * 2, depth)
+    c.restore()
+    const img = demonImage('simhika')
+    if (img) drawFromSea(c, img, mid + Math.sin(now / 700) * 4, o.reachY - 16 + Math.sin(now / 450) * 5, 236)
+    drawLabel(c, 'Simhika', mid, o.reachY - 24)
   }
 
-  if (o.kind === 'surasa') {
-    c.fillStyle = '#15803d'
-    c.fillRect(sx, -10, PILLAR_WIDTH, o.gapTop + 10)
-    c.fillRect(sx, o.gapBottom, PILLAR_WIDTH, SEA_LEVEL - o.gapBottom)
-    c.fillStyle = '#dc2626'
-    c.fillRect(sx - 5, o.gapTop - 9, PILLAR_WIDTH + 10, 9)
-    c.fillRect(sx - 5, o.gapBottom, PILLAR_WIDTH + 10, 9)
-    c.fillStyle = '#fff'
-    c.beginPath()
-    c.arc(sx + 18, o.gapTop - 26, 7, 0, Math.PI * 2)
-    c.arc(sx + PILLAR_WIDTH - 18, o.gapTop - 26, 7, 0, Math.PI * 2)
-    c.fill()
-    c.fillStyle = '#111827'
-    c.beginPath()
-    c.arc(sx + 16, o.gapTop - 26, 3, 0, Math.PI * 2)
-    c.arc(sx + PILLAR_WIDTH - 20, o.gapTop - 26, 3, 0, Math.PI * 2)
-    c.fill()
-    drawLabel(c, 'Surasa', mid, o.gapTop - 44)
-  } else if (o.kind === 'lankini') {
-    c.fillStyle = '#d97706'
-    c.fillRect(sx, -10, PILLAR_WIDTH, o.gapTop + 10)
-    c.fillRect(sx, o.gapBottom, PILLAR_WIDTH, SEA_LEVEL - o.gapBottom)
-    c.fillStyle = '#fbbf24'
-    c.fillRect(sx - 6, o.gapTop - 12, PILLAR_WIDTH + 12, 12)
-    c.fillRect(sx - 6, o.gapBottom, PILLAR_WIDTH + 12, 12)
-    drawLabel(c, 'Lankini’s gate', mid, o.gapTop - 20)
+  if (o.kind === 'lankini') {
+    drawGateTower(c, sx, o.gapTop)
+    const img = demonImage('lankini')
+    if (img) {
+      const aspect = img.naturalHeight / img.naturalWidth
+      const width = Math.min(205, Math.max(110, (SEA_LEVEL + 10 - o.gapBottom) / (aspect * 0.9)))
+      drawFromSea(c, img, mid, o.gapBottom - width * aspect * 0.1, width)
+    } else {
+      drawRockPillar(c, sx, o.gapBottom)
+    }
+    drawLabel(c, 'Lankini’s gate', mid, o.gapTop - 22)
   } else {
     drawStormColumn(c, sx, o.gapTop)
-    if (o.kind === 'mainak') {
-      const peak = c.createLinearGradient(0, o.gapBottom, 0, SEA_LEVEL)
-      peak.addColorStop(0, '#facc15')
-      peak.addColorStop(1, '#a16207')
-      c.fillStyle = peak
-      c.beginPath()
-      c.moveTo(sx - 16, SEA_LEVEL)
-      c.lineTo(sx, o.gapBottom)
-      c.lineTo(sx + PILLAR_WIDTH, o.gapBottom)
-      c.lineTo(sx + PILLAR_WIDTH + 16, SEA_LEVEL)
-      c.closePath()
-      c.fill()
-      drawLabel(c, 'Mainak', mid, o.gapBottom + 22)
+    if (o.kind === 'surasa') {
+      const img = demonImage('surasa')
+      if (img) drawSurasa(c, img, mid + Math.sin(now / 500) * 3, o.gapBottom - 12)
+      else drawRockPillar(c, sx, o.gapBottom)
+      drawLabel(c, 'Surasa', mid, o.gapTop - 22)
+    } else if (o.kind === 'mainak') {
+      const img = demonImage('mainak')
+      if (img) {
+        const top = o.gapBottom - 30
+        const width = Math.min(260, Math.max(190, (SEA_LEVEL + 10 - top) * img.naturalWidth / img.naturalHeight))
+        drawFromSea(c, img, mid, top, width)
+      } else {
+        drawRockPillar(c, sx, o.gapBottom)
+      }
+      drawLabel(c, 'Mainak', mid, o.gapTop - 22)
     } else if (o.gapBottom < SEA_LEVEL) {
-      c.fillStyle = '#78716c'
-      c.fillRect(sx, o.gapBottom, PILLAR_WIDTH, SEA_LEVEL - o.gapBottom)
-      c.fillStyle = '#57534e'
-      c.fillRect(sx - 4, o.gapBottom, PILLAR_WIDTH + 8, 10)
+      drawRockPillar(c, sx, o.gapBottom)
     }
   }
 

@@ -1,33 +1,37 @@
 """Cut a game sprite out of a generated image on a plain white background.
 
-Usage: python3 scripts/cutout-sprite.py <input> <output.png> <width> [anchorX anchorY]
+Usage: python3 scripts/cutout-sprite.py <input> <output> <width> [--flip]
 
-Flood-fills the white background from the image border (so white details
-inside the character survive), feathers the edge, crops to the character and
-resizes to <width>. With an anchor point in input pixels, prints where it
-lands as a fraction of the output, for positioning the sprite on its hitbox.
+Flood-fills the white background from the image border, so white details
+inside the character survive. Pixels reached by the fill keep their colour
+with white removed ("colour to alpha"), which turns soft glows and smoke into
+translucent edges instead of solid halos. The result is cropped to the
+character, optionally mirrored, resized to <width> and saved (PNG or WebP by
+extension). Prints the output size for sizing the sprite in the game.
 """
 import sys
 from collections import deque
 
 from PIL import Image, ImageFilter
 
-THRESHOLD = 228
+# A pixel is background-ish when white-removal would leave it at most this opaque.
+FLOOD_ALPHA = 0.45
+POCKET_MIN_PIXELS = 400
 
 
-def is_background(pixel):
-    r, g, b = pixel[:3]
-    return r >= THRESHOLD and g >= THRESHOLD and b >= THRESHOLD
+def white_alpha(r, g, b):
+    return (255 - min(r, g, b)) / 255
 
 
 def main():
-    src, dst, width = sys.argv[1], sys.argv[2], int(sys.argv[3])
-    anchor = (float(sys.argv[4]), float(sys.argv[5])) if len(sys.argv) > 5 else None
+    args = [a for a in sys.argv[1:] if not a.startswith('--')]
+    flip = '--flip' in sys.argv
+    src, dst, width = args[0], args[1], int(args[2])
 
     image = Image.open(src).convert('RGBA')
     w, h = image.size
     pixels = image.load()
-    background = bytearray(w * h)
+    reached = bytearray(w * h)
     queue = deque()
     for x in range(w):
         queue.append((x, 0))
@@ -38,33 +42,71 @@ def main():
     while queue:
         x, y = queue.popleft()
         i = y * w + x
-        if background[i] or not is_background(pixels[x, y]):
+        if reached[i]:
             continue
-        background[i] = 1
+        r, g, b, _ = pixels[x, y]
+        if white_alpha(r, g, b) > FLOOD_ALPHA:
+            continue
+        reached[i] = 1
         if x > 0: queue.append((x - 1, y))
         if x < w - 1: queue.append((x + 1, y))
         if y > 0: queue.append((x, y - 1))
         if y < h - 1: queue.append((x, y + 1))
 
-    mask = Image.new('L', (w, h), 255)
-    mask_pixels = mask.load()
+    # White pockets enclosed by the character (between an arm and hair, say)
+    # are background too, unless they are small enough to be eyes or teeth.
+    seen = bytearray(w * h)
+    for start in range(w * h):
+        if reached[start] or seen[start]:
+            continue
+        sx, sy = start % w, start // w
+        if white_alpha(*pixels[sx, sy][:3]) > 0.06:
+            continue
+        component = []
+        queue.append((sx, sy))
+        while queue:
+            x, y = queue.popleft()
+            i = y * w + x
+            if seen[i] or reached[i] or white_alpha(*pixels[x, y][:3]) > FLOOD_ALPHA:
+                continue
+            seen[i] = 1
+            component.append(i)
+            if x > 0: queue.append((x - 1, y))
+            if x < w - 1: queue.append((x + 1, y))
+            if y > 0: queue.append((x, y - 1))
+            if y < h - 1: queue.append((x, y + 1))
+        if len(component) > POCKET_MIN_PIXELS:
+            for i in component:
+                reached[i] = 1
+
+    out = Image.new('RGBA', (w, h))
+    out_pixels = out.load()
     for y in range(h):
         for x in range(w):
-            if background[y * w + x]:
-                mask_pixels[x, y] = 0
-    mask = mask.filter(ImageFilter.MinFilter(3)).filter(ImageFilter.GaussianBlur(1.2))
-    image.putalpha(mask)
+            r, g, b, _ = pixels[x, y]
+            if not reached[y * w + x]:
+                out_pixels[x, y] = (r, g, b, 255)
+                continue
+            a = white_alpha(r, g, b)
+            if a < 0.04:
+                out_pixels[x, y] = (0, 0, 0, 0)
+                continue
+            un = lambda c: max(0, min(255, round((c - 255 * (1 - a)) / a)))
+            out_pixels[x, y] = (un(r), un(g), un(b), round(a * 255))
 
-    box = mask.point(lambda v: 255 if v > 24 else 0).getbbox()
-    cropped = image.crop(box)
+    alpha = out.getchannel('A').filter(ImageFilter.GaussianBlur(0.6))
+    out.putalpha(alpha)
+    box = alpha.point(lambda v: 255 if v > 20 else 0).getbbox()
+    cropped = out.crop(box)
+    if flip:
+        cropped = cropped.transpose(Image.FLIP_LEFT_RIGHT)
     height = round(cropped.height * width / cropped.width)
-    cropped.resize((width, height), Image.LANCZOS).save(dst, optimize=True)
-
-    print(f'crop={box} size={width}x{height}')
-    if anchor:
-        ax = (anchor[0] - box[0]) / (box[2] - box[0])
-        ay = (anchor[1] - box[1]) / (box[3] - box[1])
-        print(f'anchor=({ax:.3f}, {ay:.3f}) aspect={cropped.height / cropped.width:.3f}')
+    resized = cropped.resize((width, height), Image.LANCZOS)
+    if dst.endswith('.webp'):
+        resized.save(dst, 'WEBP', quality=88, method=6)
+    else:
+        resized.save(dst, optimize=True)
+    print(f'{dst}: {width}x{height}')
 
 
 if __name__ == '__main__':
