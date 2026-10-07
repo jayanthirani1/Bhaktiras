@@ -28,14 +28,15 @@
         <LankaLeapRules />
       </GameHowTo>
       <div v-else class="space-y-4">
-        <div class="relative mx-auto w-full" :style="{ maxWidth: 'calc((100dvh - 11rem) * 0.625)' }">
+        <div ref="stageEl" class="lanka-stage relative mx-auto w-full touch-none select-none overscroll-contain">
           <canvas
             ref="canvasEl"
-            class="block w-full touch-none select-none rounded-2xl shadow-[0_18px_40px_-24px_rgba(3,105,161,0.7)]"
+            class="block w-full rounded-2xl shadow-[0_18px_40px_-24px_rgba(3,105,161,0.7)]"
             :style="{ aspectRatio: `${WORLD_WIDTH} / ${WORLD_HEIGHT}` }"
             aria-label="Lanka Leap. Tap or press Space to leap."
             role="img"
             @pointerdown.prevent="press"
+            @touchstart.prevent
           />
 
           <button
@@ -123,6 +124,7 @@ const howto = useHowToPlay('lanka-leap', ['lanka-leap:'])
 const { markDone } = useDailyGameCompletion('lanka-leap')
 
 const canvasEl = ref<HTMLCanvasElement | null>(null)
+const stageEl = ref<HTMLDivElement | null>(null)
 const phase = ref<Phase>('ready')
 const lastRun = ref<{ score: number; tulsi: number; reachedLanka: boolean; cause: DeathCause } | null>(null)
 const newBest = ref(false)
@@ -320,9 +322,23 @@ function fitCanvas() {
   const el = canvasEl.value
   if (!el) return
   const dpr = Math.min(window.devicePixelRatio || 1, 3)
-  el.width = Math.round(el.clientWidth * dpr)
-  el.height = Math.round(el.clientHeight * dpr)
+  const width = Math.round(el.clientWidth * dpr)
+  const height = Math.round(el.clientHeight * dpr)
+  if (el.width !== width) el.width = width
+  if (el.height !== height) el.height = height
 }
+
+/** Safari's pinch gesture events ignore touch-action, so cancel them inside the game. */
+function blockGesture(event: Event) {
+  event.preventDefault()
+}
+
+watch(stageEl, (el, old) => {
+  for (const type of ['gesturestart', 'gesturechange']) {
+    old?.removeEventListener(type, blockGesture)
+    el?.addEventListener(type, blockGesture, { passive: false })
+  }
+})
 
 watch(canvasEl, (el) => {
   resizeObserver?.disconnect()
@@ -964,3 +980,13 @@ function drawBanner(c: CanvasRenderingContext2D, text: string, remaining: number
 
 usePageSeo('Lanka Leap', 'Leap across the ocean to Lanka with Hanumanji. A daily satsang flying game.')
 </script>
+
+<style scoped>
+/* Sized from the small viewport height, which stays put while the mobile address bar slides in and out. */
+.lanka-stage {
+  max-width: calc((100vh - 11rem) * 0.625);
+  max-width: calc((100svh - 11rem) * 0.625);
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+</style>
