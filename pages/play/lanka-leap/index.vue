@@ -138,10 +138,39 @@ let rafId = 0
 let ctx: CanvasRenderingContext2D | null = null
 let resizeObserver: ResizeObserver | null = null
 let banner: { text: string; until: number } | null = null
-let heroSprite: HTMLImageElement | null = null
+let heroSheet: HTMLImageElement | null = null
 
-/** World-unit size of the Hanumanji sprite; the anchor (head and chest) sits on the hit circle. */
-const HERO_SPRITE = { src: '/games/lanka-leap/hanuman.png', width: 96, aspect: 0.758, anchorX: 0.628, anchorY: 0.346 }
+/** Frame rectangles in the sprite sheet; (ax, ay) is the head, which sits on the hit circle. */
+type HeroFrame = readonly [x: number, y: number, w: number, h: number, ax: number, ay: number]
+const HERO_SHEET_SRC = '/games/lanka-leap/hanuman-sheet.webp'
+const HERO_SHEET_SCALE = 0.45
+const HERO_GLIDE: HeroFrame[] = [
+  [26, 41, 235, 148, 183, 105],
+  [279, 41, 231, 148, 425, 106],
+  [533, 41, 239, 148, 686, 107],
+  [793, 41, 223, 148, 943, 106],
+]
+const HERO_RISE: HeroFrame[] = [
+  [32, 244, 225, 173, 168, 315],
+  [283, 244, 231, 173, 429, 315],
+  [548, 244, 220, 173, 680, 309],
+  [795, 244, 221, 173, 932, 309],
+]
+const HERO_DIVE: HeroFrame[] = [
+  [49, 442, 210, 204, 189, 547],
+  [308, 442, 201, 204, 453, 549],
+]
+const HERO_CHEER: HeroFrame = [804, 442, 183, 204, 902, 506]
+
+function heroFrame(now: number): HeroFrame {
+  if (phase.value === 'over' && run.reachedLanka) return HERO_CHEER
+  const tick = Math.floor(now / 90)
+  if (phase.value === 'playing' || phase.value === 'paused') {
+    if (run.vy < -1.5) return HERO_RISE[tick % HERO_RISE.length]!
+    if (run.vy > 5) return HERO_DIVE[tick % HERO_DIVE.length]!
+  }
+  return HERO_GLIDE[tick % HERO_GLIDE.length]!
+}
 
 const DEATH_TITLES: Record<DeathCause, string> = {
   rock: 'Struck a rock',
@@ -292,8 +321,8 @@ watch(canvasEl, (el) => {
 })
 
 onMounted(() => {
-  heroSprite = new Image()
-  heroSprite.src = HERO_SPRITE.src
+  heroSheet = new Image()
+  heroSheet.src = HERO_SHEET_SRC
   loadDay()
   lastFrame = performance.now()
   rafId = requestAnimationFrame(frame)
@@ -309,7 +338,7 @@ onBeforeUnmount(() => {
 })
 
 // ---------------------------------------------------------------------------
-// Drawing. Placeholder artwork until the illustrated sprites are approved.
+// Drawing. Obstacles are still placeholder artwork.
 // ---------------------------------------------------------------------------
 
 function draw(now: number) {
@@ -320,7 +349,7 @@ function draw(now: number) {
   c.setTransform(scale, 0, 0, scale, 0, 0)
   const d = run.distance
 
-  drawSky(c, d)
+  drawSky(c, d, now)
   drawLanka(c, d)
   for (const o of run.course) {
     const sx = o.x - d
@@ -335,33 +364,160 @@ function draw(now: number) {
   if (banner && now < banner.until) drawBanner(c, banner.text, (banner.until - now) / 1800)
 }
 
-function drawCloud(c: CanvasRenderingContext2D, x: number, y: number, size: number) {
+/** Cloud outlines as overlapping puffs: [dx, dy, radius]. */
+const CLOUD_SHAPES: ReadonlyArray<ReadonlyArray<readonly [number, number, number]>> = [
+  [[0, 0, 13], [16, -9, 17], [36, -5, 15], [52, 1, 11], [26, 4, 13]],
+  [[0, 0, 10], [14, -8, 14], [32, -13, 18], [52, -5, 14], [67, 1, 10], [34, 3, 13]],
+  [[0, 0, 11], [16, -10, 15], [33, -3, 12], [18, 3, 11]],
+]
+const SUN_X = 318
+const SUN_Y = 150
+const HORIZON_Y = SEA_LEVEL - 36
+
+function drawCloud(c: CanvasRenderingContext2D, x: number, y: number, size: number, shape: number, alpha: number) {
+  const puffs = CLOUD_SHAPES[shape % CLOUD_SHAPES.length]!
+  const outline = new Path2D()
+  for (const [dx, dy, r] of puffs) {
+    outline.moveTo(dx + r, dy)
+    outline.arc(dx, dy, r, 0, Math.PI * 2)
+  }
+  c.save()
+  c.globalAlpha = alpha
+  c.translate(x, y)
+  c.scale(size, size)
+
+  c.save()
+  c.translate(3, 6)
+  c.fillStyle = 'rgba(14, 116, 144, 0.14)'
+  c.fill(outline)
+  c.restore()
+
+  c.strokeStyle = 'rgba(56, 132, 190, 0.5)'
+  c.lineWidth = 4 / size
+  c.stroke(outline)
+  const body = c.createLinearGradient(0, -30, 0, 16)
+  body.addColorStop(0, '#ffffff')
+  body.addColorStop(0.6, '#f0f8ff')
+  body.addColorStop(1, '#cfe6f7')
+  c.fillStyle = body
+  c.fill(outline)
+
+  c.fillStyle = 'rgba(255, 255, 255, 0.95)'
   c.beginPath()
-  c.arc(x, y, 16 * size, 0, Math.PI * 2)
-  c.arc(x + 18 * size, y - 8 * size, 20 * size, 0, Math.PI * 2)
-  c.arc(x + 38 * size, y, 15 * size, 0, Math.PI * 2)
+  for (const [dx, dy, r] of puffs) {
+    c.moveTo(dx - r * 0.25 + r * 0.5, dy - r * 0.35)
+    c.arc(dx - r * 0.25, dy - r * 0.35, r * 0.5, 0, Math.PI * 2)
+  }
+  c.fill()
+  c.restore()
+}
+
+function drawCloudLayer(c: CanvasRenderingContext2D, d: number, count: number, parallax: number, seed: number, size: number, alpha: number) {
+  const span = WORLD_WIDTH + 200
+  for (let i = 0; i < count; i++) {
+    const x = ((((i + seed) * 173 - d * parallax) % span) + span) % span - 100
+    const y = 50 + (((i + seed) * 67) % 240)
+    drawCloud(c, x, y, size * (0.85 + ((i + seed) % 3) * 0.15), i + seed, alpha)
+  }
+}
+
+function drawSun(c: CanvasRenderingContext2D, now: number) {
+  const halo = c.createRadialGradient(SUN_X, SUN_Y, 24, SUN_X, SUN_Y, 160)
+  halo.addColorStop(0, 'rgba(255, 247, 205, 0.9)')
+  halo.addColorStop(0.3, 'rgba(254, 240, 138, 0.3)')
+  halo.addColorStop(1, 'rgba(254, 240, 138, 0)')
+  c.fillStyle = halo
+  c.fillRect(SUN_X - 160, SUN_Y - 160, 320, 320)
+
+  c.save()
+  c.translate(SUN_X, SUN_Y)
+  c.rotate(now / 12000)
+  const rays = c.createRadialGradient(0, 0, 34, 0, 0, 140)
+  rays.addColorStop(0, 'rgba(255, 255, 255, 0.4)')
+  rays.addColorStop(1, 'rgba(255, 255, 255, 0)')
+  c.fillStyle = rays
+  c.beginPath()
+  for (let i = 0; i < 12; i++) {
+    const a = (i * Math.PI) / 6
+    c.moveTo(0, 0)
+    c.arc(0, 0, 140, a - 0.08, a + 0.08)
+    c.closePath()
+  }
+  c.fill()
+  c.restore()
+
+  const disc = c.createRadialGradient(SUN_X - 10, SUN_Y - 12, 4, SUN_X, SUN_Y, 36)
+  disc.addColorStop(0, '#fffbe8')
+  disc.addColorStop(0.55, '#fde047')
+  disc.addColorStop(1, '#f59e0b')
+  c.fillStyle = disc
+  c.beginPath()
+  c.arc(SUN_X, SUN_Y, 34, 0, Math.PI * 2)
+  c.fill()
+  c.strokeStyle = 'rgba(234, 138, 12, 0.8)'
+  c.lineWidth = 2.5
+  c.stroke()
+  c.fillStyle = 'rgba(255, 255, 255, 0.55)'
+  c.beginPath()
+  c.ellipse(SUN_X - 12, SUN_Y - 14, 9, 5, -0.6, 0, Math.PI * 2)
   c.fill()
 }
 
-function drawSky(c: CanvasRenderingContext2D, d: number) {
-  const sky = c.createLinearGradient(0, 0, 0, SEA_LEVEL)
-  sky.addColorStop(0, '#38bdf8')
-  sky.addColorStop(0.6, '#bae6fd')
-  sky.addColorStop(1, '#fef3c7')
-  c.fillStyle = sky
-  c.fillRect(0, 0, WORLD_WIDTH, SEA_LEVEL)
-
-  c.fillStyle = 'rgba(253, 230, 138, 0.9)'
-  c.beginPath()
-  c.arc(318, 150, 34, 0, Math.PI * 2)
-  c.fill()
-
-  c.fillStyle = 'rgba(255, 255, 255, 0.75)'
-  for (let i = 0; i < 6; i++) {
-    const span = WORLD_WIDTH + 160
-    const x = ((((i * 157) - d * 0.25) % span) + span) % span - 80
-    drawCloud(c, x, 70 + ((i * 53) % 200), 0.7 + (i % 3) * 0.2)
+function drawBirds(c: CanvasRenderingContext2D, d: number, now: number) {
+  c.strokeStyle = 'rgba(30, 58, 138, 0.45)'
+  c.lineWidth = 1.5
+  c.lineCap = 'round'
+  const span = WORLD_WIDTH + 120
+  for (let i = 0; i < 3; i++) {
+    const x = ((((i * 131) - d * 0.12 + now * 0.012) % span) + span) % span - 60
+    const y = 210 + i * 26 + Math.sin(now / 900 + i) * 6
+    const flap = Math.sin(now / 140 + i * 2) * 3
+    c.beginPath()
+    c.moveTo(x - 6, y - 2 - flap)
+    c.quadraticCurveTo(x - 3, y - 3, x, y)
+    c.quadraticCurveTo(x + 3, y - 3, x + 6, y - 2 - flap)
+    c.stroke()
   }
+}
+
+function drawFarSea(c: CanvasRenderingContext2D, d: number, now: number) {
+  const far = c.createLinearGradient(0, HORIZON_Y, 0, SEA_LEVEL)
+  far.addColorStop(0, '#8fd8f7')
+  far.addColorStop(1, '#3fb6e8')
+  c.fillStyle = far
+  c.fillRect(0, HORIZON_Y, WORLD_WIDTH, SEA_LEVEL - HORIZON_Y)
+  c.fillStyle = 'rgba(255, 255, 255, 0.7)'
+  c.fillRect(0, HORIZON_Y, WORLD_WIDTH, 1.5)
+
+  for (let i = 0; i < 7; i++) {
+    const glint = 0.35 + Math.sin(now / 400 + i * 1.9) * 0.3
+    c.fillStyle = `rgba(255, 251, 220, ${Math.max(0, glint)})`
+    const w = 26 - i * 3
+    c.fillRect(SUN_X - w / 2 + Math.sin(now / 700 + i) * 4, HORIZON_Y + 4 + i * 4.5, w, 1.5)
+  }
+
+  c.fillStyle = 'rgba(255, 255, 255, 0.35)'
+  const span = WORLD_WIDTH + 30
+  for (let i = 0; i < 9; i++) {
+    const x = ((((i * 61) - d * 0.2) % span) + span) % span - 15
+    c.fillRect(x, HORIZON_Y + 8 + ((i * 11) % 22), 10 + (i % 3) * 4, 1)
+  }
+}
+
+function drawSky(c: CanvasRenderingContext2D, d: number, now: number) {
+  const sky = c.createLinearGradient(0, 0, 0, HORIZON_Y)
+  sky.addColorStop(0, '#1d8fe0')
+  sky.addColorStop(0.45, '#6cc6f5')
+  sky.addColorStop(0.85, '#c9ecfb')
+  sky.addColorStop(1, '#fdeccc')
+  c.fillStyle = sky
+  c.fillRect(0, 0, WORLD_WIDTH, HORIZON_Y)
+
+  drawSun(c, now)
+  drawCloudLayer(c, d, 5, 0.08, 7, 0.55, 0.65)
+  drawBirds(c, d, now)
+  drawCloudLayer(c, d, 4, 0.3, 0, 1, 1)
+  drawFarSea(c, d, now)
 }
 
 function drawLanka(c: CanvasRenderingContext2D, d: number) {
@@ -499,26 +655,76 @@ function drawObstacle(c: CanvasRenderingContext2D, o: Obstacle, sx: number, now:
   }
 }
 
+function waveY(x: number, base: number, amp: number, shift: number) {
+  return base + Math.sin(x * 0.05 + shift) * amp + Math.sin(x * 0.115 + shift * 1.7) * amp * 0.4
+}
+
+function traceWave(c: CanvasRenderingContext2D, base: number, amp: number, offset: number, shift: number) {
+  c.moveTo(0, waveY(offset, base, amp, shift))
+  for (let x = 8; x <= WORLD_WIDTH; x += 8) c.lineTo(x, waveY(x + offset, base, amp, shift))
+}
+
 function drawSea(c: CanvasRenderingContext2D, d: number, now: number) {
-  const sea = c.createLinearGradient(0, SEA_LEVEL, 0, WORLD_HEIGHT)
-  sea.addColorStop(0, '#0ea5e9')
-  sea.addColorStop(1, '#075985')
-  c.fillStyle = sea
+  const t = now * 0.003
+
+  c.fillStyle = 'rgba(3, 105, 161, 0.55)'
   c.beginPath()
-  c.moveTo(0, WORLD_HEIGHT)
-  for (let x = 0; x <= WORLD_WIDTH; x += 10) {
-    c.lineTo(x, SEA_LEVEL + Math.sin((x + d) * 0.05 + now * 0.003) * 3)
-  }
+  traceWave(c, SEA_LEVEL - 4, 3, d * 0.7 + 40, t * 0.8 + 2)
   c.lineTo(WORLD_WIDTH, WORLD_HEIGHT)
+  c.lineTo(0, WORLD_HEIGHT)
   c.closePath()
   c.fill()
+
+  const sea = c.createLinearGradient(0, SEA_LEVEL, 0, WORLD_HEIGHT)
+  sea.addColorStop(0, '#22b5ee')
+  sea.addColorStop(0.45, '#0784c3')
+  sea.addColorStop(1, '#0b3f68')
+  c.fillStyle = sea
+  c.beginPath()
+  traceWave(c, SEA_LEVEL, 3, d, t)
+  c.lineTo(WORLD_WIDTH, WORLD_HEIGHT)
+  c.lineTo(0, WORLD_HEIGHT)
+  c.closePath()
+  c.fill()
+
+  c.lineCap = 'round'
+  c.lineJoin = 'round'
+  c.strokeStyle = 'rgba(240, 249, 255, 0.95)'
+  c.lineWidth = 2.5
+  c.beginPath()
+  traceWave(c, SEA_LEVEL, 3, d, t)
+  c.stroke()
+
+  c.strokeStyle = 'rgba(186, 230, 253, 0.35)'
+  c.lineWidth = 1.5
+  for (const [depth, speed] of [[15, 0.8], [30, 0.6]] as const) {
+    c.beginPath()
+    traceWave(c, SEA_LEVEL + depth, 2, d * speed + depth * 7, t * 0.7 + depth)
+    c.stroke()
+  }
+
+  const span = WORLD_WIDTH + 40
+  for (let i = 0; i < 10; i++) {
+    const twinkle = Math.sin(now / 280 + i * 1.7)
+    if (twinkle <= 0.2) continue
+    const x = ((((i * 97) - d * 0.9) % span) + span) % span - 20
+    const y = SEA_LEVEL + 10 + ((i * 23) % 36)
+    c.fillStyle = `rgba(255, 255, 255, ${twinkle * 0.8})`
+    c.beginPath()
+    c.moveTo(x - 5 * twinkle, y)
+    c.lineTo(x, y - 1.5)
+    c.lineTo(x + 5 * twinkle, y)
+    c.lineTo(x, y + 1.5)
+    c.closePath()
+    c.fill()
+  }
 }
 
 function drawHero(c: CanvasRenderingContext2D, now: number) {
   if (run.graceTicks > 0 && Math.floor(now / 90) % 2 === 0) return
   const r = heroRadius(run)
   const bob = phase.value === 'ready' ? Math.sin(now / 300) * 6 : 0
-  const tilt = phase.value === 'ready' ? 0 : Math.max(-0.35, Math.min(0.6, run.vy * 0.06))
+  const tilt = phase.value === 'ready' ? 0 : Math.max(-0.2, Math.min(0.35, run.vy * 0.035))
 
   c.save()
   c.translate(HERO_X, run.y + bob)
@@ -528,9 +734,10 @@ function drawHero(c: CanvasRenderingContext2D, now: number) {
     c.shadowColor = run.shrinkTicks > 0 ? 'rgba(56, 189, 248, 0.95)' : 'rgba(250, 204, 21, 0.95)'
     c.shadowBlur = 14 + Math.sin(now / 160) * 6
   }
-  if (heroSprite?.complete && heroSprite.naturalWidth) {
-    const height = HERO_SPRITE.width * HERO_SPRITE.aspect
-    c.drawImage(heroSprite, -HERO_SPRITE.width * HERO_SPRITE.anchorX, -height * HERO_SPRITE.anchorY, HERO_SPRITE.width, height)
+  if (heroSheet?.complete && heroSheet.naturalWidth) {
+    const [x, y, w, h, ax, ay] = heroFrame(now)
+    const s = HERO_SHEET_SCALE
+    c.drawImage(heroSheet, x, y, w, h, (x - ax) * s, (y - ay) * s, w * s, h * s)
   } else {
     c.fillStyle = '#f97316'
     c.beginPath()
