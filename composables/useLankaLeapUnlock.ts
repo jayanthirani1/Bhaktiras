@@ -4,6 +4,8 @@ import { MANDIR_DARSHAN_CHALLENGE_ID, userChallengeKey } from '~/utils/niyamChal
 /** Daily Darshan check-ins only count from the day the lock was introduced. */
 export const LANKA_LEAP_UNLOCK_FROM = '2026-10-08'
 export const LANKA_LEAP_UNLOCK_DAYS = 7
+export const LANKA_LEAP_UNLOCK_FROM_LABEL = new Date(`${LANKA_LEAP_UNLOCK_FROM}T12:00:00Z`)
+  .toLocaleDateString('en-GB', { day: 'numeric', month: 'long', timeZone: 'Europe/London' })
 
 function getDb(): Firestore | null {
   if (import.meta.server) return null
@@ -19,7 +21,7 @@ function getDb(): Firestore | null {
  * filters run in memory.
  */
 export function useLankaLeapUnlock() {
-  const { user } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const { isAdminUser, adminChecked } = useAdminAccess()
   const daysDone = ref(0)
   const checked = ref(false)
@@ -31,7 +33,6 @@ export function useLankaLeapUnlock() {
       checked.value = true
       return
     }
-    checked.value = false
     try {
       let db = getDb()
       if (!db) {
@@ -58,9 +59,12 @@ export function useLankaLeapUnlock() {
     }
   }
 
-  watch(() => user.value?.uid, () => { void refresh() }, { immediate: true })
+  watch(() => user.value?.uid, () => {
+    checked.value = false
+    void refresh()
+  }, { immediate: true })
 
-  const ready = computed(() => checked.value && (!user.value || adminChecked.value))
+  const ready = computed(() => !authLoading.value && checked.value && (!user.value || adminChecked.value))
   const unlocked = computed(() => isAdminUser.value || daysDone.value >= LANKA_LEAP_UNLOCK_DAYS)
 
   return { ready, unlocked, daysDone, isAdminUser, refresh }
