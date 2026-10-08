@@ -16,11 +16,11 @@
       <div v-if="!available" class="card-surface p-8 text-center text-sm text-[hsl(var(--muted-foreground))]">
         Lanka Leap is coming soon.
       </div>
-      <div v-else-if="!howto.ready.value" class="card-surface p-8 text-center text-sm text-[hsl(var(--muted-foreground))]">
+      <div v-else-if="!howto.ready.value || !unlock.ready.value" class="card-surface p-8 text-center text-sm text-[hsl(var(--muted-foreground))]">
         Loading…
       </div>
       <GameHowTo
-        v-else-if="howto.showIntro.value"
+        v-else-if="howto.showIntro.value && unlocked"
         intro
         title="Leap across the ocean to Lanka."
         @start="howto.markSeen()"
@@ -31,13 +31,58 @@
         <div ref="stageEl" class="lanka-stage relative mx-auto w-full touch-none select-none overscroll-contain">
           <canvas
             ref="canvasEl"
-            class="block w-full rounded-2xl shadow-[0_18px_40px_-24px_rgba(3,105,161,0.7)]"
+            class="block w-full rounded-2xl shadow-[0_18px_40px_-24px_rgba(3,105,161,0.7)] transition"
+            :class="{ 'opacity-60 grayscale': !unlocked }"
             :style="{ aspectRatio: `${WORLD_WIDTH} / ${WORLD_HEIGHT}` }"
             aria-label="Lanka Leap. Tap or press Space to leap."
             role="img"
             @pointerdown.prevent="press"
             @touchstart.prevent
           />
+
+          <button
+            v-if="unlocked"
+            type="button"
+            class="absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full bg-slate-900/40 text-white backdrop-blur"
+            :aria-label="muted ? 'Play Hanuman Chalisa' : 'Mute Hanuman Chalisa'"
+            :aria-pressed="!muted"
+            @click="toggleMuted"
+          >
+            <IconVolumeOff v-if="muted" class="h-5 w-5" />
+            <IconVolume v-else class="h-5 w-5" />
+          </button>
+
+          <div v-if="!unlocked" class="absolute inset-0 flex items-center justify-center p-4">
+            <div class="w-full max-w-xs space-y-3 rounded-2xl bg-white p-5 text-center shadow-xl">
+              <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 text-amber-700">
+                <IconLock class="h-6 w-6" />
+              </div>
+              <p class="font-display text-xl font-bold text-[hsl(var(--primary))]">Unlock Lanka Leap</p>
+              <p class="text-sm text-[hsl(var(--muted-foreground))]">
+                Log your Daily Darshan on {{ LANKA_LEAP_UNLOCK_DAYS }} different days to open the game.
+                Days count from {{ unlockFromLabel }}.
+              </p>
+              <template v-if="isLoggedIn">
+                <div>
+                  <div class="h-2 overflow-hidden rounded-full bg-[hsl(var(--muted))]">
+                    <div class="h-full rounded-full bg-amber-500 transition-all" :style="{ width: `${unlockPercent}%` }" />
+                  </div>
+                  <p class="mt-1.5 text-xs font-semibold tabular-nums text-amber-800">
+                    {{ unlockDaysShown }} of {{ LANKA_LEAP_UNLOCK_DAYS }} days
+                  </p>
+                </div>
+                <NuxtLink to="/niyams" class="block w-full rounded-xl bg-sky-700 px-4 py-3 text-sm font-semibold text-white">
+                  Log today’s darshan
+                </NuxtLink>
+              </template>
+              <template v-else>
+                <p class="text-xs text-[hsl(var(--muted-foreground))]">Sign in first so your darshan days can be counted.</p>
+                <NuxtLink to="/login?redirect=/play/lanka-leap" class="block w-full rounded-xl bg-sky-700 px-4 py-3 text-sm font-semibold text-white">
+                  Sign in
+                </NuxtLink>
+              </template>
+            </div>
+          </div>
 
           <button
             v-if="phase === 'paused'"
@@ -81,6 +126,13 @@
           <div class="card-surface p-2"><p class="text-lg font-bold text-[hsl(var(--primary))]">{{ day.bestTulsi }}</p>Most tulsi</div>
         </div>
 
+        <p class="text-center text-[11px] text-[hsl(var(--muted-foreground))]">
+          Hanuman Chalisa recited by Sandeep Khurana,
+          <a :href="CHALISA_SOURCE_URL" target="_blank" rel="noopener" class="underline">via Wikipedia</a>,
+          <a href="https://creativecommons.org/licenses/by-sa/3.0/" target="_blank" rel="noopener" class="underline">CC BY-SA 3.0</a>.
+          Converted to AAC.
+        </p>
+
         <GameHowTo>
           <LankaLeapRules />
         </GameHowTo>
@@ -120,6 +172,8 @@ import {
   WORLD_HEIGHT,
   WORLD_WIDTH
 } from '~/functions/shared/lankaLeap.mjs'
+import { IconLock, IconVolume, IconVolumeOff } from '@tabler/icons-vue'
+import { LANKA_LEAP_UNLOCK_DAYS, LANKA_LEAP_UNLOCK_FROM } from '~/composables/useLankaLeapUnlock'
 import { ukDateId } from '~/utils/gameDay'
 import { showPrototypeGames } from '~/utils/prototypeGames'
 
@@ -147,6 +201,43 @@ const { markDone } = useDailyGameCompletion('lanka-leap')
 const auth = useAuth()
 const achievements = useAchievements()
 const isLoggedIn = computed(() => !!auth.user.value)
+
+const unlock = useLankaLeapUnlock()
+const unlocked = computed(() => unlock.unlocked.value)
+const unlockFromLabel = new Date(`${LANKA_LEAP_UNLOCK_FROM}T12:00:00Z`)
+  .toLocaleDateString('en-GB', { day: 'numeric', month: 'long', timeZone: 'Europe/London' })
+const unlockDaysShown = computed(() => Math.min(unlock.daysDone.value, LANKA_LEAP_UNLOCK_DAYS))
+const unlockPercent = computed(() => (unlockDaysShown.value / LANKA_LEAP_UNLOCK_DAYS) * 100)
+
+const CHALISA_SRC = '/games/lanka-leap/hanuman-chalisa.m4a'
+const CHALISA_SOURCE_URL = 'https://en.wikipedia.org/wiki/File:Shri_Hanuman_Chalisa_Harmony_Voices.ogg'
+const MUTED_KEY = 'lanka-leap:muted'
+const muted = ref(false)
+let chalisa: HTMLAudioElement | null = null
+
+/** Must run inside the tap that starts or resumes a run, or mobile browsers refuse to play. */
+function playChalisa() {
+  if (muted.value) return
+  if (!chalisa) {
+    chalisa = new Audio(CHALISA_SRC)
+    chalisa.loop = true
+    chalisa.volume = 0.55
+  }
+  void chalisa.play().catch(() => {})
+}
+
+function pauseChalisa() {
+  chalisa?.pause()
+}
+
+function toggleMuted() {
+  muted.value = !muted.value
+  try {
+    localStorage.setItem(MUTED_KEY, muted.value ? '1' : '0')
+  } catch {}
+  if (muted.value) pauseChalisa()
+  else if (phase.value === 'playing') playChalisa()
+}
 const {
   entries: boardEntries,
   loading: boardLoading,
@@ -288,14 +379,16 @@ function saveDay() {
 }
 
 function press() {
-  if (!available) return
+  if (!available || !unlocked.value) return
   if (phase.value === 'ready') {
     phase.value = 'playing'
     pendingLeap = true
+    playChalisa()
   } else if (phase.value === 'playing') {
     pendingLeap = true
   } else if (phase.value === 'paused') {
     phase.value = 'playing'
+    playChalisa()
   } else if (phase.value === 'over' && performance.now() - overAt > 500) {
     restart()
   }
@@ -379,7 +472,12 @@ function onKey(event: KeyboardEvent) {
 
 function onVisibility() {
   if (document.hidden && phase.value === 'playing') phase.value = 'paused'
+  if (!document.hidden && !unlocked.value) void unlock.refresh()
 }
+
+watch(phase, (next) => {
+  if (next !== 'playing') pauseChalisa()
+})
 
 function fitCanvas() {
   const el = canvasEl.value
@@ -421,6 +519,9 @@ onMounted(() => {
     demonImages[key] = img
   }
   loadDay()
+  try {
+    muted.value = localStorage.getItem(MUTED_KEY) === '1'
+  } catch {}
   lastFrame = performance.now()
   rafId = requestAnimationFrame(frame)
   window.addEventListener('keydown', onKey)
@@ -432,6 +533,8 @@ onBeforeUnmount(() => {
   resizeObserver?.disconnect()
   window.removeEventListener('keydown', onKey)
   document.removeEventListener('visibilitychange', onVisibility)
+  pauseChalisa()
+  chalisa = null
 })
 
 // ---------------------------------------------------------------------------
