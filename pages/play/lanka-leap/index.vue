@@ -126,11 +126,13 @@
           <div class="card-surface p-2"><p class="text-lg font-bold text-[hsl(var(--primary))]">{{ day.bestTulsi }}</p>Most tulsi</div>
         </div>
 
-        <p class="text-center text-[11px] text-[hsl(var(--muted-foreground))]">
-          Hanuman Chalisa recited by Sandeep Khurana,
-          <a :href="CHALISA_SOURCE_URL" target="_blank" rel="noopener" class="underline">via Wikipedia</a>,
-          <a href="https://creativecommons.org/licenses/by-sa/3.0/" target="_blank" rel="noopener" class="underline">CC BY-SA 3.0</a>.
-          Converted to AAC.
+        <p class="flex items-center justify-center gap-1.5 text-center text-sm text-[hsl(var(--muted-foreground))]">
+          <IconMusic class="h-4 w-4 text-orange-600" />
+          <span>
+            Hanuman Chalisa listened to
+            <strong class="tabular-nums text-[hsl(var(--primary))]">{{ chalisaListens }}</strong>
+            {{ chalisaListens === 1 ? 'time' : 'times' }}
+          </span>
         </p>
 
         <GameHowTo>
@@ -172,7 +174,7 @@ import {
   WORLD_HEIGHT,
   WORLD_WIDTH
 } from '~/functions/shared/lankaLeap.mjs'
-import { IconLock, IconVolume, IconVolumeOff } from '@tabler/icons-vue'
+import { IconLock, IconMusic, IconVolume, IconVolumeOff } from '@tabler/icons-vue'
 import { LANKA_LEAP_UNLOCK_DAYS, LANKA_LEAP_UNLOCK_FROM_LABEL } from '~/composables/useLankaLeapUnlock'
 import { ukDateId } from '~/utils/gameDay'
 import { showPrototypeGames } from '~/utils/prototypeGames'
@@ -209,10 +211,25 @@ const unlockDaysShown = computed(() => Math.min(unlock.daysDone.value, LANKA_LEA
 const unlockPercent = computed(() => (unlockDaysShown.value / LANKA_LEAP_UNLOCK_DAYS) * 100)
 
 const CHALISA_SRC = '/games/lanka-leap/hanuman-chalisa.m4a'
-const CHALISA_SOURCE_URL = 'https://en.wikipedia.org/wiki/File:Shri_Hanuman_Chalisa_Harmony_Voices.ogg'
 const MUTED_KEY = 'lanka-leap:muted'
+const LISTENS_KEY = 'lanka-leap:chalisa-listens'
 const muted = ref(false)
+const chalisaListens = ref(0)
 let chalisa: HTMLAudioElement | null = null
+let chalisaLastTime = 0
+
+/** A loop never fires `ended`, so a full listen shows up as the playhead jumping from the end back to the start. */
+function onChalisaTime() {
+  if (!chalisa) return
+  const now = chalisa.currentTime
+  if (now + 1 < chalisaLastTime && chalisaLastTime > chalisa.duration - 3) {
+    chalisaListens.value++
+    try {
+      localStorage.setItem(LISTENS_KEY, String(chalisaListens.value))
+    } catch {}
+  }
+  chalisaLastTime = now
+}
 
 /** Must run inside the tap that starts or resumes a run, or mobile browsers refuse to play. */
 function playChalisa() {
@@ -221,6 +238,7 @@ function playChalisa() {
     chalisa = new Audio(CHALISA_SRC)
     chalisa.loop = true
     chalisa.volume = 0.55
+    chalisa.addEventListener('timeupdate', onChalisaTime)
   }
   void chalisa.play().catch(() => {})
 }
@@ -520,6 +538,7 @@ onMounted(() => {
   loadDay()
   try {
     muted.value = localStorage.getItem(MUTED_KEY) === '1'
+    chalisaListens.value = Number(localStorage.getItem(LISTENS_KEY)) || 0
   } catch {}
   lastFrame = performance.now()
   rafId = requestAnimationFrame(frame)
@@ -533,6 +552,7 @@ onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKey)
   document.removeEventListener('visibilitychange', onVisibility)
   pauseChalisa()
+  chalisa?.removeEventListener('timeupdate', onChalisaTime)
   chalisa = null
 })
 

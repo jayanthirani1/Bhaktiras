@@ -11,6 +11,10 @@
   <p class="mt-3 text-xs">
     Tap a name to read their story from the Sundar Kand.
   </p>
+  <p class="mt-2 text-[11px] opacity-70">
+    Audio: Hanuman Chalisa by Sandeep Khurana,
+    <a href="https://creativecommons.org/licenses/by-sa/3.0/" target="_blank" rel="noopener" class="underline">CC BY-SA 3.0</a>.
+  </p>
 </template>
 
 <script setup lang="ts">
