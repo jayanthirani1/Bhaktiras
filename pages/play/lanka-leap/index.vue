@@ -8,15 +8,11 @@
         <span class="rounded-full bg-[hsl(var(--muted))] px-3 py-1 text-sm font-semibold tabular-nums text-[hsl(var(--primary))]">
           Best today: {{ day.best }}
         </span>
-        <span class="ml-auto rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-amber-800">Prototype</span>
       </div>
 
       <PageHeader title="Lanka Leap" subtitle="Leap across the ocean with Hanumanji. Every gate you pass scores a point." />
 
-      <div v-if="!available" class="card-surface p-8 text-center text-sm text-[hsl(var(--muted-foreground))]">
-        Lanka Leap is coming soon.
-      </div>
-      <div v-else-if="!howto.ready.value || !unlock.ready.value" class="card-surface p-8 text-center text-sm text-[hsl(var(--muted-foreground))]">
+      <div v-if="!howto.ready.value || !unlock.ready.value" class="card-surface p-8 text-center text-sm text-[hsl(var(--muted-foreground))]">
         Loading…
       </div>
       <GameHowTo
@@ -177,8 +173,6 @@ import {
 import { IconLock, IconMusic, IconVolume, IconVolumeOff } from '@tabler/icons-vue'
 import { LANKA_LEAP_UNLOCK_DAYS, LANKA_LEAP_UNLOCK_FROM_LABEL } from '~/composables/useLankaLeapUnlock'
 import { ukDateId } from '~/utils/gameDay'
-import { showPrototypeGames } from '~/utils/prototypeGames'
-
 type RunState = ReturnType<typeof createRun>
 type Obstacle = RunState['course'][number]
 type Phase = 'ready' | 'playing' | 'paused' | 'over'
@@ -193,7 +187,6 @@ interface DayRecord {
   bestLeaps: number[]
 }
 
-const available = showPrototypeGames()
 const dateId = ukDateId()
 const seed = lankaLeapSeed(dateId)
 const storageKey = `lanka-leap:${dateId}`
@@ -396,7 +389,7 @@ function saveDay() {
 }
 
 function press() {
-  if (!available || !unlocked.value) return
+  if (!unlocked.value) return
   if (phase.value === 'ready') {
     phase.value = 'playing'
     pendingLeap = true
