@@ -19,8 +19,6 @@ const GAME_STORAGE_PREFIXES = [
   'mini-crossword-timer:',
   'one-percent-run:',
   'one-percent-timer:',
-  'bracket-city:',
-  'bracket-city-timer:',
   'surya-chandra:',
   'surya-chandra-timer:',
   // Retired Surya Chandra slug — still cleared on word-bank bumps.
@@ -46,7 +44,6 @@ const GAME_DAY_KEYS: Record<PlayGameSlug, (dateId: string) => string[]> = {
   'mini-crossword': dateId => [`mini-crossword:${dateId}`, `mini-crossword-timer:${dateId}`],
   'one-percent': dateId => [`one-percent-run:${dateId}`, `one-percent-timer:${dateId}`],
   'connections': dateId => [`connections:${dateId}`, `connections-timer:${dateId}`],
-  'bracket-city': dateId => [`bracket-city:${dateId}`, `bracket-city-timer:${dateId}`],
   'surya-chandra': dateId => [
     `surya-chandra:${dateId}`,
     `surya-chandra-timer:${dateId}`,
@@ -56,7 +53,8 @@ const GAME_DAY_KEYS: Record<PlayGameSlug, (dateId: string) => string[]> = {
     `leaderboard-submitted:surya-chandra:${dateId}`,
     `leaderboard-submitted:bhakti-marg:${dateId}`
   ],
-  'ras-rani': dateId => [`ras-rani-v3:${dateId}`, `ras-rani:${dateId}`, `ras-rani-timer:${dateId}`]
+  'ras-rani': dateId => [`ras-rani-v3:${dateId}`, `ras-rani:${dateId}`, `ras-rani-timer:${dateId}`],
+  'lanka-leap': dateId => [`lanka-leap:${dateId}`]
 }
 
 /** Every local key holding this device's play of one game on one day. */

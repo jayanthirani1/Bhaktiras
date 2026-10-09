@@ -220,8 +220,11 @@ service cloud.firestore {
           );
       }
 
+      // Lanka Leap rows are written by processGameAchievements after it
+      // replays the run, so no browser write is accepted for that game.
       allow read: if true;
       allow create: if isSignedIn()
+        && request.resource.data.game != 'lanka-leap'
         && ownsScoreId()
         && request.resource.data.keys().hasOnly([
           'game', 'dateId', 'userId', 'userName', 'score', 'timeMs', 'detail', 'completedAt'
@@ -245,6 +248,7 @@ service cloud.firestore {
       // Own score updates. Identity and the day it belongs to are immutable;
       // only the result may improve.
       allow update: if isSignedIn()
+        && resource.data.game != 'lanka-leap'
         && resource.data.userId == request.auth.uid
         && request.resource.data.userId == request.auth.uid
         && request.resource.data.game == resource.data.game
@@ -507,11 +511,6 @@ service cloud.firestore {
     }
 
     match /connectionsPuzzles/{id} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
-    match /bracketCityPuzzles/{id} {
       allow read: if true;
       allow write: if isAdmin();
     }

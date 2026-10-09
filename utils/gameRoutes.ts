@@ -8,10 +8,10 @@ export const GAME_PAGE_PATHS = [
   '/play/mini-crossword',
   '/play/one-percent',
   '/play/connections',
-  '/play/bracket-city',
   '/play/bhakti-marg',
   '/play/surya-chandra',
-  '/play/ras-rani'
+  '/play/ras-rani',
+  '/play/lanka-leap'
 ]
 
 export function isGamePagePath(path: string): boolean {

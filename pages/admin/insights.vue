@@ -205,7 +205,6 @@ const GAME_LABELS: Record<string, string> = {
   connections: 'Connections',
   'one-percent': '1% Club',
   'mini-crossword': 'Mini crossword',
-  'bracket-city': 'Bracket City',
   'surya-chandra': 'Surya Chandra',
   // Legacy score rows may still appear until prune/migrate finishes.
   'bhakti-marg': 'Surya Chandra',

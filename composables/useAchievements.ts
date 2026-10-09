@@ -10,7 +10,6 @@ export type AchievementGroup =
   | 'crossword'
   | 'connections'
   | 'one-percent'
-  | 'bracket-city'
   | 'surya-chandra'
   | 'ras-rani'
   | 'streak'
@@ -30,7 +29,8 @@ export type AchievementDefinition = {
   }
 }
 
-export type GameAchievementGame = AchievementGroup
+/** Lanka Leap has a crown but no achievements, so it is not an achievement group. */
+export type GameAchievementGame = AchievementGroup | 'lanka-leap'
 
 export type GameAchievementPayload = {
   userName: string
@@ -50,6 +50,9 @@ export type GameAchievementPayload = {
   difficulty?: 'easy' | 'medium' | 'hard'
   /** Backup for Ras Rani crown routing when difficulty is omitted. */
   gridSize?: number
+  /** Lanka Leap: the course day and leap ticks, replayed by the callable to score the run. */
+  dateId?: string
+  leaps?: number[]
 }
 
 export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
@@ -76,16 +79,6 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
   { id: 'connections-wins-300', title: '300-Day Connections', description: 'Solve 300 Connections puzzles.', group: 'connections', medal: 'platinum', progress: { stat: 'connectionsWins', goal: 300, unit: 'solves' } },
   { id: 'connections-perfect', title: 'Perfect Connections', description: 'Solve Connections with no mistakes.', group: 'connections', medal: 'gold' },
   { id: 'connections-perfect-10', title: 'Faultless Ten', description: 'Solve 10 Connections puzzles with no mistakes.', group: 'connections', medal: 'platinum', progress: { stat: 'connectionsPerfect', goal: 10, unit: 'perfects' } },
-  { id: 'bracket-city-first-win', title: 'First Nested Solve', description: 'Complete a Bracket City puzzle for the first time.', group: 'bracket-city', medal: 'bronze' },
-  { id: 'bracket-city-wins-7', title: 'Week of Brackets', description: 'Complete 7 Bracket City puzzles.', group: 'bracket-city', medal: 'silver', progress: { stat: 'bracketCityWins', goal: 7, unit: 'solves' } },
-  { id: 'bracket-city-wins-30', title: 'Bracket Sadhak', description: 'Complete 30 Bracket City puzzles.', group: 'bracket-city', medal: 'gold', progress: { stat: 'bracketCityWins', goal: 30, unit: 'solves' } },
-  { id: 'bracket-city-wins-100', title: '100-Day Bracket City', description: 'Complete 100 Bracket City puzzles.', group: 'bracket-city', medal: 'gold', progress: { stat: 'bracketCityWins', goal: 100, unit: 'solves' } },
-  { id: 'bracket-city-wins-200', title: '200-Day Bracket City', description: 'Complete 200 Bracket City puzzles.', group: 'bracket-city', medal: 'gold', progress: { stat: 'bracketCityWins', goal: 200, unit: 'solves' } },
-  { id: 'bracket-city-wins-300', title: '300-Day Bracket City', description: 'Complete 300 Bracket City puzzles.', group: 'bracket-city', medal: 'platinum', progress: { stat: 'bracketCityWins', goal: 300, unit: 'solves' } },
-  { id: 'bracket-city-no-hints', title: 'No Peeking', description: 'Complete Bracket City without revealing any answers.', group: 'bracket-city', medal: 'gold' },
-  { id: 'bracket-city-no-hints-10', title: 'Inner Circle', description: 'Complete 10 Bracket City puzzles without peeks.', group: 'bracket-city', medal: 'platinum', progress: { stat: 'bracketCityNoHints', goal: 10, unit: 'perfects' } },
-  { id: 'bracket-city-perfect', title: 'Clean Brackets', description: 'Complete Bracket City with no peeks and no wrong guesses.', group: 'bracket-city', medal: 'gold' },
-  { id: 'bracket-city-sub-60s', title: 'Swift Nest', description: 'Complete Bracket City in under 60 seconds.', group: 'bracket-city', medal: 'gold' },
   { id: 'one-percent-first-play', title: 'Ladder Climber', description: 'Finish a Vachnamrut 1% Club run.', group: 'one-percent', medal: 'bronze' },
   { id: 'one-percent-club', title: '1% Club', description: 'Clear every Vachnamrut rung and join the 1% Club.', group: 'one-percent', medal: 'gold' },
   { id: 'one-percent-club-clears-10', title: 'Club Member', description: 'Join the 1% Club on 10 different days.', group: 'one-percent', medal: 'gold', progress: { stat: 'onePercentClubClears', goal: 10, unit: 'days' } },
@@ -125,7 +118,6 @@ export const ACHIEVEMENT_GROUP_TITLES: Record<AchievementGroup, string> = {
   wordle: 'Wordle',
   crossword: 'Crossword',
   connections: 'Connections',
-  'bracket-city': 'Bracket City',
   'one-percent': '1% Club',
   'surya-chandra': 'Surya Chandra',
   'ras-rani': 'Ras Rani',
@@ -157,14 +149,13 @@ export const CROWN_DEFINITIONS = [
   { id: 'crossword-fewest-hints', title: 'Fewest Hints Crossword', description: 'Crossword finish with the fewest hints this month.', game: 'crossword', scope: 'monthly' },
   { id: 'connections-fastest', title: 'Fastest Connections', description: 'Fastest Connections solve this month.', game: 'connections', scope: 'monthly' },
   { id: 'connections-fewest-mistakes', title: 'Fewest Mistakes Connections', description: 'Fewest-mistake Connections solve this month.', game: 'connections', scope: 'monthly' },
-  { id: 'bracket-city-fastest', title: 'Fastest Bracket City', description: 'Fastest Bracket City finish this month.', game: 'bracket-city', scope: 'monthly' },
-  { id: 'bracket-city-fewest-peeks', title: 'Fewest Peeks Bracket City', description: 'Fewest-peek Bracket City finish this month.', game: 'bracket-city', scope: 'monthly' },
   { id: 'one-percent-highest', title: '1% Club High Score', description: 'Most rungs cleared in 1% Club this month.', game: 'one-percent', scope: 'monthly' },
   { id: 'one-percent-fastest', title: 'Fastest 1% Club', description: 'Fastest full 1% Club clear this month.', game: 'one-percent', scope: 'monthly' },
   { id: 'surya-chandra-fastest', title: 'Fastest Surya Chandra', description: 'Fastest Surya Chandra completion this month.', game: 'surya-chandra', scope: 'monthly' },
   { id: 'ras-rani-easy-fastest', title: 'Fastest Easy Ras Rani', description: 'Fastest Easy (7×7) Ras Rani this month.', game: 'ras-rani', scope: 'monthly' },
   { id: 'ras-rani-medium-fastest', title: 'Fastest Medium Ras Rani', description: 'Fastest Medium (8–9×9) Ras Rani this month.', game: 'ras-rani', scope: 'monthly' },
   { id: 'ras-rani-hard-fastest', title: 'Fastest Difficult Ras Rani', description: 'Fastest Difficult (10–11×11) Ras Rani this month.', game: 'ras-rani', scope: 'monthly' },
+  { id: 'lanka-leap-highest', title: 'Lanka Leap Record', description: 'Highest Lanka Leap score of all time.', game: 'lanka-leap', scope: 'all-time' },
   { id: 'streak-longest', title: 'Longest Streak', description: 'Longest games streak of all time.', game: 'streak', scope: 'all-time' }
 ] as const
 
@@ -261,7 +252,7 @@ export function crownBelongsToMonth(
 }
 
 export function crownValue(crown: AchievementCrownRecord) {
-  if (crown.id === 'wordle-fastest' || crown.id === 'crossword-fastest' || crown.id === 'bracket-city-fastest' || crown.id === 'connections-fastest') {
+  if (crown.id === 'wordle-fastest' || crown.id === 'crossword-fastest' || crown.id === 'connections-fastest') {
     return formatElapsed(crown.timeMs || crown.value)
   }
   if (crown.id === 'wordle-fewest-guesses') {
@@ -274,10 +265,6 @@ export function crownValue(crown: AchievementCrownRecord) {
   if (crown.id === 'crossword-fewest-hints') {
     const hints = (crown as { hintsUsed?: number }).hintsUsed ?? crown.value
     return `${hints} hint${hints === 1 ? '' : 's'}${crown.timeMs ? ` · ${formatElapsed(crown.timeMs)}` : ''}`
-  }
-  if (crown.id === 'bracket-city-fewest-peeks') {
-    const peeks = crown.score ?? crown.value
-    return `${peeks} peek${peeks === 1 ? '' : 's'}${crown.timeMs ? ` · ${formatElapsed(crown.timeMs)}` : ''}`
   }
   if (crown.id === 'one-percent-fastest') {
     return formatElapsed(crown.timeMs || crown.value)
@@ -299,6 +286,10 @@ export function crownValue(crown: AchievementCrownRecord) {
   if (crown.id === 'streak-longest') {
     const days = crown.longestStreak || crown.value
     return `${days} day${days === 1 ? '' : 's'}`
+  }
+  if (crown.id === 'lanka-leap-highest') {
+    const points = crown.score || crown.value
+    return `${points} point${points === 1 ? '' : 's'}`
   }
   return String(crown.value)
 }

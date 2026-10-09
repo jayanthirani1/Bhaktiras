@@ -36,7 +36,7 @@ export function shuffle<T>(items: T[], rnd: () => number): T[] {
 }
 
 /**
- * Seeded generator for a named daily puzzle, e.g. rngForSeed('bracket-city:2026-08-21').
+ * Seeded generator for a named daily puzzle, e.g. rngForSeed('connections:2026-08-21').
  *
  * The first few outputs of mulberry32 are correlated across nearby seeds, and
  * consecutive dates hash to nearby seeds — without the warm-up, a generator

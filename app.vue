@@ -2,12 +2,23 @@
   <NuxtLayout>
     <NuxtPage />
   </NuxtLayout>
+  <div
+    v-if="isTestSite"
+    class="pointer-events-none fixed bottom-3 left-3 z-[100] rounded-full bg-red-600 px-3 py-1 text-xs font-bold uppercase tracking-wide text-white shadow-lg"
+  >
+    Test site · live data
+  </div>
 </template>
 
 <script setup lang="ts">
 import { SITE } from '~/data/site'
 
 const route = useRoute()
+const isTestSite = useRuntimeConfig().public.appEnv === 'test'
+
+if (isTestSite) {
+  useHead({ meta: [{ name: 'robots', content: 'noindex, nofollow' }] })
+}
 
 /**
  * Site-wide defaults. Individual pages override title and description with

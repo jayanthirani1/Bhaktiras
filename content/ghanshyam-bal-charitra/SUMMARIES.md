@@ -1,8 +1,7 @@
 # Story Summaries
 
 All 79 stories of the Shree Ghanshyam Bal Charitra in book order, one summary each.
-These are the summaries the Bracket City puzzles are built from, and they use the app's
-spellings rather than the books' inconsistent ones — see [`README.md`](README.md). The full
+They use the app's spellings rather than the books' inconsistent ones — see [`README.md`](README.md). The full
 text of every story is in the per-volume files alongside this one.
 
 ## Part 1

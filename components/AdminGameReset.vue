@@ -54,7 +54,6 @@ const games: Array<{ slug: PlayGameSlug; title: string; href: string }> = [
   { slug: 'mini-crossword', title: 'Crossword', href: '/play/crossword' },
   { slug: 'one-percent', title: '1% Club', href: '/play/one-percent' },
   { slug: 'connections', title: 'Connections', href: '/play/connections' },
-  { slug: 'bracket-city', title: 'Bracket City', href: '/play/bracket-city' },
   { slug: 'surya-chandra', title: 'Surya Chandra', href: '/play/surya-chandra' },
   { slug: 'ras-rani', title: 'Ras Rani', href: '/play/ras-rani' }
 ]

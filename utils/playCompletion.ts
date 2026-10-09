@@ -5,9 +5,9 @@ export type PlayGameSlug =
   | 'mini-crossword'
   | 'one-percent'
   | 'connections'
-  | 'bracket-city'
   | 'surya-chandra'
   | 'ras-rani'
+  | 'lanka-leap'
 
 export interface PlayCompletionEntry {
   /** Game-specific headline number (guesses, cleared rungs, words found). */
@@ -71,13 +71,6 @@ export function readLocalPlayCompletion(
       return data.finished ? { score: Number(data.cleared) || 0 } : null
     }
 
-    if (slug === 'bracket-city') {
-      const state = localStorage.getItem(`bracket-city:${dateId}`)
-      if (!state) return null
-      const data = JSON.parse(state)
-      return data.finished ? { score: Number(data.peekedIds?.length) || 0 } : null
-    }
-
     if (slug === 'surya-chandra') {
       const state = localStorage.getItem(`surya-chandra:${dateId}`)
         || localStorage.getItem(`bhakti-marg:${dateId}`)
@@ -91,6 +84,13 @@ export function readLocalPlayCompletion(
       if (!state) return null
       const data = JSON.parse(state)
       return data.finished ? { score: Number(data.moves) || 0 } : null
+    }
+
+    if (slug === 'lanka-leap') {
+      const state = localStorage.getItem(`lanka-leap:${dateId}`)
+      if (!state) return null
+      const data = JSON.parse(state)
+      return data.runs > 0 ? { score: Number(data.best) || 0 } : null
     }
 
     return null

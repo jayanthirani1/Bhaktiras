@@ -49,18 +49,6 @@ const GAME_ACHIEVEMENTS = {
     { id: 'connections-perfect', when: ({ won, mistakes }) => won === true && mistakes === 0 },
     { id: 'connections-perfect-10', when: ({ connectionsPerfect }) => connectionsPerfect >= 10 }
   ],
-  'bracket-city': [
-    { id: 'bracket-city-first-win', when: ({ bracketCityWins }) => bracketCityWins >= 1 },
-    { id: 'bracket-city-wins-7', when: ({ bracketCityWins }) => bracketCityWins >= 7 },
-    { id: 'bracket-city-wins-30', when: ({ bracketCityWins }) => bracketCityWins >= 30 },
-    { id: 'bracket-city-wins-100', when: ({ bracketCityWins }) => bracketCityWins >= 100 },
-    { id: 'bracket-city-wins-200', when: ({ bracketCityWins }) => bracketCityWins >= 200 },
-    { id: 'bracket-city-wins-300', when: ({ bracketCityWins }) => bracketCityWins >= 300 },
-    { id: 'bracket-city-no-hints', when: ({ hintsUsed }) => hintsUsed === 0 },
-    { id: 'bracket-city-no-hints-10', when: ({ bracketCityNoHints }) => bracketCityNoHints >= 10 },
-    { id: 'bracket-city-perfect', when: ({ hintsUsed, mistakes }) => hintsUsed === 0 && mistakes === 0 },
-    { id: 'bracket-city-sub-60s', when: ({ timeMs }) => timeMs >= MIN_TIMED_PLAY_MS && timeMs < 60_000 }
-  ],
   'one-percent': [
     { id: 'one-percent-first-play', when: ({ onePercentRuns }) => onePercentRuns >= 1 },
     { id: 'one-percent-club', when: ({ onePercentClubClears }) => onePercentClubClears >= 1 },
@@ -95,6 +83,7 @@ const GAME_ACHIEVEMENTS = {
     { id: 'ras-rani-no-hints-10', when: ({ rasRaniNoHints }) => rasRaniNoHints >= 10 },
     { id: 'ras-rani-sub-60s', when: ({ timeMs }) => timeMs >= MIN_TIMED_PLAY_MS && timeMs < 60_000 }
   ],
+  'lanka-leap': [],
   streak: [
     { id: 'streak-7', when: ({ longestStreak }) => longestStreak >= 7 },
     { id: 'streak-30', when: ({ longestStreak }) => longestStreak >= 30 },
@@ -285,9 +274,6 @@ function applyGameStats(game, candidate, stats, today) {
   } else if (game === 'connections' && candidate.won) {
     bumpOncePerDay(stats, 'connectionsWins', 'connectionsWinsDate', today)
     if (candidate.mistakes === 0) bumpOncePerDay(stats, 'connectionsPerfect', 'connectionsPerfectDate', today)
-  } else if (game === 'bracket-city') {
-    bumpOncePerDay(stats, 'bracketCityWins', 'bracketCityWinsDate', today)
-    if (candidate.hintsUsed === 0) bumpOncePerDay(stats, 'bracketCityNoHints', 'bracketCityNoHintsDate', today)
   } else if (game === 'one-percent') {
     bumpOncePerDay(stats, 'onePercentRuns', 'onePercentRunsDate', today)
     const streak = nextOnePercentClubStreak(stats, candidate.clearedAll === true)
@@ -346,11 +332,57 @@ function isBetterOnePercentScore(current, candidate) {
   return isFasterPlayTime(candidate.timeMs, current.timeMs)
 }
 
-function isBetterFewestPeeks(current, candidate) {
+/** Ties keep the holder: the record belongs to whoever got there first. */
+function isBetterHighScore(current, candidate) {
   if (!current) return true
-  const currentPeeks = Number(current.score || current.value)
-  if (candidate.score !== currentPeeks) return candidate.score < currentPeeks
-  return isFasterPlayTime(candidate.timeMs, current.timeMs)
+  return candidate.score > Number(current.score ?? current.value)
+}
+
+/**
+ * Re-flies a Lanka Leap run from its leap ticks on the day's course, so the
+ * score is the simulation's, never the client's. Yesterday's course is still
+ * accepted for a run that was started before midnight.
+ */
+async function replayLankaLeap(data) {
+  const { simulateRun, lankaLeapSeed, MAX_RUN_TICKS } = await import('./shared/lankaLeap.mjs')
+  const today = ukDateIdNow()
+  const dateId = String(data?.dateId || '')
+  if (dateId !== today && dateId !== previousUkDate(today)) {
+    throw new HttpsError('invalid-argument', 'That Lanka Leap course has closed.')
+  }
+  const leaps = data?.leaps
+  if (!Array.isArray(leaps) || leaps.length > MAX_RUN_TICKS) {
+    throw new HttpsError('invalid-argument', 'Invalid Lanka Leap run.')
+  }
+  let previous = -1
+  for (const tick of leaps) {
+    if (!Number.isInteger(tick) || tick <= previous || tick > MAX_RUN_TICKS) {
+      throw new HttpsError('invalid-argument', 'Invalid Lanka Leap run.')
+    }
+    previous = tick
+  }
+  return { ...simulateRun(lankaLeapSeed(dateId), leaps), dateId }
+}
+
+/**
+ * Lanka Leap's board is all-time: one row per player, `lanka-leap_{uid}`,
+ * written only here after a replay. The rules refuse browser writes for it.
+ */
+async function saveLankaLeapBest(db, uid, userName, run) {
+  const ref = db.doc(`gameScores/lanka-leap_${uid}`)
+  await db.runTransaction(async (transaction) => {
+    const snap = await transaction.get(ref)
+    if (snap.exists && Number(snap.data().score) >= run.score) return
+    transaction.set(ref, {
+      game: 'lanka-leap',
+      dateId: run.dateId,
+      userId: uid,
+      userName,
+      score: run.score,
+      detail: `${run.tulsi} tulsi${run.reachedLanka ? ' · reached Lanka' : ''}`,
+      completedAt: FieldValue.serverTimestamp()
+    })
+  })
 }
 
 function isBetterFewestMistakes(current, candidate) {
@@ -399,8 +431,6 @@ const CROWN_LABELS = {
   'crossword-fewest-hints': 'fewest-hint Crossword',
   'connections-fastest': 'fastest Connections',
   'connections-fewest-mistakes': 'fewest-mistake Connections',
-  'bracket-city-fastest': 'fastest Bracket City',
-  'bracket-city-fewest-peeks': 'fewest-peek Bracket City',
   'one-percent-highest': 'highest 1% Club score',
   'one-percent-fastest': 'fastest 1% Club clear',
   'surya-chandra-fastest': 'fastest Surya Chandra',
@@ -408,6 +438,7 @@ const CROWN_LABELS = {
   'ras-rani-easy-fastest': 'fastest Easy Ras Rani',
   'ras-rani-medium-fastest': 'fastest Medium Ras Rani',
   'ras-rani-hard-fastest': 'fastest Difficult Ras Rani',
+  'lanka-leap-highest': 'highest Lanka Leap score',
   'streak-longest': 'longest play streak'
 }
 
@@ -1133,18 +1164,6 @@ async function handleGameAchievements(request) {
         }
       )
     }
-  } else if (game === 'bracket-city') {
-    const timeMs = intInRange(request.data?.timeMs, MIN_TIMED_PLAY_MS, 86_400_000)
-    const peeks = intInRange(request.data?.hintsUsed ?? request.data?.score ?? 0, 0, 200)
-    const mistakes = intInRange(request.data?.mistakes ?? 0, 0, 1000)
-    if (timeMs == null) throw new HttpsError('invalid-argument', 'Invalid Bracket City time.')
-    if (peeks == null) throw new HttpsError('invalid-argument', 'Invalid Bracket City peeks.')
-    if (mistakes == null) throw new HttpsError('invalid-argument', 'Invalid Bracket City mistakes.')
-    Object.assign(candidate, { timeMs, hintsUsed: peeks, mistakes, score: peeks })
-    crownSpecs.push(
-      { id: 'bracket-city-fastest', metric: 'fastest-time', value: timeMs, better: isBetterFastestTime, extra: { timeMs, score: peeks } },
-      { id: 'bracket-city-fewest-peeks', metric: 'fewest-peeks', value: peeks, better: isBetterFewestPeeks, extra: { score: peeks, timeMs } }
-    )
   } else if (game === 'one-percent') {
     const score = intInRange(request.data?.score, 0, 20)
     // Highest-score crown can omit time; fastest-clear requires a real clock.
@@ -1232,6 +1251,20 @@ async function handleGameAchievements(request) {
         value: timeMs,
         better: isBetterFastestTime,
         extra: { moves, timeMs, difficulty }
+      })
+    }
+  } else if (game === 'lanka-leap') {
+    const run = await replayLankaLeap(request.data)
+    Object.assign(candidate, { score: run.score, tulsi: run.tulsi, reachedLanka: run.reachedLanka })
+    if (run.score > 0) {
+      await saveLankaLeapBest(db, uid, userName, run)
+      crownSpecs.push({
+        id: 'lanka-leap-highest',
+        metric: 'high-score',
+        value: run.score,
+        scope: 'all-time',
+        better: isBetterHighScore,
+        extra: { score: run.score, tulsi: run.tulsi }
       })
     }
   } else if (game === 'streak') {
@@ -1402,7 +1435,6 @@ const DAILY_LEADERBOARD_GAMES = [
   'one-percent',
   'mini-crossword',
   'connections',
-  'bracket-city',
   'surya-chandra',
   'bhakti-marg',
   'ras-rani'
