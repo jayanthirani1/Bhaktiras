@@ -36,18 +36,6 @@
             @touchstart.prevent
           />
 
-          <button
-            v-if="unlocked"
-            type="button"
-            class="absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full bg-slate-900/40 text-white backdrop-blur"
-            :aria-label="muted ? 'Play Hanuman Chalisa' : 'Mute Hanuman Chalisa'"
-            :aria-pressed="!muted"
-            @click="toggleMuted"
-          >
-            <IconVolumeOff v-if="muted" class="h-5 w-5" />
-            <IconVolume v-else class="h-5 w-5" />
-          </button>
-
           <div v-if="!unlocked" class="absolute inset-0 flex items-center justify-center p-4">
             <div class="w-full max-w-xs space-y-3 rounded-2xl bg-white p-5 text-center shadow-xl">
               <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 text-amber-700">
@@ -122,14 +110,27 @@
           <div class="card-surface p-2"><p class="text-lg font-bold text-[hsl(var(--primary))]">{{ day.bestTulsi }}</p>Most tulsi</div>
         </div>
 
-        <p class="flex items-center justify-center gap-1.5 text-center text-sm text-[hsl(var(--muted-foreground))]">
-          <IconMusic class="h-4 w-4 text-orange-600" />
-          <span>
-            Hanuman Chalisa listened to
-            <strong class="tabular-nums text-[hsl(var(--primary))]">{{ chalisaListens }}</strong>
-            {{ chalisaListens === 1 ? 'time' : 'times' }}
-          </span>
-        </p>
+        <div class="flex flex-wrap items-center justify-center gap-2 text-sm text-[hsl(var(--muted-foreground))]">
+          <p class="flex items-center gap-1.5 text-center">
+            <IconMusic class="h-4 w-4 shrink-0 text-orange-600" />
+            <span>
+              Hanuman Chalisa listened to
+              <strong class="tabular-nums text-[hsl(var(--primary))]">{{ chalisaListens }}</strong>
+              {{ chalisaListens === 1 ? 'time' : 'times' }}
+            </span>
+          </p>
+          <button
+            v-if="unlocked"
+            type="button"
+            class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--muted))] text-[hsl(var(--foreground))]"
+            :aria-label="muted ? 'Play Hanuman Chalisa' : 'Mute Hanuman Chalisa'"
+            :aria-pressed="!muted"
+            @click="toggleMuted"
+          >
+            <IconVolumeOff v-if="muted" class="h-4 w-4" />
+            <IconVolume v-else class="h-4 w-4" />
+          </button>
+        </div>
 
         <GameHowTo>
           <LankaLeapRules />
