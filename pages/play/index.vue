@@ -191,7 +191,7 @@ const allGames: Array<{
   { slug: 'connections', title: 'Connections', description: 'Find four groups of four satsang-related words.', icon: IconCirclesRelation, href: '/play/connections', tile: 'bg-fuchsia-100 text-fuchsia-700', button: 'bg-fuchsia-600 text-white' },
   { slug: 'surya-chandra', title: 'Surya Chandra', description: 'Suns and moons on a 6×6 grid. Three of each per row and column, never three in a line.', icon: IconSun, href: '/play/surya-chandra', tile: 'bg-amber-100 text-amber-800', button: 'bg-amber-600 text-white' },
   { slug: 'ras-rani', title: 'Ras Rani 🍯', description: 'One nectar drop per row, column and colour. Easy 7×7, Medium 8–9×9 and Difficult 10–11×11 rotate daily.', icon: NectarIcon, href: '/play/ras-rani', tile: 'bg-amber-100 text-amber-700', button: 'bg-amber-700 text-white' },
-  { slug: 'lanka-leap', title: 'Lanka Leap', description: 'Leap across the ocean with Hanumanji. Get past Surasa and Simhika and reach Lanka.', icon: IconWind, href: '/play/lanka-leap', tile: 'bg-sky-100 text-sky-700', button: 'bg-sky-700 text-white', testOnly: true },
+  { slug: 'lanka-leap', title: 'Lanka Leap', description: 'Leap across the ocean with Hanumanji. Get past Surasa and Simhika and reach Lanka.', icon: IconWind, href: '/play/lanka-leap', tile: 'bg-sky-100 text-sky-700', button: 'bg-sky-700 text-white' },
 ]
 const games = allGames.filter(game => !game.testOnly || showPrototypeGames())
 
@@ -221,5 +221,5 @@ function resultLine(slug: PlayGameSlug) {
   return parts.length ? parts.join(' · ') : 'Come back tomorrow for a new challenge'
 }
 
-usePageSeo('Games', 'Daily satsang games — Wordle, Crossword, Connections, 1% Club, Surya Chandra and Ras Rani.')
+usePageSeo('Games', 'Daily satsang games — Wordle, Crossword, Connections, 1% Club, Surya Chandra, Ras Rani and Lanka Leap.')
 </script>
