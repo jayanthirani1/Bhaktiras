@@ -1,11 +1,8 @@
-import { collection, getDocs, limit, query, where, type Firestore } from 'firebase/firestore'
-import { MANDIR_DARSHAN_CHALLENGE_ID, userChallengeKey } from '~/utils/niyamChallenge'
+import { collection, getDocs, query, where, type Firestore } from 'firebase/firestore'
+import { MANDIR_DARSHAN_CHALLENGE_ID, MANDIR_DARSHAN_LAUNCH_DAY } from '~/utils/niyamChallenge'
 
-/** Daily Darshan check-ins only count from the day the lock was introduced. */
-export const LANKA_LEAP_UNLOCK_FROM = '2026-10-08'
+/** Distinct Daily Darshan days needed before Lanka Leap opens. */
 export const LANKA_LEAP_UNLOCK_DAYS = 7
-export const LANKA_LEAP_UNLOCK_FROM_LABEL = new Date(`${LANKA_LEAP_UNLOCK_FROM}T12:00:00Z`)
-  .toLocaleDateString('en-GB', { day: 'numeric', month: 'long', timeZone: 'Europe/London' })
 
 function getDb(): Firestore | null {
   if (import.meta.server) return null
@@ -14,11 +11,13 @@ function getDb(): Firestore | null {
 
 /**
  * Lanka Leap opens once a devotee has logged Daily Darshan on seven different
- * days since LANKA_LEAP_UNLOCK_FROM. Admins can always play.
+ * days since the niyam launched. Admins can always play. Days already logged
+ * count — morning and evening on the same day are one day.
  *
- * Reads the player's own `niyamSubmissions` with the same single-equality query
- * the niyam pages use, so no composite index is needed; the date and status
- * filters run in memory.
+ * The list is filtered on `userId`. Rules only allow a collection query when
+ * they can prove `userId == auth.uid`. A `userChallengeKey` filter does not
+ * prove that, so devotees were denied and the unlock stayed at zero. Admins
+ * slipped through because `isAdmin()` allows any list.
  */
 export function useLankaLeapUnlock() {
   const { user, loading: authLoading } = useAuth()
@@ -42,17 +41,18 @@ export function useLankaLeapUnlock() {
       if (!db) return
       const snap = await getDocs(query(
         collection(db, 'niyamSubmissions'),
-        where('userChallengeKey', '==', userChallengeKey(uid, MANDIR_DARSHAN_CHALLENGE_ID)),
-        limit(200)
+        where('userId', '==', uid)
       ))
       const days = new Set<string>()
       for (const item of snap.docs) {
         const data = item.data()
+        if (data.challengeId !== MANDIR_DARSHAN_CHALLENGE_ID) continue
         const dayKey = String(data.dayKey || '')
-        if (data.status !== 'rejected' && dayKey >= LANKA_LEAP_UNLOCK_FROM) days.add(dayKey)
+        if (data.status !== 'rejected' && dayKey >= MANDIR_DARSHAN_LAUNCH_DAY) days.add(dayKey)
       }
       daysDone.value = days.size
-    } catch {
+    } catch (error) {
+      console.warn('[lanka-leap] could not read Daily Darshan days', error)
       daysDone.value = 0
     } finally {
       checked.value = true

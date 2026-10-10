@@ -44,7 +44,7 @@
               <p class="font-display text-xl font-bold text-[hsl(var(--primary))]">Unlock Lanka Leap</p>
               <p class="text-sm text-[hsl(var(--muted-foreground))]">
                 Log your Daily Darshan on {{ LANKA_LEAP_UNLOCK_DAYS }} different days to open the game.
-                Days count from {{ unlockFromLabel }}.
+                Days you have already logged count.
               </p>
               <template v-if="isLoggedIn">
                 <div>
@@ -172,7 +172,7 @@ import {
   WORLD_WIDTH
 } from '~/functions/shared/lankaLeap.mjs'
 import { IconLock, IconMusic, IconVolume, IconVolumeOff } from '@tabler/icons-vue'
-import { LANKA_LEAP_UNLOCK_DAYS, LANKA_LEAP_UNLOCK_FROM_LABEL } from '~/composables/useLankaLeapUnlock'
+import { LANKA_LEAP_UNLOCK_DAYS } from '~/composables/useLankaLeapUnlock'
 import { ukDateId } from '~/utils/gameDay'
 type RunState = ReturnType<typeof createRun>
 type Obstacle = RunState['course'][number]
@@ -200,7 +200,6 @@ const isLoggedIn = computed(() => !!auth.user.value)
 
 const unlock = useLankaLeapUnlock()
 const unlocked = computed(() => unlock.unlocked.value)
-const unlockFromLabel = LANKA_LEAP_UNLOCK_FROM_LABEL
 const unlockDaysShown = computed(() => Math.min(unlock.daysDone.value, LANKA_LEAP_UNLOCK_DAYS))
 const unlockPercent = computed(() => (unlockDaysShown.value / LANKA_LEAP_UNLOCK_DAYS) * 100)
 

@@ -85,7 +85,7 @@
                 </span>
               </div>
               <p class="mt-0.5 text-sm leading-snug text-slate-600">
-                Log your Daily Darshan on {{ LANKA_LEAP_UNLOCK_DAYS }} different days from {{ LANKA_LEAP_UNLOCK_FROM_LABEL }} to unlock.
+                Log your Daily Darshan on {{ LANKA_LEAP_UNLOCK_DAYS }} different days to unlock. Days you have already logged count.
               </p>
               <div v-if="isLoggedIn" class="mt-2 flex items-center gap-2">
                 <div class="h-1.5 max-w-40 flex-1 overflow-hidden rounded-full bg-slate-200">
@@ -165,7 +165,7 @@ import {
   IconWind
 } from '@tabler/icons-vue'
 import NectarIcon from '~/components/NectarIcon.vue'
-import { LANKA_LEAP_UNLOCK_DAYS, LANKA_LEAP_UNLOCK_FROM_LABEL } from '~/composables/useLankaLeapUnlock'
+import { LANKA_LEAP_UNLOCK_DAYS } from '~/composables/useLankaLeapUnlock'
 
 import type { PlayGameSlug } from '~/utils/playCompletion'
 
