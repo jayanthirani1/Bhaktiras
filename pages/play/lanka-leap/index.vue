@@ -209,19 +209,17 @@ const LISTENS_KEY = 'lanka-leap:chalisa-listens'
 const muted = ref(false)
 const chalisaListens = ref(0)
 let chalisa: HTMLAudioElement | null = null
-let chalisaLastTime = 0
 
-/** A loop never fires `ended`, so a full listen shows up as the playhead jumping from the end back to the start. */
-function onChalisaTime() {
-  if (!chalisa) return
-  const now = chalisa.currentTime
-  if (now + 1 < chalisaLastTime && chalisaLastTime > chalisa.duration - 3) {
-    chalisaListens.value++
-    try {
-      localStorage.setItem(LISTENS_KEY, String(chalisaListens.value))
-    } catch {}
-  }
-  chalisaLastTime = now
+/** One listen is one complete play of the track. Pausing a run does not count. */
+function onChalisaEnded() {
+  if (!chalisa || !Number.isFinite(chalisa.duration) || chalisa.duration < 60) return
+  chalisaListens.value++
+  try {
+    localStorage.setItem(LISTENS_KEY, String(chalisaListens.value))
+  } catch {}
+  if (muted.value || phase.value !== 'playing') return
+  chalisa.currentTime = 0
+  void chalisa.play().catch(() => {})
 }
 
 /** Must run inside the tap that starts or resumes a run, or mobile browsers refuse to play. */
@@ -229,9 +227,9 @@ function playChalisa() {
   if (muted.value) return
   if (!chalisa) {
     chalisa = new Audio(CHALISA_SRC)
-    chalisa.loop = true
+    chalisa.loop = false
     chalisa.volume = 0.55
-    chalisa.addEventListener('timeupdate', onChalisaTime)
+    chalisa.addEventListener('ended', onChalisaEnded)
   }
   void chalisa.play().catch(() => {})
 }
@@ -545,7 +543,7 @@ onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKey)
   document.removeEventListener('visibilitychange', onVisibility)
   pauseChalisa()
-  chalisa?.removeEventListener('timeupdate', onChalisaTime)
+  chalisa?.removeEventListener('ended', onChalisaEnded)
   chalisa = null
 })
 
