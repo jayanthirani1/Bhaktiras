@@ -47,6 +47,15 @@ function timestampSeconds(value: GameScoreEntry['completedAt']): number {
   return value.seconds ?? 0
 }
 
+/** Newer Lanka Leap rows store `tulsi`; older ones only mention it in `detail`. */
+function tulsiFromScore(data: Record<string, unknown>): number | undefined {
+  const fromField = Number(data.tulsi)
+  const match = String(data.detail || '').match(/(\d+)\s+tulsi/)
+  const fromDetail = match ? Number(match[1]) : 0
+  const tulsi = Math.max(Number.isFinite(fromField) ? fromField : 0, fromDetail)
+  return tulsi > 0 ? tulsi : undefined
+}
+
 /** Legacy Surya Chandra rows stored move count in `score` and time in `timeMs`. */
 function parseMovesFromDetail(entry: GameScoreEntry): number {
   const match = entry.detail?.match(/(\d+)\s+moves?/)
@@ -93,6 +102,7 @@ function mapScoreDoc(
     userName: String(data.userName || 'Anonymous'),
     userEmail: data.userEmail ? String(data.userEmail) : undefined,
     score: Number(data.score ?? data.guesses ?? 0),
+    tulsi: tulsiFromScore(data),
     timeMs: data.timeMs != null ? Number(data.timeMs) : undefined,
     detail: String(data.detail || data.word || ''),
     completedAt: data.completedAt as GameScoreEntry['completedAt']

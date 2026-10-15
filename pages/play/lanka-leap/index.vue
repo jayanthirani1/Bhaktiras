@@ -5,9 +5,6 @@
         <NuxtLink to="/play" class="rounded-full bg-[hsl(var(--muted))] px-3 py-1.5 text-sm font-medium text-[hsl(var(--muted-foreground))]">
           ‹ Back
         </NuxtLink>
-        <span class="rounded-full bg-[hsl(var(--muted))] px-3 py-1 text-sm font-semibold tabular-nums text-[hsl(var(--primary))]">
-          Best today: {{ day.best }}
-        </span>
       </div>
 
       <PageHeader title="Lanka Leap" subtitle="Leap across the ocean with Hanumanji. Every gate you pass scores a point." />
@@ -81,8 +78,8 @@
             <div class="w-full max-w-xs space-y-3 rounded-2xl bg-white p-5 text-center shadow-xl">
               <p class="text-xs font-bold uppercase tracking-wide text-sky-700">{{ deathTitle }}</p>
               <p class="font-display text-5xl font-bold text-[hsl(var(--primary))]">{{ lastRun.score }}</p>
-              <p v-if="newBest" class="text-sm font-semibold text-emerald-700">New best today!</p>
-              <p v-else class="text-sm text-[hsl(var(--muted-foreground))]">Best today: {{ day.best }}</p>
+              <p v-if="newBest" class="text-sm font-semibold text-emerald-700">New all-time best!</p>
+              <p v-else-if="isLoggedIn && allTimeBest > 0" class="text-sm text-[hsl(var(--muted-foreground))]">All-time best: {{ allTimeBest }}</p>
               <p class="text-sm text-[hsl(var(--muted-foreground))]">
                 {{ lastRun.tulsi }} tulsi {{ lastRun.tulsi === 1 ? 'leaf' : 'leaves' }}<span v-if="lastRun.reachedLanka"> · reached Lanka</span>
               </p>
@@ -106,8 +103,8 @@
 
         <div class="mx-auto grid max-w-sm grid-cols-3 gap-2 text-center text-xs text-[hsl(var(--muted-foreground))]">
           <div class="card-surface p-2"><p class="text-lg font-bold text-[hsl(var(--primary))]">{{ day.runs }}</p>Runs today</div>
-          <div class="card-surface p-2"><p class="text-lg font-bold text-[hsl(var(--primary))]">{{ day.best }}</p>Best score</div>
-          <div class="card-surface p-2"><p class="text-lg font-bold text-[hsl(var(--primary))]">{{ day.bestTulsi }}</p>Most tulsi</div>
+          <div class="card-surface p-2"><p class="text-lg font-bold text-[hsl(var(--primary))]">{{ allTimeBest }}</p>All-time best</div>
+          <div class="card-surface p-2"><p class="text-lg font-bold text-[hsl(var(--primary))]">{{ allTimeTulsi }}</p>Most tulsi</div>
         </div>
 
         <div class="flex flex-wrap items-center justify-center gap-2 text-sm text-[hsl(var(--muted-foreground))]">
@@ -140,16 +137,17 @@
           :entries="boardEntries"
           :loading="boardLoading"
           all-time
+          show-all
+          mark-most-tulsi
           :current-user-id="auth.user.value?.uid"
           game="lanka-leap"
-          rules="Ranked by highest score of all time. Signed in, your best run is checked and saved automatically."
+          rules="Ranked by highest score of all time. A tulsi leaf marks who has collected the most leaves. Signed in, your best run is checked and saved automatically."
         >
           <template v-if="!isLoggedIn">
             <NuxtLink to="/login?redirect=/play/lanka-leap" class="text-[hsl(var(--primary))] underline">Sign in</NuxtLink>
             to get on the board.
           </template>
         </GameLeaderboard>
-        <GameCrowns :ids="['lanka-leap-highest']" />
       </div>
     </div>
   </div>
@@ -184,8 +182,11 @@ interface DayRecord {
   bestTulsi: number
   runs: number
   reachedLanka: boolean
-  /** Leap ticks of the best run, kept so it can be verified once scores are submitted. */
+  /** Leap ticks of the best-scoring run, kept so it can be verified once scores are submitted. */
   bestLeaps: number[]
+  /** Leap ticks of the run that collected the most tulsi today. */
+  bestTulsiLeaps: number[]
+  bestTulsiScore: number
 }
 
 const dateId = ukDateId()
@@ -255,15 +256,23 @@ const savingRun = ref(false)
 const saveError = ref('')
 /** Highest score sent this session, so a run is never sent twice. */
 let lastSentScore = 0
+let lastSentTulsi = 0
 
 const myRecord = computed(() =>
   boardEntries.value.find(entry => entry.userId === auth.user.value?.uid)?.score ?? 0
 )
+const myBestTulsi = computed(() =>
+  boardEntries.value.find(entry => entry.userId === auth.user.value?.uid)?.tulsi ?? 0
+)
 
-/** The callable replays the leaps and keeps the score only if it beats the stored record. */
-async function sendRun(score: number, runLeaps: number[]) {
-  if (!auth.user.value || score <= 0 || score <= myRecord.value || score <= lastSentScore) return
-  lastSentScore = score
+/** The callable replays the leaps and keeps a score or tulsi total only if it beats what is stored. */
+async function sendRun(score: number, tulsi: number, runLeaps: number[]) {
+  if (!auth.user.value || !runLeaps.length || (score <= 0 && tulsi <= 0)) return
+  const worthScore = score > myRecord.value && score > lastSentScore
+  const worthTulsi = tulsi > myBestTulsi.value && tulsi > lastSentTulsi
+  if (!worthScore && !worthTulsi) return
+  if (worthScore) lastSentScore = score
+  if (worthTulsi) lastSentTulsi = tulsi
   savingRun.value = true
   saveError.value = ''
   try {
@@ -280,16 +289,20 @@ async function sendRun(score: number, runLeaps: number[]) {
   }
 }
 
-watch([() => auth.user.value?.uid, boardLoading], ([uid, loading]) => {
-  if (uid && !loading && day.bestLeaps.length) void sendRun(day.best, day.bestLeaps)
-})
-
 const canvasEl = ref<HTMLCanvasElement | null>(null)
 const stageEl = ref<HTMLDivElement | null>(null)
 const phase = ref<Phase>('ready')
 const lastRun = ref<{ score: number; tulsi: number; reachedLanka: boolean; cause: DeathCause } | null>(null)
 const newBest = ref(false)
-const day = reactive<DayRecord>({ best: 0, bestTulsi: 0, runs: 0, reachedLanka: false, bestLeaps: [] })
+const day = reactive<DayRecord>({ best: 0, bestTulsi: 0, runs: 0, reachedLanka: false, bestLeaps: [], bestTulsiLeaps: [], bestTulsiScore: 0 })
+const allTimeBest = computed(() => Math.max(myRecord.value, day.best))
+const allTimeTulsi = computed(() => Math.max(myBestTulsi.value, day.bestTulsi))
+
+watch([() => auth.user.value?.uid, boardLoading], ([uid, loading]) => {
+  if (!uid || loading) return
+  if (day.bestLeaps.length) void sendRun(day.best, 0, day.bestLeaps)
+  if (day.bestTulsiLeaps.length) void sendRun(day.bestTulsiScore, day.bestTulsi, day.bestTulsiLeaps)
+})
 
 let run: RunState = createRun(seed)
 let leaps: number[] = []
@@ -377,6 +390,8 @@ function loadDay() {
     day.runs = Number(data.runs) || 0
     day.reachedLanka = data.reachedLanka === true
     day.bestLeaps = Array.isArray(data.bestLeaps) ? data.bestLeaps : []
+    day.bestTulsiLeaps = Array.isArray(data.bestTulsiLeaps) ? data.bestTulsiLeaps : []
+    day.bestTulsiScore = Number(data.bestTulsiScore) || 0
   } catch {}
 }
 
@@ -429,16 +444,20 @@ function endRun() {
   const cause = run.cause || 'rock'
   lastRun.value = { score: run.score, tulsi: run.tulsi, reachedLanka: run.reachedLanka, cause }
   day.runs++
-  newBest.value = run.score > day.best
-  if (newBest.value) {
+  newBest.value = isLoggedIn.value && run.score > myRecord.value
+  if (run.score > day.best) {
     day.best = run.score
     day.bestLeaps = leaps.slice()
   }
-  day.bestTulsi = Math.max(day.bestTulsi, run.tulsi)
+  if (run.tulsi > day.bestTulsi) {
+    day.bestTulsi = run.tulsi
+    day.bestTulsiLeaps = leaps.slice()
+    day.bestTulsiScore = run.score
+  }
   day.reachedLanka = day.reachedLanka || run.reachedLanka
   saveDay()
   void markDone({ score: day.best, detail: `Best ${day.best}${day.reachedLanka ? ' · reached Lanka' : ''}` })
-  void sendRun(run.score, leaps.slice())
+  void sendRun(run.score, run.tulsi, leaps.slice())
   overAt = performance.now()
   phase.value = 'over'
   if (navigator.vibrate) navigator.vibrate(40)

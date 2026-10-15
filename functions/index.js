@@ -368,19 +368,45 @@ async function replayLankaLeap(data) {
  * Lanka Leap's board is all-time: one row per player, `lanka-leap_{uid}`,
  * written only here after a replay. The rules refuse browser writes for it.
  */
+function storedTulsi(data) {
+  const fromField = Number(data?.tulsi)
+  const fromDetail = Number(String(data?.detail || '').match(/(\d+)\s+tulsi/)?.[1]) || 0
+  return Math.max(Number.isFinite(fromField) ? fromField : 0, fromDetail, 0)
+}
+
+/**
+ * One row per player. Score and tulsi are tracked separately: a lower-scoring
+ * run can still raise the tulsi record, and a higher score keeps the old tulsi
+ * if that flight collected fewer leaves.
+ */
 async function saveLankaLeapBest(db, uid, userName, run) {
   const ref = db.doc(`gameScores/lanka-leap_${uid}`)
   await db.runTransaction(async (transaction) => {
     const snap = await transaction.get(ref)
-    if (snap.exists && Number(snap.data().score) >= run.score) return
+    const prev = snap.exists ? snap.data() : null
+    const prevScore = Number(prev?.score) || 0
+    const prevTulsi = storedTulsi(prev)
+    const nextScore = Math.max(prevScore, run.score)
+    const nextTulsi = Math.max(prevTulsi, run.tulsi)
+    const reached = Boolean(run.reachedLanka) || String(prev?.detail || '').includes('reached Lanka')
+    const detail = `${nextTulsi} tulsi${reached ? ' · reached Lanka' : ''}`
+    if (
+      prev
+      && nextScore === prevScore
+      && Number(prev.tulsi) === nextTulsi
+      && prev.userName === userName
+      && prev.detail === detail
+    ) return
+    const scoreImproved = !prev || nextScore > prevScore
     transaction.set(ref, {
       game: 'lanka-leap',
-      dateId: run.dateId,
+      dateId: scoreImproved ? run.dateId : (prev.dateId || run.dateId),
       userId: uid,
       userName,
-      score: run.score,
-      detail: `${run.tulsi} tulsi${run.reachedLanka ? ' · reached Lanka' : ''}`,
-      completedAt: FieldValue.serverTimestamp()
+      score: nextScore,
+      tulsi: nextTulsi,
+      detail,
+      completedAt: scoreImproved ? FieldValue.serverTimestamp() : (prev.completedAt || FieldValue.serverTimestamp())
     })
   })
 }
@@ -1256,8 +1282,8 @@ async function handleGameAchievements(request) {
   } else if (game === 'lanka-leap') {
     const run = await replayLankaLeap(request.data)
     Object.assign(candidate, { score: run.score, tulsi: run.tulsi, reachedLanka: run.reachedLanka })
+    if (run.score > 0 || run.tulsi > 0) await saveLankaLeapBest(db, uid, userName, run)
     if (run.score > 0) {
-      await saveLankaLeapBest(db, uid, userName, run)
       crownSpecs.push({
         id: 'lanka-leap-highest',
         metric: 'high-score',

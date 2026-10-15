@@ -1,10 +1,11 @@
 <template>
   <div class="mt-12">
     <h3 class="text-lg font-bold text-[hsl(var(--primary))] mb-1">
-      {{ allTime ? 'All-time top 10' : 'Today’s top 10' }}
+      {{ allTime ? (showAll ? 'All-time scores' : 'All-time top 10') : 'Today’s top 10' }}
     </h3>
     <p class="text-sm text-[hsl(var(--muted-foreground))] mb-1">
-      <template v-if="allTime">Best scores ever. Anyone can view.</template>
+      <template v-if="showAll">Every player’s highest score.</template>
+      <template v-else-if="allTime">Best scores ever. Anyone can view.</template>
       <template v-else>Resets every day ({{ dateLabel }}). Anyone can view.</template>
     </p>
     <p v-if="rulesText" class="text-sm text-[hsl(var(--muted-foreground))] mb-3">
@@ -37,6 +38,12 @@
                 {{ row.entry.userName }}
               </NuxtLink>
               <span v-else class="truncate">{{ row.entry.userName }}</span>
+              <span
+                v-if="row.mostTulsi"
+                class="shrink-0 text-base leading-none"
+                :aria-label="`Most tulsi leaves, ${row.entry.tulsi}`"
+                title="Most tulsi leaves"
+              >🌿</span>
               <IconCrown
                 v-for="(label, index) in row.crownLabels"
                 :key="`${row.entry.id}-crown-${index}`"
@@ -89,6 +96,7 @@ type LeaderboardRow = {
   userId?: string
   userName: string
   score?: number
+  tulsi?: number
   guesses?: number
   timeMs?: number
   detail?: string
@@ -99,6 +107,10 @@ const props = defineProps<{
   loading?: boolean
   dateId?: string
   allTime?: boolean
+  /** List every player instead of the top 10. */
+  showAll?: boolean
+  /** Mark whoever has collected the most tulsi, instead of a score crown. */
+  markMostTulsi?: boolean
   currentUserId?: string
   formatScore?: (entry: LeaderboardRow) => string
   game?: GameLeaderboardId
@@ -123,7 +135,7 @@ const rulesText = computed(() => {
 /** Crown titles held by each user for this game (order follows CROWN_DEFINITIONS). */
 const crownsByUserId = computed(() => {
   const map = new Map<string, string[]>()
-  if (!props.game) return map
+  if (!props.game || props.markMostTulsi) return map
   const crownGame = CROWN_GAME_ALIASES[props.game] || props.game
   const defs = CROWN_DEFINITIONS.filter(def => def.game === crownGame)
   for (const def of defs) {
@@ -155,16 +167,27 @@ function crownsFor(userId?: string) {
   return crownsByUserId.value.get(userId) || []
 }
 
+const mostTulsi = computed(() => {
+  if (!props.markMostTulsi) return 0
+  return (props.entries || []).reduce((best, entry) => Math.max(best, entry.tulsi || 0), 0)
+})
+
+function holdsMostTulsi(entry: LeaderboardRow) {
+  return mostTulsi.value > 0 && (entry.tulsi || 0) === mostTulsi.value
+}
+
 const visibleRows = computed(() => {
   const list = props.entries || []
-  const top = list.slice(0, LEADERBOARD_TOP).map((entry, idx) => ({
+  const ranked = props.showAll ? list : list.slice(0, LEADERBOARD_TOP)
+  const top = ranked.map((entry, idx) => ({
     entry,
     rank: idx + 1,
     mine: !!props.currentUserId && entry.userId === props.currentUserId,
     crownLabels: crownsFor(entry.userId),
+    mostTulsi: holdsMostTulsi(entry),
     profilePath: devoteeProfilePath(entry.userId)
   }))
-  if (!props.currentUserId) return top
+  if (props.showAll || !props.currentUserId) return top
   if (top.some(r => r.mine)) return top
   const idx = list.findIndex(e => e.userId === props.currentUserId)
   if (idx < 0) return top
@@ -174,6 +197,7 @@ const visibleRows = computed(() => {
     rank: idx + 1,
     mine: true,
     crownLabels: crownsFor(entry.userId),
+    mostTulsi: holdsMostTulsi(entry),
     profilePath: devoteeProfilePath(entry.userId)
   }]
 })

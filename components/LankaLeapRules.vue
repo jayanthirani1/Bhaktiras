@@ -6,7 +6,7 @@
     <li>Before <StoryLink id="surasa">Surasa</StoryLink>, take the blue Laghima orb. Hanumanji becomes tiny and slips through her narrow mouth.</li>
     <li><StoryLink id="mainak">Mainak</StoryLink> rises from the sea with a golden orb. Take it and the next hit is forgiven.</li>
     <li>Over <StoryLink id="simhika">Simhika</StoryLink>’s dark water, stay high. She seizes your shadow and drags you down.</li>
-    <li>Pass <StoryLink id="lankini">Lankini</StoryLink>’s gate to reach Lanka, then keep going for a higher score. Fly as often as you like; your best run of the day counts.</li>
+    <li>Pass <StoryLink id="lankini">Lankini</StoryLink>’s gate to reach Lanka, then keep going for a higher score. Fly as often as you like; your highest score of all time is kept.</li>
   </ol>
   <p class="mt-3 text-xs">
     Tap a name to read their story from the Sundar Kand.

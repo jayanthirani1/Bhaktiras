@@ -471,6 +471,8 @@ export interface GameScoreEntry {
   userName: string
   userEmail?: string
   score: number
+  /** Lanka Leap: most tulsi leaves this player has collected on any run. */
+  tulsi?: number
   /** Elapsed time in milliseconds when relevant (Wordle, Crossword, 1% Club). */
   timeMs?: number
   detail?: string
