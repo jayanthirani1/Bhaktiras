@@ -84,7 +84,7 @@ export const DEFAULT_NIYAM_CHALLENGES: NiyamChallengeSeed[] = [
     maxPerSubmission: 2,
     inputMode: 'checkin',
     presets: [1],
-    hint: 'One morning sabha and one evening sabha — Aarti, Chesta or Katha in person. Log from home if you forgot to check in at mandir.',
+    hint: 'One morning sabha and one evening sabha — Aarti, Chesta or Katha in person. Pick the day, including an earlier one you missed.',
     icon: 'mandir'
   },
   {

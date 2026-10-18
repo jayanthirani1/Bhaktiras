@@ -603,7 +603,7 @@ export function useNiyamChallenges() {
             collection(db, 'niyamSubmissions'),
             where('userChallengeKey', '==', userChallengeKey(uid, c.id)),
             // Document ids embed an inverted timestamp, so default id order is newest-first.
-            limit(MY_SUBMISSION_LIMIT)
+            limit(inputModeFor(c) === 'checkin' ? 800 : MY_SUBMISSION_LIMIT)
           ))
           return snap.docs.map(d => mapSubmission(d.id, d.data()))
         } catch {
@@ -656,7 +656,7 @@ export function useNiyamChallenges() {
         throw new Error(
           saved.reviewNote?.trim()
             || (checkin
-              ? 'This check-in was not counted — you may have already logged today\'s sabhas or tapped too soon.'
+              ? 'This check-in was not counted — that sabha may already be logged, or you tapped too soon.'
               : 'This entry was not counted — you may have tapped too soon. Wait a minute and try again.')
         )
       }
@@ -675,7 +675,8 @@ export function useNiyamChallenges() {
     challenge: NiyamChallenge,
     amountInput: number,
     noteInput = '',
-    checkinSlotInput?: MandirCheckinSlot | null
+    checkinSlotInput?: MandirCheckinSlot | null,
+    dayKeyInput?: string
   ): Promise<{ status: NiyamSubmissionStatus; submission: NiyamSubmission }> {
     if (submitting.value) throw new Error('Already saving')
     const db = getDb()
@@ -693,10 +694,17 @@ export function useNiyamChallenges() {
       throw new Error(`The most you can add in one entry is ${challenge.maxPerSubmission}`)
     }
 
-    if (inputModeFor(challenge) === 'checkin') {
+    const checkin = inputModeFor(challenge) === 'checkin'
+    const dayKey = checkin && dayKeyInput && /^\d{4}-\d{2}-\d{2}$/.test(dayKeyInput)
+      ? dayKeyInput
+      : ukDateId()
+
+    if (checkin) {
       const verdict = validateMandirCheckinSubmission(
         submissionsFor(challenge.id),
-        { amount, checkinSlot: checkinSlotInput ?? null }
+        { amount, checkinSlot: checkinSlotInput ?? null },
+        Date.now(),
+        dayKey
       )
       if (!verdict.ok) throw new Error(verdict.error || 'This check-in could not be recorded.')
     } else {
@@ -714,7 +722,6 @@ export function useNiyamChallenges() {
 
     submitting.value = true
     error.value = ''
-    const dayKey = ukDateId()
     const optimistic: NiyamSubmission = {
       id,
       challengeId: challenge.id,

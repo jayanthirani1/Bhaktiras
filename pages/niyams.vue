@@ -26,8 +26,6 @@
             :is-logged-in="isLoggedIn"
             :my-approved="myApprovedByChallenge[challenge.id] ?? 0"
             :my-pending="myPendingByChallenge[challenge.id] ?? 0"
-            :log-disabled="challenge.id === MANDIR_CHALLENGE_ID && mandirDailyFull"
-            :log-disabled-label="'Done for today'"
             @detail="openDetail(challenge)"
             @log="openLog(challenge)"
             @sign-in="goSignIn"
@@ -99,9 +97,8 @@
 
 <script setup lang="ts">
 import type { MandirCheckinSlot, NiyamChallenge, NiyamChallengeStats, NiyamSubmission, NiyamSubmissionStatus } from '~/types'
-import { inputModeFor, mandirDailyCheckinComplete, validateMandirCheckinSubmission } from '~/utils/niyamChallenge'
-
-const MANDIR_CHALLENGE_ID = 'mandir-darshan'
+import { ukDateId } from '~/utils/gameDay'
+import { inputModeFor, validateMandirCheckinSubmission } from '~/utils/niyamChallenge'
 
 const {
   challenges,
@@ -150,10 +147,6 @@ const activeStats = computed(() => (activeId.value ? statsFor(activeId.value) : 
 const activeSubmissions = computed(() => (activeId.value ? submissionsFor(activeId.value) : []))
 
 const pulseStats = computed(() => publishedChallenges.value.map(c => statsFor(c.id)))
-
-const mandirDailyFull = computed(() =>
-  mandirDailyCheckinComplete(submissionsFor(MANDIR_CHALLENGE_ID))
-)
 
 function goSignIn() {
   navigateTo('/login?redirect=/niyams')
@@ -215,6 +208,7 @@ async function onSubmit(payload: {
   amount: number
   note: string
   checkinSlot?: MandirCheckinSlot | null
+  dayKey?: string
   done: (result: { status: NiyamSubmissionStatus; submission: NiyamSubmission | null }) => void
   fail: (message: string) => void
 }) {
@@ -228,7 +222,9 @@ async function onSubmit(payload: {
   if (inputModeFor(challenge) === 'checkin') {
     const verdict = validateMandirCheckinSubmission(
       submissionsFor(challenge.id),
-      { amount: payload.amount, checkinSlot: payload.checkinSlot ?? null }
+      { amount: payload.amount, checkinSlot: payload.checkinSlot ?? null },
+      Date.now(),
+      payload.dayKey || ukDateId()
     )
     if (!verdict.ok) {
       payload.fail(verdict.error || 'This check-in could not be recorded.')
@@ -241,7 +237,8 @@ async function onSubmit(payload: {
       challenge,
       payload.amount,
       payload.note,
-      payload.checkinSlot ?? null
+      payload.checkinSlot ?? null,
+      payload.dayKey
     )
     payload.done({ status, submission })
   } catch (e) {

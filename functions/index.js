@@ -1747,7 +1747,7 @@ function niyamCounters(value) {
 /** Minimum gap between duplicate taps — not between separate sabhas the same day. */
 const MANDIR_CHECKIN_DOUBLE_TAP_MS = 2 * 60 * 1000
 const MANDIR_CHECKIN_CHALLENGE_ID = 'mandir-darshan'
-const MANDIR_CHECKIN_RECENT_LIMIT = 40
+const MANDIR_CHECKIN_RECENT_LIMIT = 800
 /** Evening sabha slot starts at 14:00 Europe/London. */
 const MANDIR_EVENING_SLOT_HOUR = 14
 const MANDIR_CHECKIN_MAX_PER_DAY = 2
@@ -1769,6 +1769,20 @@ function ukDateIdNow() {
     month: '2-digit',
     day: '2-digit'
   }).format(new Date())
+}
+
+function mandirDayPhrase(dayKey) {
+  const today = ukDateIdNow()
+  if (dayKey === today) return 'today'
+  const [year, month, day] = dayKey.split('-').map(Number)
+  if (!year || !month || !day) return 'that day'
+  const label = new Date(Date.UTC(year, month - 1, day)).toLocaleDateString('en-GB', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    timeZone: 'UTC'
+  })
+  return `on ${label}`
 }
 
 function mandirMaxSabhasForDay(dayKey) {
@@ -1853,6 +1867,11 @@ async function rejectMandirCheckinSpam(db, submissionId, afterSnap) {
     return true
   }
 
+  if (dayKey > ukDateIdNow()) {
+    await markNiyamSpamRejected(db, submissionId, after.challengeId, 'You can only log sabhas up to today.')
+    return true
+  }
+
   const newMs = submissionCreatedMs(after)
   const newAmount = niyamCounters(after.amount)
   const launchBlock = mandirLaunchDayBlocksCheckin(dayKey, newAmount, after.checkinSlot, newMs)
@@ -1889,7 +1908,7 @@ async function rejectMandirCheckinSpam(db, submissionId, afterSnap) {
     todayRows.push({ id: doc.id, row, ms: submissionCreatedMs(row) })
   }
 
-  const lifetimeMax = mandirMaxTotalSinceLaunch(dayKey)
+  const lifetimeMax = mandirMaxTotalSinceLaunch(ukDateIdNow())
   if (lifetimeTotal + newAmount > lifetimeMax) {
     await markNiyamSpamRejected(db, submissionId, after.challengeId, 'You have reached the maximum check-ins available so far.')
     logger.info('Rejected mandir check-in over lifetime limit', {
@@ -1903,7 +1922,7 @@ async function rejectMandirCheckinSpam(db, submissionId, afterSnap) {
   }
 
   if (morningLogged && eveningLogged && dailyMax >= 2) {
-    await markNiyamSpamRejected(db, submissionId, after.challengeId, 'Already checked in for morning and evening today.')
+    await markNiyamSpamRejected(db, submissionId, after.challengeId, `Already checked in for morning and evening ${mandirDayPhrase(dayKey)}.`)
     logger.info('Rejected mandir check-in over daily limit', {
       submissionId,
       userId: after.userId,
@@ -1933,7 +1952,7 @@ async function rejectMandirCheckinSpam(db, submissionId, afterSnap) {
 
   if ((newFilled.morning && morningLogged) || (newFilled.evening && eveningLogged)) {
     const slot = newFilled.morning && morningLogged ? 'morning' : 'evening'
-    await markNiyamSpamRejected(db, submissionId, after.challengeId, `Already checked in for the ${slot} sabha today.`)
+    await markNiyamSpamRejected(db, submissionId, after.challengeId, `Already checked in for the ${slot} sabha ${mandirDayPhrase(dayKey)}.`)
     logger.info('Rejected mandir check-in duplicate slot', {
       submissionId,
       userId: after.userId,
@@ -1946,16 +1965,18 @@ async function rejectMandirCheckinSpam(db, submissionId, afterSnap) {
   if (!newMs) return false
 
   for (const item of todayRows) {
-    if (item.ms && newMs - item.ms < MANDIR_CHECKIN_DOUBLE_TAP_MS) {
-      await markNiyamSpamRejected(db, submissionId, after.challengeId, 'Checked in again too soon — wait two minutes between sabhas.')
-      logger.info('Rejected mandir check-in double-tap', {
-        submissionId,
-        userId: after.userId,
-        previousMs: item.ms,
-        newMs
-      })
-      return true
-    }
+    if (!item.ms || newMs - item.ms >= MANDIR_CHECKIN_DOUBLE_TAP_MS) continue
+    const filled = mandirSlotsFilled(item.row)
+    const overlap = (newFilled.morning && filled.morning) || (newFilled.evening && filled.evening)
+    if (!overlap) continue
+    await markNiyamSpamRejected(db, submissionId, after.challengeId, 'Checked in again too soon — wait two minutes between taps.')
+    logger.info('Rejected mandir check-in double-tap', {
+      submissionId,
+      userId: after.userId,
+      previousMs: item.ms,
+      newMs
+    })
+    return true
   }
   return false
 }

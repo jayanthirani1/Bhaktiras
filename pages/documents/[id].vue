@@ -193,6 +193,7 @@ import {
   readStoredDocFontRem,
   writeStoredDocFontRem
 } from '~/utils/niyamDocumentFont'
+import { ukDateId } from '~/utils/gameDay'
 import { inputModeFor, validateMandirCheckinSubmission } from '~/utils/niyamChallenge'
 
 const LANG_KEY = 'bhaktiras-doc-lang'
@@ -344,6 +345,7 @@ async function onSubmit(payload: {
   amount: number
   note: string
   checkinSlot?: MandirCheckinSlot | null
+  dayKey?: string
   done: (result: { status: NiyamSubmissionStatus; submission: NiyamSubmission | null }) => void
   fail: (message: string) => void
 }) {
@@ -359,7 +361,9 @@ async function onSubmit(payload: {
   if (inputModeFor(current) === 'checkin') {
     const verdict = validateMandirCheckinSubmission(
       submissionsFor(current.id),
-      { amount: payload.amount, checkinSlot: payload.checkinSlot ?? null }
+      { amount: payload.amount, checkinSlot: payload.checkinSlot ?? null },
+      Date.now(),
+      payload.dayKey || ukDateId()
     )
     if (!verdict.ok) {
       payload.fail(verdict.error || 'This check-in could not be recorded.')
@@ -371,7 +375,8 @@ async function onSubmit(payload: {
       current,
       payload.amount,
       payload.note,
-      payload.checkinSlot ?? null
+      payload.checkinSlot ?? null,
+      payload.dayKey
     )
     payload.done({ status, submission })
   } catch (e) {

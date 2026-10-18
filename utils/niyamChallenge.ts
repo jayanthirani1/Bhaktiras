@@ -371,6 +371,23 @@ export const MANDIR_CHECKIN_MAX_PER_DAY = 2
 /** Daily Darshan went live Saturday 29 Aug 2026 (evening sabha). */
 export const MANDIR_DARSHAN_LAUNCH_DAY = '2026-08-29'
 
+/** "today", or "Tuesday 10 November" for any other UK day. */
+export function formatMandirDayLabel(dayKey: string, todayId = ukDateId()): string {
+  if (dayKey === todayId) return 'today'
+  const [year, month, day] = dayKey.split('-').map(Number)
+  if (!year || !month || !day) return dayKey
+  return new Date(Date.UTC(year, month - 1, day)).toLocaleDateString('en-GB', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    timeZone: 'UTC'
+  })
+}
+
+function mandirDayClause(dayKey: string, todayId: string): string {
+  return dayKey === todayId ? 'today' : `on ${formatMandirDayLabel(dayKey, todayId)}`
+}
+
 /** Max sabhas allowed on a given UK day — one on launch evening, two on full days. */
 export function mandirMaxSabhasForDay(dayKey: string): number {
   if (dayKey < MANDIR_DARSHAN_LAUNCH_DAY) return 0
@@ -465,6 +482,19 @@ function submissionSlot(submission: NiyamSubmission): MandirCheckinSlot {
   return mandirCheckinSlot(ms || Date.now())
 }
 
+function mandirRequestSlots(
+  amount: number,
+  checkinSlot: MandirCheckinSlot | null,
+  now: number
+): { morning: boolean; evening: boolean } {
+  if (amount >= 2) return { morning: true, evening: true }
+  if (checkinSlot === 'morning' || checkinSlot === 'evening') {
+    return { morning: checkinSlot === 'morning', evening: checkinSlot === 'evening' }
+  }
+  const slot = mandirCheckinSlot(now)
+  return { morning: slot === 'morning', evening: slot === 'evening' }
+}
+
 /** Which sabhas are already counted today — from amounts and explicit slots. */
 export function mandirSabhaLoggedToday(
   submissions: NiyamSubmission[],
@@ -537,26 +567,27 @@ export function mandirManualCheckinPlan(
 ): { amount: number; checkinSlot?: MandirCheckinSlot; error?: string } {
   const logged = mandirSabhaLoggedToday(submissions, todayId)
   const totalToday = mandirCheckinsToday(submissions, todayId)
+  const when = mandirDayClause(todayId, ukDateId())
   if (logged.morning && logged.evening) {
-    return { amount: 0, error: 'You have already logged both sabhas today.' }
+    return { amount: 0, error: `You have already logged both sabhas ${when}.` }
+  }
+  if (todayId === MANDIR_DARSHAN_LAUNCH_DAY && (choice === 'both' || choice === 'morning')) {
+    return { amount: 0, error: 'Daily Darshan opened Saturday evening — the morning sabha was before launch.' }
   }
   if (choice === 'both') {
-    if (totalToday > 0) {
-      return { amount: 0, error: 'Log the remaining sabha instead of both.' }
-    }
-    if (logged.morning || logged.evening) {
+    if (totalToday > 0 || logged.morning || logged.evening) {
       return { amount: 0, error: 'Log the remaining sabha instead of both.' }
     }
     return { amount: 2 }
   }
-  if (totalToday + 1 > MANDIR_CHECKIN_MAX_PER_DAY) {
+  if (totalToday + 1 > mandirMaxSabhasForDay(todayId)) {
     return { amount: 0, error: 'You can only log two sabhas per day.' }
   }
   if (choice === 'morning') {
-    if (logged.morning) return { amount: 0, error: 'Morning sabha is already logged today.' }
+    if (logged.morning) return { amount: 0, error: `Morning sabha is already logged ${when}.` }
     return { amount: 1, checkinSlot: 'morning' }
   }
-  if (logged.evening) return { amount: 0, error: 'Evening sabha is already logged today.' }
+  if (logged.evening) return { amount: 0, error: `Evening sabha is already logged ${when}.` }
   return { amount: 1, checkinSlot: 'evening' }
 }
 
@@ -578,6 +609,10 @@ export function validateMandirCheckinSubmission(
   const amount = Math.floor(Number(request.amount) || 0)
   if (amount < 1) return { ok: false, error: 'Enter a valid check-in.' }
 
+  const actualToday = ukDateId(new Date(now))
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(todayId)) return { ok: false, error: 'Choose a valid day.' }
+  if (todayId > actualToday) return { ok: false, error: 'You can only log sabhas up to today.' }
+
   if (todayId < MANDIR_DARSHAN_LAUNCH_DAY) {
     return { ok: false, error: 'Daily Darshan check-in is not open yet.' }
   }
@@ -597,14 +632,14 @@ export function validateMandirCheckinSubmission(
   }
 
   const lifetimeTotal = mandirApprovedSabhasSinceLaunch(submissions)
-  const lifetimeMax = mandirMaxTotalSinceLaunch(todayId)
+  const lifetimeMax = mandirMaxTotalSinceLaunch(actualToday)
   if (lifetimeTotal + amount > lifetimeMax) {
     return { ok: false, error: 'You have reached the maximum check-ins available so far.' }
   }
 
   const logged = mandirSabhaLoggedToday(submissions, todayId)
   if (logged.morning && logged.evening) {
-    return { ok: false, error: 'You have already logged both sabhas today.' }
+    return { ok: false, error: `You have already logged both sabhas ${mandirDayClause(todayId, actualToday)}.` }
   }
 
   const manual = amount >= 2 || !!request.checkinSlot
@@ -622,15 +657,20 @@ export function validateMandirCheckinSubmission(
     }
   }
 
-  const latest = sortSubmissionsNewestFirst(
-    submissions.filter(s => s.status !== 'rejected' && s.dayKey === todayId)
-  )[0]
-  const lastMs = toMillis(latest?.createdAt)
-  if (lastMs) {
-    const remainingMs = Math.max(0, lastMs + MANDIR_CHECKIN_DOUBLE_TAP_MS - now)
-    if (remainingMs > 0) {
-      return { ok: false, error: mandirCheckinBlockedMessage({ blocked: true, remainingMs, reason: 'double-tap', nextAt: 0 }) }
-    }
+  const fills = mandirRequestSlots(amount, request.checkinSlot ?? null, now)
+  let remainingMs = 0
+  for (const submission of submissions) {
+    if (submission.status === 'rejected' || submission.dayKey !== todayId) continue
+    const ms = toMillis(submission.createdAt)
+    if (!ms) continue
+    const gap = ms + MANDIR_CHECKIN_DOUBLE_TAP_MS - now
+    if (gap <= 0) continue
+    const loggedSlots = mandirSabhaLoggedToday([submission], todayId)
+    const overlap = (fills.morning && loggedSlots.morning) || (fills.evening && loggedSlots.evening)
+    if (overlap) remainingMs = Math.max(remainingMs, gap)
+  }
+  if (remainingMs > 0) {
+    return { ok: false, error: mandirCheckinBlockedMessage({ blocked: true, remainingMs, reason: 'double-tap', nextAt: 0 }) }
   }
 
   return { ok: true }
@@ -646,15 +686,16 @@ export function mandirCheckinCooldown(
   const today = active.filter(s => s.dayKey === todayId)
   const logged = mandirSabhaLoggedToday(submissions, todayId)
   const slot = mandirCheckinSlot(now)
+  const isToday = todayId === ukDateId(new Date(now))
 
   if (logged.morning && logged.evening) {
     return { blocked: true, nextAt: 0, remainingMs: 0, reason: 'daily', slot }
   }
 
-  if (slot === 'morning' && logged.morning) {
+  if (isToday && slot === 'morning' && logged.morning) {
     return { blocked: true, nextAt: 0, remainingMs: 0, reason: 'slot', slot: 'morning' }
   }
-  if (slot === 'evening' && logged.evening) {
+  if (isToday && slot === 'evening' && logged.evening) {
     return { blocked: true, nextAt: 0, remainingMs: 0, reason: 'slot', slot: 'evening' }
   }
 
