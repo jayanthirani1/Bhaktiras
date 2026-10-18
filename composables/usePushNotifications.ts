@@ -439,7 +439,7 @@ export function usePushNotifications() {
             data: { url },
             tag: data.tag || 'bhaktiras-update',
             renotify: true
-          })
+          } as NotificationOptions)
         })
       })
     } catch {

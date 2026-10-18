@@ -128,9 +128,18 @@
         <p
           v-if="dailyCheckinComplete"
           class="mt-3 flex items-start gap-2 rounded-xl bg-[hsl(var(--golden-50))] px-3 py-2.5 text-left text-sm text-[hsl(var(--golden-900))]"
+          role="status"
         >
           <IconCheck class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
           <span>Both sabhas are already logged for {{ selectedDayClause }}.</span>
+        </p>
+        <p
+          v-else-if="loggedNotice"
+          class="mt-3 flex items-start gap-2 rounded-xl bg-[hsl(var(--golden-50))] px-3 py-2.5 text-left text-sm text-[hsl(var(--golden-900))]"
+          role="status"
+        >
+          <IconCheck class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+          <span>{{ loggedNotice }}</span>
         </p>
         <p v-else class="mt-3 text-sm text-[hsl(var(--muted-foreground))]">
           Which sabha did you attend?
@@ -481,6 +490,7 @@ let holdInterval: ReturnType<typeof setInterval> | null = null
 let undoTimer: ReturnType<typeof setInterval> | null = null
 
 const selectedDay = ref(ukDateId())
+const loggedNotice = ref('')
 const todayId = computed(() => ukDateId(new Date(now.value)))
 
 const published = computed(() => !!props.challenge && isPublished(props.challenge))
@@ -520,6 +530,7 @@ function selectDay(day: string) {
   if (day < MANDIR_DARSHAN_LAUNCH_DAY || day > todayId.value) return
   selectedDay.value = day
   localError.value = ''
+  loggedNotice.value = ''
 }
 
 const showFooter = computed(() =>
@@ -561,6 +572,7 @@ function reset() {
   showNumber.value = false
   showNote.value = false
   selectedDay.value = ukDateId()
+  loggedNotice.value = ''
   localError.value = ''
   phase.value = 'input'
   result.value = null
@@ -670,8 +682,13 @@ function commit(amount: number, checkinSlot?: MandirCheckinSlot | null) {
     done: (payload) => {
       committed.value = requested
       result.value = payload
-      phase.value = 'done'
       now.value = Date.now()
+      if (isCheckin.value) {
+        loggedNotice.value = checkinLoggedNotice(checkinSlot, requested)
+        reclaimFocus()
+        return
+      }
+      phase.value = 'done'
       startUndoTimer()
       reclaimFocus()
     },
@@ -679,6 +696,14 @@ function commit(amount: number, checkinSlot?: MandirCheckinSlot | null) {
       localError.value = message
     }
   })
+}
+
+function checkinLoggedNotice(slot: MandirCheckinSlot | null | undefined, amount: number) {
+  const when = selectedDay.value === todayId.value ? 'today' : selectedDayLabel.value
+  if (amount >= 2) return `Both sabhas logged for ${when}.`
+  if (slot === 'morning') return `Morning sabha logged for ${when}.`
+  if (slot === 'evening') return `Evening sabha logged for ${when}.`
+  return `Sabha logged for ${when}.`
 }
 
 function commitSabha(choice: MandirManualCheckinChoice) {
