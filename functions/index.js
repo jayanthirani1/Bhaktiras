@@ -17,7 +17,10 @@ const MIN_CROSSWORD_PLAY_MS = 5_000
 const ALLOWED_TOPICS = new Set(['all', 'announcements', 'games', 'niyams', 'niyam-milestones'])
 const INVALID_TOKEN_CODES = new Set([
   'messaging/invalid-registration-token',
-  'messaging/registration-token-not-registered'
+  'messaging/registration-token-not-registered',
+  // Token was minted for a different sender. It can never receive this
+  // project's messages, so drop it and let the device register again.
+  'messaging/mismatched-credential'
 ])
 const GAME_ACHIEVEMENTS = {
   wordle: [
@@ -525,7 +528,7 @@ function notificationPreviewBody(body, max = 120) {
  * Data-only so the client SW / foreground listener always owns display.
  * A notification payload would auto-show in background and skip onMessage while focused.
  */
-async function pushToRecipients({ recipients, title, body, topic, url }) {
+async function pushToRecipients({ recipients, title, body, topic, url, tag }) {
   const link = new URL(url || '/', SITE_ORIGIN).href
   const preview = notificationPreviewBody(body)
   let successCount = 0
@@ -542,7 +545,7 @@ async function pushToRecipients({ recipients, title, body, topic, url }) {
         preview,
         url: url || '/',
         topic,
-        tag: `bhaktiras-${topic}`
+        tag: tag || `bhaktiras-${topic}`
       },
       webpush: {
         fcmOptions: { link },
@@ -614,7 +617,7 @@ async function pruneStaleSubscriptions(db, staleRefs) {
  * Sends to a topic, records the delivery audit, and — unless `inbox` is false —
  * keeps a copy readable in the app so a missed OS notification is not lost.
  */
-async function deliverNotification({ title, body, topic, url, sentBy, inbox = topic !== 'games' && topic !== 'niyams' && topic !== 'niyam-milestones', excludeUserId = null }) {
+async function deliverNotification({ title, body, topic, url, sentBy, tag, inbox = topic !== 'games' && topic !== 'niyams' && topic !== 'niyam-milestones', excludeUserId = null }) {
   const db = getFirestore()
   const all = await loadRecipients(db, topic)
   // Someone who just did the thing does not need telling about it.
@@ -628,7 +631,7 @@ async function deliverNotification({ title, body, topic, url, sentBy, inbox = to
     pushUrl = `/notifications/${notificationRef.id}`
   }
 
-  const outcome = await pushToRecipients({ recipients, title, body, topic, url: pushUrl })
+  const outcome = await pushToRecipients({ recipients, title, body, topic, url: pushUrl, tag })
   await pruneStaleSubscriptions(db, outcome.staleRefs)
 
   const uniqueErrorCodes = Array.from(new Set(outcome.errorCodes))
@@ -768,26 +771,30 @@ exports.getPushAudience = onCall(
 )
 
 /**
- * Tells everyone when a record actually changes hands.
+ * Tells everyone when a record is broken.
  *
- * Deliberately narrow. A crown claimed on an empty board is not a record being
- * broken, and beating your own time is not news to anyone — including the
- * player, who already sees the achievement toast in the app. So this fires only
- * when a crown is taken from a different person, skips the breaker's own
- * devices, and takes at most one slot per hour however many crowns changed.
+ * A crown claimed on an empty board is not news. Beating your own time is not
+ * either — the player already sees that toast. A higher Lanka Leap score is,
+ * even when the same person still holds it, because that score is the record.
+ * The breaker's own devices are skipped. Each crown has its own hourly slot,
+ * so a Wordle record cannot swallow a Lanka Leap one.
  */
+function isRecordNews(crown, uid) {
+  if (crown.id === 'streak-longest' || !crown.previousHolderId) return false
+  if (crown.previousHolderId !== uid) return true
+  return crown.id === 'lanka-leap-highest'
+}
+
 async function announceRecords({ db, name, uid, claimedCrowns }) {
-  const broken = claimedCrowns.filter(crown =>
-    crown.id !== 'streak-longest'
-    && crown.previousHolderId
-    && crown.previousHolderId !== uid)
+  const broken = claimedCrowns.filter(crown => isRecordNews(crown, uid))
   if (!broken.length) return
 
   logger.info('Record broken', {
     uid,
-    crowns: broken.map(crown => ({ id: crown.id, from: crown.previousHolderId }))
+    crowns: broken.map(crown => ({ id: crown.id, from: crown.previousHolderId, value: crown.value }))
   })
-  if (!await claimNotificationSlot(db, 'recordNotifications', RECORD_THROTTLE_MS)) {
+  const [first] = broken
+  if (!await claimNotificationSlot(db, `recordNotifications:${first.id}`, RECORD_THROTTLE_MS)) {
     logger.info('Skipped record push', {
       reason: 'throttled',
       crowns: broken.map(crown => crown.id)
@@ -795,22 +802,29 @@ async function announceRecords({ db, name, uid, claimedCrowns }) {
     return
   }
 
-  const [first] = broken
   const label = CROWN_LABELS[first.id] || 'record'
-  // The previous holder is named only in the log. Their stored name came from
-  // client input on an earlier claim, and this text goes to the whole community.
-  const body = broken.length > 1
-    ? `${name} just took ${broken.length} Bhaktiras records, including the ${label}.`
-    : `${name} just beat the ${label} record.`
+  const score = Number(first.value)
+  const body = first.id === 'lanka-leap-highest' && Number.isFinite(score)
+    ? `${name} just set a new Lanka Leap record of ${score}.`
+    : broken.length > 1
+      ? `${name} just took ${broken.length} Bhaktiras records, including the ${label}.`
+      : `${name} just beat the ${label} record.`
 
-  await deliverNotification({
+  const outcome = await deliverNotification({
     title: 'New Bhaktiras record',
     body,
     topic: 'games',
-    url: '/play/achievements',
+    tag: 'bhaktiras-record',
+    url: first.id === 'lanka-leap-highest' ? '/play/lanka-leap' : '/play/achievements',
     inbox: true,
     excludeUserId: uid,
     sentBy: 'system:record-broken'
+  })
+  logger.info('Record push sent', {
+    crowns: broken.map(crown => crown.id),
+    recipientCount: outcome.recipientCount,
+    successCount: outcome.successCount,
+    failureCount: outcome.failureCount
   })
 }
 
@@ -1396,7 +1410,8 @@ async function handleGameAchievements(request) {
       claimedCrowns.push({
         id: spec.id,
         previousHolderId: holds ? (stored?.holderUserId || null) : null,
-        previousHolderName: holds ? (stored?.holderName || null) : null
+        previousHolderName: holds ? (stored?.holderName || null) : null,
+        value: spec.value
       })
       const payload = {
         holderUserId: uid,
@@ -1431,7 +1446,9 @@ async function handleGameAchievements(request) {
       db,
       uid,
       claimedCrowns,
-      name: cleanText(request.auth?.token?.name, 32) || 'A player'
+      // Token name is empty on email/password accounts. The leaderboard already
+      // shows the cleaned name from this same run, so use that rather than "A player".
+      name: cleanText(request.auth?.token?.name, 32) || userName
     })
   } catch (error) {
     // The player's result is already saved; a failed announcement must not

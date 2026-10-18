@@ -437,7 +437,8 @@ export function usePushNotifications() {
             icon: '/notification-icon.png',
             badge: '/notification-badge.png',
             data: { url },
-            tag: data.tag || 'bhaktiras-update'
+            tag: data.tag || 'bhaktiras-update',
+            renotify: true
           })
         })
       })
