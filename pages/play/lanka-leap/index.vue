@@ -7,7 +7,7 @@
         </NuxtLink>
       </div>
 
-      <PageHeader title="Lanka Leap" subtitle="Leap the ocean with Hanumanji, then fly over Lanka as it catches light." />
+      <PageHeader title="Lanka Leap" subtitle="Leap the ocean with Hanumanji, cross to Lanka, and fly the battle until Ravan falls." />
 
       <div v-if="!howto.ready.value || !unlock.ready.value" class="card-surface p-8 text-center text-sm text-[hsl(var(--muted-foreground))]">
         Loading…
@@ -15,7 +15,7 @@
       <GameHowTo
         v-else-if="howto.showIntro.value && unlocked"
         intro
-        title="Leap across the ocean to Lanka."
+        title="Leap to Lanka, then fly the battle."
         @start="howto.markSeen()"
       >
         <LankaLeapRules />
@@ -81,7 +81,7 @@
               <p v-if="newBest" class="text-sm font-semibold text-emerald-700">New all-time best!</p>
               <p v-else-if="isLoggedIn && allTimeBest > 0" class="text-sm text-[hsl(var(--muted-foreground))]">All-time best: {{ allTimeBest }}</p>
               <p class="text-sm text-[hsl(var(--muted-foreground))]">
-                {{ lastRun.tulsi }} tulsi {{ lastRun.tulsi === 1 ? 'leaf' : 'leaves' }}<span v-if="lastRun.reachedLanka"> · Lanka alight</span>
+                {{ lastRun.tulsi }} tulsi {{ lastRun.tulsi === 1 ? 'leaf' : 'leaves' }}<span v-if="lastRun.reachedRavan"> · Ravan has fallen</span><span v-else-if="lastRun.reachedBattle"> · the battle</span><span v-else-if="lastRun.reachedBridge"> · the crossing</span><span v-else-if="lastRun.reachedLanka"> · Lanka alight</span>
               </p>
               <p class="text-xs text-[hsl(var(--muted-foreground))]">{{ deathTip }}</p>
               <p v-if="savingRun" class="text-xs font-medium text-sky-700">Saving to the leaderboard…</p>
@@ -162,7 +162,10 @@ import {
   step,
   HERO_RADIUS,
   HERO_X,
+  BATTLE_AT,
+  BRIDGE_AT,
   LANKA_AT,
+  RAVAN_AT,
   PILLAR_WIDTH,
   SEA_LEVEL,
   SIMHIKA_REACH,
@@ -293,7 +296,7 @@ async function sendRun(score: number, tulsi: number, runLeaps: number[]) {
 const canvasEl = ref<HTMLCanvasElement | null>(null)
 const stageEl = ref<HTMLDivElement | null>(null)
 const phase = ref<Phase>('ready')
-const lastRun = ref<{ score: number; tulsi: number; reachedLanka: boolean; cause: DeathCause } | null>(null)
+const lastRun = ref<{ score: number; tulsi: number; reachedLanka: boolean; reachedBridge: boolean; reachedBattle: boolean; reachedRavan: boolean; cause: DeathCause } | null>(null)
 const newBest = ref(false)
 const day = reactive<DayRecord>({ best: 0, bestTulsi: 0, runs: 0, reachedLanka: false, bestLeaps: [], bestTulsiLeaps: [], bestTulsiScore: 0 })
 const allTimeBest = computed(() => Math.max(myRecord.value, day.best))
@@ -370,6 +373,9 @@ const DEATH_TITLES: Record<DeathCause, string> = {
   lankini: 'Lankini stopped you at the gate',
   tower: 'Struck a palace wall',
   fire: 'Caught in the flames',
+  stone: 'Struck the bridge',
+  field: 'Struck on the battlefield',
+  ravan: 'Ravan’s chariot',
   time: 'Out of time'
 }
 const DEATH_TIPS: Record<DeathCause, string> = {
@@ -380,6 +386,9 @@ const DEATH_TIPS: Record<DeathCause, string> = {
   lankini: 'The gate to Lanka is wide. Aim for the middle.',
   tower: 'The rooftops are solid. Thread the gap above the fire.',
   fire: 'Over Lanka the flames rise. Stay in the top of each gap.',
+  stone: 'The stones of the bridge are solid. Fly above the vanaras.',
+  field: 'The chariots fill the field. Stay in the open air between them.',
+  ravan: 'His chariot fills the gate. Fly the gap above it.',
   time: 'What a flight!'
 }
 const deathTitle = computed(() => lastRun.value ? DEATH_TITLES[lastRun.value.cause] : '')
@@ -442,12 +451,15 @@ function handleEvents() {
     else if (event === 'mainak') showBanner('Mainak rises to help: one hit forgiven')
     else if (event === 'shield-break') showBanner('Mainak’s blessing is spent')
     else if (event === 'lanka') showBanner('Jay Hanuman! Lanka catches light')
+    else if (event === 'bridge') showBanner('Shri Ram and Lakshman cross with the vanaras')
+    else if (event === 'battle') showBanner('The battle for Lanka')
+    else if (event === 'ravan') showBanner('Ravan has fallen. Jai Shri Ram')
   }
 }
 
 function endRun() {
   const cause = run.cause || 'rock'
-  lastRun.value = { score: run.score, tulsi: run.tulsi, reachedLanka: run.reachedLanka, cause }
+  lastRun.value = { score: run.score, tulsi: run.tulsi, reachedLanka: run.reachedLanka, reachedBridge: run.reachedBridge, reachedBattle: run.reachedBattle, reachedRavan: run.reachedRavan, cause }
   day.runs++
   newBest.value = isLoggedIn.value && run.score > myRecord.value
   if (run.score > day.best) {
@@ -592,7 +604,8 @@ function draw(now: number) {
     drawObstacle(c, o, sx, now)
   }
   drawSea(c, d, now)
-  if (run.reachedLanka) drawEmbers(c, d, now)
+  if (fireBlend() > 0.08) drawEmbers(c, d, now)
+  if (bridgeGlow() > 0.02) drawCrossing(c, d, now)
   drawHero(c, now)
   drawHud(c)
   if (phase.value === 'ready') drawReady(c)
@@ -619,13 +632,40 @@ function cityGlow() {
   return Math.max(0, Math.min(0.72, t * 0.72))
 }
 
-/** The street catches light just after Lankini’s gate, not out on the ocean. */
+/** 0 on the ocean, rising to 1 as Nala's bridge comes into view. */
+function bridgeGlow() {
+  if (run.reachedBridge) return 1
+  const gate = run.course[BRIDGE_AT]
+  if (!gate) return 0
+  const ahead = gate.x - run.distance
+  return Math.max(0, Math.min(1, (520 - ahead) / 520))
+}
+
+/** 0 on the bridge, rising to 1 as the battlefield comes into view. */
+function battleGlow() {
+  if (run.reachedBattle) return 1
+  const gate = run.course[BATTLE_AT]
+  if (!gate) return 0
+  const ahead = gate.x - run.distance
+  return Math.max(0, Math.min(1, (480 - ahead) / 480))
+}
+
+/** A hint of dawn as the chariot approaches, then full morning once Ravan has fallen. */
+function ravanGlow() {
+  if (run.reachedRavan) return 1
+  const gate = run.course[RAVAN_AT]
+  if (!gate) return 0
+  const ahead = gate.x - run.distance
+  return Math.max(0, Math.min(0.28, (420 - ahead) / 420 * 0.28))
+}
+
+/** The street catches light just after Lankini’s gate, and fades as the bridge begins. */
 function fireBlend() {
   if (!run.reachedLanka) return 0
   const gate = run.course[LANKA_AT]
-  if (!gate) return 1
-  const past = run.distance - (gate.x + PILLAR_WIDTH)
-  return Math.max(0, Math.min(1, past / 180))
+  const past = gate ? run.distance - (gate.x + PILLAR_WIDTH) : 180
+  const lit = Math.max(0, Math.min(1, past / 180))
+  return lit * (1 - bridgeGlow())
 }
 
 function mixHex(from: string, to: string, t: number) {
@@ -771,7 +811,7 @@ function drawFarSea(c: CanvasRenderingContext2D, d: number, now: number) {
 }
 
 function drawSky(c: CanvasRenderingContext2D, d: number, now: number) {
-  const t = cityGlow()
+  const t = cityGlow() * (1 - bridgeGlow())
   const sky = c.createLinearGradient(0, 0, 0, HORIZON_Y)
   sky.addColorStop(0, mixHex('#1d8fe0', '#14081f', t))
   sky.addColorStop(0.45, mixHex('#6cc6f5', '#3b246b', t))
@@ -802,6 +842,31 @@ function drawSky(c: CanvasRenderingContext2D, d: number, now: number) {
     c.restore()
   }
   if (t > 0.12) drawCityHorizon(c, d, now, t)
+
+  const dust = battleGlow() * (1 - ravanGlow())
+  if (dust > 0.02) {
+    c.save()
+    c.globalAlpha = dust
+    const haze = c.createLinearGradient(0, 0, 0, HORIZON_Y)
+    haze.addColorStop(0, '#292524')
+    haze.addColorStop(0.55, '#7c2d12')
+    haze.addColorStop(1, '#fdba74')
+    c.fillStyle = haze
+    c.fillRect(0, 0, WORLD_WIDTH, HORIZON_Y)
+    c.restore()
+  }
+  const victory = ravanGlow()
+  if (victory > 0.02) {
+    c.save()
+    c.globalAlpha = victory
+    const dawn = c.createLinearGradient(0, 0, 0, HORIZON_Y)
+    dawn.addColorStop(0, '#38bdf8')
+    dawn.addColorStop(0.6, '#fde68a')
+    dawn.addColorStop(1, '#fff7ed')
+    c.fillStyle = dawn
+    c.fillRect(0, 0, WORLD_WIDTH, HORIZON_Y)
+    c.restore()
+  }
 }
 
 function drawMoon(c: CanvasRenderingContext2D, t: number) {
@@ -1040,6 +1105,192 @@ function drawGateTower(c: CanvasRenderingContext2D, sx: number, bottom: number) 
   c.stroke()
 }
 
+function drawBridgeStone(c: CanvasRenderingContext2D, o: Obstacle, sx: number) {
+  const mid = sx + PILLAR_WIDTH / 2
+  const shelf = c.createLinearGradient(0, 0, 0, o.gapTop)
+  shelf.addColorStop(0, 'rgba(255, 251, 235, 0.15)')
+  shelf.addColorStop(1, 'rgba(253, 230, 138, 0.9)')
+  c.fillStyle = shelf
+  c.beginPath()
+  c.moveTo(sx - 6, 0)
+  c.lineTo(sx + PILLAR_WIDTH + 6, 0)
+  c.lineTo(sx + PILLAR_WIDTH - 4, o.gapTop - 10)
+  c.quadraticCurveTo(mid, o.gapTop + 8, sx + 4, o.gapTop - 10)
+  c.closePath()
+  c.fill()
+
+  const rock = c.createLinearGradient(sx, o.gapBottom, sx, SEA_LEVEL)
+  rock.addColorStop(0, '#f5e6c8')
+  rock.addColorStop(0.4, '#d6b48a')
+  rock.addColorStop(1, '#8a6a45')
+  c.fillStyle = rock
+  c.beginPath()
+  c.moveTo(sx - 8, SEA_LEVEL + 8)
+  c.lineTo(sx + 6, o.gapBottom + 16)
+  c.quadraticCurveTo(mid, o.gapBottom - 6, sx + PILLAR_WIDTH - 6, o.gapBottom + 16)
+  c.lineTo(sx + PILLAR_WIDTH + 8, SEA_LEVEL + 8)
+  c.closePath()
+  c.fill()
+  c.fillStyle = 'rgba(255, 251, 235, 0.55)'
+  c.fillRect(sx + 16, o.gapBottom + 18, 18, 4)
+  if (o.kind === 'setu') drawLabel(c, 'Nala’s bridge', mid, o.gapTop - 16)
+}
+
+function drawChariot(c: CanvasRenderingContext2D, o: Obstacle, sx: number) {
+  const mid = sx + PILLAR_WIDTH / 2
+  c.fillStyle = '#44403c'
+  c.fillRect(sx + 10, 0, PILLAR_WIDTH - 20, Math.max(0, o.gapTop - 16))
+  c.fillStyle = '#b45309'
+  c.beginPath()
+  c.moveTo(sx + 6, o.gapTop - 20)
+  c.lineTo(sx + PILLAR_WIDTH - 6, o.gapTop - 20)
+  c.lineTo(mid, o.gapTop + 2)
+  c.closePath()
+  c.fill()
+  c.fillStyle = '#78350f'
+  c.beginPath()
+  c.moveTo(sx - 6, SEA_LEVEL + 6)
+  c.lineTo(sx + 10, o.gapBottom + 8)
+  c.lineTo(sx + PILLAR_WIDTH - 10, o.gapBottom + 8)
+  c.lineTo(sx + PILLAR_WIDTH + 6, SEA_LEVEL + 6)
+  c.closePath()
+  c.fill()
+  c.fillStyle = '#fbbf24'
+  c.fillRect(sx + 16, o.gapBottom + 16, PILLAR_WIDTH - 32, 7)
+}
+
+function drawRavan(c: CanvasRenderingContext2D, o: Obstacle, sx: number) {
+  const mid = sx + PILLAR_WIDTH / 2
+  const sink = o.passed ? Math.min(150, Math.max(0, HERO_X - sx - PILLAR_WIDTH)) : 0
+  c.save()
+  c.translate(0, sink)
+  c.fillStyle = '#7f1d1d'
+  c.fillRect(sx - 2, 0, PILLAR_WIDTH + 4, o.gapTop)
+  c.fillStyle = '#fbbf24'
+  c.fillRect(sx - 2, Math.max(0, o.gapTop - 8), PILLAR_WIDTH + 4, 8)
+
+  c.fillStyle = '#991b1b'
+  c.fillRect(sx - 8, o.gapBottom + 24, PILLAR_WIDTH + 16, 34)
+  c.strokeStyle = '#fbbf24'
+  c.lineWidth = 3
+  c.beginPath()
+  c.arc(sx + 8, o.gapBottom + 66, 11, 0, Math.PI * 2)
+  c.arc(sx + PILLAR_WIDTH - 8, o.gapBottom + 66, 11, 0, Math.PI * 2)
+  c.stroke()
+
+  c.fillStyle = '#7f1d1d'
+  c.fillRect(mid - 9, o.gapBottom + 2, 18, 26)
+  for (let i = 0; i < 9; i++) {
+    const spread = -1 + (i / 4)
+    const hx = mid + spread * 16
+    const hy = o.gapBottom - 6 + Math.abs(spread) * 8
+    const crown = i === 4
+    c.fillStyle = '#f6d7b0'
+    c.beginPath()
+    c.arc(hx, hy, crown ? 7 : 4.2, 0, Math.PI * 2)
+    c.fill()
+    c.fillStyle = '#fbbf24'
+    c.fillRect(hx - (crown ? 5 : 3), hy - (crown ? 12 : 8), crown ? 10 : 6, 3)
+  }
+  if (!o.passed) drawLabel(c, 'Ravan', mid, o.gapTop - 16)
+  c.restore()
+}
+
+function drawDawnGate(c: CanvasRenderingContext2D, o: Obstacle, sx: number) {
+  const mid = sx + PILLAR_WIDTH / 2
+  c.fillStyle = 'rgba(253, 230, 138, 0.92)'
+  c.fillRect(sx + 6, 0, 10, o.gapTop)
+  c.fillRect(sx + PILLAR_WIDTH - 16, 0, 10, o.gapTop)
+  c.beginPath()
+  c.moveTo(sx + 4, o.gapTop - 8)
+  c.quadraticCurveTo(mid, o.gapTop - 28, sx + PILLAR_WIDTH - 4, o.gapTop - 8)
+  c.lineTo(sx + PILLAR_WIDTH - 8, o.gapTop)
+  c.quadraticCurveTo(mid, o.gapTop - 16, sx + 8, o.gapTop)
+  c.closePath()
+  c.fill()
+  c.fillStyle = '#fde68a'
+  c.fillRect(sx + 4, o.gapBottom, PILLAR_WIDTH - 8, 14)
+  c.beginPath()
+  c.arc(mid, o.gapBottom + 14, 12, Math.PI, 0)
+  c.fill()
+}
+
+/** Vanaras on the causeway, with Shri Ram and Lakshman leading at the first stones. */
+function drawCrossing(c: CanvasRenderingContext2D, d: number, now: number) {
+  c.save()
+  c.globalAlpha = Math.min(1, bridgeGlow() * 1.4) * (1 - battleGlow())
+  for (const o of run.course) {
+    if (o.kind !== 'stone' && o.kind !== 'setu') continue
+    const sx = o.x - d
+    if (sx > WORLD_WIDTH + 40) break
+    if (sx < -220) continue
+    for (let i = 0; i < 4; i++) {
+      const x = sx + PILLAR_WIDTH + 18 + i * 48
+      drawVanara(c, x, SEA_LEVEL - 2, 1.15 + (i % 2) * 0.25, now / 170 + o.index + i)
+    }
+    if (o.kind === 'setu') {
+      drawBrother(c, sx - 78, SEA_LEVEL - 2, '#f59e0b', true)
+      drawBrother(c, sx - 46, SEA_LEVEL - 2, '#0284c7', true)
+      drawLabel(c, 'Shri Ram', sx - 78, SEA_LEVEL - 86)
+      drawLabel(c, 'Lakshman', sx - 46, SEA_LEVEL - 78)
+    }
+  }
+  c.restore()
+}
+
+function drawVanara(c: CanvasRenderingContext2D, x: number, y: number, scale: number, phase: number) {
+  const hop = Math.abs(Math.sin(phase)) * 3 * scale
+  c.save()
+  c.translate(x, y - hop)
+  c.fillStyle = '#9a3412'
+  c.beginPath()
+  c.moveTo(-4 * scale, 0)
+  c.lineTo(-3 * scale, -12 * scale)
+  c.lineTo(-7 * scale, -16 * scale)
+  c.lineTo(0, -14 * scale)
+  c.lineTo(7 * scale, -16 * scale)
+  c.lineTo(3 * scale, -12 * scale)
+  c.lineTo(4 * scale, 0)
+  c.closePath()
+  c.fill()
+  c.strokeStyle = '#9a3412'
+  c.lineWidth = 1.4 * scale
+  c.beginPath()
+  c.moveTo(-2 * scale, -2 * scale)
+  c.quadraticCurveTo(-10 * scale, -1 * scale, -7 * scale, -9 * scale)
+  c.stroke()
+  c.restore()
+}
+
+function drawBrother(c: CanvasRenderingContext2D, x: number, y: number, robe: string, bow: boolean) {
+  c.save()
+  c.translate(x, y)
+  c.fillStyle = robe
+  c.fillRect(-6, -28, 12, 28)
+  c.fillRect(-8, -46, 16, 20)
+  c.fillStyle = '#f6d7b0'
+  c.beginPath()
+  c.arc(0, -52, 7, 0, Math.PI * 2)
+  c.fill()
+  c.fillStyle = '#fbbf24'
+  c.beginPath()
+  c.moveTo(-7, -56)
+  c.lineTo(-4, -66)
+  c.lineTo(0, -58)
+  c.lineTo(4, -66)
+  c.lineTo(7, -56)
+  c.closePath()
+  c.fill()
+  if (bow) {
+    c.strokeStyle = '#78350f'
+    c.lineWidth = 1.5
+    c.beginPath()
+    c.arc(12, -36, 14, -1.15, 1.15)
+    c.stroke()
+  }
+  c.restore()
+}
+
 function drawObstacle(c: CanvasRenderingContext2D, o: Obstacle, sx: number, now: number) {
   const mid = sx + PILLAR_WIDTH / 2
 
@@ -1073,6 +1324,14 @@ function drawObstacle(c: CanvasRenderingContext2D, o: Obstacle, sx: number, now:
     drawLabel(c, 'Lankini’s gate', mid, o.gapTop - 22)
   } else if (o.kind === 'roof') {
     drawRoof(c, o, sx, now)
+  } else if (o.kind === 'setu' || o.kind === 'stone') {
+    drawBridgeStone(c, o, sx)
+  } else if (o.kind === 'field') {
+    drawChariot(c, o, sx)
+  } else if (o.kind === 'ravan') {
+    drawRavan(c, o, sx)
+  } else if (o.kind === 'dawn') {
+    drawDawnGate(c, o, sx)
   } else {
     drawStormColumn(c, sx, o.gapTop)
     if (o.kind === 'surasa') {
@@ -1200,18 +1459,48 @@ function drawEmbers(c: CanvasRenderingContext2D, d: number, now: number) {
 }
 function drawSea(c: CanvasRenderingContext2D, d: number, now: number) {
   const alight = fireBlend()
-  if (alight < 0.98) {
+  const dust = battleGlow() * (1 - ravanGlow())
+  const water = (1 - alight) * (1 - dust)
+  if (water > 0.02) {
     c.save()
-    c.globalAlpha = 1 - alight
+    c.globalAlpha = water
     drawOcean(c, d, now)
     c.restore()
   }
-  if (alight > 0.02) {
+  if (alight > 0.02 && dust < 0.98) {
     c.save()
-    c.globalAlpha = alight
+    c.globalAlpha = alight * (1 - dust)
     drawBurningStreet(c, d, now)
     c.restore()
   }
+  if (dust > 0.02) {
+    c.save()
+    c.globalAlpha = dust
+    drawBattlefield(c, d, now)
+    c.restore()
+  }
+}
+
+function drawBattlefield(c: CanvasRenderingContext2D, d: number, now: number) {
+  const ground = c.createLinearGradient(0, SEA_LEVEL - 8, 0, WORLD_HEIGHT)
+  ground.addColorStop(0, '#d6b48a')
+  ground.addColorStop(0.35, '#92400e')
+  ground.addColorStop(1, '#44403c')
+  c.fillStyle = ground
+  c.fillRect(0, SEA_LEVEL - 6, WORLD_WIDTH, WORLD_HEIGHT - SEA_LEVEL + 6)
+  c.fillStyle = 'rgba(120, 53, 15, 0.35)'
+  const span = WORLD_WIDTH + 40
+  for (let i = 0; i < 8; i++) {
+    const x = ((((i * 68) - d * 0.35) % span) + span) % span - 20
+    c.fillRect(x, SEA_LEVEL - 28 - (i % 3) * 10, 6, 34 + (i % 3) * 10)
+    c.beginPath()
+    c.moveTo(x + 6, SEA_LEVEL - 28 - (i % 3) * 10)
+    c.lineTo(x + 22, SEA_LEVEL - 20 - (i % 3) * 10)
+    c.lineTo(x + 6, SEA_LEVEL - 14 - (i % 3) * 10)
+    c.fill()
+  }
+  c.fillStyle = `rgba(180, 83, 9, ${0.15 + Math.sin(now / 300) * 0.05})`
+  c.fillRect(0, SEA_LEVEL - 18, WORLD_WIDTH, 16)
 }
 
 function drawOcean(c: CanvasRenderingContext2D, d: number, now: number) {
@@ -1303,10 +1592,11 @@ function drawHero(c: CanvasRenderingContext2D, now: number) {
   c.translate(HERO_X, run.y + bob)
   c.rotate(tilt)
   c.scale(r / HERO_RADIUS, r / HERO_RADIUS)
-  if (run.shield || run.shrinkTicks > 0 || run.reachedLanka) {
+  const alight = fireBlend()
+  if (run.shield || run.shrinkTicks > 0 || alight > 0.05) {
     c.shadowColor = run.shrinkTicks > 0
       ? 'rgba(56, 189, 248, 0.95)'
-      : run.reachedLanka
+      : alight > 0.05
         ? 'rgba(249, 115, 22, 0.95)'
         : 'rgba(250, 204, 21, 0.95)'
     c.shadowBlur = 14 + Math.sin(now / 160) * 6
@@ -1321,7 +1611,10 @@ function drawHero(c: CanvasRenderingContext2D, now: number) {
     c.arc(0, 0, HERO_RADIUS, 0, Math.PI * 2)
     c.fill()
   }
-  if (run.reachedLanka) drawTailFlame(c, now)
+  if (alight > 0.05) {
+    c.globalAlpha = alight
+    drawTailFlame(c, now)
+  }
   c.restore()
 }
 
@@ -1354,11 +1647,20 @@ function drawHud(c: CanvasRenderingContext2D) {
   const barX = WORLD_WIDTH / 2 - barWidth / 2
   c.fillStyle = 'rgba(255, 255, 255, 0.55)'
   c.fillRect(barX, 76, barWidth, 6)
-  c.fillStyle = run.reachedLanka ? '#ea580c' : '#d97706'
-  c.fillRect(barX, 76, barWidth * Math.min(run.score / LANKA_AT, 1), 6)
+  const act = run.reachedRavan || ravanGlow() > 0.45
+    ? { name: 'Jai Shri Ram', bar: '#d97706', ink: '#92400e', span: 1, done: 1 }
+    : run.reachedBattle || battleGlow() > 0.45
+      ? { name: 'The battle', bar: '#9f1239', ink: '#881337', span: RAVAN_AT - BATTLE_AT, done: Math.max(0, run.score - BATTLE_AT) }
+      : run.reachedBridge || bridgeGlow() > 0.55
+        ? { name: 'The crossing', bar: '#d97706', ink: '#92400e', span: BATTLE_AT - BRIDGE_AT, done: Math.max(0, run.score - BRIDGE_AT) }
+        : run.reachedLanka
+          ? { name: 'Lanka alight', bar: '#ea580c', ink: '#7c2d12', span: BRIDGE_AT - LANKA_AT, done: Math.max(0, run.score - LANKA_AT) }
+          : { name: 'To Lanka', bar: '#d97706', ink: '#1e3a8a', span: LANKA_AT, done: run.score }
+  c.fillStyle = act.bar
+  c.fillRect(barX, 76, barWidth * Math.min(act.done / act.span, 1), 6)
   c.font = 'bold 11px system-ui, sans-serif'
-  c.fillStyle = run.reachedLanka ? '#7c2d12' : '#1e3a8a'
-  c.fillText(run.reachedLanka ? 'Lanka alight' : 'To Lanka', WORLD_WIDTH / 2, 96)
+  c.fillStyle = act.ink
+  c.fillText(act.name, WORLD_WIDTH / 2, 96)
 
   c.textAlign = 'left'
   c.font = 'bold 16px system-ui, sans-serif'

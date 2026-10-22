@@ -5,11 +5,11 @@
         ‹ Back to Lanka Leap
       </NuxtLink>
 
-      <PageHeader title="The flight to Lanka" subtitle="The Sundar Kand episodes behind Lanka Leap." />
+      <PageHeader title="The flight to Lanka" subtitle="The Sundar Kand episodes behind Lanka Leap, the crossing, and the battle that follows." />
 
       <p class="mt-6 text-sm leading-relaxed text-[hsl(var(--muted-foreground))]">
         Sent by Shri Ram to find Sita, Hanumanji leapt from Mount Mahendra and flew across the ocean to Lanka.
-        On the way he met a friend, a test and an enemy, and at the end of his flight, the guardian of the city.
+        On the way he met a friend, a test and an enemy, and at the end of his flight, the guardian of the city. Later the vanaras crossed with Shri Ram and Lakshman, and the battle ended when Ravan fell.
       </p>
 
       <nav class="mt-5 flex flex-wrap gap-2" aria-label="Characters">
