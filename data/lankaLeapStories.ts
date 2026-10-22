@@ -1,7 +1,7 @@
 /**
  * The Sundar Kand episodes behind Lanka Leap's obstacles. Retold from the
- * Valmiki Ramayana, Sundar Kand: sarga 1 for the flight across the ocean and
- * sarga 3 for the guardian of Lanka.
+ * Valmiki Ramayana, Sundar Kand: sarga 1 for the flight across the ocean,
+ * sarga 3 for the guardian of Lanka, and the later burning of the city.
  */
 export interface LankaLeapStory {
   id: 'mainak' | 'surasa' | 'simhika' | 'lankini'
@@ -11,7 +11,7 @@ export interface LankaLeapStory {
   paragraphs: string[]
 }
 
-export const LANKA_LEAP_STORY_SOURCE = 'Valmiki Ramayana, Sundar Kand (sargas 1 and 3)'
+export const LANKA_LEAP_STORY_SOURCE = 'Valmiki Ramayana, Sundar Kand (sargas 1 and 3, and the burning of Lanka)'
 
 export const LANKA_LEAP_STORIES: LankaLeapStory[] = [
   {
@@ -51,11 +51,12 @@ export const LANKA_LEAP_STORIES: LankaLeapStory[] = [
     id: 'lankini',
     name: 'Lankini',
     role: 'The guardian of the city of Lanka',
-    inGame: 'Lankini’s gate marks the moment you reach Lanka. Pass it and keep flying for a higher score.',
+    inGame: 'Lankini’s gate marks the moment you reach Lanka. After it, the city catches light — stay above the flames.',
     paragraphs: [
       'Hanumanji reached the shore of Lanka in the evening and waited for night to slip into the city unseen. At the gate he was stopped by the city’s guardian, a fierce rakshasi called Lankini in later tellings, who challenged him and struck him.',
       'Hanumanji struck back with his left fist, holding back his full strength. Lankini fell, and as she rose she remembered what Brahma had once told her: on the day a monkey overpowered her, the end of the rakshasas’ rule over Lanka would be near.',
-      'Recognising the sign, she let Hanumanji enter. He went on into the city to search for Sita.'
+      'Recognising the sign, she let Hanumanji enter. He went on into the city to search for Sita.',
+      'Later his tail was bound and set alight. He slipped free and leapt from roof to roof, and Lanka caught light behind him. That flight is the second half of the game: stay above the rising flames.'
     ]
   }
 ]

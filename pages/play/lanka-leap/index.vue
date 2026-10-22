@@ -7,7 +7,7 @@
         </NuxtLink>
       </div>
 
-      <PageHeader title="Lanka Leap" subtitle="Leap across the ocean with Hanumanji. Every gate you pass scores a point." />
+      <PageHeader title="Lanka Leap" subtitle="Leap the ocean with Hanumanji, then fly over Lanka as it catches light." />
 
       <div v-if="!howto.ready.value || !unlock.ready.value" class="card-surface p-8 text-center text-sm text-[hsl(var(--muted-foreground))]">
         Loading…
@@ -81,7 +81,7 @@
               <p v-if="newBest" class="text-sm font-semibold text-emerald-700">New all-time best!</p>
               <p v-else-if="isLoggedIn && allTimeBest > 0" class="text-sm text-[hsl(var(--muted-foreground))]">All-time best: {{ allTimeBest }}</p>
               <p class="text-sm text-[hsl(var(--muted-foreground))]">
-                {{ lastRun.tulsi }} tulsi {{ lastRun.tulsi === 1 ? 'leaf' : 'leaves' }}<span v-if="lastRun.reachedLanka"> · reached Lanka</span>
+                {{ lastRun.tulsi }} tulsi {{ lastRun.tulsi === 1 ? 'leaf' : 'leaves' }}<span v-if="lastRun.reachedLanka"> · Lanka alight</span>
               </p>
               <p class="text-xs text-[hsl(var(--muted-foreground))]">{{ deathTip }}</p>
               <p v-if="savingRun" class="text-xs font-medium text-sky-700">Saving to the leaderboard…</p>
@@ -156,6 +156,7 @@
 <script setup lang="ts">
 import {
   createRun,
+  flameTop,
   heroRadius,
   lankaLeapSeed,
   step,
@@ -367,6 +368,8 @@ const DEATH_TITLES: Record<DeathCause, string> = {
   surasa: 'Surasa blocked the way',
   simhika: 'Simhika seized your shadow',
   lankini: 'Lankini stopped you at the gate',
+  tower: 'Struck a palace wall',
+  fire: 'Caught in the flames',
   time: 'Out of time'
 }
 const DEATH_TIPS: Record<DeathCause, string> = {
@@ -375,6 +378,8 @@ const DEATH_TIPS: Record<DeathCause, string> = {
   surasa: 'Take the blue Laghima orb just before Surasa to become tiny.',
   simhika: 'Stay high over the dark water. Simhika drags you down.',
   lankini: 'The gate to Lanka is wide. Aim for the middle.',
+  tower: 'The rooftops are solid. Thread the gap above the fire.',
+  fire: 'Over Lanka the flames rise. Stay in the top of each gap.',
   time: 'What a flight!'
 }
 const deathTitle = computed(() => lastRun.value ? DEATH_TITLES[lastRun.value.cause] : '')
@@ -436,7 +441,7 @@ function handleEvents() {
     if (event === 'laghima') showBanner('Laghima: Hanumanji becomes tiny')
     else if (event === 'mainak') showBanner('Mainak rises to help: one hit forgiven')
     else if (event === 'shield-break') showBanner('Mainak’s blessing is spent')
-    else if (event === 'lanka') showBanner('Jay Hanuman! You reached Lanka')
+    else if (event === 'lanka') showBanner('Jay Hanuman! Lanka catches light')
   }
 }
 
@@ -587,6 +592,7 @@ function draw(now: number) {
     drawObstacle(c, o, sx, now)
   }
   drawSea(c, d, now)
+  if (run.reachedLanka) drawEmbers(c, d, now)
   drawHero(c, now)
   drawHud(c)
   if (phase.value === 'ready') drawReady(c)
@@ -602,6 +608,37 @@ const CLOUD_SHAPES: ReadonlyArray<ReadonlyArray<readonly [number, number, number
 const SUN_X = 318
 const SUN_Y = 150
 const HORIZON_Y = SEA_LEVEL - 36
+
+/** 0 over the open sea, 1 once Lanka is alight. Evening gathers as the gate approaches. */
+function cityGlow() {
+  if (run.reachedLanka) return 1
+  const gate = run.course[LANKA_AT]
+  if (!gate) return 0
+  const ahead = gate.x - run.distance
+  const t = (700 - ahead) / 700
+  return Math.max(0, Math.min(0.72, t * 0.72))
+}
+
+/** The street catches light just after Lankini’s gate, not out on the ocean. */
+function fireBlend() {
+  if (!run.reachedLanka) return 0
+  const gate = run.course[LANKA_AT]
+  if (!gate) return 1
+  const past = run.distance - (gate.x + PILLAR_WIDTH)
+  return Math.max(0, Math.min(1, past / 180))
+}
+
+function mixHex(from: string, to: string, t: number) {
+  const u = t < 0 ? 0 : t > 1 ? 1 : t
+  const A = parseInt(from.slice(1), 16)
+  const B = parseInt(to.slice(1), 16)
+  const channels = [16, 8, 0].map((shift) => {
+    const a = (A >> shift) & 255
+    const b = (B >> shift) & 255
+    return Math.round(a + (b - a) * u)
+  })
+  return `rgb(${channels.join(',')})`
+}
 
 function drawCloud(c: CanvasRenderingContext2D, x: number, y: number, size: number, shape: number, alpha: number) {
   const puffs = CLOUD_SHAPES[shape % CLOUD_SHAPES.length]!
@@ -734,19 +771,84 @@ function drawFarSea(c: CanvasRenderingContext2D, d: number, now: number) {
 }
 
 function drawSky(c: CanvasRenderingContext2D, d: number, now: number) {
+  const t = cityGlow()
   const sky = c.createLinearGradient(0, 0, 0, HORIZON_Y)
-  sky.addColorStop(0, '#1d8fe0')
-  sky.addColorStop(0.45, '#6cc6f5')
-  sky.addColorStop(0.85, '#c9ecfb')
-  sky.addColorStop(1, '#fdeccc')
+  sky.addColorStop(0, mixHex('#1d8fe0', '#14081f', t))
+  sky.addColorStop(0.45, mixHex('#6cc6f5', '#3b246b', t))
+  sky.addColorStop(0.85, mixHex('#c9ecfb', '#9a3412', t))
+  sky.addColorStop(1, mixHex('#fdeccc', '#fdba74', t))
   c.fillStyle = sky
   c.fillRect(0, 0, WORLD_WIDTH, HORIZON_Y)
 
-  drawSun(c, now)
-  drawCloudLayer(c, d, 5, 0.08, 7, 0.55, 0.65)
-  drawBirds(c, d, now)
-  drawCloudLayer(c, d, 4, 0.3, 0, 1, 1)
-  drawFarSea(c, d, now)
+  if (t < 0.98) {
+    c.save()
+    c.globalAlpha = 1 - t
+    drawSun(c, now)
+    c.restore()
+  }
+  if (t > 0.08) drawMoon(c, t)
+  drawCloudLayer(c, d, 5, 0.08, 7, 0.55, 0.65 * (1 - t * 0.5))
+  if (t < 0.92) {
+    c.save()
+    c.globalAlpha = 1 - t
+    drawBirds(c, d, now)
+    c.restore()
+  }
+  drawCloudLayer(c, d, 4, 0.3, 0, 1, 1 - t * 0.35)
+  if (t < 0.98) {
+    c.save()
+    c.globalAlpha = 1 - t
+    drawFarSea(c, d, now)
+    c.restore()
+  }
+  if (t > 0.12) drawCityHorizon(c, d, now, t)
+}
+
+function drawMoon(c: CanvasRenderingContext2D, t: number) {
+  c.save()
+  c.globalAlpha = Math.min(1, (t - 0.08) / 0.5)
+  c.fillStyle = '#fef9c3'
+  c.beginPath()
+  c.arc(78, 92, 16, 0, Math.PI * 2)
+  c.fill()
+  c.fillStyle = mixHex('#1d8fe0', '#14081f', Math.min(t, 1))
+  c.beginPath()
+  c.arc(86, 86, 13, 0, Math.PI * 2)
+  c.fill()
+  c.restore()
+}
+
+function drawCityHorizon(c: CanvasRenderingContext2D, d: number, now: number, t: number) {
+  c.save()
+  c.globalAlpha = Math.min(1, (t - 0.12) / 0.5)
+  const bases = [28, 46, 34, 62, 40, 78, 36, 54, 30, 70, 44, 58]
+  const span = WORLD_WIDTH + 80
+  c.fillStyle = '#3b0764'
+  for (let i = 0; i < bases.length; i++) {
+    const height = bases[i]!
+    const x = ((((i * 48) - d * 0.15) % span) + span) % span - 40
+    c.fillRect(x, HORIZON_Y - height, 30, height + 8)
+    c.beginPath()
+    c.moveTo(x - 2, HORIZON_Y - height)
+    c.lineTo(x + 15, HORIZON_Y - height - 12)
+    c.lineTo(x + 32, HORIZON_Y - height)
+    c.fill()
+    if (t > 0.45 && i % 2 === 0) {
+      const flicker = 0.45 + Math.sin(now / 180 + i) * 0.35
+      c.fillStyle = `rgba(251, 146, 60, ${Math.max(0.2, flicker)})`
+      c.fillRect(x + 8, HORIZON_Y - height + 10, 5, 7)
+      c.fillRect(x + 17, HORIZON_Y - height + 22, 5, 7)
+      c.fillStyle = '#3b0764'
+    }
+  }
+  if (t > 0.55) {
+    const glow = c.createLinearGradient(0, HORIZON_Y - 20, 0, HORIZON_Y + 8)
+    glow.addColorStop(0, 'rgba(251, 146, 60, 0)')
+    glow.addColorStop(1, 'rgba(234, 88, 12, 0.55)')
+    c.fillStyle = glow
+    c.fillRect(0, HORIZON_Y - 20, WORLD_WIDTH, 28)
+  }
+  c.restore()
 }
 
 function drawLanka(c: CanvasRenderingContext2D, d: number) {
@@ -969,6 +1071,8 @@ function drawObstacle(c: CanvasRenderingContext2D, o: Obstacle, sx: number, now:
       drawRockPillar(c, sx, o.gapBottom)
     }
     drawLabel(c, 'Lankini’s gate', mid, o.gapTop - 22)
+  } else if (o.kind === 'roof') {
+    drawRoof(c, o, sx, now)
   } else {
     drawStormColumn(c, sx, o.gapTop)
     if (o.kind === 'surasa') {
@@ -1028,7 +1132,89 @@ function traceWave(c: CanvasRenderingContext2D, base: number, amp: number, offse
   for (let x = 8; x <= WORLD_WIDTH; x += 8) c.lineTo(x, waveY(x + offset, base, amp, shift))
 }
 
+function drawPalaceWall(c: CanvasRenderingContext2D, sx: number, y0: number, y1: number) {
+  const body = c.createLinearGradient(sx, 0, sx + PILLAR_WIDTH, 0)
+  body.addColorStop(0, '#7f1d1d')
+  body.addColorStop(0.4, '#b45309')
+  body.addColorStop(1, '#431407')
+  c.fillStyle = body
+  c.fillRect(sx, y0, PILLAR_WIDTH, y1 - y0)
+  c.strokeStyle = '#451a03'
+  c.lineWidth = 2
+  c.strokeRect(sx, y0, PILLAR_WIDTH, y1 - y0)
+  c.fillStyle = 'rgba(254, 243, 199, 0.85)'
+  for (let y = y1 - 28; y > y0 + 8; y -= 36) {
+    c.fillRect(sx + 10, y, 8, 12)
+    c.fillRect(sx + PILLAR_WIDTH - 18, y, 8, 12)
+  }
+}
+
+function drawFlames(c: CanvasRenderingContext2D, sx: number, top: number, bottom: number, now: number) {
+  if (top >= bottom - 4) return
+  const glow = c.createLinearGradient(0, top, 0, bottom)
+  glow.addColorStop(0, 'rgba(254, 240, 138, 0.2)')
+  glow.addColorStop(0.35, 'rgba(249, 115, 22, 0.9)')
+  glow.addColorStop(1, 'rgba(153, 27, 27, 0.95)')
+  c.fillStyle = glow
+  c.beginPath()
+  c.moveTo(sx - 4, bottom)
+  const tongues = 5
+  for (let i = 0; i <= tongues; i++) {
+    const x = sx - 4 + ((PILLAR_WIDTH + 8) * i) / tongues
+    const flicker = Math.sin(now / 90 + i * 1.7) * 7
+    const tip = i % 2 === 0 ? top + flicker : top + 14 + flicker * 0.35
+    c.lineTo(x, Math.min(bottom, Math.max(top - 4, tip)))
+  }
+  c.lineTo(sx + PILLAR_WIDTH + 4, bottom)
+  c.closePath()
+  c.fill()
+}
+
+function drawRoof(c: CanvasRenderingContext2D, o: Obstacle, sx: number, now: number) {
+  drawPalaceWall(c, sx, -20, o.gapTop)
+  c.fillStyle = '#fcd34d'
+  c.beginPath()
+  c.moveTo(sx - 6, o.gapTop)
+  c.lineTo(sx + PILLAR_WIDTH / 2, o.gapTop - 14)
+  c.lineTo(sx + PILLAR_WIDTH + 6, o.gapTop)
+  c.closePath()
+  c.fill()
+
+  const flames = flameTop(o, run.distance + HERO_X)
+  drawPalaceWall(c, sx, o.gapBottom, SEA_LEVEL + 12)
+  c.fillStyle = '#44403c'
+  c.fillRect(sx - 4, o.gapBottom - 8, PILLAR_WIDTH + 8, 10)
+  drawFlames(c, sx, flames, o.gapBottom + 16, now + o.index * 40)
+}
+
+function drawEmbers(c: CanvasRenderingContext2D, d: number, now: number) {
+  const span = WORLD_WIDTH + 40
+  for (let i = 0; i < 16; i++) {
+    const x = ((((i * 73) - d * 0.55) % span) + span) % span - 20
+    const rise = ((now * 0.04 + i * 37) % 220)
+    const y = SEA_LEVEL - 20 - rise
+    const alpha = 0.25 + (1 - rise / 220) * 0.6
+    c.fillStyle = i % 3 === 0 ? `rgba(254, 240, 138, ${alpha})` : `rgba(249, 115, 22, ${alpha})`
+    c.fillRect(x, y, i % 2 === 0 ? 2 : 3, 2)
+  }
+}
 function drawSea(c: CanvasRenderingContext2D, d: number, now: number) {
+  const alight = fireBlend()
+  if (alight < 0.98) {
+    c.save()
+    c.globalAlpha = 1 - alight
+    drawOcean(c, d, now)
+    c.restore()
+  }
+  if (alight > 0.02) {
+    c.save()
+    c.globalAlpha = alight
+    drawBurningStreet(c, d, now)
+    c.restore()
+  }
+}
+
+function drawOcean(c: CanvasRenderingContext2D, d: number, now: number) {
   const t = now * 0.003
 
   c.fillStyle = 'rgba(3, 105, 161, 0.55)'
@@ -1084,6 +1270,29 @@ function drawSea(c: CanvasRenderingContext2D, d: number, now: number) {
   }
 }
 
+function drawBurningStreet(c: CanvasRenderingContext2D, d: number, now: number) {
+  const shift = now * 0.004
+  const street = c.createLinearGradient(0, SEA_LEVEL - 8, 0, WORLD_HEIGHT)
+  street.addColorStop(0, '#fb923c')
+  street.addColorStop(0.18, '#c2410c')
+  street.addColorStop(1, '#1c0a08')
+  c.fillStyle = street
+  c.beginPath()
+  traceWave(c, SEA_LEVEL, 4, d * 0.35, shift)
+  c.lineTo(WORLD_WIDTH, WORLD_HEIGHT)
+  c.lineTo(0, WORLD_HEIGHT)
+  c.closePath()
+  c.fill()
+
+  c.fillStyle = 'rgba(254, 240, 138, 0.9)'
+  c.beginPath()
+  traceWave(c, SEA_LEVEL - 10, 6, d * 0.55, shift + 1)
+  c.lineTo(WORLD_WIDTH, SEA_LEVEL + 4)
+  c.lineTo(0, SEA_LEVEL + 4)
+  c.closePath()
+  c.fill()
+}
+
 function drawHero(c: CanvasRenderingContext2D, now: number) {
   if (run.graceTicks > 0 && Math.floor(now / 90) % 2 === 0) return
   const r = heroRadius(run)
@@ -1094,8 +1303,12 @@ function drawHero(c: CanvasRenderingContext2D, now: number) {
   c.translate(HERO_X, run.y + bob)
   c.rotate(tilt)
   c.scale(r / HERO_RADIUS, r / HERO_RADIUS)
-  if (run.shield || run.shrinkTicks > 0) {
-    c.shadowColor = run.shrinkTicks > 0 ? 'rgba(56, 189, 248, 0.95)' : 'rgba(250, 204, 21, 0.95)'
+  if (run.shield || run.shrinkTicks > 0 || run.reachedLanka) {
+    c.shadowColor = run.shrinkTicks > 0
+      ? 'rgba(56, 189, 248, 0.95)'
+      : run.reachedLanka
+        ? 'rgba(249, 115, 22, 0.95)'
+        : 'rgba(250, 204, 21, 0.95)'
     c.shadowBlur = 14 + Math.sin(now / 160) * 6
   }
   if (heroSheet?.complete && heroSheet.naturalWidth) {
@@ -1108,7 +1321,24 @@ function drawHero(c: CanvasRenderingContext2D, now: number) {
     c.arc(0, 0, HERO_RADIUS, 0, Math.PI * 2)
     c.fill()
   }
+  if (run.reachedLanka) drawTailFlame(c, now)
   c.restore()
+}
+
+function drawTailFlame(c: CanvasRenderingContext2D, now: number) {
+  const flicker = Math.sin(now / 70)
+  c.fillStyle = '#fde68a'
+  c.beginPath()
+  c.ellipse(-46, 10, 10, 7 + flicker, -0.4, 0, Math.PI * 2)
+  c.fill()
+  c.fillStyle = '#f97316'
+  c.beginPath()
+  c.ellipse(-58, 14, 12, 8 + flicker, -0.2, 0, Math.PI * 2)
+  c.fill()
+  c.fillStyle = '#b91c1c'
+  c.beginPath()
+  c.ellipse(-70, 16, 8, 5, 0.2, 0, Math.PI * 2)
+  c.fill()
 }
 
 function drawHud(c: CanvasRenderingContext2D) {
@@ -1124,11 +1354,11 @@ function drawHud(c: CanvasRenderingContext2D) {
   const barX = WORLD_WIDTH / 2 - barWidth / 2
   c.fillStyle = 'rgba(255, 255, 255, 0.55)'
   c.fillRect(barX, 76, barWidth, 6)
-  c.fillStyle = run.reachedLanka ? '#16a34a' : '#d97706'
+  c.fillStyle = run.reachedLanka ? '#ea580c' : '#d97706'
   c.fillRect(barX, 76, barWidth * Math.min(run.score / LANKA_AT, 1), 6)
   c.font = 'bold 11px system-ui, sans-serif'
-  c.fillStyle = '#1e3a8a'
-  c.fillText(run.reachedLanka ? 'Beyond Lanka' : 'To Lanka', WORLD_WIDTH / 2, 96)
+  c.fillStyle = run.reachedLanka ? '#7c2d12' : '#1e3a8a'
+  c.fillText(run.reachedLanka ? 'Lanka alight' : 'To Lanka', WORLD_WIDTH / 2, 96)
 
   c.textAlign = 'left'
   c.font = 'bold 16px system-ui, sans-serif'

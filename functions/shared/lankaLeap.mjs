@@ -40,10 +40,14 @@ const BODY_BOTTOM = 28
 const SURASA_GAP = 72
 const GAP_TOP_LIMIT = 130
 const GAP_BOTTOM_LIMIT = SEA_LEVEL - 110
+/** How far before a rooftop the flames start to climb. */
+export const FIRE_LEAD = 280
+/** Gap left above the flames once they have fully risen. */
+export const FIRE_CLEAR = 108
 
-/** @typedef {'gate' | 'surasa' | 'simhika' | 'mainak' | 'lankini'} ObstacleKind */
+/** @typedef {'gate' | 'surasa' | 'simhika' | 'mainak' | 'lankini' | 'roof'} ObstacleKind */
 /** @typedef {'tulsi' | 'laghima' | 'mainak'} PickupKind */
-/** @typedef {'rock' | 'sea' | 'surasa' | 'simhika' | 'lankini' | 'time'} DeathCause */
+/** @typedef {'rock' | 'sea' | 'surasa' | 'simhika' | 'lankini' | 'tower' | 'fire' | 'time'} DeathCause */
 /** @typedef {'leap' | 'score' | 'tulsi' | 'laghima' | 'mainak' | 'shield-break' | 'lanka' | 'dead'} RunEvent */
 
 /**
@@ -146,6 +150,20 @@ function scheduleAvoidingLanka(s, index) {
   return index === LANKA_AT || index === LANKA_AT + 1 ? LANKA_AT + 2 : index
 }
 
+/**
+ * Top of the flames in a rooftop gap. Rises as Hanumanji approaches, and is
+ * level with the roof when he is still far away. Rendering uses the same line.
+ * @param {Obstacle} obstacle
+ * @param {number} heroX
+ */
+export function flameTop(obstacle, heroX) {
+  if (!obstacle || obstacle.index <= LANKA_AT) return obstacle ? obstacle.gapBottom : SEA_LEVEL
+  const room = obstacle.gapBottom - obstacle.gapTop - FIRE_CLEAR
+  if (room <= 0) return obstacle.gapBottom
+  const t = clamp((heroX - (obstacle.x - FIRE_LEAD)) / FIRE_LEAD, 0, 1)
+  return obstacle.gapBottom - room * t * t * 0.82
+}
+
 /** @param {RunState} s @param {number} index @returns {Obstacle} */
 function makeObstacle(s, index) {
   const rnd = s.rnd
@@ -155,6 +173,7 @@ function makeObstacle(s, index) {
   /** @type {ObstacleKind} */
   let kind = 'gate'
   if (index === LANKA_AT) kind = 'lankini'
+  else if (index > LANKA_AT) kind = 'roof'
   else if (index === s.nextSurasa) {
     kind = 'surasa'
     s.nextSurasa = scheduleAvoidingLanka(s, index + 8 + Math.floor(rnd() * 5))
@@ -170,9 +189,10 @@ function makeObstacle(s, index) {
   let gap = 196 - 56 * toLanka - 16 * beyond
   if (kind === 'surasa') gap = SURASA_GAP
   if (kind === 'lankini') gap = 170
+  if (kind === 'roof') gap = 216 - Math.min(index - LANKA_AT, 24) * 1.5
 
   const prevCenter = prev ? (prev.gapTop + (prev.kind === 'simhika' ? prev.reachY - 30 : prev.gapBottom)) / 2 : SEA_LEVEL / 2
-  const maxShift = kind === 'surasa' ? 90 : 160
+  const maxShift = kind === 'surasa' ? 90 : kind === 'roof' ? 110 : 160
   const lo = GAP_TOP_LIMIT + gap / 2
   const hi = (kind === 'simhika' ? GAP_BOTTOM_LIMIT - 110 : GAP_BOTTOM_LIMIT) - gap / 2
   const target = lo + rnd() * (hi - lo)
@@ -183,7 +203,7 @@ function makeObstacle(s, index) {
   /** @type {Pickup | null} */
   let pickup = null
   const midX = x + PILLAR_WIDTH / 2
-  if (index + 1 === s.nextSurasa) pickup = { kind: 'laghima', x: midX, y: center, taken: false }
+  if (index <= LANKA_AT && index + 1 === s.nextSurasa) pickup = { kind: 'laghima', x: midX, y: center, taken: false }
   else if (kind === 'mainak') pickup = { kind: 'mainak', x: midX, y: lower - 24, taken: false }
   else if (kind !== 'surasa' && rnd() < 0.6) {
     pickup = { kind: 'tulsi', x: midX, y: center + (rnd() * 2 - 1) * (gap / 2 - 30), taken: false }
@@ -352,20 +372,27 @@ export function step(s, leap) {
     }
 
     if (s.graceTicks === 0) {
-      const cause = o.kind === 'gate' || o.kind === 'mainak' ? 'rock' : o.kind
+      const cause = o.kind === 'roof' ? 'tower' : o.kind === 'gate' || o.kind === 'mainak' ? 'rock' : o.kind
       if (hitsRect(x, s.y, rNow, o.x, -1000, o.x + PILLAR_WIDTH, o.gapTop)) takeHit(s, cause)
       else if (o.gapBottom < SEA_LEVEL && hitsRect(x, s.y, rNow, o.x, o.gapBottom, o.x + PILLAR_WIDTH, SEA_LEVEL)) takeHit(s, cause)
+      if (s.alive && o.kind === 'roof') {
+        const flames = flameTop(o, x)
+        if (flames < o.gapBottom - 1 && hitsRect(x, s.y, rNow, o.x, flames, o.x + PILLAR_WIDTH, o.gapBottom)) {
+          takeHit(s, 'fire')
+        }
+      }
       if (!s.alive) return
     }
   }
 
   if (s.y + rNow >= SEA_LEVEL) {
+    const ground = s.grabbed ? 'simhika' : s.reachedLanka ? 'fire' : 'sea'
     if (s.shield || s.graceTicks > 0) {
-      if (s.graceTicks === 0) takeHit(s, s.grabbed ? 'simhika' : 'sea')
+      if (s.graceTicks === 0) takeHit(s, ground)
       s.y = SEA_LEVEL - rNow - 1
       s.vy = LEAP_VELOCITY
     } else {
-      takeHit(s, s.grabbed ? 'simhika' : 'sea')
+      takeHit(s, ground)
     }
   }
 
