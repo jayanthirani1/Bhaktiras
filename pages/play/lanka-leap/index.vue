@@ -204,7 +204,7 @@ const unlocked = computed(() => unlock.unlocked.value)
 const unlockDaysShown = computed(() => Math.min(unlock.daysDone.value, LANKA_LEAP_UNLOCK_DAYS))
 const unlockPercent = computed(() => (unlockDaysShown.value / LANKA_LEAP_UNLOCK_DAYS) * 100)
 
-const CHALISA_SRC = '/games/lanka-leap/hanuman-chalisa.m4a'
+const CHALISA_SRC = '/games/lanka-leap/hanuman-chalisa.mp3'
 const MUTED_KEY = 'lanka-leap:muted'
 const LISTENS_KEY = 'lanka-leap:chalisa-listens'
 const muted = ref(false)
