@@ -157,6 +157,7 @@
 import {
   createRun,
   flameTop,
+  gapShift,
   heroRadius,
   lankaLeapSeed,
   step,
@@ -387,7 +388,7 @@ const DEATH_TIPS: Record<DeathCause, string> = {
   tower: 'The rooftops are solid. Thread the gap above the fire.',
   fire: 'Over Lanka the flames rise. Stay in the top of each gap.',
   stone: 'The stones of the bridge are solid. Fly above the vanaras.',
-  field: 'The chariots fill the field. Stay in the open air between them.',
+  field: 'The chariots rise and fall. Time the leap, and save sanjeevani for a high climb.',
   ravan: 'His chariot fills the gate. Fly the gap above it.',
   time: 'What a flight!'
 }
@@ -452,6 +453,7 @@ function handleEvents() {
     else if (event === 'shield-break') showBanner('Mainak’s blessing is spent')
     else if (event === 'lanka') showBanner('Jay Hanuman! Lanka catches light')
     else if (event === 'bridge') showBanner('Shri Ram and Lakshman cross with the vanaras')
+    else if (event === 'sanjeevani') showBanner('Sanjeevani: your next leap rises higher')
     else if (event === 'battle') showBanner('The battle for Lanka')
     else if (event === 'ravan') showBanner('Ravan has fallen. Jai Shri Ram')
   }
@@ -1136,54 +1138,58 @@ function drawBridgeStone(c: CanvasRenderingContext2D, o: Obstacle, sx: number) {
   if (o.kind === 'setu') drawLabel(c, 'Nala’s bridge', mid, o.gapTop - 16)
 }
 
-function drawChariot(c: CanvasRenderingContext2D, o: Obstacle, sx: number) {
+function drawChariot(c: CanvasRenderingContext2D, o: Obstacle, sx: number, shift: number) {
   const mid = sx + PILLAR_WIDTH / 2
+  const top = o.gapTop + shift
+  const bottom = o.gapBottom + shift
   c.fillStyle = '#44403c'
-  c.fillRect(sx + 10, 0, PILLAR_WIDTH - 20, Math.max(0, o.gapTop - 16))
+  c.fillRect(sx + 10, 0, PILLAR_WIDTH - 20, Math.max(0, top - 16))
   c.fillStyle = '#b45309'
   c.beginPath()
-  c.moveTo(sx + 6, o.gapTop - 20)
-  c.lineTo(sx + PILLAR_WIDTH - 6, o.gapTop - 20)
-  c.lineTo(mid, o.gapTop + 2)
+  c.moveTo(sx + 6, top - 20)
+  c.lineTo(sx + PILLAR_WIDTH - 6, top - 20)
+  c.lineTo(mid, top + 2)
   c.closePath()
   c.fill()
   c.fillStyle = '#78350f'
   c.beginPath()
   c.moveTo(sx - 6, SEA_LEVEL + 6)
-  c.lineTo(sx + 10, o.gapBottom + 8)
-  c.lineTo(sx + PILLAR_WIDTH - 10, o.gapBottom + 8)
+  c.lineTo(sx + 10, bottom + 8)
+  c.lineTo(sx + PILLAR_WIDTH - 10, bottom + 8)
   c.lineTo(sx + PILLAR_WIDTH + 6, SEA_LEVEL + 6)
   c.closePath()
   c.fill()
   c.fillStyle = '#fbbf24'
-  c.fillRect(sx + 16, o.gapBottom + 16, PILLAR_WIDTH - 32, 7)
+  c.fillRect(sx + 16, bottom + 16, PILLAR_WIDTH - 32, 7)
 }
 
-function drawRavan(c: CanvasRenderingContext2D, o: Obstacle, sx: number) {
+function drawRavan(c: CanvasRenderingContext2D, o: Obstacle, sx: number, shift: number) {
   const mid = sx + PILLAR_WIDTH / 2
+  const top = o.gapTop + shift
+  const bottom = o.gapBottom + shift
   const sink = o.passed ? Math.min(150, Math.max(0, HERO_X - sx - PILLAR_WIDTH)) : 0
   c.save()
   c.translate(0, sink)
   c.fillStyle = '#7f1d1d'
-  c.fillRect(sx - 2, 0, PILLAR_WIDTH + 4, o.gapTop)
+  c.fillRect(sx - 2, 0, PILLAR_WIDTH + 4, top)
   c.fillStyle = '#fbbf24'
-  c.fillRect(sx - 2, Math.max(0, o.gapTop - 8), PILLAR_WIDTH + 4, 8)
+  c.fillRect(sx - 2, Math.max(0, top - 8), PILLAR_WIDTH + 4, 8)
 
   c.fillStyle = '#991b1b'
-  c.fillRect(sx - 8, o.gapBottom + 24, PILLAR_WIDTH + 16, 34)
+  c.fillRect(sx - 8, bottom + 24, PILLAR_WIDTH + 16, 34)
   c.strokeStyle = '#fbbf24'
   c.lineWidth = 3
   c.beginPath()
-  c.arc(sx + 8, o.gapBottom + 66, 11, 0, Math.PI * 2)
-  c.arc(sx + PILLAR_WIDTH - 8, o.gapBottom + 66, 11, 0, Math.PI * 2)
+  c.arc(sx + 8, bottom + 66, 11, 0, Math.PI * 2)
+  c.arc(sx + PILLAR_WIDTH - 8, bottom + 66, 11, 0, Math.PI * 2)
   c.stroke()
 
   c.fillStyle = '#7f1d1d'
-  c.fillRect(mid - 9, o.gapBottom + 2, 18, 26)
+  c.fillRect(mid - 9, bottom + 2, 18, 26)
   for (let i = 0; i < 9; i++) {
     const spread = -1 + (i / 4)
     const hx = mid + spread * 16
-    const hy = o.gapBottom - 6 + Math.abs(spread) * 8
+    const hy = bottom - 6 + Math.abs(spread) * 8
     const crown = i === 4
     c.fillStyle = '#f6d7b0'
     c.beginPath()
@@ -1192,26 +1198,28 @@ function drawRavan(c: CanvasRenderingContext2D, o: Obstacle, sx: number) {
     c.fillStyle = '#fbbf24'
     c.fillRect(hx - (crown ? 5 : 3), hy - (crown ? 12 : 8), crown ? 10 : 6, 3)
   }
-  if (!o.passed) drawLabel(c, 'Ravan', mid, o.gapTop - 16)
+  if (!o.passed) drawLabel(c, 'Ravan', mid, top - 16)
   c.restore()
 }
 
-function drawDawnGate(c: CanvasRenderingContext2D, o: Obstacle, sx: number) {
+function drawDawnGate(c: CanvasRenderingContext2D, o: Obstacle, sx: number, shift: number) {
   const mid = sx + PILLAR_WIDTH / 2
+  const top = o.gapTop + shift
+  const bottom = o.gapBottom + shift
   c.fillStyle = 'rgba(253, 230, 138, 0.92)'
-  c.fillRect(sx + 6, 0, 10, o.gapTop)
-  c.fillRect(sx + PILLAR_WIDTH - 16, 0, 10, o.gapTop)
+  c.fillRect(sx + 6, 0, 10, top)
+  c.fillRect(sx + PILLAR_WIDTH - 16, 0, 10, top)
   c.beginPath()
-  c.moveTo(sx + 4, o.gapTop - 8)
-  c.quadraticCurveTo(mid, o.gapTop - 28, sx + PILLAR_WIDTH - 4, o.gapTop - 8)
-  c.lineTo(sx + PILLAR_WIDTH - 8, o.gapTop)
-  c.quadraticCurveTo(mid, o.gapTop - 16, sx + 8, o.gapTop)
+  c.moveTo(sx + 4, top - 8)
+  c.quadraticCurveTo(mid, top - 28, sx + PILLAR_WIDTH - 4, top - 8)
+  c.lineTo(sx + PILLAR_WIDTH - 8, top)
+  c.quadraticCurveTo(mid, top - 16, sx + 8, top)
   c.closePath()
   c.fill()
   c.fillStyle = '#fde68a'
-  c.fillRect(sx + 4, o.gapBottom, PILLAR_WIDTH - 8, 14)
+  c.fillRect(sx + 4, bottom, PILLAR_WIDTH - 8, 14)
   c.beginPath()
-  c.arc(mid, o.gapBottom + 14, 12, Math.PI, 0)
+  c.arc(mid, bottom + 14, 12, Math.PI, 0)
   c.fill()
 }
 
@@ -1327,11 +1335,11 @@ function drawObstacle(c: CanvasRenderingContext2D, o: Obstacle, sx: number, now:
   } else if (o.kind === 'setu' || o.kind === 'stone') {
     drawBridgeStone(c, o, sx)
   } else if (o.kind === 'field') {
-    drawChariot(c, o, sx)
+    drawChariot(c, o, sx, gapShift(o, run.tick))
   } else if (o.kind === 'ravan') {
-    drawRavan(c, o, sx)
+    drawRavan(c, o, sx, gapShift(o, run.tick))
   } else if (o.kind === 'dawn') {
-    drawDawnGate(c, o, sx)
+    drawDawnGate(c, o, sx, gapShift(o, run.tick))
   } else {
     drawStormColumn(c, sx, o.gapTop)
     if (o.kind === 'surasa') {
@@ -1357,11 +1365,26 @@ function drawObstacle(c: CanvasRenderingContext2D, o: Obstacle, sx: number, now:
   const p = o.pickup
   if (!p || p.taken) return
   const px = p.x - run.distance
+  const py = p.y + gapShift(o, run.tick)
   const pulse = 1 + Math.sin(now / 180) * 0.12
-  if (p.kind === 'tulsi') {
+  if (p.kind === 'sanjeevani') {
+    const glow = c.createRadialGradient(px, py, 2, px, py, 16 * pulse)
+    glow.addColorStop(0, '#dcfce7')
+    glow.addColorStop(1, '#15803d')
+    c.fillStyle = glow
+    c.beginPath()
+    c.arc(px, py, 13 * pulse, 0, Math.PI * 2)
+    c.fill()
+    c.fillStyle = '#166534'
+    c.beginPath()
+    c.ellipse(px - 6, py, 7, 3.5, -0.6, 0, Math.PI * 2)
+    c.ellipse(px + 6, py, 7, 3.5, 0.6, 0, Math.PI * 2)
+    c.fill()
+    drawLabel(c, 'Sanjeevani', px, py - 18)
+  } else if (p.kind === 'tulsi') {
     c.fillStyle = '#16a34a'
     c.save()
-    c.translate(px, p.y)
+    c.translate(px, py)
     c.rotate(-0.5)
     c.beginPath()
     c.ellipse(-5, 0, 8, 4, 0, 0, Math.PI * 2)
@@ -1372,12 +1395,12 @@ function drawObstacle(c: CanvasRenderingContext2D, o: Obstacle, sx: number, now:
     c.fill()
     c.restore()
   } else {
-    const glow = c.createRadialGradient(px, p.y, 2, px, p.y, 14 * pulse)
+    const glow = c.createRadialGradient(px, py, 2, px, py, 14 * pulse)
     glow.addColorStop(0, p.kind === 'laghima' ? '#e0f2fe' : '#fef9c3')
     glow.addColorStop(1, p.kind === 'laghima' ? '#0284c7' : '#ca8a04')
     c.fillStyle = glow
     c.beginPath()
-    c.arc(px, p.y, 12 * pulse, 0, Math.PI * 2)
+    c.arc(px, py, 12 * pulse, 0, Math.PI * 2)
     c.fill()
   }
 }
@@ -1593,12 +1616,15 @@ function drawHero(c: CanvasRenderingContext2D, now: number) {
   c.rotate(tilt)
   c.scale(r / HERO_RADIUS, r / HERO_RADIUS)
   const alight = fireBlend()
-  if (run.shield || run.shrinkTicks > 0 || alight > 0.05) {
+  const lifted = run.greatLeap || run.floatTicks > 0
+  if (run.shield || run.shrinkTicks > 0 || alight > 0.05 || lifted) {
     c.shadowColor = run.shrinkTicks > 0
       ? 'rgba(56, 189, 248, 0.95)'
-      : alight > 0.05
-        ? 'rgba(249, 115, 22, 0.95)'
-        : 'rgba(250, 204, 21, 0.95)'
+      : lifted
+        ? 'rgba(22, 163, 74, 0.95)'
+        : alight > 0.05
+          ? 'rgba(249, 115, 22, 0.95)'
+          : 'rgba(250, 204, 21, 0.95)'
     c.shadowBlur = 14 + Math.sin(now / 160) * 6
   }
   if (heroSheet?.complete && heroSheet.naturalWidth) {
@@ -1677,6 +1703,12 @@ function drawHud(c: CanvasRenderingContext2D) {
     c.fillStyle = '#ca8a04'
     c.font = 'bold 11px system-ui, sans-serif'
     c.fillText('Mainak ✦', WORLD_WIDTH - 94, run.shrinkTicks > 0 ? 56 : 28)
+  }
+  if (run.greatLeap) {
+    c.textAlign = 'left'
+    c.fillStyle = '#15803d'
+    c.font = 'bold 11px system-ui, sans-serif'
+    c.fillText('Sanjeevani', 14, 48)
   }
 }
 

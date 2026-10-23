@@ -74,10 +74,10 @@ export const LANKA_LEAP_STORIES: LankaLeapStory[] = [
     id: 'battle',
     name: 'The battle',
     role: 'The field before Lanka',
-    inGame: 'After the bridge, the field of Lanka opens. Fly between the chariots.',
+    inGame: 'The chariots rise and fall. Take the green sanjeevani and your next leap climbs higher.',
     paragraphs: [
       'After the vanaras had crossed, the war was fought before Lanka. Hanumanji fought there beside Shri Ram and Lakshman, in the great battle of the Yuddha Kand.',
-      'In this flight the field opens once the bridge is behind you, and the chariots are the gates you fly between.'
+      'When Lakshman fell, Hanumanji brought the sanjeevani herb from the mountain. In this flight the chariots rise and fall, and the green herb powers the next leap: it climbs higher and hangs in the air.'
     ]
   },
   {
@@ -87,7 +87,7 @@ export const LANKA_LEAP_STORIES: LankaLeapStory[] = [
     inGame: 'His chariot is the last great gate. Pass it and he falls.',
     paragraphs: [
       'Ravan came out to fight in person. Again and again Shri Ram struck away a head, and another stood in its place, until Shri Ram loosed the arrow that brought Ravan down. The war was over.',
-      'In the game his chariot is the last great gate. Pass it and he falls. The sky clears, and the way beyond is open.'
+      'In the game his chariot is the last great gate. Pass it and he falls. The sky clears, and the way beyond gets faster and tighter the further you fly.'
     ]
   }
 ]

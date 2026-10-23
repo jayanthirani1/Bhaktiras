@@ -26,7 +26,10 @@ export const RAVAN_AT = BATTLE_AT + 40
 export const MAX_RUN_TICKS = 60 * 60 * 20
 
 const GRAVITY = 0.36
+const FLOAT_GRAVITY = 0.28
 const LEAP_VELOCITY = -6.6
+const GREAT_LEAP_VELOCITY = -7.4
+const FLOAT_TICKS = 18
 const SMALL_LEAP_VELOCITY = -5
 const MAX_FALL = 9.5
 const SIMHIKA_PULL = 0.32
@@ -52,9 +55,9 @@ export const FIRE_LEAD = 340
 export const FIRE_CLEAR = 108
 
 /** @typedef {'gate' | 'surasa' | 'simhika' | 'mainak' | 'lankini' | 'roof' | 'setu' | 'stone' | 'field' | 'ravan' | 'dawn'} ObstacleKind */
-/** @typedef {'tulsi' | 'laghima' | 'mainak'} PickupKind */
+/** @typedef {'tulsi' | 'laghima' | 'mainak' | 'sanjeevani'} PickupKind */
 /** @typedef {'rock' | 'sea' | 'surasa' | 'simhika' | 'lankini' | 'tower' | 'fire' | 'stone' | 'field' | 'ravan' | 'time'} DeathCause */
-/** @typedef {'leap' | 'score' | 'tulsi' | 'laghima' | 'mainak' | 'shield-break' | 'lanka' | 'bridge' | 'battle' | 'ravan' | 'dead'} RunEvent */
+/** @typedef {'leap' | 'score' | 'tulsi' | 'laghima' | 'mainak' | 'sanjeevani' | 'shield-break' | 'lanka' | 'bridge' | 'battle' | 'ravan' | 'dead'} RunEvent */
 
 /**
  * @typedef {object} Pickup
@@ -94,6 +97,8 @@ export const FIRE_CLEAR = 108
  * @property {boolean} reachedBridge
  * @property {boolean} reachedBattle
  * @property {boolean} reachedRavan
+ * @property {boolean} greatLeap Sanjeevani is stored. The next leap rises higher.
+ * @property {number} floatTicks Remaining ticks of the lighter sanjeevani leap.
  * @property {DeathCause | null} cause
  * @property {Obstacle[]} course
  * @property {number} firstActive
@@ -143,17 +148,24 @@ function difficulty(index) {
 }
 
 /** @param {number} score */
+/** 0 at Ravan's chariot, 1 after eighty more gates. The course keeps tightening until then. */
+function pastRavan(index) {
+  return index > RAVAN_AT ? Math.min((index - RAVAN_AT) / 80, 1) : 0
+}
+
+/** @param {number} score */
 export function speedFor(score) {
   const { toLanka, beyond } = difficulty(score)
   const climb = score > BRIDGE_AT ? (BRIDGE_AT - LANKA_AT) / 40 : beyond
-  return 2.6 + 0.8 * toLanka + 0.2 * climb
+  const battle = score > BATTLE_AT ? Math.min((score - BATTLE_AT) / 40, 1) : 0
+  return 2.6 + 0.8 * toLanka + 0.2 * climb + 0.55 * battle + 1.35 * pastRavan(score)
 }
 
 /** @param {number} index */
 function spacingFor(index) {
-  if (index > RAVAN_AT) return 280
-  if (index >= BATTLE_AT) return 255
-  if (index >= BRIDGE_AT) return 270
+  if (index > RAVAN_AT) return 240 - 55 * pastRavan(index)
+  if (index >= BATTLE_AT) return 228
+  if (index >= BRIDGE_AT) return 240
   const { toLanka, beyond } = difficulty(index)
   return 250 - 45 * toLanka - 8 * beyond
 }
@@ -175,6 +187,27 @@ export function flameTop(obstacle, heroX) {
   if (room <= 0) return obstacle.gapBottom
   const t = clamp((heroX - (obstacle.x - FIRE_LEAD)) / FIRE_LEAD, 0, 1)
   return obstacle.gapBottom - room * t * 0.68
+}
+
+/**
+ * How far a gate has drifted this tick. Chariots after the bridge rise and
+ * fall. Rendering uses the same shift as the collision.
+ * @param {Obstacle} obstacle
+ * @param {number} tick
+ */
+export function gapShift(obstacle, tick) {
+  if (!obstacle || (obstacle.kind !== 'field' && obstacle.kind !== 'ravan' && obstacle.kind !== 'dawn')) return 0
+  const period = obstacle.kind === 'ravan' ? 64 : obstacle.kind === 'dawn' ? 86 - Math.floor(34 * pastRavan(obstacle.index)) : 86
+  const amp = obstacle.kind === 'field'
+    ? 18 + Math.min(obstacle.index - BATTLE_AT, 28) * 0.5
+    : obstacle.kind === 'ravan' ? 16 : 12 + 18 * pastRavan(obstacle.index)
+  const cycle = period * 2
+  const m = (tick + obstacle.index * 37) % cycle
+  const tri = m < period ? m / period : (cycle - m) / period
+  let shift = (tri * 2 - 1) * amp
+  if (obstacle.gapTop + shift < 72) shift = 72 - obstacle.gapTop
+  if (obstacle.gapBottom + shift > SEA_LEVEL - 72) shift = SEA_LEVEL - 72 - obstacle.gapBottom
+  return shift
 }
 
 /** @param {RunState} s @param {number} index @returns {Obstacle} */
@@ -208,13 +241,14 @@ function makeObstacle(s, index) {
   if (kind === 'surasa') gap = SURASA_GAP
   if (kind === 'lankini') gap = 170
   if (kind === 'roof') gap = 228 - Math.min(index - LANKA_AT, 12)
-  if (kind === 'setu' || kind === 'stone') gap = 244
-  if (kind === 'field') gap = 232
-  if (kind === 'ravan') gap = 214
-  if (kind === 'dawn') gap = 250
+  if (kind === 'setu' || kind === 'stone') gap = 206
+  if (kind === 'field') gap = 198 - Math.min(index - BATTLE_AT, 32) * 1.15
+  if (kind === 'ravan') gap = 158
+  if (kind === 'dawn') gap = 176 - 48 * pastRavan(index)
 
   const prevCenter = prev ? (prev.gapTop + (prev.kind === 'simhika' ? prev.reachY - 30 : prev.gapBottom)) / 2 : SEA_LEVEL / 2
-  const maxShift = kind === 'surasa' ? 90 : kind === 'roof' ? 80 : kind === 'setu' || kind === 'stone' ? 46 : kind === 'field' ? 42 : kind === 'ravan' ? 28 : kind === 'dawn' ? 36 : 160
+  const dawnShift = 48 + 30 * pastRavan(index)
+  const maxShift = kind === 'surasa' ? 90 : kind === 'roof' ? 80 : kind === 'setu' || kind === 'stone' ? 62 : kind === 'field' ? 74 : kind === 'ravan' ? 34 : kind === 'dawn' ? dawnShift : 160
   const lo = GAP_TOP_LIMIT + gap / 2
   const hi = (kind === 'simhika' ? GAP_BOTTOM_LIMIT - 110 : GAP_BOTTOM_LIMIT) - gap / 2
   const target = lo + rnd() * (hi - lo)
@@ -227,6 +261,7 @@ function makeObstacle(s, index) {
   const midX = x + PILLAR_WIDTH / 2
   if (index <= LANKA_AT && index + 1 === s.nextSurasa) pickup = { kind: 'laghima', x: midX, y: center, taken: false }
   else if (kind === 'mainak') pickup = { kind: 'mainak', x: midX, y: lower - 24, taken: false }
+  else if ((kind === 'field' && (index === RAVAN_AT - 1 || rnd() < 0.18)) || (kind === 'dawn' && rnd() < 0.12)) pickup = { kind: 'sanjeevani', x: midX, y: center, taken: false }
   else if (kind !== 'surasa' && rnd() < 0.6) {
     pickup = { kind: 'tulsi', x: midX, y: center + (rnd() * 2 - 1) * (gap / 2 - 30), taken: false }
   }
@@ -273,6 +308,8 @@ export function createRun(seed) {
     reachedBridge: false,
     reachedBattle: false,
     reachedRavan: false,
+    greatLeap: false,
+    floatTicks: 0,
     cause: null,
     course: [],
     firstActive: 0,
@@ -328,7 +365,13 @@ export function step(s, leap) {
 
   const small = s.shrinkTicks > 0
   if (leap) {
-    s.vy = small ? SMALL_LEAP_VELOCITY : LEAP_VELOCITY
+    if (s.greatLeap && !small) {
+      s.vy = GREAT_LEAP_VELOCITY
+      s.greatLeap = false
+      s.floatTicks = FLOAT_TICKS
+    } else {
+      s.vy = small ? SMALL_LEAP_VELOCITY : LEAP_VELOCITY
+    }
     s.leaps++
     s.events.push('leap')
   }
@@ -345,7 +388,8 @@ export function step(s, leap) {
     }
   }
 
-  s.vy = Math.min(s.vy + GRAVITY + (s.grabbed ? SIMHIKA_PULL : 0), MAX_FALL)
+  const gravity = s.floatTicks > 0 ? FLOAT_GRAVITY : GRAVITY
+  s.vy = Math.min(s.vy + gravity + (s.grabbed ? SIMHIKA_PULL : 0), MAX_FALL)
   s.y += s.vy
   if (s.y < r) {
     s.y = r
@@ -355,6 +399,7 @@ export function step(s, leap) {
   s.tick++
   if (s.shrinkTicks > 0) s.shrinkTicks--
   if (s.graceTicks > 0) s.graceTicks--
+  if (s.floatTicks > 0) s.floatTicks--
   ensureCourse(s)
 
   const x = s.distance + HERO_X
@@ -370,8 +415,9 @@ export function step(s, leap) {
     }
 
     const p = o.pickup
+    const shift = gapShift(o, s.tick)
     if (p && !p.taken) {
-      if (hitsRect(p.x, p.y, PICKUP_RADIUS, x - BODY_BACK * body, s.y - BODY_TOP * body, x + BODY_FRONT * body, s.y + BODY_BOTTOM * body)) {
+      if (hitsRect(p.x, p.y + shift, PICKUP_RADIUS, x - BODY_BACK * body, s.y - BODY_TOP * body, x + BODY_FRONT * body, s.y + BODY_BOTTOM * body)) {
         p.taken = true
         if (p.kind === 'tulsi') {
           s.tulsi++
@@ -379,6 +425,9 @@ export function step(s, leap) {
         } else if (p.kind === 'laghima') {
           s.shrinkTicks = SHRINK_TICKS
           s.events.push('laghima')
+        } else if (p.kind === 'sanjeevani') {
+          s.greatLeap = true
+          s.events.push('sanjeevani')
         } else {
           s.shield = true
           s.events.push('mainak')
@@ -410,8 +459,10 @@ export function step(s, leap) {
 
     if (s.graceTicks === 0) {
       const cause = o.kind === 'roof' ? 'tower' : o.kind === 'stone' || o.kind === 'setu' ? 'stone' : o.kind === 'field' || o.kind === 'dawn' ? 'field' : o.kind === 'ravan' ? 'ravan' : o.kind === 'gate' || o.kind === 'mainak' ? 'rock' : o.kind
-      if (hitsRect(x, s.y, rNow, o.x, -1000, o.x + PILLAR_WIDTH, o.gapTop)) takeHit(s, cause)
-      else if (o.gapBottom < SEA_LEVEL && hitsRect(x, s.y, rNow, o.x, o.gapBottom, o.x + PILLAR_WIDTH, SEA_LEVEL)) takeHit(s, cause)
+      const top = o.gapTop + shift
+      const bottom = o.gapBottom + shift
+      if (hitsRect(x, s.y, rNow, o.x, -1000, o.x + PILLAR_WIDTH, top)) takeHit(s, cause)
+      else if (bottom < SEA_LEVEL && hitsRect(x, s.y, rNow, o.x, bottom, o.x + PILLAR_WIDTH, SEA_LEVEL)) takeHit(s, cause)
       if (s.alive && o.kind === 'roof') {
         const flames = flameTop(o, x)
         if (flames < o.gapBottom - 1 && hitsRect(x, s.y, rNow, o.x, flames, o.x + PILLAR_WIDTH, o.gapBottom)) {
