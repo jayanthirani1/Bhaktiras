@@ -74,10 +74,10 @@ export const LANKA_LEAP_STORIES: LankaLeapStory[] = [
     id: 'battle',
     name: 'The battle',
     role: 'The field before Lanka',
-    inGame: 'The chariots rise and fall. Take the green sanjeevani and your next leap climbs higher.',
+    inGame: 'One green sanjeevani. Take it and Hanumanji carries the mountain until Ravan.',
     paragraphs: [
       'After the vanaras had crossed, the war was fought before Lanka. Hanumanji fought there beside Shri Ram and Lakshman, in the great battle of the Yuddha Kand.',
-      'When Lakshman fell, Hanumanji brought the sanjeevani herb from the mountain. In this flight the chariots rise and fall, and the green herb powers the next leap: it climbs higher and hangs in the air.'
+      'When Lakshman fell, Hanumanji brought the mountain of sanjeevani herbs. In this flight there is one green herb. Take it and he carries that mountain until Ravan’s scene.'
     ]
   },
   {

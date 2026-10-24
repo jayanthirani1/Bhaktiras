@@ -78,7 +78,8 @@
             <div class="w-full max-w-xs space-y-3 rounded-2xl bg-white p-5 text-center shadow-xl">
               <p class="text-xs font-bold uppercase tracking-wide text-sky-700">{{ deathTitle }}</p>
               <p class="font-display text-5xl font-bold text-[hsl(var(--primary))]">{{ lastRun.score }}</p>
-              <p v-if="newBest" class="text-sm font-semibold text-emerald-700">New all-time best!</p>
+              <p v-if="practiceRun" class="text-sm font-semibold text-amber-800">Practice flight. Not saved.</p>
+              <p v-else-if="newBest" class="text-sm font-semibold text-emerald-700">New all-time best!</p>
               <p v-else-if="isLoggedIn && allTimeBest > 0" class="text-sm text-[hsl(var(--muted-foreground))]">All-time best: {{ allTimeBest }}</p>
               <p class="text-sm text-[hsl(var(--muted-foreground))]">
                 {{ lastRun.tulsi }} tulsi {{ lastRun.tulsi === 1 ? 'leaf' : 'leaves' }}<span v-if="lastRun.reachedRavan"> · Ravan has fallen</span><span v-else-if="lastRun.reachedBattle"> · the battle</span><span v-else-if="lastRun.reachedBridge"> · the crossing</span><span v-else-if="lastRun.reachedLanka"> · Lanka alight</span>
@@ -105,6 +106,21 @@
           <div class="card-surface p-2"><p class="text-lg font-bold text-[hsl(var(--primary))]">{{ day.runs }}</p>Runs today</div>
           <div class="card-surface p-2"><p class="text-lg font-bold text-[hsl(var(--primary))]">{{ allTimeBest }}</p>All-time best</div>
           <div class="card-surface p-2"><p class="text-lg font-bold text-[hsl(var(--primary))]">{{ allTimeTulsi }}</p>Most tulsi</div>
+        </div>
+
+        <div v-if="isAdminUser" class="mx-auto max-w-sm space-y-2 text-center">
+          <button
+            type="button"
+            class="rounded-full px-3 py-1.5 text-xs font-semibold"
+            :class="practiceRun ? 'bg-amber-700 text-white' : 'bg-amber-100 text-amber-950'"
+            :aria-pressed="practiceRun"
+            @click="togglePractice"
+          >
+            {{ practiceRun ? 'Practice on' : 'Practice' }}
+          </button>
+          <p class="text-[11px] leading-snug text-[hsl(var(--muted-foreground))]">
+            Practice is an endless path. A hit flickers, and the score is not saved.
+          </p>
         </div>
 
         <div class="flex flex-wrap items-center justify-center gap-2 text-sm text-[hsl(var(--muted-foreground))]">
@@ -205,6 +221,7 @@ const achievements = useAchievements()
 const isLoggedIn = computed(() => !!auth.user.value)
 
 const unlock = useLankaLeapUnlock()
+const { isAdminUser } = useAdminAccess()
 const unlocked = computed(() => unlock.unlocked.value)
 const unlockDaysShown = computed(() => Math.min(unlock.daysDone.value, LANKA_LEAP_UNLOCK_DAYS))
 const unlockPercent = computed(() => (unlockDaysShown.value / LANKA_LEAP_UNLOCK_DAYS) * 100)
@@ -299,6 +316,9 @@ const stageEl = ref<HTMLDivElement | null>(null)
 const phase = ref<Phase>('ready')
 const lastRun = ref<{ score: number; tulsi: number; reachedLanka: boolean; reachedBridge: boolean; reachedBattle: boolean; reachedRavan: boolean; cause: DeathCause } | null>(null)
 const newBest = ref(false)
+/** Admin practice. A hit flickers instead of ending the flight, and the score is not saved. */
+const practiceRun = ref(false)
+let practiceTainted = false
 const day = reactive<DayRecord>({ best: 0, bestTulsi: 0, runs: 0, reachedLanka: false, bestLeaps: [], bestTulsiLeaps: [], bestTulsiScore: 0 })
 const allTimeBest = computed(() => Math.max(myRecord.value, day.best))
 const allTimeTulsi = computed(() => Math.max(myBestTulsi.value, day.bestTulsi))
@@ -328,7 +348,14 @@ const DEMON_SRC = {
   mainak: '/games/lanka-leap/mainak.webp',
   lankini: '/games/lanka-leap/lankini.webp',
 } as const
+const SCENE_SRC = {
+  siege: '/games/lanka-leap/bg-siege.jpg',
+  battle: '/games/lanka-leap/bg-battle.jpg',
+  home: '/games/lanka-leap/bg-home.jpg',
+  ayodhya: '/games/lanka-leap/bg-ayodhya.jpg',
+} as const
 const demonImages: Partial<Record<keyof typeof DEMON_SRC, HTMLImageElement>> = {}
+const sceneImages: Partial<Record<keyof typeof SCENE_SRC, HTMLImageElement>> = {}
 
 function demonImage(key: keyof typeof DEMON_SRC) {
   const img = demonImages[key]
@@ -384,8 +411,9 @@ type HeroLook = { frame: HeroFrame; scale: number; sheet: 'hero' | 'rider' }
 
 function heroLook(now: number): HeroLook {
   const tick = Math.floor(now / 110)
-  if (run.greatLeap || run.floatTicks > 0) {
-    return { frame: SANJIVINI[tick % SANJIVINI.length]!, scale: RIDER_SCALE, sheet: 'rider' }
+  if (run.carryingMountain) {
+    const held = Math.floor(now / 420)
+    return { frame: SANJIVINI[held % SANJIVINI.length]!, scale: RIDER_SCALE, sheet: 'rider' }
   }
   if (!run.reachedRavan && (run.reachedBattle || battleGlow() > 0.45)) {
     const step = Math.floor(now / 95)
@@ -425,7 +453,7 @@ const DEATH_TIPS: Record<DeathCause, string> = {
   tower: 'The rooftops are solid. Thread the gap above the fire.',
   fire: 'Over Lanka the flames rise. Stay in the top of each gap.',
   stone: 'The stones of the bridge are solid. Fly above the vanaras.',
-  field: 'The chariots rise and fall. Time the leap, and save sanjeevani for a high climb.',
+  field: 'The chariots rise and fall. Time the leap through the moving gap.',
   ravan: 'His chariot fills the gate. Fly the gap above it.',
   time: 'What a flight!'
 }
@@ -433,7 +461,7 @@ const deathTitle = computed(() => lastRun.value ? DEATH_TITLES[lastRun.value.cau
 const deathTip = computed(() => {
   if (!lastRun.value) return ''
   if (lastRun.value.cause === 'field' && lastRun.value.reachedRavan) {
-    return 'The way home swings and closes in. Short taps, and save sanjeevani for a gate you cannot clear.'
+    return 'The way home swings and closes in. Short taps keep Hanumanji in the gap.'
   }
   return DEATH_TIPS[lastRun.value.cause]
 })
@@ -476,13 +504,25 @@ function press() {
 }
 
 function restart() {
-  run = createRun(seed)
+  run = createRun(seed, practiceRun.value)
+  if (!practiceRun.value) practiceTainted = false
   leaps = []
   pendingLeap = false
   banner = null
   lastRun.value = null
   newBest.value = false
   phase.value = 'ready'
+}
+
+function togglePractice() {
+  practiceRun.value = !practiceRun.value
+  if (practiceRun.value) practiceTainted = true
+  const flying = phase.value === 'playing'
+  restart()
+  if (flying) {
+    phase.value = 'playing'
+    playChalisa()
+  }
 }
 
 function showBanner(text: string) {
@@ -496,7 +536,7 @@ function handleEvents() {
     else if (event === 'shield-break') showBanner('Mainak’s blessing is spent')
     else if (event === 'lanka') showBanner('Jay Hanuman! Lanka catches light')
     else if (event === 'bridge') showBanner('Shri Ram and Lakshman cross with the vanaras')
-    else if (event === 'sanjeevani') showBanner('Sanjeevani: your next leap rises higher')
+    else if (event === 'sanjeevani') showBanner('Sanjeevani: Hanumanji carries the mountain')
     else if (event === 'battle') showBanner('The battle for Lanka')
     else if (event === 'ravan') showBanner('Ravan has fallen. Jai Shri Ram')
   }
@@ -505,6 +545,13 @@ function handleEvents() {
 function endRun() {
   const cause = run.cause || 'rock'
   lastRun.value = { score: run.score, tulsi: run.tulsi, reachedLanka: run.reachedLanka, reachedBridge: run.reachedBridge, reachedBattle: run.reachedBattle, reachedRavan: run.reachedRavan, cause }
+  if (practiceTainted || run.practice) {
+    newBest.value = false
+    overAt = performance.now()
+    phase.value = 'over'
+    if (navigator.vibrate) navigator.vibrate(40)
+    return
+  }
   day.runs++
   newBest.value = isLoggedIn.value && run.score > myRecord.value
   if (run.score > day.best) {
@@ -609,6 +656,11 @@ onMounted(() => {
     img.src = src
     demonImages[key] = img
   }
+  for (const [key, src] of Object.entries(SCENE_SRC) as Array<[keyof typeof SCENE_SRC, string]>) {
+    const img = new Image()
+    img.src = src
+    sceneImages[key] = img
+  }
   loadDay()
   try {
     muted.value = localStorage.getItem(MUTED_KEY) === '1'
@@ -643,7 +695,13 @@ function draw(now: number) {
   const d = run.distance
 
   drawSky(c, d, now)
-  drawLanka(c, d)
+  const siege = siegeCover()
+  if (siege < 0.98) {
+    c.save()
+    c.globalAlpha = 1 - siege
+    drawLanka(c, d)
+    c.restore()
+  }
   for (const o of run.course) {
     const sx = o.x - d
     if (sx > WORLD_WIDTH + SIMHIKA_REACH) break
@@ -653,8 +711,8 @@ function draw(now: number) {
   drawSea(c, d, now)
   if (fireBlend() > 0.08) drawEmbers(c, d, now)
   if (bridgeGlow() > 0.02) drawCrossing(c, d, now)
-  if (battleGlow() > 0.05) drawBattleStorm(c, d, now)
-  if (run.reachedRavan) drawHomewind(c, d, now)
+  if (battleGlow() > 0.05 && battleCover() < 0.55) drawBattleStorm(c, d, now)
+  if (run.reachedRavan && homeCover() < 0.45 && arrivalCover() < 0.45) drawHomewind(c, d, now)
   drawHero(c, now)
   drawHud(c)
   if (phase.value === 'ready') drawReady(c)
@@ -835,6 +893,109 @@ function drawBirds(c: CanvasRenderingContext2D, d: number, now: number) {
   }
 }
 
+function clamp01(n: number) {
+  return n < 0 ? 0 : n > 1 ? 1 : n
+}
+
+function pastRavanDistance() {
+  const gate = run.course[RAVAN_AT]
+  if (!gate || !run.reachedRavan) return 0
+  return Math.max(0, run.distance - gate.x)
+}
+
+function spanProgress(startIndex: number, endIndex: number) {
+  const a = run.course[startIndex]
+  const b = run.course[endIndex]
+  if (!a || !b) return 0
+  return clamp01((run.distance - a.x) / Math.max(1, b.x - a.x))
+}
+
+/** Golden Lanka, from the first sight of the city through the bridge. */
+function siegeCover() {
+  if (run.practice) return 0
+  const approach = run.reachedLanka ? 1 : cityGlow() / 0.72
+  return clamp01(approach) * (1 - battleGlow())
+}
+
+/** Twilight battle, held until Ravan’s chariot has passed. */
+function battleCover() {
+  if (run.practice) return 0
+  if (!run.reachedRavan) return battleGlow()
+  return 1 - clamp01(pastRavanDistance() / 1200)
+}
+
+/** The coast and Pushpak, then a fade as Ayodhya’s lamps come up. */
+function homeCover() {
+  if (run.practice || !run.reachedRavan) return 0
+  const past = pastRavanDistance()
+  const rise = clamp01(past / 1000)
+  const fall = 1 - clamp01((past - 5200) / 2200)
+  return rise * Math.max(0, fall)
+}
+
+/** Diyas along the river. Holds once the city is in view. */
+function arrivalCover() {
+  if (run.practice || !run.reachedRavan) return 0
+  return clamp01((pastRavanDistance() - 4800) / 2400)
+}
+
+function sceneOpen() {
+  return 1 - Math.max(siegeCover(), battleCover(), homeCover(), arrivalCover())
+}
+
+/** Open sky only, above the towers, so a slower pan does not shear the city. */
+const SCENE_SKY_PORTION = 0.3
+let sceneSkyCanvas: HTMLCanvasElement | null = null
+
+function drawScene(c: CanvasRenderingContext2D, key: keyof typeof SCENE_SRC, pan: number, alpha: number, now: number) {
+  const img = sceneImages[key]
+  if (!img || !img.complete || !img.naturalWidth || alpha < 0.02) return
+  const srcH = img.naturalHeight
+  const srcW = img.naturalWidth
+  const scale = SEA_LEVEL / srcH
+  const windowW = Math.min(srcW, WORLD_WIDTH / scale)
+  const maxX = Math.max(0, srcW - windowW)
+  const sx = maxX * clamp01(pan)
+  c.save()
+  c.globalAlpha = alpha
+  c.beginPath()
+  c.rect(0, 0, WORLD_WIDTH, SEA_LEVEL)
+  c.clip()
+  c.drawImage(img, sx, 0, windowW, srcH, 0, 0, WORLD_WIDTH, SEA_LEVEL)
+
+  const skySrcH = srcH * SCENE_SKY_PORTION
+  const skyDestH = SEA_LEVEL * SCENE_SKY_PORTION
+  if (!sceneSkyCanvas) {
+    sceneSkyCanvas = document.createElement('canvas')
+    sceneSkyCanvas.width = WORLD_WIDTH
+    sceneSkyCanvas.height = Math.ceil(skyDestH)
+  }
+  const scratch = sceneSkyCanvas.getContext('2d')
+  if (scratch) {
+    const skyWindow = Math.min(srcW, WORLD_WIDTH / (skyDestH / skySrcH))
+    const drift = Math.sin(now / 9000) * 0.05
+    const skySx = Math.max(0, srcW - skyWindow) * clamp01(pan * 0.38 + drift)
+    scratch.globalCompositeOperation = 'source-over'
+    scratch.globalAlpha = 1
+    scratch.clearRect(0, 0, WORLD_WIDTH, sceneSkyCanvas.height)
+    scratch.drawImage(img, skySx, 0, skyWindow, skySrcH, 0, 0, WORLD_WIDTH, skyDestH)
+    scratch.globalCompositeOperation = 'destination-in'
+    const fade = scratch.createLinearGradient(0, skyDestH * 0.42, 0, skyDestH)
+    fade.addColorStop(0, 'rgba(0,0,0,1)')
+    fade.addColorStop(1, 'rgba(0,0,0,0)')
+    scratch.fillStyle = fade
+    scratch.fillRect(0, 0, WORLD_WIDTH, sceneSkyCanvas.height)
+    c.drawImage(sceneSkyCanvas, 0, 0)
+  }
+  c.restore()
+}
+
+function drawSceneClouds(c: CanvasRenderingContext2D, d: number, now: number, cover: number) {
+  if (cover < 0.04) return
+  drawCloudLayer(c, d + now * 0.018, 4, 0.05, 3, 0.72, 0.42 * cover)
+  drawCloudLayer(c, d + now * 0.05, 3, 0.24, 13, 1.08, 0.72 * cover)
+}
+
 function drawFarSea(c: CanvasRenderingContext2D, d: number, now: number) {
   const far = c.createLinearGradient(0, HORIZON_Y, 0, SEA_LEVEL)
   far.addColorStop(0, '#8fd8f7')
@@ -890,9 +1051,10 @@ function drawSky(c: CanvasRenderingContext2D, d: number, now: number) {
     drawFarSea(c, d, now)
     c.restore()
   }
-  if (t > 0.12) drawCityHorizon(c, d, now, t)
+  const open = sceneOpen()
+  if (t > 0.12 && open > 0.04) drawCityHorizon(c, d, now, t * open)
 
-  const dust = battleGlow() * (1 - ravanGlow())
+  const dust = battleGlow() * (1 - ravanGlow()) * open
   if (dust > 0.02) {
     c.save()
     c.globalAlpha = dust
@@ -904,7 +1066,7 @@ function drawSky(c: CanvasRenderingContext2D, d: number, now: number) {
     c.fillRect(0, 0, WORLD_WIDTH, HORIZON_Y)
     c.restore()
   }
-  const victory = ravanGlow()
+  const victory = ravanGlow() * open
   if (victory > 0.02) {
     c.save()
     c.globalAlpha = victory
@@ -916,6 +1078,17 @@ function drawSky(c: CanvasRenderingContext2D, d: number, now: number) {
     c.fillRect(0, 0, WORLD_WIDTH, HORIZON_Y)
     c.restore()
   }
+
+  const siege = siegeCover()
+  const battle = battleCover()
+  const home = homeCover()
+  const arrival = arrivalCover()
+  drawScene(c, 'siege', spanProgress(LANKA_AT, BATTLE_AT), siege, now)
+  drawScene(c, 'battle', spanProgress(BATTLE_AT, RAVAN_AT), battle, now)
+  const past = pastRavanDistance()
+  drawScene(c, 'home', clamp01(past / 6400), home, now)
+  drawScene(c, 'ayodhya', clamp01((past - 4800) / 3600), arrival, now)
+  drawSceneClouds(c, d, now, Math.max(siege, battle, home, arrival))
 }
 
 function drawMoon(c: CanvasRenderingContext2D, t: number) {
@@ -1785,7 +1958,7 @@ function drawHero(c: CanvasRenderingContext2D, now: number) {
   c.rotate(tilt)
   c.scale(r / HERO_RADIUS, r / HERO_RADIUS)
   const alight = fireBlend()
-  const lifted = run.greatLeap || run.floatTicks > 0
+  const lifted = run.carryingMountain || run.greatLeap || run.floatTicks > 0
   const fighting = !run.reachedRavan && (run.reachedBattle || battleGlow() > 0.45)
   if (run.shield || run.shrinkTicks > 0 || alight > 0.05 || lifted || fighting) {
     c.shadowColor = run.shrinkTicks > 0
@@ -1804,6 +1977,8 @@ function drawHero(c: CanvasRenderingContext2D, now: number) {
     const [x, y, w, h, ax, ay] = look.frame
     const s = look.scale
     c.drawImage(sheet, x, y, w, h, (x - ax) * s, (y - ay) * s, w * s, h * s)
+    const fireIndex = FIRE_TAIL.indexOf(look.frame)
+    if (fireIndex >= 0) drawFireFist(c, fireIndex)
   } else if (heroSheet?.complete && heroSheet.naturalWidth) {
     const [x, y, w, h, ax, ay] = HERO_GLIDE[0]!
     const s = HERO_SHEET_SCALE
@@ -1819,6 +1994,28 @@ function drawHero(c: CanvasRenderingContext2D, now: number) {
     drawTailFlame(c, now)
   }
   c.restore()
+}
+
+/** The fire drawing stops at a flat cut where the fist should close. */
+const FIRE_FIST = [
+  { x: 252, y: 586 },
+  { x: 506, y: 571 }
+] as const
+
+function drawFireFist(c: CanvasRenderingContext2D, index: number) {
+  const frame = FIRE_TAIL[index]!
+  const spot = FIRE_FIST[index]!
+  const scale = RIDER_SCALE
+  const cx = (spot.x - frame[4]) * scale
+  const cy = (spot.y - frame[5]) * scale
+  c.beginPath()
+  c.fillStyle = '#5c1a08'
+  c.arc(cx, cy, 5.6, 0, Math.PI * 2)
+  c.fill()
+  c.beginPath()
+  c.fillStyle = '#ffbb7e'
+  c.arc(cx - 0.4, cy - 0.3, 4.2, 0, Math.PI * 2)
+  c.fill()
 }
 
 function drawTailFlame(c: CanvasRenderingContext2D, now: number) {
@@ -1864,6 +2061,10 @@ function drawHud(c: CanvasRenderingContext2D) {
   c.font = 'bold 11px system-ui, sans-serif'
   c.fillStyle = act.ink
   c.fillText(act.name, WORLD_WIDTH / 2, 96)
+  if (run.practice) {
+    c.fillStyle = '#b45309'
+    c.fillText('Practice', WORLD_WIDTH / 2, 112)
+  }
 
   c.textAlign = 'left'
   c.font = 'bold 16px system-ui, sans-serif'
@@ -1881,7 +2082,7 @@ function drawHud(c: CanvasRenderingContext2D) {
     c.font = 'bold 11px system-ui, sans-serif'
     c.fillText('Mainak ✦', WORLD_WIDTH - 94, run.shrinkTicks > 0 ? 56 : 28)
   }
-  if (run.greatLeap) {
+  if (run.carryingMountain) {
     c.textAlign = 'left'
     c.fillStyle = '#15803d'
     c.font = 'bold 11px system-ui, sans-serif'

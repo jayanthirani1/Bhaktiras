@@ -89,6 +89,7 @@ export const FIRE_CLEAR = 108
  * @property {number} tulsi
  * @property {number} leaps
  * @property {boolean} alive
+ * @property {boolean} practice A hit flickers and the flight continues. Never set on a submitted run.
  * @property {boolean} shield
  * @property {number} shrinkTicks
  * @property {number} graceTicks
@@ -99,6 +100,7 @@ export const FIRE_CLEAR = 108
  * @property {boolean} reachedRavan
  * @property {boolean} greatLeap Sanjeevani is stored. The next leap rises higher.
  * @property {number} floatTicks Remaining ticks of the lighter sanjeevani leap.
+ * @property {boolean} carryingMountain Hanumanji holds the mountain until Ravan's scene.
  * @property {DeathCause | null} cause
  * @property {Obstacle[]} course
  * @property {number} firstActive
@@ -212,6 +214,27 @@ export function gapShift(obstacle, tick) {
 
 /** @param {RunState} s @param {number} index @returns {Obstacle} */
 function makeObstacle(s, index) {
+  if (s.practice) {
+    const prev = index > 0 ? s.course[index - 1] : null
+    const x = prev ? prev.x + 240 : FIRST_GATE_X
+    const gap = 188
+    const prevCenter = prev ? (prev.gapTop + prev.gapBottom) / 2 : SEA_LEVEL / 2
+    const lo = GAP_TOP_LIMIT + gap / 2
+    const hi = GAP_BOTTOM_LIMIT - gap / 2
+    const target = lo + s.rnd() * (hi - lo)
+    const center = clamp(clamp(target, prevCenter - 80, prevCenter + 80), lo, hi)
+    const gapTop = center - gap / 2
+    return {
+      index,
+      kind: 'gate',
+      x,
+      gapTop,
+      gapBottom: gapTop + gap,
+      reachY: Infinity,
+      pickup: null,
+      passed: false
+    }
+  }
   const rnd = s.rnd
   const prev = index > 0 ? s.course[index - 1] : null
   const x = prev ? prev.x + spacingFor(index) : FIRST_GATE_X
@@ -261,7 +284,7 @@ function makeObstacle(s, index) {
   const midX = x + PILLAR_WIDTH / 2
   if (index <= LANKA_AT && index + 1 === s.nextSurasa) pickup = { kind: 'laghima', x: midX, y: center, taken: false }
   else if (kind === 'mainak') pickup = { kind: 'mainak', x: midX, y: lower - 24, taken: false }
-  else if ((kind === 'field' && (index === RAVAN_AT - 1 || rnd() < 0.16)) || (kind === 'dawn' && rnd() < 0.07)) pickup = { kind: 'sanjeevani', x: midX, y: center, taken: false }
+  else if (kind === 'field' && index === BATTLE_AT) pickup = { kind: 'sanjeevani', x: midX, y: center, taken: false }
   else if (kind !== 'surasa' && rnd() < 0.6) {
     pickup = { kind: 'tulsi', x: midX, y: center + (rnd() * 2 - 1) * (gap / 2 - 30), taken: false }
   }
@@ -286,8 +309,8 @@ function ensureCourse(s) {
   }
 }
 
-/** @param {string} seed @returns {RunState} */
-export function createRun(seed) {
+/** @param {string} seed @param {boolean} [practice] Endless gates. A hit flickers. Not for submitted runs. @returns {RunState} */
+export function createRun(seed, practice = false) {
   const rnd = mulberry32(hashString(seed))
   for (let i = 0; i < 8; i++) rnd()
   /** @type {RunState} */
@@ -300,6 +323,7 @@ export function createRun(seed) {
     tulsi: 0,
     leaps: 0,
     alive: true,
+    practice: practice === true,
     shield: false,
     shrinkTicks: 0,
     graceTicks: 0,
@@ -310,6 +334,7 @@ export function createRun(seed) {
     reachedRavan: false,
     greatLeap: false,
     floatTicks: 0,
+    carryingMountain: false,
     cause: null,
     course: [],
     firstActive: 0,
@@ -342,6 +367,11 @@ function takeHit(s, cause) {
     s.shield = false
     s.graceTicks = GRACE_TICKS
     s.events.push('shield-break')
+    return
+  }
+  if (s.practice) {
+    s.graceTicks = GRACE_TICKS
+    s.vy = Math.min(s.vy, LEAP_VELOCITY)
     return
   }
   s.alive = false
@@ -395,7 +425,7 @@ export function step(s, leap) {
     s.y = r
     if (s.vy < 0) s.vy = 0
   }
-  s.distance += speedFor(s.score)
+  s.distance += s.practice ? 2.8 : speedFor(s.score)
   s.tick++
   if (s.shrinkTicks > 0) s.shrinkTicks--
   if (s.graceTicks > 0) s.graceTicks--
@@ -416,6 +446,7 @@ export function step(s, leap) {
 
     const p = o.pickup
     const shift = gapShift(o, s.tick)
+    if (s.carryingMountain && o.kind === 'ravan') s.carryingMountain = false
     if (p && !p.taken) {
       if (hitsRect(p.x, p.y + shift, PICKUP_RADIUS, x - BODY_BACK * body, s.y - BODY_TOP * body, x + BODY_FRONT * body, s.y + BODY_BOTTOM * body)) {
         p.taken = true
@@ -426,7 +457,7 @@ export function step(s, leap) {
           s.shrinkTicks = SHRINK_TICKS
           s.events.push('laghima')
         } else if (p.kind === 'sanjeevani') {
-          s.greatLeap = true
+          s.carryingMountain = true
           s.events.push('sanjeevani')
         } else {
           s.shield = true
@@ -484,7 +515,7 @@ export function step(s, leap) {
     }
   }
 
-  if (s.alive && s.tick >= MAX_RUN_TICKS) {
+  if (s.alive && !s.practice && s.tick >= MAX_RUN_TICKS) {
     s.alive = false
     s.cause = 'time'
     s.events.push('dead')
