@@ -148,9 +148,9 @@ function difficulty(index) {
 }
 
 /** @param {number} score */
-/** 0 at Ravan's chariot, 1 after eighty more gates. The course keeps tightening until then. */
+/** 0 at Ravan's chariot, 1 after fifty-five more gates. The way home tightens faster than the battle. */
 function pastRavan(index) {
-  return index > RAVAN_AT ? Math.min((index - RAVAN_AT) / 80, 1) : 0
+  return index > RAVAN_AT ? Math.min((index - RAVAN_AT) / 55, 1) : 0
 }
 
 /** @param {number} score */
@@ -158,12 +158,12 @@ export function speedFor(score) {
   const { toLanka, beyond } = difficulty(score)
   const climb = score > BRIDGE_AT ? (BRIDGE_AT - LANKA_AT) / 40 : beyond
   const battle = score > BATTLE_AT ? Math.min((score - BATTLE_AT) / 40, 1) : 0
-  return 2.6 + 0.8 * toLanka + 0.2 * climb + 0.55 * battle + 1.35 * pastRavan(score)
+  return 2.6 + 0.8 * toLanka + 0.2 * climb + 0.55 * battle + 1.7 * pastRavan(score)
 }
 
 /** @param {number} index */
 function spacingFor(index) {
-  if (index > RAVAN_AT) return 240 - 55 * pastRavan(index)
+  if (index > RAVAN_AT) return 214 - 62 * pastRavan(index)
   if (index >= BATTLE_AT) return 228
   if (index >= BRIDGE_AT) return 240
   const { toLanka, beyond } = difficulty(index)
@@ -197,10 +197,10 @@ export function flameTop(obstacle, heroX) {
  */
 export function gapShift(obstacle, tick) {
   if (!obstacle || (obstacle.kind !== 'field' && obstacle.kind !== 'ravan' && obstacle.kind !== 'dawn')) return 0
-  const period = obstacle.kind === 'ravan' ? 64 : obstacle.kind === 'dawn' ? 86 - Math.floor(34 * pastRavan(obstacle.index)) : 86
+  const period = obstacle.kind === 'ravan' ? 56 : obstacle.kind === 'dawn' ? 74 - Math.floor(32 * pastRavan(obstacle.index)) : 72
   const amp = obstacle.kind === 'field'
-    ? 18 + Math.min(obstacle.index - BATTLE_AT, 28) * 0.5
-    : obstacle.kind === 'ravan' ? 16 : 12 + 18 * pastRavan(obstacle.index)
+    ? 22 + Math.min(obstacle.index - BATTLE_AT, 28) * 0.65
+    : obstacle.kind === 'ravan' ? 20 : 16 + 26 * pastRavan(obstacle.index)
   const cycle = period * 2
   const m = (tick + obstacle.index * 37) % cycle
   const tri = m < period ? m / period : (cycle - m) / period
@@ -242,12 +242,12 @@ function makeObstacle(s, index) {
   if (kind === 'lankini') gap = 170
   if (kind === 'roof') gap = 228 - Math.min(index - LANKA_AT, 12)
   if (kind === 'setu' || kind === 'stone') gap = 206
-  if (kind === 'field') gap = 198 - Math.min(index - BATTLE_AT, 32) * 1.15
-  if (kind === 'ravan') gap = 158
-  if (kind === 'dawn') gap = 176 - 48 * pastRavan(index)
+  if (kind === 'field') gap = 190 - Math.min(index - BATTLE_AT, 32) * 1.25
+  if (kind === 'ravan') gap = 150
+  if (kind === 'dawn') gap = 166 - 50 * pastRavan(index)
 
   const prevCenter = prev ? (prev.gapTop + (prev.kind === 'simhika' ? prev.reachY - 30 : prev.gapBottom)) / 2 : SEA_LEVEL / 2
-  const dawnShift = 48 + 30 * pastRavan(index)
+  const dawnShift = 64 + 48 * pastRavan(index)
   const maxShift = kind === 'surasa' ? 90 : kind === 'roof' ? 80 : kind === 'setu' || kind === 'stone' ? 62 : kind === 'field' ? 74 : kind === 'ravan' ? 34 : kind === 'dawn' ? dawnShift : 160
   const lo = GAP_TOP_LIMIT + gap / 2
   const hi = (kind === 'simhika' ? GAP_BOTTOM_LIMIT - 110 : GAP_BOTTOM_LIMIT) - gap / 2
@@ -261,7 +261,7 @@ function makeObstacle(s, index) {
   const midX = x + PILLAR_WIDTH / 2
   if (index <= LANKA_AT && index + 1 === s.nextSurasa) pickup = { kind: 'laghima', x: midX, y: center, taken: false }
   else if (kind === 'mainak') pickup = { kind: 'mainak', x: midX, y: lower - 24, taken: false }
-  else if ((kind === 'field' && (index === RAVAN_AT - 1 || rnd() < 0.18)) || (kind === 'dawn' && rnd() < 0.12)) pickup = { kind: 'sanjeevani', x: midX, y: center, taken: false }
+  else if ((kind === 'field' && (index === RAVAN_AT - 1 || rnd() < 0.16)) || (kind === 'dawn' && rnd() < 0.07)) pickup = { kind: 'sanjeevani', x: midX, y: center, taken: false }
   else if (kind !== 'surasa' && rnd() < 0.6) {
     pickup = { kind: 'tulsi', x: midX, y: center + (rnd() * 2 - 1) * (gap / 2 - 30), taken: false }
   }

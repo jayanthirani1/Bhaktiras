@@ -320,6 +320,7 @@ let ctx: CanvasRenderingContext2D | null = null
 let resizeObserver: ResizeObserver | null = null
 let banner: { text: string; until: number } | null = null
 let heroSheet: HTMLImageElement | null = null
+let riderSheet: HTMLImageElement | null = null
 
 const DEMON_SRC = {
   surasa: '/games/lanka-leap/surasa.webp',
@@ -337,7 +338,9 @@ function demonImage(key: keyof typeof DEMON_SRC) {
 /** Frame rectangles in the sprite sheet; (ax, ay) is the head, which sits on the hit circle. */
 type HeroFrame = readonly [x: number, y: number, w: number, h: number, ax: number, ay: number]
 const HERO_SHEET_SRC = '/games/lanka-leap/hanuman-sheet.webp'
+const RIDER_SHEET_SRC = '/games/lanka-leap/riders-sheet.webp'
 const HERO_SHEET_SCALE = 0.45
+const RIDER_SCALE = 0.46
 const HERO_GLIDE: HeroFrame[] = [
   [26, 41, 235, 148, 183, 105],
   [279, 41, 231, 148, 425, 106],
@@ -355,15 +358,49 @@ const HERO_DIVE: HeroFrame[] = [
   [308, 442, 201, 204, 453, 549],
 ]
 const HERO_CHEER: HeroFrame = [804, 442, 183, 204, 902, 506]
+/** Ram draws, aims, looses, and the arrow flies. Then Lakshman takes the same shot. */
+const RAM_SHOT: HeroFrame[] = [
+  [17, 9, 229, 249, 116, 152],
+  [268, 6, 216, 252, 350, 152],
+  [509, 5, 221, 253, 596, 152],
+  [762, 5, 255, 253, 854, 152],
+]
+const LAKSHMAN_SHOT: HeroFrame[] = [
+  [20, 258, 228, 227, 116, 386],
+  [266, 258, 218, 227, 356, 386],
+  [511, 258, 224, 234, 602, 386],
+  [760, 258, 257, 234, 854, 386],
+]
+const FIRE_TAIL: HeroFrame[] = [
+  [17, 501, 239, 149, 104, 602],
+  [256, 497, 249, 150, 356, 602],
+]
+const SANJIVINI: HeroFrame[] = [
+  [505, 492, 247, 177, 608, 614],
+  [752, 492, 268, 180, 866, 614],
+]
 
-function heroFrame(now: number): HeroFrame {
-  if (phase.value === 'over' && run.reachedLanka) return HERO_CHEER
-  const tick = Math.floor(now / 90)
-  if (phase.value === 'playing' || phase.value === 'paused') {
-    if (run.vy < -1.5) return HERO_RISE[tick % HERO_RISE.length]!
-    if (run.vy > 5) return HERO_DIVE[tick % HERO_DIVE.length]!
+type HeroLook = { frame: HeroFrame; scale: number; sheet: 'hero' | 'rider' }
+
+function heroLook(now: number): HeroLook {
+  const tick = Math.floor(now / 110)
+  if (run.greatLeap || run.floatTicks > 0) {
+    return { frame: SANJIVINI[tick % SANJIVINI.length]!, scale: RIDER_SCALE, sheet: 'rider' }
   }
-  return HERO_GLIDE[tick % HERO_GLIDE.length]!
+  if (!run.reachedRavan && (run.reachedBattle || battleGlow() > 0.45)) {
+    const step = Math.floor(now / 95)
+    const brother = Math.floor(step / 4) % 2 === 0 ? RAM_SHOT : LAKSHMAN_SHOT
+    return { frame: brother[step % 4]!, scale: RIDER_SCALE, sheet: 'rider' }
+  }
+  if (fireBlend() > 0.2) {
+    return { frame: FIRE_TAIL[tick % FIRE_TAIL.length]!, scale: RIDER_SCALE, sheet: 'rider' }
+  }
+  if (phase.value === 'over' && run.reachedLanka) return { frame: HERO_CHEER, scale: HERO_SHEET_SCALE, sheet: 'hero' }
+  if (phase.value === 'playing' || phase.value === 'paused') {
+    if (run.vy < -1.5) return { frame: HERO_RISE[tick % HERO_RISE.length]!, scale: HERO_SHEET_SCALE, sheet: 'hero' }
+    if (run.vy > 5) return { frame: HERO_DIVE[tick % HERO_DIVE.length]!, scale: HERO_SHEET_SCALE, sheet: 'hero' }
+  }
+  return { frame: HERO_GLIDE[tick % HERO_GLIDE.length]!, scale: HERO_SHEET_SCALE, sheet: 'hero' }
 }
 
 const DEATH_TITLES: Record<DeathCause, string> = {
@@ -393,7 +430,13 @@ const DEATH_TIPS: Record<DeathCause, string> = {
   time: 'What a flight!'
 }
 const deathTitle = computed(() => lastRun.value ? DEATH_TITLES[lastRun.value.cause] : '')
-const deathTip = computed(() => lastRun.value ? DEATH_TIPS[lastRun.value.cause] : '')
+const deathTip = computed(() => {
+  if (!lastRun.value) return ''
+  if (lastRun.value.cause === 'field' && lastRun.value.reachedRavan) {
+    return 'The way home swings and closes in. Short taps, and save sanjeevani for a gate you cannot clear.'
+  }
+  return DEATH_TIPS[lastRun.value.cause]
+})
 
 function loadDay() {
   try {
@@ -559,6 +602,8 @@ watch(canvasEl, (el) => {
 onMounted(() => {
   heroSheet = new Image()
   heroSheet.src = HERO_SHEET_SRC
+  riderSheet = new Image()
+  riderSheet.src = RIDER_SHEET_SRC
   for (const [key, src] of Object.entries(DEMON_SRC) as Array<[keyof typeof DEMON_SRC, string]>) {
     const img = new Image()
     img.src = src
@@ -608,6 +653,8 @@ function draw(now: number) {
   drawSea(c, d, now)
   if (fireBlend() > 0.08) drawEmbers(c, d, now)
   if (bridgeGlow() > 0.02) drawCrossing(c, d, now)
+  if (battleGlow() > 0.05) drawBattleStorm(c, d, now)
+  if (run.reachedRavan) drawHomewind(c, d, now)
   drawHero(c, now)
   drawHud(c)
   if (phase.value === 'ready') drawReady(c)
@@ -1151,6 +1198,13 @@ function drawChariot(c: CanvasRenderingContext2D, o: Obstacle, sx: number, shift
   c.lineTo(mid, top + 2)
   c.closePath()
   c.fill()
+  c.fillStyle = '#fbbf24'
+  c.fillRect(sx + 18, top - 34, 3, 16)
+  c.beginPath()
+  c.moveTo(sx + 21, top - 34)
+  c.lineTo(sx + 38, top - 26)
+  c.lineTo(sx + 21, top - 18)
+  c.fill()
   c.fillStyle = '#78350f'
   c.beginPath()
   c.moveTo(sx - 6, SEA_LEVEL + 6)
@@ -1159,6 +1213,12 @@ function drawChariot(c: CanvasRenderingContext2D, o: Obstacle, sx: number, shift
   c.lineTo(sx + PILLAR_WIDTH + 6, SEA_LEVEL + 6)
   c.closePath()
   c.fill()
+  c.strokeStyle = '#fbbf24'
+  c.lineWidth = 2.5
+  c.beginPath()
+  c.arc(sx + 14, bottom + 22, 8, 0, Math.PI * 2)
+  c.arc(sx + PILLAR_WIDTH - 14, bottom + 22, 8, 0, Math.PI * 2)
+  c.stroke()
   c.fillStyle = '#fbbf24'
   c.fillRect(sx + 16, bottom + 16, PILLAR_WIDTH - 32, 7)
 }
@@ -1170,6 +1230,11 @@ function drawRavan(c: CanvasRenderingContext2D, o: Obstacle, sx: number, shift: 
   const sink = o.passed ? Math.min(150, Math.max(0, HERO_X - sx - PILLAR_WIDTH)) : 0
   c.save()
   c.translate(0, sink)
+  const aura = c.createLinearGradient(sx, top - 40, sx, top + 20)
+  aura.addColorStop(0, 'rgba(239, 68, 68, 0)')
+  aura.addColorStop(1, 'rgba(239, 68, 68, 0.45)')
+  c.fillStyle = aura
+  c.fillRect(sx - 18, top - 48, PILLAR_WIDTH + 36, 56)
   c.fillStyle = '#7f1d1d'
   c.fillRect(sx - 2, 0, PILLAR_WIDTH + 4, top)
   c.fillStyle = '#fbbf24'
@@ -1206,21 +1271,40 @@ function drawDawnGate(c: CanvasRenderingContext2D, o: Obstacle, sx: number, shif
   const mid = sx + PILLAR_WIDTH / 2
   const top = o.gapTop + shift
   const bottom = o.gapBottom + shift
+  const rush = pastHome(o.index)
   c.fillStyle = 'rgba(253, 230, 138, 0.92)'
   c.fillRect(sx + 6, 0, 10, top)
   c.fillRect(sx + PILLAR_WIDTH - 16, 0, 10, top)
   c.beginPath()
   c.moveTo(sx + 4, top - 8)
-  c.quadraticCurveTo(mid, top - 28, sx + PILLAR_WIDTH - 4, top - 8)
+  c.quadraticCurveTo(mid, top - 28 - rush * 10, sx + PILLAR_WIDTH - 4, top - 8)
   c.lineTo(sx + PILLAR_WIDTH - 8, top)
   c.quadraticCurveTo(mid, top - 16, sx + 8, top)
   c.closePath()
   c.fill()
+  c.strokeStyle = `rgba(234, 88, 12, ${0.35 + rush * 0.4})`
+  c.lineWidth = 2
+  for (let i = 0; i < 4; i++) {
+    const x = sx + 12 + i * 12
+    c.beginPath()
+    c.moveTo(x, top - 6)
+    c.quadraticCurveTo(x + 4, top + 8, x, top + 16)
+    c.stroke()
+  }
   c.fillStyle = '#fde68a'
   c.fillRect(sx + 4, bottom, PILLAR_WIDTH - 8, 14)
   c.beginPath()
   c.arc(mid, bottom + 14, 12, Math.PI, 0)
   c.fill()
+  c.fillStyle = '#fb7185'
+  c.beginPath()
+  c.arc(mid - 10, bottom + 6, 3, 0, Math.PI * 2)
+  c.arc(mid + 8, bottom + 8, 2.4, 0, Math.PI * 2)
+  c.fill()
+}
+
+function pastHome(index: number) {
+  return index > RAVAN_AT ? Math.min((index - RAVAN_AT) / 55, 1) : 0
 }
 
 /** Vanaras on the causeway, with Shri Ram and Lakshman leading at the first stones. */
@@ -1526,6 +1610,89 @@ function drawBattlefield(c: CanvasRenderingContext2D, d: number, now: number) {
   c.fillRect(0, SEA_LEVEL - 18, WORLD_WIDTH, 16)
 }
 
+function drawBattleStorm(c: CanvasRenderingContext2D, d: number, now: number) {
+  const dust = battleGlow() * (1 - ravanGlow())
+  if (dust < 0.04) return
+  c.save()
+  c.globalAlpha = dust
+  const span = WORLD_WIDTH + 120
+  for (let i = 0; i < 9; i++) {
+    const travel = (now * 0.28 + i * 97) % span
+    const x = travel - 50
+    const y = 150 + ((i * 53) % 300)
+    c.strokeStyle = i % 2 === 0 ? '#fde68a' : '#fb923c'
+    c.lineWidth = 1.6
+    c.beginPath()
+    c.moveTo(x, y)
+    c.lineTo(x + 22, y - 2)
+    c.stroke()
+    c.fillStyle = '#f97316'
+    c.beginPath()
+    c.moveTo(x + 22, y - 5)
+    c.lineTo(x + 30, y - 2)
+    c.lineTo(x + 22, y + 1)
+    c.closePath()
+    c.fill()
+  }
+  for (let i = 0; i < 6; i++) {
+    const x = ((((i * 83) - d * 0.15) % span) + span) % span - 30
+    const y = 80 + ((i * 41) % 160)
+    const puff = 10 + (i % 3) * 6
+    c.fillStyle = `rgba(68, 64, 60, ${0.18 + (i % 3) * 0.06})`
+    c.beginPath()
+    c.ellipse(x, y, puff, puff * 0.45, 0, 0, Math.PI * 2)
+    c.fill()
+  }
+  const flash = Math.sin(now / 90)
+  if (flash > 0.65) {
+    c.fillStyle = `rgba(254, 240, 138, ${(flash - 0.65) * 1.4})`
+    c.beginPath()
+    c.arc(260 + Math.sin(now / 200) * 40, 220, 8, 0, Math.PI * 2)
+    c.fill()
+  }
+  c.restore()
+}
+
+function drawHomewind(c: CanvasRenderingContext2D, d: number, now: number) {
+  const rush = Math.min(1, Math.max(0, run.score - RAVAN_AT) / 24)
+  c.save()
+  c.globalAlpha = 0.18 + rush * 0.45
+  c.strokeStyle = 'rgba(255, 251, 235, 0.85)'
+  c.lineWidth = 1.5
+  const span = WORLD_WIDTH + 40
+  for (let i = 0; i < 8; i++) {
+    const x = ((((i * 71) - d * (0.8 + rush)) % span) + span) % span - 20
+    const y = 70 + ((i * 67) % 420)
+    c.beginPath()
+    c.moveTo(x, y)
+    c.lineTo(x + 18 + rush * 22, y)
+    c.stroke()
+  }
+  c.fillStyle = '#fb7185'
+  for (let i = 0; i < 7; i++) {
+    const x = ((((i * 89) - d * 0.45) % span) + span) % span - 10
+    const y = 40 + ((now * 0.02 + i * 80) % 520)
+    c.globalAlpha = 0.35 + rush * 0.4
+    c.beginPath()
+    c.ellipse(x, y, 3.5, 2, -0.6, 0, Math.PI * 2)
+    c.fill()
+  }
+  c.globalAlpha = 0.35 + rush * 0.4
+  c.fillStyle = '#fff7ed'
+  const spires = [34, 52, 28, 64, 40, 48]
+  for (let i = 0; i < spires.length; i++) {
+    const height = spires[i]!
+    const x = ((((i * 70) - d * 0.08) % (WORLD_WIDTH + 80)) + WORLD_WIDTH + 80) % (WORLD_WIDTH + 80) - 40
+    c.beginPath()
+    c.moveTo(x, HORIZON_Y)
+    c.lineTo(x + 8, HORIZON_Y - height)
+    c.lineTo(x + 16, HORIZON_Y)
+    c.fill()
+    c.fillRect(x + 6, HORIZON_Y - height - 8, 4, 8)
+  }
+  c.restore()
+}
+
 function drawOcean(c: CanvasRenderingContext2D, d: number, now: number) {
   const t = now * 0.003
 
@@ -1609,7 +1776,9 @@ function drawHero(c: CanvasRenderingContext2D, now: number) {
   if (run.graceTicks > 0 && Math.floor(now / 90) % 2 === 0) return
   const r = heroRadius(run)
   const bob = phase.value === 'ready' ? Math.sin(now / 300) * 6 : 0
-  const tilt = phase.value === 'ready' ? 0 : Math.max(-0.2, Math.min(0.35, run.vy * 0.035))
+  const look = heroLook(now)
+  const rawTilt = phase.value === 'ready' ? 0 : Math.max(-0.2, Math.min(0.35, run.vy * 0.035))
+  const tilt = look.sheet === 'rider' ? rawTilt * 0.4 : rawTilt
 
   c.save()
   c.translate(HERO_X, run.y + bob)
@@ -1617,18 +1786,26 @@ function drawHero(c: CanvasRenderingContext2D, now: number) {
   c.scale(r / HERO_RADIUS, r / HERO_RADIUS)
   const alight = fireBlend()
   const lifted = run.greatLeap || run.floatTicks > 0
-  if (run.shield || run.shrinkTicks > 0 || alight > 0.05 || lifted) {
+  const fighting = !run.reachedRavan && (run.reachedBattle || battleGlow() > 0.45)
+  if (run.shield || run.shrinkTicks > 0 || alight > 0.05 || lifted || fighting) {
     c.shadowColor = run.shrinkTicks > 0
       ? 'rgba(56, 189, 248, 0.95)'
       : lifted
         ? 'rgba(22, 163, 74, 0.95)'
-        : alight > 0.05
-          ? 'rgba(249, 115, 22, 0.95)'
-          : 'rgba(250, 204, 21, 0.95)'
+        : fighting
+          ? 'rgba(251, 191, 36, 0.9)'
+          : alight > 0.05
+            ? 'rgba(249, 115, 22, 0.95)'
+            : 'rgba(250, 204, 21, 0.95)'
     c.shadowBlur = 14 + Math.sin(now / 160) * 6
   }
-  if (heroSheet?.complete && heroSheet.naturalWidth) {
-    const [x, y, w, h, ax, ay] = heroFrame(now)
+  const sheet = look.sheet === 'rider' ? riderSheet : heroSheet
+  if (sheet?.complete && sheet.naturalWidth) {
+    const [x, y, w, h, ax, ay] = look.frame
+    const s = look.scale
+    c.drawImage(sheet, x, y, w, h, (x - ax) * s, (y - ay) * s, w * s, h * s)
+  } else if (heroSheet?.complete && heroSheet.naturalWidth) {
+    const [x, y, w, h, ax, ay] = HERO_GLIDE[0]!
     const s = HERO_SHEET_SCALE
     c.drawImage(heroSheet, x, y, w, h, (x - ax) * s, (y - ay) * s, w * s, h * s)
   } else {
@@ -1637,7 +1814,7 @@ function drawHero(c: CanvasRenderingContext2D, now: number) {
     c.arc(0, 0, HERO_RADIUS, 0, Math.PI * 2)
     c.fill()
   }
-  if (alight > 0.05) {
+  if (alight > 0.05 && look.sheet !== 'rider') {
     c.globalAlpha = alight
     drawTailFlame(c, now)
   }
