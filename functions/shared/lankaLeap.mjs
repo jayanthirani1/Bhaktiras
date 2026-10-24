@@ -214,27 +214,6 @@ export function gapShift(obstacle, tick) {
 
 /** @param {RunState} s @param {number} index @returns {Obstacle} */
 function makeObstacle(s, index) {
-  if (s.practice) {
-    const prev = index > 0 ? s.course[index - 1] : null
-    const x = prev ? prev.x + 240 : FIRST_GATE_X
-    const gap = 188
-    const prevCenter = prev ? (prev.gapTop + prev.gapBottom) / 2 : SEA_LEVEL / 2
-    const lo = GAP_TOP_LIMIT + gap / 2
-    const hi = GAP_BOTTOM_LIMIT - gap / 2
-    const target = lo + s.rnd() * (hi - lo)
-    const center = clamp(clamp(target, prevCenter - 80, prevCenter + 80), lo, hi)
-    const gapTop = center - gap / 2
-    return {
-      index,
-      kind: 'gate',
-      x,
-      gapTop,
-      gapBottom: gapTop + gap,
-      reachY: Infinity,
-      pickup: null,
-      passed: false
-    }
-  }
   const rnd = s.rnd
   const prev = index > 0 ? s.course[index - 1] : null
   const x = prev ? prev.x + spacingFor(index) : FIRST_GATE_X
@@ -309,7 +288,7 @@ function ensureCourse(s) {
   }
 }
 
-/** @param {string} seed @param {boolean} [practice] Endless gates. A hit flickers. Not for submitted runs. @returns {RunState} */
+/** @param {string} seed @param {boolean} [practice] Same course. A hit flickers. Not for submitted runs. @returns {RunState} */
 export function createRun(seed, practice = false) {
   const rnd = mulberry32(hashString(seed))
   for (let i = 0; i < 8; i++) rnd()
@@ -425,7 +404,7 @@ export function step(s, leap) {
     s.y = r
     if (s.vy < 0) s.vy = 0
   }
-  s.distance += s.practice ? 2.8 : speedFor(s.score)
+  s.distance += speedFor(s.score)
   s.tick++
   if (s.shrinkTicks > 0) s.shrinkTicks--
   if (s.graceTicks > 0) s.graceTicks--

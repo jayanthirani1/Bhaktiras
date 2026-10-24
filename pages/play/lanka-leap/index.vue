@@ -119,7 +119,7 @@
             {{ practiceRun ? 'Practice on' : 'Practice' }}
           </button>
           <p class="text-[11px] leading-snug text-[hsl(var(--muted-foreground))]">
-            Practice is an endless path. A hit flickers, and the score is not saved.
+            Practice flies the real course. A hit flickers, and the score is not saved.
           </p>
         </div>
 
@@ -912,21 +912,19 @@ function spanProgress(startIndex: number, endIndex: number) {
 
 /** Golden Lanka, from the first sight of the city through the bridge. */
 function siegeCover() {
-  if (run.practice) return 0
   const approach = run.reachedLanka ? 1 : cityGlow() / 0.72
   return clamp01(approach) * (1 - battleGlow())
 }
 
 /** Twilight battle, held until Ravan’s chariot has passed. */
 function battleCover() {
-  if (run.practice) return 0
   if (!run.reachedRavan) return battleGlow()
   return 1 - clamp01(pastRavanDistance() / 1200)
 }
 
 /** The coast and Pushpak, then a fade as Ayodhya’s lamps come up. */
 function homeCover() {
-  if (run.practice || !run.reachedRavan) return 0
+  if (!run.reachedRavan) return 0
   const past = pastRavanDistance()
   const rise = clamp01(past / 1000)
   const fall = 1 - clamp01((past - 5200) / 2200)
@@ -935,7 +933,7 @@ function homeCover() {
 
 /** Diyas along the river. Holds once the city is in view. */
 function arrivalCover() {
-  if (run.practice || !run.reachedRavan) return 0
+  if (!run.reachedRavan) return 0
   return clamp01((pastRavanDistance() - 4800) / 2400)
 }
 
