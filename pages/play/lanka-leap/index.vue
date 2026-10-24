@@ -711,7 +711,7 @@ function draw(now: number) {
   drawSea(c, d, now)
   if (fireBlend() > 0.08) drawEmbers(c, d, now)
   if (bridgeGlow() > 0.02) drawCrossing(c, d, now)
-  if (battleGlow() > 0.05 && battleCover() < 0.55) drawBattleStorm(c, d, now)
+  if (battleGlow() > 0.05 && battleCover() < 0.12) drawBattleStorm(c, d, now)
   if (run.reachedRavan && homeCover() < 0.45 && arrivalCover() < 0.45) drawHomewind(c, d, now)
   drawHero(c, now)
   drawHud(c)
@@ -903,11 +903,11 @@ function pastRavanDistance() {
   return Math.max(0, run.distance - gate.x)
 }
 
-function spanProgress(startIndex: number, endIndex: number) {
-  const a = run.course[startIndex]
-  const b = run.course[endIndex]
-  if (!a || !b) return 0
-  return clamp01((run.distance - a.x) / Math.max(1, b.x - a.x))
+/** How far the flight is past a gate that is already on the course. Later gates are not built yet, so the pan must not wait for them. */
+function fromGate(index: number) {
+  const gate = run.course[index]
+  if (!gate) return 0
+  return run.distance - gate.x
 }
 
 /** Golden Lanka, from the first sight of the city through the bridge. */
@@ -971,8 +971,8 @@ function drawScene(c: CanvasRenderingContext2D, key: keyof typeof SCENE_SRC, pan
   const scratch = sceneSkyCanvas.getContext('2d')
   if (scratch) {
     const skyWindow = Math.min(srcW, WORLD_WIDTH / (skyDestH / skySrcH))
-    const drift = Math.sin(now / 9000) * 0.05
-    const skySx = Math.max(0, srcW - skyWindow) * clamp01(pan * 0.38 + drift)
+    const drift = (now * 0.000012) % 0.22
+    const skySx = Math.max(0, srcW - skyWindow) * clamp01(pan * 0.55 + drift)
     scratch.globalCompositeOperation = 'source-over'
     scratch.globalAlpha = 1
     scratch.clearRect(0, 0, WORLD_WIDTH, sceneSkyCanvas.height)
@@ -990,8 +990,8 @@ function drawScene(c: CanvasRenderingContext2D, key: keyof typeof SCENE_SRC, pan
 
 function drawSceneClouds(c: CanvasRenderingContext2D, d: number, now: number, cover: number) {
   if (cover < 0.04) return
-  drawCloudLayer(c, d + now * 0.018, 4, 0.05, 3, 0.72, 0.42 * cover)
-  drawCloudLayer(c, d + now * 0.05, 3, 0.24, 13, 1.08, 0.72 * cover)
+  drawCloudLayer(c, d * 0.35 + now * 0.02, 4, 0.12, 3, 0.85, 0.5 * cover)
+  drawCloudLayer(c, d * 0.15 + now * 0.055, 3, 0.4, 13, 1.15, 0.78 * cover)
 }
 
 function drawFarSea(c: CanvasRenderingContext2D, d: number, now: number) {
@@ -1081,8 +1081,8 @@ function drawSky(c: CanvasRenderingContext2D, d: number, now: number) {
   const battle = battleCover()
   const home = homeCover()
   const arrival = arrivalCover()
-  drawScene(c, 'siege', spanProgress(LANKA_AT, BATTLE_AT), siege, now)
-  drawScene(c, 'battle', spanProgress(BATTLE_AT, RAVAN_AT), battle, now)
+  drawScene(c, 'siege', clamp01((fromGate(LANKA_AT) + 700) / 7500), siege, now)
+  drawScene(c, 'battle', clamp01((fromGate(BATTLE_AT) + 480) / 9600), battle, now)
   const past = pastRavanDistance()
   drawScene(c, 'home', clamp01(past / 6400), home, now)
   drawScene(c, 'ayodhya', clamp01((past - 4800) / 3600), arrival, now)
