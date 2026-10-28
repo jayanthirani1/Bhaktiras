@@ -63,6 +63,12 @@ export const SITE_SECTION_CATALOG: Array<Omit<SiteSectionContent, 'visible' | 'o
     label: 'Games',
     description: 'The whole Games area — every game, streaks and achievements.',
     paths: ['/play']
+  },
+  {
+    id: 'haar-trail',
+    label: 'Haar Trail (escape room)',
+    description: 'The hidden petal-trail puzzle, opened by four quick taps on the Decoration Team card in Seva.',
+    paths: ['/haar']
   }
 ]
 

@@ -43,7 +43,7 @@ Requires the **Blaze** plan (Functions + Storage).
 ## Routes
 
 **Public** — `/` `/journey` `/events` `/community` `/seva` `/niyams` `/yajman`
-`/darshan` `/legacy` `/account` `/login` `/signup` `/privacy` `/policy` `/submit-bug`
+`/darshan` `/legacy` `/haar` (hidden) `/account` `/login` `/signup` `/privacy` `/policy` `/submit-bug`
 
 **Games** — `/play` plus `wordle`, `crossword`, `mini-crossword`, `connections`,
 `one-percent`, `achievements`, `streaks`
@@ -208,6 +208,20 @@ daily leaderboards, cross-device
 completion tracking (`playCompletions`), daily visit streaks, an achievements system, and
 all-time "crowns" for record holders. Achievements and crowns are awarded server-side by
 Cloud Functions. Puzzle content is admin-editable per game, with static fallbacks.
+
+### The Haar Trail (escape room)
+A hidden puzzle for the escape room, not linked from anywhere. **Four quick taps on the
+Decoration Team card on `/seva`** open `/haar`; typed in directly, `/haar` shows the ordinary
+404, and leaving it locks it again for the next team. Ghanshyam Maharaj's haar has been
+stolen: players turn path tiles to rebuild the petal trail from the sinhasan. A decoy trail
+leads to the Decoration store. The only complete trail ends at the kitchen door, and solving
+it shows the evidence image.
+
+The board, trigger and solution are in `data/haarTrail.ts`, shared with
+`server/api/haar-trail.post.ts`, which traces the submitted board again and only then returns
+`server/assets/haar-trail/evidence.jpg`. The image is never in `public/` or the client
+bundle; replace that file (`.jpg`, `.png` or `.webp`) to change it. An admin can switch the
+whole thing off under **Content → Sections**, and the taps then do nothing.
 
 ### Account & legal
 `/account` offers self-serve **GDPR data export and account deletion**, plus auth
