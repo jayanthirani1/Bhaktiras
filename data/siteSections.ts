@@ -67,7 +67,7 @@ export const SITE_SECTION_CATALOG: Array<Omit<SiteSectionContent, 'visible' | 'o
   {
     id: 'haar-trail',
     label: 'Haar Trail (escape room)',
-    description: 'The hidden petal-trail puzzle, opened by four quick taps on the Decoration Team card in Seva.',
+    description: 'Puzzle 7 of the escape room, hidden behind four quick taps on Seva in the navigation bar.',
     paths: ['/haar']
   }
 ]

@@ -17,7 +17,7 @@ built around the Bhaktiras Patotsav.
 | Utsav | Saturday 14 – Sunday 22 August 2027 |
 | Framing | "Celebrating 10 Years with Ghanshyam Maharaj" |
 | Journey span | 2017 – 2027 |
-| Live at | `sksswoolwich-bhaktiras--skssw-bhaktiras.europe-west4.hosted.app` |
+| Live at | `bhaktiras.sksswoolwich.org` (App Hosting backend `sksswoolwich-bhaktiras`) |
 | Firebase project | `skssw-bhaktiras` |
 
 Site-wide constants — utsav dates, WhatsApp invite, journey range, gallery link — live in
@@ -210,18 +210,24 @@ all-time "crowns" for record holders. Achievements and crowns are awarded server
 Cloud Functions. Puzzle content is admin-editable per game, with static fallbacks.
 
 ### The Haar Trail (escape room)
-A hidden puzzle for the escape room, not linked from anywhere. **Four quick taps on the
-Decoration Team card on `/seva`** open `/haar`; typed in directly, `/haar` shows the ordinary
-404, and leaving it locks it again for the next team. Ghanshyam Maharaj's haar has been
-stolen: players turn path tiles to rebuild the petal trail from the sinhasan. A decoy trail
-leads to the Decoration store. The only complete trail ends at the kitchen door, and solving
-it shows the evidence image.
+Puzzle 7 of the escape room, not linked from anywhere. **Four quick taps on Seva in the
+navigation bar** open `/haar`: the first tap goes to `/seva` as usual, and tapping the link you
+are already on does nothing else. Typed in directly, `/haar` shows the ordinary 404, and leaving
+it locks it again for the next team.
+
+The Original Haar has vanished on its way from the staging area, and the CCTV is corrupted.
+Players turn corridor sections to rebuild its route from the door logs. A decoy route leads to
+the Security post. The only complete route ends at Ankut prep, and solving it shows the evidence
+image and room 2 puzzle 5's chain of evidence. A solve is kept for the tab, so a team that wanders
+off goes straight back to the evidence; **holding the case-file heading for two seconds** is the
+game master's reset for the next team.
 
 The board, trigger and solution are in `data/haarTrail.ts`, shared with
 `server/api/haar-trail.post.ts`, which traces the submitted board again and only then returns
-`server/assets/haar-trail/evidence.jpg`. The image is never in `public/` or the client
-bundle; replace that file (`.jpg`, `.png` or `.webp`) to change it. An admin can switch the
-whole thing off under **Content → Sections**, and the taps then do nothing.
+the image (`server/assets/haar-trail/evidence.jpg`) and the chain of evidence
+(`server/utils/haarTrailChainOfEvidence.ts`, placeholder for now). Neither is in `public/` or the
+client bundle; replace the image (`.jpg`, `.png` or `.webp`) or edit the chain and redeploy. An
+admin can switch the whole thing off under **Content → Sections**, and the taps then do nothing.
 
 ### Account & legal
 `/account` offers self-serve **GDPR data export and account deletion**, plus auth
