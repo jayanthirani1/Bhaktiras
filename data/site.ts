@@ -8,7 +8,7 @@ export const SITE = {
    * resolve a relative image, and the invite in this file is a WhatsApp link.
    * Change this here when the site moves to a custom domain.
    */
-  url: 'https://sksswoolwich-bhaktiras--skssw-bhaktiras.europe-west4.hosted.app',
+  url: 'https://bhaktiras.sksswoolwich.org',
   /** One sentence, used as the default meta description and og:description. */
   description:
     'Bhaktiras celebrates ten years with Ghanshyam Maharaj at Shree KS Swaminarayan Temple Woolwich — our journey, events, seva, shared niyams and daily games, leading to the Patotsav in August 2027.',

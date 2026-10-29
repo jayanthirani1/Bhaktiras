@@ -17,7 +17,7 @@ built around the Bhaktiras Patotsav.
 | Utsav | Saturday 14 – Sunday 22 August 2027 |
 | Framing | "Celebrating 10 Years with Ghanshyam Maharaj" |
 | Journey span | 2017 – 2027 |
-| Live at | `sksswoolwich-bhaktiras--skssw-bhaktiras.europe-west4.hosted.app` |
+| Live at | `bhaktiras.sksswoolwich.org` (App Hosting backend `sksswoolwich-bhaktiras`) |
 | Firebase project | `skssw-bhaktiras` |
 
 Site-wide constants — utsav dates, WhatsApp invite, journey range, gallery link — live in
