@@ -20,13 +20,7 @@
         {{ sevaIntro }}
       </p>
       <div class="grid gap-4 sm:grid-cols-2">
-        <article
-          v-for="team in sevaTeams"
-          :key="team.id"
-          class="card-surface p-5 sm:p-6"
-          :class="{ 'select-none [touch-action:manipulation]': team.id === HAAR_TRAIL_TRIGGER_TEAM }"
-          @click="team.id === HAAR_TRAIL_TRIGGER_TEAM && haarTrail.tap()"
-        >
+        <article v-for="team in sevaTeams" :key="team.id" class="card-surface p-5 sm:p-6">
           <h3 class="font-display text-lg font-semibold text-[hsl(var(--primary))]">{{ team.name }}</h3>
           <p v-if="team.summary" class="mt-1 text-sm font-medium text-[hsl(var(--golden-900))]">{{ team.summary }}</p>
           <p class="mt-2 text-sm leading-relaxed text-[hsl(var(--foreground))]/80">{{ team.description }}</p>
@@ -38,10 +32,8 @@
 
 <script setup lang="ts">
 import { SITE } from '~/data/site'
-import { HAAR_TRAIL_TRIGGER_TEAM } from '~/data/haarTrail'
 
 const { sevaHeading, sevaIntro, sevaTeams } = useSiteContent()
-const haarTrail = useHaarTrailTrigger()
 
 usePageSeo('Seva', 'Join a seva team for the Bhaktiras Patotsav — twelve teams, and a WhatsApp community to sign up through.')
 </script>

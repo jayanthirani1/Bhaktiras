@@ -25,7 +25,7 @@
       v-if="!isGamePage"
       class="fixed bottom-0 left-0 right-0 z-50 border-t border-[hsl(var(--border))] bg-[hsl(var(--card))]/95 pb-[env(safe-area-inset-bottom,0px)] backdrop-blur-md md:hidden"
     >
-      <div class="flex h-16 items-center px-2">
+      <div class="flex h-16 items-center px-2 [touch-action:manipulation]">
         <NuxtLink
           v-for="item in mobilePrimaryItems"
           :key="item.href"
@@ -34,7 +34,7 @@
           :rel="item.external ? 'noopener noreferrer' : undefined"
           class="flex min-w-0 flex-1 flex-col items-center justify-center space-y-0.5 rounded-xl p-2 transition-colors"
           :class="isActive(item.href) ? 'text-[#FDC500]' : 'text-[hsl(var(--muted-foreground))] hover:text-[#FDC500] active:text-[#FDC500]'"
-          @click="closeDrawer"
+          @click="closeDrawer(); haarTrail.tap(item.href)"
         >
           <component :is="item.icon" class="h-5 w-5 shrink-0" />
           <span class="truncate text-[10px] font-medium">{{ item.label }}</span>
@@ -95,7 +95,7 @@
             :rel="item.external ? 'noopener noreferrer' : undefined"
             class="flex items-center gap-3 rounded-2xl border border-[hsl(var(--golden-200))] bg-white px-4 py-3 text-[hsl(var(--primary))] transition-colors hover:border-[#FDC500] hover:bg-[hsl(var(--golden-50))]"
             :class="isActive(item.href) ? 'border-[#FDC500] bg-[hsl(var(--golden-50))]' : ''"
-            @click="closeDrawer"
+            @click="closeDrawer(); haarTrail.tap(item.href)"
           >
             <component :is="item.icon" class="h-5 w-5 shrink-0 text-[hsl(var(--primary))]" />
             <span class="min-w-0 text-sm font-medium">{{ item.label }}</span>
@@ -130,6 +130,7 @@
             :class="isActive(item.href)
               ? 'bg-[hsl(var(--primary))] text-white font-semibold'
               : 'text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--muted))] hover:text-[hsl(var(--primary))]'"
+            @click="haarTrail.tap(item.href)"
           >
             {{ item.label }}
           </NuxtLink>
@@ -174,6 +175,7 @@ import { isGamePagePath } from '~/utils/gameRoutes'
 const route = useRoute()
 const { isLoggedIn } = useAuth()
 const { navItems: managedNavItems } = useSiteContent()
+const haarTrail = useHaarTrailTrigger()
 const drawerOpen = ref(false)
 const sheetOffset = ref(0)
 const isGamePage = computed(() => isGamePagePath(route.path))
