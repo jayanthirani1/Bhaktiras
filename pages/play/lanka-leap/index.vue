@@ -171,6 +171,7 @@
 
 <script setup lang="ts">
 import {
+  calmFor,
   createRun,
   flameTop,
   gapShift,
@@ -186,6 +187,7 @@ import {
   PILLAR_WIDTH,
   SEA_LEVEL,
   SIMHIKA_REACH,
+  CALM_TICKS,
   TICK_MS,
   WORLD_HEIGHT,
   WORLD_WIDTH
@@ -367,7 +369,7 @@ type HeroFrame = readonly [x: number, y: number, w: number, h: number, ax: numbe
 const HERO_SHEET_SRC = '/games/lanka-leap/hanuman-sheet.webp'
 const RIDER_SHEET_SRC = '/games/lanka-leap/riders-sheet.webp'
 const HERO_SHEET_SCALE = 0.45
-const RIDER_SCALE = 0.46
+const RIDER_SCALE = 0.86
 const HERO_GLIDE: HeroFrame[] = [
   [26, 41, 235, 148, 183, 105],
   [279, 41, 231, 148, 425, 106],
@@ -385,43 +387,67 @@ const HERO_DIVE: HeroFrame[] = [
   [308, 442, 201, 204, 453, 549],
 ]
 const HERO_CHEER: HeroFrame = [804, 442, 183, 204, 902, 506]
-/** Ram draws, aims, looses, and the arrow flies. Then Lakshman takes the same shot. */
+/**
+ * Riders sheet: eight frames a row, each a separate figure. Rows overlap by a few
+ * pixels, so the boxes are trimmed to each figure. Ram draws and looses, then Lakshman.
+ */
 const RAM_SHOT: HeroFrame[] = [
-  [17, 9, 229, 249, 116, 152],
-  [268, 6, 216, 252, 350, 152],
-  [509, 5, 221, 253, 596, 152],
-  [762, 5, 255, 253, 854, 152],
+  [4, 6, 130, 136, 88, 95],
+  [136, 4, 126, 136, 215, 94],
+  [262, 5, 130, 136, 344, 94],
+  [396, 6, 126, 137, 475, 95],
+  [522, 7, 123, 134, 599, 96],
+  [645, 6, 139, 135, 725, 95],
+  [789, 6, 117, 136, 858, 96],
+  [905, 7, 119, 134, 984, 96],
 ]
 const LAKSHMAN_SHOT: HeroFrame[] = [
-  [20, 258, 228, 227, 116, 386],
-  [266, 258, 218, 227, 356, 386],
-  [511, 258, 224, 234, 602, 386],
-  [760, 258, 257, 234, 854, 386],
+  [5, 142, 129, 135, 87, 230],
+  [136, 140, 126, 135, 215, 229],
+  [264, 140, 128, 136, 345, 230],
+  [396, 141, 126, 137, 474, 232],
+  [522, 142, 123, 134, 599, 231],
+  [645, 142, 139, 134, 724, 232],
+  [789, 142, 117, 134, 858, 232],
+  [905, 143, 119, 132, 983, 232],
 ]
 const FIRE_TAIL: HeroFrame[] = [
-  [17, 501, 239, 149, 104, 602],
-  [256, 497, 249, 150, 356, 602],
+  [6, 283, 132, 90, 95, 331],
+  [139, 281, 126, 92, 226, 330],
+  [268, 282, 125, 91, 355, 331],
+  [395, 285, 126, 89, 481, 333],
+  [523, 283, 131, 88, 608, 330],
+  [656, 283, 126, 90, 741, 331],
+  [782, 281, 123, 92, 867, 330],
+  [908, 283, 116, 90, 989, 331],
 ]
 const SANJIVINI: HeroFrame[] = [
-  [505, 492, 247, 177, 608, 614],
-  [752, 492, 268, 180, 866, 614],
+  [8, 372, 124, 131, 83, 450],
+  [136, 374, 124, 125, 209, 449],
+  [263, 374, 125, 127, 336, 449],
+  [392, 374, 124, 126, 467, 451],
+  [521, 375, 122, 128, 592, 451],
+  [648, 375, 125, 123, 719, 451],
+  [777, 375, 123, 128, 850, 452],
+  [904, 374, 120, 130, 977, 451],
 ]
 
 type HeroLook = { frame: HeroFrame; scale: number; sheet: 'hero' | 'rider' }
 
 function heroLook(now: number): HeroLook {
-  const tick = Math.floor(now / 110)
+  const tick = Math.floor(now / 90)
   if (run.carryingMountain) {
-    const held = Math.floor(now / 420)
-    return { frame: SANJIVINI[held % SANJIVINI.length]!, scale: RIDER_SCALE, sheet: 'rider' }
+    const flap = Math.floor(now / 80)
+    return { frame: SANJIVINI[flap % SANJIVINI.length]!, scale: RIDER_SCALE, sheet: 'rider' }
   }
   if (!run.reachedRavan && (run.reachedBattle || battleGlow() > 0.45)) {
-    const step = Math.floor(now / 95)
-    const brother = Math.floor(step / 4) % 2 === 0 ? RAM_SHOT : LAKSHMAN_SHOT
-    return { frame: brother[step % 4]!, scale: RIDER_SCALE, sheet: 'rider' }
+    const step = Math.floor(now / 70)
+    const brother = Math.floor(step / 24) % 2 === 0 ? RAM_SHOT : LAKSHMAN_SHOT
+    return { frame: brother[step % 8]!, scale: RIDER_SCALE, sheet: 'rider' }
   }
   if (fireBlend() > 0.2) {
-    return { frame: FIRE_TAIL[tick % FIRE_TAIL.length]!, scale: RIDER_SCALE, sheet: 'rider' }
+    const flare = Math.floor(now / 65)
+    return { frame: FIRE_TAIL[flare % FIRE_TAIL.length]!, scale: RIDER_SCALE, sheet: 'rider' }
   }
   if (phase.value === 'over' && run.reachedLanka) return { frame: HERO_CHEER, scale: HERO_SHEET_SCALE, sheet: 'hero' }
   if (phase.value === 'playing' || phase.value === 'paused') {
@@ -461,7 +487,7 @@ const deathTitle = computed(() => lastRun.value ? DEATH_TITLES[lastRun.value.cau
 const deathTip = computed(() => {
   if (!lastRun.value) return ''
   if (lastRun.value.cause === 'field' && lastRun.value.reachedRavan) {
-    return 'The way home swings and closes in. Short taps keep Hanumanji in the gap.'
+    return 'The way home swings fast and closes in. Take the golden Pushpak and the gates slow for a while.'
   }
   return DEATH_TIPS[lastRun.value.cause]
 })
@@ -538,7 +564,9 @@ function handleEvents() {
     else if (event === 'bridge') showBanner('Shri Ram and Lakshman cross with the vanaras')
     else if (event === 'sanjeevani') showBanner('Sanjeevani: Hanumanji carries the mountain')
     else if (event === 'battle') showBanner('The battle for Lanka')
-    else if (event === 'ravan') showBanner('Ravan has fallen. Jai Shri Ram')
+    else if (event === 'revive') showBanner('Lakshman revives. Shri Ram and Lakshman ride on')
+    else if (event === 'ravan') showBanner('Ravan has fallen. Fly for Ayodhya')
+    else if (event === 'pushpak') showBanner('Pushpak: the way home steadies')
   }
 }
 
@@ -1590,11 +1618,11 @@ function drawObstacle(c: CanvasRenderingContext2D, o: Obstacle, sx: number, now:
   } else if (o.kind === 'setu' || o.kind === 'stone') {
     drawBridgeStone(c, o, sx)
   } else if (o.kind === 'field') {
-    drawChariot(c, o, sx, gapShift(o, run.tick))
+    drawChariot(c, o, sx, gapShift(o, run.swing))
   } else if (o.kind === 'ravan') {
-    drawRavan(c, o, sx, gapShift(o, run.tick))
+    drawRavan(c, o, sx, gapShift(o, run.swing))
   } else if (o.kind === 'dawn') {
-    drawDawnGate(c, o, sx, gapShift(o, run.tick))
+    drawDawnGate(c, o, sx, gapShift(o, run.swing))
   } else {
     drawStormColumn(c, sx, o.gapTop)
     if (o.kind === 'surasa') {
@@ -1620,7 +1648,7 @@ function drawObstacle(c: CanvasRenderingContext2D, o: Obstacle, sx: number, now:
   const p = o.pickup
   if (!p || p.taken) return
   const px = p.x - run.distance
-  const py = p.y + gapShift(o, run.tick)
+  const py = p.y + gapShift(o, run.swing)
   const pulse = 1 + Math.sin(now / 180) * 0.12
   if (p.kind === 'sanjeevani') {
     const glow = c.createRadialGradient(px, py, 2, px, py, 16 * pulse)
@@ -1636,6 +1664,9 @@ function drawObstacle(c: CanvasRenderingContext2D, o: Obstacle, sx: number, now:
     c.ellipse(px + 6, py, 7, 3.5, 0.6, 0, Math.PI * 2)
     c.fill()
     drawLabel(c, 'Sanjeevani', px, py - 18)
+  } else if (p.kind === 'pushpak') {
+    drawPushpak(c, px, py, pulse)
+    drawLabel(c, 'Pushpak', px, py - 28)
   } else if (p.kind === 'tulsi') {
     c.fillStyle = '#16a34a'
     c.save()
@@ -1658,6 +1689,45 @@ function drawObstacle(c: CanvasRenderingContext2D, o: Obstacle, sx: number, now:
     c.arc(px, py, 12 * pulse, 0, Math.PI * 2)
     c.fill()
   }
+}
+
+/** Ram’s flying vimana: a golden hull under a small spired canopy. */
+function drawPushpak(c: CanvasRenderingContext2D, px: number, py: number, pulse: number) {
+  c.save()
+  c.translate(px, py)
+  c.scale(1.35, 1.35)
+  const glow = c.createRadialGradient(0, 0, 2, 0, 0, 20 * pulse)
+  glow.addColorStop(0, 'rgba(255, 251, 235, 0.95)')
+  glow.addColorStop(1, 'rgba(245, 158, 11, 0)')
+  c.fillStyle = glow
+  c.beginPath()
+  c.arc(0, 0, 20 * pulse, 0, Math.PI * 2)
+  c.fill()
+  c.fillStyle = '#b45309'
+  c.beginPath()
+  c.moveTo(-15, 1)
+  c.quadraticCurveTo(0, 11, 15, 1)
+  c.lineTo(11, -1)
+  c.lineTo(-11, -1)
+  c.closePath()
+  c.fill()
+  c.fillStyle = '#fbbf24'
+  c.beginPath()
+  c.moveTo(-8, -1)
+  c.quadraticCurveTo(-8, -11, 0, -13)
+  c.quadraticCurveTo(8, -11, 8, -1)
+  c.closePath()
+  c.fill()
+  c.fillStyle = '#fef3c7'
+  c.fillRect(-1, -18, 2, 6)
+  c.fillStyle = '#dc2626'
+  c.beginPath()
+  c.moveTo(1, -18)
+  c.lineTo(7, -16)
+  c.lineTo(1, -14)
+  c.closePath()
+  c.fill()
+  c.restore()
 }
 
 function waveY(x: number, base: number, amp: number, shift: number) {
@@ -1958,10 +2028,13 @@ function drawHero(c: CanvasRenderingContext2D, now: number) {
   const alight = fireBlend()
   const lifted = run.carryingMountain || run.greatLeap || run.floatTicks > 0
   const fighting = !run.reachedRavan && (run.reachedBattle || battleGlow() > 0.45)
-  if (run.shield || run.shrinkTicks > 0 || alight > 0.05 || lifted || fighting) {
+  const calm = calmFor(run)
+  if (run.shield || run.shrinkTicks > 0 || alight > 0.05 || lifted || fighting || calm > 0) {
     c.shadowColor = run.shrinkTicks > 0
       ? 'rgba(56, 189, 248, 0.95)'
-      : lifted
+      : calm > 0
+        ? `rgba(253, 224, 71, ${0.5 + 0.45 * calm})`
+        : lifted
         ? 'rgba(22, 163, 74, 0.95)'
         : fighting
           ? 'rgba(251, 191, 36, 0.9)'
@@ -1975,8 +2048,6 @@ function drawHero(c: CanvasRenderingContext2D, now: number) {
     const [x, y, w, h, ax, ay] = look.frame
     const s = look.scale
     c.drawImage(sheet, x, y, w, h, (x - ax) * s, (y - ay) * s, w * s, h * s)
-    const fireIndex = FIRE_TAIL.indexOf(look.frame)
-    if (fireIndex >= 0) drawFireFist(c, fireIndex)
   } else if (heroSheet?.complete && heroSheet.naturalWidth) {
     const [x, y, w, h, ax, ay] = HERO_GLIDE[0]!
     const s = HERO_SHEET_SCALE
@@ -1992,28 +2063,6 @@ function drawHero(c: CanvasRenderingContext2D, now: number) {
     drawTailFlame(c, now)
   }
   c.restore()
-}
-
-/** The fire drawing stops at a flat cut where the fist should close. */
-const FIRE_FIST = [
-  { x: 252, y: 586 },
-  { x: 506, y: 571 }
-] as const
-
-function drawFireFist(c: CanvasRenderingContext2D, index: number) {
-  const frame = FIRE_TAIL[index]!
-  const spot = FIRE_FIST[index]!
-  const scale = RIDER_SCALE
-  const cx = (spot.x - frame[4]) * scale
-  const cy = (spot.y - frame[5]) * scale
-  c.beginPath()
-  c.fillStyle = '#5c1a08'
-  c.arc(cx, cy, 5.6, 0, Math.PI * 2)
-  c.fill()
-  c.beginPath()
-  c.fillStyle = '#ffbb7e'
-  c.arc(cx - 0.4, cy - 0.3, 4.2, 0, Math.PI * 2)
-  c.fill()
 }
 
 function drawTailFlame(c: CanvasRenderingContext2D, now: number) {
@@ -2079,6 +2128,13 @@ function drawHud(c: CanvasRenderingContext2D) {
     c.fillStyle = '#ca8a04'
     c.font = 'bold 11px system-ui, sans-serif'
     c.fillText('Mainak ✦', WORLD_WIDTH - 94, run.shrinkTicks > 0 ? 56 : 28)
+  }
+  if (run.calmTicks > 0) {
+    const y = run.shrinkTicks > 0 || run.shield ? 56 : 18
+    c.fillStyle = 'rgba(217, 119, 6, 0.9)'
+    c.fillRect(WORLD_WIDTH - 94, y, 80 * (run.calmTicks / CALM_TICKS), 8)
+    c.font = 'bold 11px system-ui, sans-serif'
+    c.fillText('Pushpak', WORLD_WIDTH - 94, y + 22)
   }
   if (run.carryingMountain) {
     c.textAlign = 'left'

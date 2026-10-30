@@ -23,6 +23,8 @@ export const BRIDGE_AT = LANKA_AT + 24
 export const BATTLE_AT = BRIDGE_AT + 8
 /** Obstacle index of Ravan's chariot. The battle runs much longer than the fire. */
 export const RAVAN_AT = BATTLE_AT + 40
+/** Gate where Hanumanji sets the sanjeevani mountain down and Lakshman revives. Only the drawing changes. */
+export const REVIVE_AT = BATTLE_AT + 12
 export const MAX_RUN_TICKS = 60 * 60 * 20
 
 const GRAVITY = 0.36
@@ -30,6 +32,14 @@ const FLOAT_GRAVITY = 0.28
 const LEAP_VELOCITY = -6.6
 const GREAT_LEAP_VELOCITY = -7.4
 const FLOAT_TICKS = 18
+/** Pushpak: the swinging gates slow to a crawl and the flight eases, faded in and out. */
+export const CALM_TICKS = 300
+const CALM_FADE = 30
+const CALM_SWING = 0.8
+const CALM_SPEED = 0.3
+/** The first Pushpak waits a few gates past Ravan, then one comes every ten or so. */
+const FIRST_PUSHPAK = 3
+const PUSHPAK_EVERY = 9
 const SMALL_LEAP_VELOCITY = -5
 const MAX_FALL = 9.5
 const SIMHIKA_PULL = 0.32
@@ -55,9 +65,9 @@ export const FIRE_LEAD = 340
 export const FIRE_CLEAR = 108
 
 /** @typedef {'gate' | 'surasa' | 'simhika' | 'mainak' | 'lankini' | 'roof' | 'setu' | 'stone' | 'field' | 'ravan' | 'dawn'} ObstacleKind */
-/** @typedef {'tulsi' | 'laghima' | 'mainak' | 'sanjeevani'} PickupKind */
+/** @typedef {'tulsi' | 'laghima' | 'mainak' | 'sanjeevani' | 'pushpak'} PickupKind */
 /** @typedef {'rock' | 'sea' | 'surasa' | 'simhika' | 'lankini' | 'tower' | 'fire' | 'stone' | 'field' | 'ravan' | 'time'} DeathCause */
-/** @typedef {'leap' | 'score' | 'tulsi' | 'laghima' | 'mainak' | 'sanjeevani' | 'shield-break' | 'lanka' | 'bridge' | 'battle' | 'ravan' | 'dead'} RunEvent */
+/** @typedef {'leap' | 'score' | 'tulsi' | 'laghima' | 'mainak' | 'sanjeevani' | 'pushpak' | 'shield-break' | 'lanka' | 'bridge' | 'battle' | 'revive' | 'ravan' | 'dead'} RunEvent */
 
 /**
  * @typedef {object} Pickup
@@ -100,7 +110,9 @@ export const FIRE_CLEAR = 108
  * @property {boolean} reachedRavan
  * @property {boolean} greatLeap Sanjeevani is stored. The next leap rises higher.
  * @property {number} floatTicks Remaining ticks of the lighter sanjeevani leap.
- * @property {boolean} carryingMountain Hanumanji holds the mountain until Ravan's scene.
+ * @property {number} calmTicks Remaining ticks of Pushpak's calm.
+ * @property {number} swing Clock for the swinging gates. Keeps pace with tick until Pushpak slows it.
+ * @property {boolean} carryingMountain Hanumanji holds the mountain until Lakshman revives.
  * @property {DeathCause | null} cause
  * @property {Obstacle[]} course
  * @property {number} firstActive
@@ -109,6 +121,7 @@ export const FIRE_CLEAR = 108
  * @property {number} nextSurasa
  * @property {number} nextMainak
  * @property {number} nextSimhika
+ * @property {number} nextPushpak
  */
 
 /** @param {number} seed */
@@ -149,10 +162,15 @@ function difficulty(index) {
   return { toLanka, beyond }
 }
 
-/** @param {number} score */
-/** 0 at Ravan's chariot, 1 after fifty-five more gates. The way home tightens faster than the battle. */
+const POST_RAVAN_SPAN = 40
+
+/**
+ * 0 at Ravan's chariot, 1 after forty more gates. The way home is the hardest
+ * stretch: faster, closer, narrower, and swinging wider. Pushpak eases it.
+ * @param {number} index
+ */
 function pastRavan(index) {
-  return index > RAVAN_AT ? Math.min((index - RAVAN_AT) / 55, 1) : 0
+  return index > RAVAN_AT ? Math.min((index - RAVAN_AT) / POST_RAVAN_SPAN, 1) : 0
 }
 
 /** @param {number} score */
@@ -160,12 +178,19 @@ export function speedFor(score) {
   const { toLanka, beyond } = difficulty(score)
   const climb = score > BRIDGE_AT ? (BRIDGE_AT - LANKA_AT) / 40 : beyond
   const battle = score > BATTLE_AT ? Math.min((score - BATTLE_AT) / 40, 1) : 0
-  return 2.6 + 0.8 * toLanka + 0.2 * climb + 0.55 * battle + 1.7 * pastRavan(score)
+  const home = score > RAVAN_AT ? 0.45 + 1.75 * pastRavan(score) : 0
+  return 2.6 + 0.8 * toLanka + 0.2 * climb + 0.55 * battle + home
+}
+
+/** 0 without Pushpak, 1 while its calm holds, easing at both ends. @param {RunState} s */
+export function calmFor(s) {
+  if (s.calmTicks <= 0) return 0
+  return Math.min(1, s.calmTicks / CALM_FADE, (CALM_TICKS - s.calmTicks + 1) / CALM_FADE)
 }
 
 /** @param {number} index */
 function spacingFor(index) {
-  if (index > RAVAN_AT) return 214 - 62 * pastRavan(index)
+  if (index > RAVAN_AT) return 200 - 56 * pastRavan(index)
   if (index >= BATTLE_AT) return 228
   if (index >= BRIDGE_AT) return 240
   const { toLanka, beyond } = difficulty(index)
@@ -192,17 +217,17 @@ export function flameTop(obstacle, heroX) {
 }
 
 /**
- * How far a gate has drifted this tick. Chariots after the bridge rise and
- * fall. Rendering uses the same shift as the collision.
+ * How far a gate has drifted. Chariots after the bridge rise and fall.
+ * Rendering uses the same shift as the collision.
  * @param {Obstacle} obstacle
- * @param {number} tick
+ * @param {number} tick The run's swing clock, which Pushpak slows.
  */
 export function gapShift(obstacle, tick) {
   if (!obstacle || (obstacle.kind !== 'field' && obstacle.kind !== 'ravan' && obstacle.kind !== 'dawn')) return 0
-  const period = obstacle.kind === 'ravan' ? 56 : obstacle.kind === 'dawn' ? 74 - Math.floor(32 * pastRavan(obstacle.index)) : 72
+  const period = obstacle.kind === 'ravan' ? 56 : obstacle.kind === 'dawn' ? 60 - Math.floor(22 * pastRavan(obstacle.index)) : 72
   const amp = obstacle.kind === 'field'
     ? 22 + Math.min(obstacle.index - BATTLE_AT, 28) * 0.65
-    : obstacle.kind === 'ravan' ? 20 : 16 + 26 * pastRavan(obstacle.index)
+    : obstacle.kind === 'ravan' ? 20 : 28 + 28 * pastRavan(obstacle.index)
   const cycle = period * 2
   const m = (tick + obstacle.index * 37) % cycle
   const tri = m < period ? m / period : (cycle - m) / period
@@ -246,10 +271,10 @@ function makeObstacle(s, index) {
   if (kind === 'setu' || kind === 'stone') gap = 206
   if (kind === 'field') gap = 190 - Math.min(index - BATTLE_AT, 32) * 1.25
   if (kind === 'ravan') gap = 150
-  if (kind === 'dawn') gap = 166 - 50 * pastRavan(index)
+  if (kind === 'dawn') gap = 146 - 44 * pastRavan(index)
 
   const prevCenter = prev ? (prev.gapTop + (prev.kind === 'simhika' ? prev.reachY - 30 : prev.gapBottom)) / 2 : SEA_LEVEL / 2
-  const dawnShift = 64 + 48 * pastRavan(index)
+  const dawnShift = 76 + 46 * pastRavan(index)
   const maxShift = kind === 'surasa' ? 90 : kind === 'roof' ? 80 : kind === 'setu' || kind === 'stone' ? 62 : kind === 'field' ? 74 : kind === 'ravan' ? 34 : kind === 'dawn' ? dawnShift : 160
   const lo = GAP_TOP_LIMIT + gap / 2
   const hi = (kind === 'simhika' ? GAP_BOTTOM_LIMIT - 110 : GAP_BOTTOM_LIMIT) - gap / 2
@@ -264,6 +289,10 @@ function makeObstacle(s, index) {
   if (index <= LANKA_AT && index + 1 === s.nextSurasa) pickup = { kind: 'laghima', x: midX, y: center, taken: false }
   else if (kind === 'mainak') pickup = { kind: 'mainak', x: midX, y: lower - 24, taken: false }
   else if (kind === 'field' && index === BATTLE_AT) pickup = { kind: 'sanjeevani', x: midX, y: center, taken: false }
+  else if (kind === 'dawn' && index === s.nextPushpak) {
+    pickup = { kind: 'pushpak', x: midX, y: center, taken: false }
+    s.nextPushpak = index + PUSHPAK_EVERY + Math.floor(rnd() * 4)
+  }
   else if (kind !== 'surasa' && rnd() < 0.6) {
     pickup = { kind: 'tulsi', x: midX, y: center + (rnd() * 2 - 1) * (gap / 2 - 30), taken: false }
   }
@@ -313,6 +342,8 @@ export function createRun(seed, practice = false) {
     reachedRavan: false,
     greatLeap: false,
     floatTicks: 0,
+    calmTicks: 0,
+    swing: 0,
     carryingMountain: false,
     cause: null,
     course: [],
@@ -321,7 +352,8 @@ export function createRun(seed, practice = false) {
     rnd,
     nextSurasa: 0,
     nextMainak: 0,
-    nextSimhika: 0
+    nextSimhika: 0,
+    nextPushpak: RAVAN_AT + FIRST_PUSHPAK
   }
   s.nextSurasa = 7 + Math.floor(rnd() * 3)
   s.nextMainak = 10 + Math.floor(rnd() * 4)
@@ -404,11 +436,14 @@ export function step(s, leap) {
     s.y = r
     if (s.vy < 0) s.vy = 0
   }
-  s.distance += speedFor(s.score)
+  const calm = calmFor(s)
+  s.distance += speedFor(s.score) * (1 - CALM_SPEED * calm)
+  s.swing += calm > 0 ? 1 - CALM_SWING * calm : 1
   s.tick++
   if (s.shrinkTicks > 0) s.shrinkTicks--
   if (s.graceTicks > 0) s.graceTicks--
   if (s.floatTicks > 0) s.floatTicks--
+  if (s.calmTicks > 0) s.calmTicks--
   ensureCourse(s)
 
   const x = s.distance + HERO_X
@@ -424,8 +459,7 @@ export function step(s, leap) {
     }
 
     const p = o.pickup
-    const shift = gapShift(o, s.tick)
-    if (s.carryingMountain && o.kind === 'ravan') s.carryingMountain = false
+    const shift = gapShift(o, s.swing)
     if (p && !p.taken) {
       if (hitsRect(p.x, p.y + shift, PICKUP_RADIUS, x - BODY_BACK * body, s.y - BODY_TOP * body, x + BODY_FRONT * body, s.y + BODY_BOTTOM * body)) {
         p.taken = true
@@ -438,6 +472,9 @@ export function step(s, leap) {
         } else if (p.kind === 'sanjeevani') {
           s.carryingMountain = true
           s.events.push('sanjeevani')
+        } else if (p.kind === 'pushpak') {
+          s.calmTicks = s.calmTicks > 0 ? CALM_TICKS - CALM_FADE : CALM_TICKS
+          s.events.push('pushpak')
         } else {
           s.shield = true
           s.events.push('mainak')
@@ -460,6 +497,10 @@ export function step(s, leap) {
       if (o.kind === 'field' && o.index === BATTLE_AT) {
         s.reachedBattle = true
         s.events.push('battle')
+      }
+      if (o.index === REVIVE_AT && s.carryingMountain) {
+        s.carryingMountain = false
+        s.events.push('revive')
       }
       if (o.kind === 'ravan') {
         s.reachedRavan = true
