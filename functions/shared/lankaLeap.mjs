@@ -25,6 +25,8 @@ export const BATTLE_AT = BRIDGE_AT + 8
 export const RAVAN_AT = BATTLE_AT + 40
 /** Gate where Hanumanji sets the sanjeevani mountain down and Lakshman revives. Only the drawing changes. */
 export const REVIVE_AT = BATTLE_AT + 12
+/** Obstacle index of Ayodhya's arch. Passing it brings Shri Ram home; bonus gates carry on beyond. */
+export const AYODHYA_AT = RAVAN_AT + 24
 export const MAX_RUN_TICKS = 60 * 60 * 20
 
 const GRAVITY = 0.36
@@ -64,10 +66,10 @@ export const FIRE_LEAD = 340
 /** Gap left above the flames once they have fully risen. */
 export const FIRE_CLEAR = 108
 
-/** @typedef {'gate' | 'surasa' | 'simhika' | 'mainak' | 'lankini' | 'roof' | 'setu' | 'stone' | 'field' | 'ravan' | 'dawn'} ObstacleKind */
+/** @typedef {'gate' | 'surasa' | 'simhika' | 'mainak' | 'lankini' | 'roof' | 'setu' | 'stone' | 'field' | 'ravan' | 'dawn' | 'ayodhya'} ObstacleKind */
 /** @typedef {'tulsi' | 'laghima' | 'mainak' | 'sanjeevani' | 'pushpak'} PickupKind */
 /** @typedef {'rock' | 'sea' | 'surasa' | 'simhika' | 'lankini' | 'tower' | 'fire' | 'stone' | 'field' | 'ravan' | 'time'} DeathCause */
-/** @typedef {'leap' | 'score' | 'tulsi' | 'laghima' | 'mainak' | 'sanjeevani' | 'pushpak' | 'shield-break' | 'lanka' | 'bridge' | 'battle' | 'revive' | 'ravan' | 'dead'} RunEvent */
+/** @typedef {'leap' | 'score' | 'tulsi' | 'laghima' | 'mainak' | 'sanjeevani' | 'pushpak' | 'shield-break' | 'lanka' | 'bridge' | 'battle' | 'revive' | 'ravan' | 'ayodhya' | 'dead'} RunEvent */
 
 /**
  * @typedef {object} Pickup
@@ -108,6 +110,7 @@ export const FIRE_CLEAR = 108
  * @property {boolean} reachedBridge
  * @property {boolean} reachedBattle
  * @property {boolean} reachedRavan
+ * @property {boolean} reachedAyodhya
  * @property {boolean} greatLeap Sanjeevani is stored. The next leap rises higher.
  * @property {number} floatTicks Remaining ticks of the lighter sanjeevani leap.
  * @property {number} calmTicks Remaining ticks of Pushpak's calm.
@@ -248,6 +251,7 @@ function makeObstacle(s, index) {
   if (index === LANKA_AT) kind = 'lankini'
   else if (index === BRIDGE_AT) kind = 'setu'
   else if (index === RAVAN_AT) kind = 'ravan'
+  else if (index === AYODHYA_AT) kind = 'ayodhya'
   else if (index > RAVAN_AT) kind = 'dawn'
   else if (index >= BATTLE_AT) kind = 'field'
   else if (index > BRIDGE_AT) kind = 'stone'
@@ -271,11 +275,12 @@ function makeObstacle(s, index) {
   if (kind === 'setu' || kind === 'stone') gap = 206
   if (kind === 'field') gap = 190 - Math.min(index - BATTLE_AT, 32) * 1.25
   if (kind === 'ravan') gap = 150
+  if (kind === 'ayodhya') gap = 210
   if (kind === 'dawn') gap = 146 - 44 * pastRavan(index)
 
   const prevCenter = prev ? (prev.gapTop + (prev.kind === 'simhika' ? prev.reachY - 30 : prev.gapBottom)) / 2 : SEA_LEVEL / 2
   const dawnShift = 76 + 46 * pastRavan(index)
-  const maxShift = kind === 'surasa' ? 90 : kind === 'roof' ? 80 : kind === 'setu' || kind === 'stone' ? 62 : kind === 'field' ? 74 : kind === 'ravan' ? 34 : kind === 'dawn' ? dawnShift : 160
+  const maxShift = kind === 'surasa' ? 90 : kind === 'roof' ? 80 : kind === 'setu' || kind === 'stone' ? 62 : kind === 'field' ? 74 : kind === 'ravan' ? 34 : kind === 'dawn' ? dawnShift : kind === 'ayodhya' ? 70 : 160
   const lo = GAP_TOP_LIMIT + gap / 2
   const hi = (kind === 'simhika' ? GAP_BOTTOM_LIMIT - 110 : GAP_BOTTOM_LIMIT) - gap / 2
   const target = lo + rnd() * (hi - lo)
@@ -289,11 +294,11 @@ function makeObstacle(s, index) {
   if (index <= LANKA_AT && index + 1 === s.nextSurasa) pickup = { kind: 'laghima', x: midX, y: center, taken: false }
   else if (kind === 'mainak') pickup = { kind: 'mainak', x: midX, y: lower - 24, taken: false }
   else if (kind === 'field' && index === BATTLE_AT) pickup = { kind: 'sanjeevani', x: midX, y: center, taken: false }
-  else if (kind === 'dawn' && index === s.nextPushpak) {
+  else if (kind === 'dawn' && index >= s.nextPushpak) {
     pickup = { kind: 'pushpak', x: midX, y: center, taken: false }
     s.nextPushpak = index + PUSHPAK_EVERY + Math.floor(rnd() * 4)
   }
-  else if (kind !== 'surasa' && rnd() < 0.6) {
+  else if (kind !== 'surasa' && kind !== 'ayodhya' && rnd() < 0.6) {
     pickup = { kind: 'tulsi', x: midX, y: center + (rnd() * 2 - 1) * (gap / 2 - 30), taken: false }
   }
 
@@ -340,6 +345,7 @@ export function createRun(seed, practice = false) {
     reachedBridge: false,
     reachedBattle: false,
     reachedRavan: false,
+    reachedAyodhya: false,
     greatLeap: false,
     floatTicks: 0,
     calmTicks: 0,
@@ -506,10 +512,15 @@ export function step(s, leap) {
         s.reachedRavan = true
         s.events.push('ravan')
       }
+      if (o.kind === 'ayodhya') {
+        s.reachedAyodhya = true
+        s.calmTicks = CALM_TICKS
+        s.events.push('ayodhya')
+      }
     }
 
     if (s.graceTicks === 0) {
-      const cause = o.kind === 'roof' ? 'tower' : o.kind === 'stone' || o.kind === 'setu' ? 'stone' : o.kind === 'field' || o.kind === 'dawn' ? 'field' : o.kind === 'ravan' ? 'ravan' : o.kind === 'gate' || o.kind === 'mainak' ? 'rock' : o.kind
+      const cause = o.kind === 'roof' ? 'tower' : o.kind === 'stone' || o.kind === 'setu' ? 'stone' : o.kind === 'field' || o.kind === 'dawn' || o.kind === 'ayodhya' ? 'field' : o.kind === 'ravan' ? 'ravan' : o.kind === 'gate' || o.kind === 'mainak' ? 'rock' : o.kind
       const top = o.gapTop + shift
       const bottom = o.gapBottom + shift
       if (hitsRect(x, s.y, rNow, o.x, -1000, o.x + PILLAR_WIDTH, top)) takeHit(s, cause)
@@ -559,6 +570,7 @@ export function simulateRun(seed, leapTicks) {
     score: s.score,
     tulsi: s.tulsi,
     reachedLanka: s.reachedLanka,
+    reachedAyodhya: s.reachedAyodhya,
     ticks: s.tick,
     cause: s.cause,
     leapsUsed: next

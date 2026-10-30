@@ -7,7 +7,7 @@
         </NuxtLink>
       </div>
 
-      <PageHeader title="Lanka Leap" subtitle="Leap the ocean with Hanumanji, cross to Lanka, and fly the battle until Ravan falls." />
+      <PageHeader title="Lanka Leap" subtitle="Leap the ocean with Hanumanji, cross to Lanka, fly the battle until Ravan falls, and bring Shri Ram home to Ayodhya." />
 
       <div v-if="!howto.ready.value || !unlock.ready.value" class="card-surface p-8 text-center text-sm text-[hsl(var(--muted-foreground))]">
         Loading…
@@ -81,8 +81,11 @@
               <p v-if="practiceRun" class="text-sm font-semibold text-amber-800">Practice flight. Not saved.</p>
               <p v-else-if="newBest" class="text-sm font-semibold text-emerald-700">New all-time best!</p>
               <p v-else-if="isLoggedIn && allTimeBest > 0" class="text-sm text-[hsl(var(--muted-foreground))]">All-time best: {{ allTimeBest }}</p>
+              <p v-if="lastScene" class="inline-flex items-center gap-1 rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-900">
+                <span aria-hidden="true">{{ lastScene.icon }}</span> Reached {{ lastScene.name }}
+              </p>
               <p class="text-sm text-[hsl(var(--muted-foreground))]">
-                {{ lastRun.tulsi }} tulsi {{ lastRun.tulsi === 1 ? 'leaf' : 'leaves' }}<span v-if="lastRun.reachedRavan"> · Ravan has fallen</span><span v-else-if="lastRun.reachedBattle"> · the battle</span><span v-else-if="lastRun.reachedBridge"> · the crossing</span><span v-else-if="lastRun.reachedLanka"> · Lanka alight</span>
+                {{ lastRun.tulsi }} tulsi {{ lastRun.tulsi === 1 ? 'leaf' : 'leaves' }}
               </p>
               <p class="text-xs text-[hsl(var(--muted-foreground))]">{{ deathTip }}</p>
               <p v-if="savingRun" class="text-xs font-medium text-sky-700">Saving to the leaderboard…</p>
@@ -108,18 +111,32 @@
           <div class="card-surface p-2"><p class="text-lg font-bold text-[hsl(var(--primary))]">{{ allTimeTulsi }}</p>Most tulsi</div>
         </div>
 
-        <div v-if="isAdminUser" class="mx-auto max-w-sm space-y-2 text-center">
-          <button
-            type="button"
-            class="rounded-full px-3 py-1.5 text-xs font-semibold"
-            :class="practiceRun ? 'bg-amber-700 text-white' : 'bg-amber-100 text-amber-950'"
-            :aria-pressed="practiceRun"
-            @click="togglePractice"
-          >
-            {{ practiceRun ? 'Practice on' : 'Practice' }}
-          </button>
+        <div v-if="unlocked" class="mx-auto max-w-sm space-y-2 text-center">
+          <p class="text-xs font-semibold text-amber-900">Practice from</p>
+          <div class="flex flex-wrap justify-center gap-1.5">
+            <button
+              v-for="scene in PRACTICE_SCENES"
+              :key="scene.id"
+              type="button"
+              class="rounded-full px-3 py-1.5 text-xs font-semibold"
+              :class="practiceRun && practiceScene === scene.id ? 'bg-amber-700 text-white' : 'bg-amber-100 text-amber-950'"
+              :aria-pressed="practiceRun && practiceScene === scene.id"
+              @click="startPractice(scene.id)"
+            >
+              {{ scene.label }}
+            </button>
+            <button
+              v-if="practiceRun"
+              type="button"
+              class="rounded-full bg-sky-700 px-3 py-1.5 text-xs font-semibold text-white"
+              @click="togglePractice"
+            >
+              Back to today’s flight
+            </button>
+          </div>
           <p class="text-[11px] leading-snug text-[hsl(var(--muted-foreground))]">
-            Practice flies the real course. A hit flickers, and the score is not saved.
+            A hit flickers instead of ending the flight, and nothing is saved.
+            {{ isAdminUser ? 'Admins practise on today’s course.' : 'Practice uses its own course, not today’s.' }}
           </p>
         </div>
 
@@ -136,7 +153,7 @@
             v-if="unlocked"
             type="button"
             class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--muted))] text-[hsl(var(--foreground))]"
-            :aria-label="muted ? 'Play Hanuman Chalisa' : 'Mute Hanuman Chalisa'"
+            :aria-label="muted ? 'Turn on the Hanuman Chalisa and sounds' : 'Mute the Hanuman Chalisa and sounds'"
             :aria-pressed="!muted"
             @click="toggleMuted"
           >
@@ -155,6 +172,7 @@
           all-time
           show-all
           mark-most-tulsi
+          :badge="boardBadge"
           :current-user-id="auth.user.value?.uid"
           game="lanka-leap"
           rules="Ranked by highest score of all time. A tulsi leaf marks who has collected the most leaves. Signed in, your best run is checked and saved automatically."
@@ -171,6 +189,7 @@
 
 <script setup lang="ts">
 import {
+  AYODHYA_AT,
   calmFor,
   createRun,
   flameTop,
@@ -195,6 +214,7 @@ import {
 import { IconLock, IconMusic, IconVolume, IconVolumeOff } from '@tabler/icons-vue'
 import { LANKA_LEAP_UNLOCK_DAYS } from '~/composables/useLankaLeapUnlock'
 import { ukDateId } from '~/utils/gameDay'
+import { useLankaLeapSound } from '~/composables/useLankaLeapSound'
 type RunState = ReturnType<typeof createRun>
 type Obstacle = RunState['course'][number]
 type Phase = 'ready' | 'playing' | 'paused' | 'over'
@@ -271,6 +291,13 @@ function toggleMuted() {
   if (muted.value) pauseChalisa()
   else if (phase.value === 'playing') playChalisa()
 }
+const sound = useLankaLeapSound(muted)
+
+function buzz(pattern: number | number[]) {
+  try {
+    if (navigator.vibrate) navigator.vibrate(pattern)
+  } catch {}
+}
 const {
   entries: boardEntries,
   loading: boardLoading,
@@ -316,7 +343,7 @@ async function sendRun(score: number, tulsi: number, runLeaps: number[]) {
 const canvasEl = ref<HTMLCanvasElement | null>(null)
 const stageEl = ref<HTMLDivElement | null>(null)
 const phase = ref<Phase>('ready')
-const lastRun = ref<{ score: number; tulsi: number; reachedLanka: boolean; reachedBridge: boolean; reachedBattle: boolean; reachedRavan: boolean; cause: DeathCause } | null>(null)
+const lastRun = ref<{ score: number; tulsi: number; reachedLanka: boolean; reachedBridge: boolean; reachedBattle: boolean; reachedRavan: boolean; reachedAyodhya: boolean; cause: DeathCause } | null>(null)
 const newBest = ref(false)
 /** Admin practice. A hit flickers instead of ending the flight, and the score is not saved. */
 const practiceRun = ref(false)
@@ -343,6 +370,131 @@ let resizeObserver: ResizeObserver | null = null
 let banner: { text: string; until: number } | null = null
 let heroSheet: HTMLImageElement | null = null
 let riderSheet: HTMLImageElement | null = null
+
+/** The furthest scene a score reaches. Scenes sit at fixed gates, so the score alone says it. */
+const SCENES = [
+  { from: AYODHYA_AT + 1, name: 'Home to Ayodhya', short: 'Ayodhya', icon: '🪔' },
+  { from: RAVAN_AT + 1, name: 'Ravan has fallen', short: 'Ravan', icon: '🏹' },
+  { from: BATTLE_AT + 1, name: 'The battle', short: 'Battle', icon: '⚔️' },
+  { from: BRIDGE_AT + 1, name: 'The crossing', short: 'Crossing', icon: '🌉' },
+  { from: LANKA_AT + 1, name: 'Lanka alight', short: 'Lanka', icon: '🔥' },
+] as const
+
+function sceneFor(score: number) {
+  return SCENES.find(scene => score >= scene.from) ?? null
+}
+
+function boardBadge(entry: { score?: number }) {
+  const scene = sceneFor(entry.score || 0)
+  return scene ? `${scene.icon} ${scene.short}` : undefined
+}
+
+/** Practice can start at any scene. Admins fly today’s course; everyone else a practice course. */
+const PRACTICE_SCENES = [
+  { id: 'ocean', label: 'Ocean', gate: 0 },
+  { id: 'lanka', label: 'Lanka', gate: LANKA_AT - 2 },
+  { id: 'crossing', label: 'Crossing', gate: BRIDGE_AT - 2 },
+  { id: 'battle', label: 'Battle', gate: BATTLE_AT - 2 },
+  { id: 'home', label: 'Way home', gate: RAVAN_AT - 1 },
+] as const
+type PracticeScene = typeof PRACTICE_SCENES[number]['id']
+const practiceScene = ref<PracticeScene>('ocean')
+
+/** Flies a practice run on autopilot to a scene, then hands it over level with the next gap. */
+function practiceRunFrom(scene: PracticeScene) {
+  const s = createRun(isAdminUser.value ? seed : `${seed}:practice`, true)
+  const gate = PRACTICE_SCENES.find(item => item.id === scene)?.gate ?? 0
+  while (s.score < gate && s.tick < 60 * 60 * 15) {
+    const next = s.course.find(o => o.x + PILLAR_WIDTH > s.distance + HERO_X - 10)
+    const aim = next ? (next.gapTop + Math.min(next.gapBottom, SEA_LEVEL)) / 2 + gapShift(next, s.swing) + 10 : SEA_LEVEL / 2
+    step(s, s.y > aim && s.vy > -1)
+  }
+  if (gate > 0) {
+    const next = s.course.find(o => !o.passed)
+    if (next) s.y = (next.gapTop + Math.min(next.gapBottom, SEA_LEVEL)) / 2 + gapShift(next, s.swing)
+    s.vy = 0
+    s.graceTicks = 0
+    s.tulsi = 0
+  }
+  s.events.length = 0
+  return s
+}
+
+/** Today’s best run, re-flown tick for tick from its saved leaps. */
+let ghost: RunState | null = null
+let ghostLeaps: number[] = []
+let ghostNext = 0
+
+function startGhost() {
+  ghost = null
+  if (run.practice || day.best < 3 || !day.bestLeaps.length) return
+  ghost = createRun(seed)
+  ghostLeaps = day.bestLeaps
+  ghostNext = 0
+}
+
+function stepGhost() {
+  if (!ghost?.alive) return
+  const leap = ghostLeaps[ghostNext] === ghost.tick
+  if (leap) ghostNext++
+  step(ghost, leap)
+}
+
+type Spark = { x: number; y: number; vx: number; vy: number; born: number; life: number; color: string; size: number; fall: number }
+type Popup = { text: string; x: number; y: number; born: number; color: string }
+let sparks: Spark[] = []
+let popups: Popup[] = []
+let fireworksUntil = 0
+let nextFirework = 0
+
+function burst(x: number, y: number, count: number, colors: readonly string[], speed: number, fall = 0.00025, size = 1) {
+  const now = performance.now()
+  for (let i = 0; i < count; i++) {
+    const angle = Math.random() * Math.PI * 2
+    const v = speed * (0.35 + Math.random() * 0.65)
+    sparks.push({
+      x, y,
+      vx: Math.cos(angle) * v,
+      vy: Math.sin(angle) * v,
+      born: now,
+      life: 500 + Math.random() * 500,
+      color: colors[i % colors.length]!,
+      size: (1.6 + Math.random() * 2) * size,
+      fall
+    })
+  }
+  if (sparks.length > 600) sparks = sparks.slice(-600)
+}
+
+function popup(text: string, color: string) {
+  popups.push({ text, x: HERO_X + 30, y: run.y - 34, born: performance.now(), color })
+}
+
+const GOLD = ['#fde68a', '#fbbf24', '#f59e0b', '#fff7ed'] as const
+const FESTIVE = ['#fde68a', '#fb7185', '#f97316', '#a78bfa', '#34d399', '#fff7ed'] as const
+
+/** Clearance between the head and the gate edges while inside a gate, for the close-shave sparkle. */
+let shaveGate = -1
+let shaveMin = Infinity
+const SHAVE_PX = 6
+
+function trackShave() {
+  const r = heroRadius(run)
+  const hx = run.distance + HERO_X
+  for (let i = run.firstActive; i < run.course.length; i++) {
+    const o = run.course[i]!
+    if (o.x - r > hx) break
+    if (o.x + PILLAR_WIDTH + r < hx || o.kind === 'simhika') continue
+    const shift = gapShift(o, run.swing)
+    let clear = run.y - r - (o.gapTop + shift)
+    if (o.gapBottom < SEA_LEVEL) clear = Math.min(clear, o.gapBottom + shift - (run.y + r))
+    if (o.index !== shaveGate) {
+      shaveGate = o.index
+      shaveMin = Infinity
+    }
+    shaveMin = Math.min(shaveMin, clear)
+  }
+}
 
 const DEMON_SRC = {
   surasa: '/games/lanka-leap/surasa.webp',
@@ -483,9 +635,16 @@ const DEATH_TIPS: Record<DeathCause, string> = {
   ravan: 'His chariot fills the gate. Fly the gap above it.',
   time: 'What a flight!'
 }
-const deathTitle = computed(() => lastRun.value ? DEATH_TITLES[lastRun.value.cause] : '')
+const deathTitle = computed(() => {
+  if (!lastRun.value) return ''
+  return lastRun.value.reachedAyodhya ? 'Shri Ram is home' : DEATH_TITLES[lastRun.value.cause]
+})
+const lastScene = computed(() => lastRun.value ? sceneFor(lastRun.value.score) : null)
 const deathTip = computed(() => {
   if (!lastRun.value) return ''
+  if (lastRun.value.reachedAyodhya) {
+    return 'Shri Ram is home. The Deepavali gates go on as far as you can fly.'
+  }
   if (lastRun.value.cause === 'field' && lastRun.value.reachedRavan) {
     return 'The way home swings fast and closes in. Take the golden Pushpak and the gates slow for a while.'
   }
@@ -515,9 +674,11 @@ function saveDay() {
 
 function press() {
   if (!unlocked.value) return
+  sound.unlock()
   if (phase.value === 'ready') {
     phase.value = 'playing'
     pendingLeap = true
+    if (run.tick === 0) startGhost()
     playChalisa()
   } else if (phase.value === 'playing') {
     pendingLeap = true
@@ -530,14 +691,28 @@ function press() {
 }
 
 function restart() {
-  run = createRun(seed, practiceRun.value)
+  run = practiceRun.value ? practiceRunFrom(practiceScene.value) : createRun(seed)
   if (!practiceRun.value) practiceTainted = false
+  ghost = null
+  sparks = []
+  popups = []
+  fireworksUntil = 0
+  shaveGate = -1
   leaps = []
   pendingLeap = false
   banner = null
   lastRun.value = null
   newBest.value = false
   phase.value = 'ready'
+}
+
+function startPractice(scene: PracticeScene) {
+  practiceScene.value = scene
+  practiceRun.value = true
+  practiceTainted = true
+  restart()
+  const label = PRACTICE_SCENES.find(item => item.id === scene)?.label
+  if (scene !== 'ocean' && label) showBanner(`Practice from ${label}`)
 }
 
 function togglePractice() {
@@ -557,6 +732,7 @@ function showBanner(text: string) {
 
 function handleEvents() {
   for (const event of run.events) {
+    reactTo(event)
     if (event === 'laghima') showBanner('Laghima: Hanumanji becomes tiny')
     else if (event === 'mainak') showBanner('Mainak rises to help: one hit forgiven')
     else if (event === 'shield-break') showBanner('Mainak’s blessing is spent')
@@ -565,14 +741,54 @@ function handleEvents() {
     else if (event === 'sanjeevani') showBanner('Sanjeevani: Hanumanji carries the mountain')
     else if (event === 'battle') showBanner('The battle for Lanka')
     else if (event === 'revive') showBanner('Lakshman revives. Shri Ram and Lakshman ride on')
+    else if (event === 'ayodhya') showBanner('Jai Shri Ram! Home to Ayodhya')
     else if (event === 'ravan') showBanner('Ravan has fallen. Fly for Ayodhya')
     else if (event === 'pushpak') showBanner('Pushpak: the way home steadies')
   }
 }
 
+/** Sound, vibration and sparkle for each moment of the flight. None of it touches the simulation. */
+function reactTo(event: RunState['events'][number]) {
+  const hy = run.y
+  if (event === 'leap') sound.play('leap')
+  else if (event === 'tulsi') {
+    sound.play('tulsi')
+    burst(HERO_X + 16, hy, 8, ['#4ade80', '#bbf7d0'], 0.08)
+  } else if (event === 'laghima' || event === 'mainak' || event === 'sanjeevani' || event === 'pushpak') {
+    sound.play('power')
+    buzz(20)
+    const colors = event === 'laghima' ? ['#7dd3fc', '#e0f2fe'] : event === 'sanjeevani' ? ['#4ade80', '#dcfce7'] : GOLD
+    burst(HERO_X, hy, 26, colors, 0.16)
+  } else if (event === 'shield-break') {
+    sound.play('shield-break')
+    buzz([30, 40, 30])
+    burst(HERO_X, hy, 18, ['#facc15', '#a16207'], 0.2)
+  } else if (event === 'lanka' || event === 'bridge' || event === 'battle' || event === 'ravan' || event === 'revive') {
+    sound.play(event === 'revive' ? 'power' : 'scene')
+    buzz([20, 50, 20])
+    burst(HERO_X, hy, 40, event === 'lanka' ? ['#fb923c', '#fde68a', '#ef4444'] : GOLD, 0.22)
+  } else if (event === 'ayodhya') {
+    sound.play('ayodhya')
+    buzz([40, 60, 40, 60, 90])
+    fireworksUntil = performance.now() + 6500
+    nextFirework = 0
+    burst(HERO_X, hy, 60, FESTIVE, 0.26)
+  } else if (event === 'score') {
+    if (shaveMin > 0 && shaveMin < SHAVE_PX && run.graceTicks === 0) {
+      sound.play('shave')
+      buzz(10)
+      burst(HERO_X + 10, hy, 14, ['#fef08a', '#ffffff'], 0.14)
+      popup('Close shave!', '#fef08a')
+    }
+    shaveGate = -1
+    shaveMin = Infinity
+  }
+}
+
 function endRun() {
   const cause = run.cause || 'rock'
-  lastRun.value = { score: run.score, tulsi: run.tulsi, reachedLanka: run.reachedLanka, reachedBridge: run.reachedBridge, reachedBattle: run.reachedBattle, reachedRavan: run.reachedRavan, cause }
+  lastRun.value = { score: run.score, tulsi: run.tulsi, reachedLanka: run.reachedLanka, reachedBridge: run.reachedBridge, reachedBattle: run.reachedBattle, reachedRavan: run.reachedRavan, reachedAyodhya: run.reachedAyodhya, cause }
+  sound.play('dead')
   if (practiceTainted || run.practice) {
     newBest.value = false
     overAt = performance.now()
@@ -612,7 +828,9 @@ function frame(now: number) {
       pendingLeap = false
       if (leap) leaps.push(run.tick)
       step(run, leap)
+      stepGhost()
       handleEvents()
+      trackShave()
       accumulator -= TICK_MS
       steps++
       if (!run.alive) {
@@ -708,6 +926,7 @@ onBeforeUnmount(() => {
   pauseChalisa()
   chalisa?.removeEventListener('ended', onChalisaEnded)
   chalisa = null
+  sound.close()
 })
 
 // ---------------------------------------------------------------------------
@@ -741,7 +960,10 @@ function draw(now: number) {
   if (bridgeGlow() > 0.02) drawCrossing(c, d, now)
   if (battleGlow() > 0.05 && battleCover() < 0.12) drawBattleStorm(c, d, now)
   if (run.reachedRavan && homeCover() < 0.45 && arrivalCover() < 0.45) drawHomewind(c, d, now)
+  drawBestMark(c, d)
+  drawGhost(c, now)
   drawHero(c, now)
+  drawEffects(c, now)
   drawHud(c)
   if (phase.value === 'ready') drawReady(c)
   if (banner && now < banner.until) drawBanner(c, banner.text, (banner.until - now) / 1800)
@@ -955,14 +1177,14 @@ function homeCover() {
   if (!run.reachedRavan) return 0
   const past = pastRavanDistance()
   const rise = clamp01(past / 1000)
-  const fall = 1 - clamp01((past - 5200) / 2200)
+  const fall = 1 - clamp01((past - 2800) / 1600)
   return rise * Math.max(0, fall)
 }
 
-/** Diyas along the river. Holds once the city is in view. */
+/** Diyas along the river, full by the time Ayodhya’s arch comes into view. Holds through the bonus gates. */
 function arrivalCover() {
   if (!run.reachedRavan) return 0
-  return clamp01((pastRavanDistance() - 4800) / 2400)
+  return clamp01((pastRavanDistance() - 2400) / 1600)
 }
 
 function sceneOpen() {
@@ -1112,8 +1334,8 @@ function drawSky(c: CanvasRenderingContext2D, d: number, now: number) {
   drawScene(c, 'siege', clamp01((fromGate(LANKA_AT) + 700) / 7500), siege, now)
   drawScene(c, 'battle', clamp01((fromGate(BATTLE_AT) + 480) / 9600), battle, now)
   const past = pastRavanDistance()
-  drawScene(c, 'home', clamp01(past / 6400), home, now)
-  drawScene(c, 'ayodhya', clamp01((past - 4800) / 3600), arrival, now)
+  drawScene(c, 'home', clamp01(past / 4000), home, now)
+  drawScene(c, 'ayodhya', clamp01((past - 2400) / 4800), arrival, now)
   drawSceneClouds(c, d, now, Math.max(siege, battle, home, arrival))
 }
 
@@ -1466,44 +1688,97 @@ function drawRavan(c: CanvasRenderingContext2D, o: Obstacle, sx: number, shift: 
   c.restore()
 }
 
+/**
+ * Ayodhya's gate columns on the way home. Each column fills exactly the area that
+ * strikes Hanumanji, outlined dark so it holds against the bright city, and the
+ * open gap glows like a doorway with chevrons pointing through it.
+ */
 function drawDawnGate(c: CanvasRenderingContext2D, o: Obstacle, sx: number, shift: number) {
-  const mid = sx + PILLAR_WIDTH / 2
   const top = o.gapTop + shift
   const bottom = o.gapBottom + shift
-  const rush = pastHome(o.index)
-  c.fillStyle = 'rgba(253, 230, 138, 0.92)'
-  c.fillRect(sx + 6, 0, 10, top)
-  c.fillRect(sx + PILLAR_WIDTH - 16, 0, 10, top)
-  c.beginPath()
-  c.moveTo(sx + 4, top - 8)
-  c.quadraticCurveTo(mid, top - 28 - rush * 10, sx + PILLAR_WIDTH - 4, top - 8)
-  c.lineTo(sx + PILLAR_WIDTH - 8, top)
-  c.quadraticCurveTo(mid, top - 16, sx + 8, top)
-  c.closePath()
-  c.fill()
-  c.strokeStyle = `rgba(234, 88, 12, ${0.35 + rush * 0.4})`
-  c.lineWidth = 2
-  for (let i = 0; i < 4; i++) {
-    const x = sx + 12 + i * 12
-    c.beginPath()
-    c.moveTo(x, top - 6)
-    c.quadraticCurveTo(x + 4, top + 8, x, top + 16)
-    c.stroke()
-  }
-  c.fillStyle = '#fde68a'
-  c.fillRect(sx + 4, bottom, PILLAR_WIDTH - 8, 14)
-  c.beginPath()
-  c.arc(mid, bottom + 14, 12, Math.PI, 0)
-  c.fill()
-  c.fillStyle = '#fb7185'
-  c.beginPath()
-  c.arc(mid - 10, bottom + 6, 3, 0, Math.PI * 2)
-  c.arc(mid + 8, bottom + 8, 2.4, 0, Math.PI * 2)
-  c.fill()
+  drawFlightPath(c, sx, top, bottom)
+  drawGateColumn(c, sx, 0, top, 'down')
+  if (bottom < SEA_LEVEL) drawGateColumn(c, sx, bottom, SEA_LEVEL, 'up')
 }
 
-function pastHome(index: number) {
-  return index > RAVAN_AT ? Math.min((index - RAVAN_AT) / 55, 1) : 0
+/** The last gate home: golden columns under bhagwa flags, with the city’s name over the way through. */
+function drawAyodhyaArch(c: CanvasRenderingContext2D, o: Obstacle, sx: number) {
+  const top = o.gapTop
+  const bottom = o.gapBottom
+  const mid = sx + PILLAR_WIDTH / 2
+  drawFlightPath(c, sx, top, bottom)
+  drawGateColumn(c, sx, 0, top, 'down', GOLD_COLUMN)
+  drawGateColumn(c, sx, bottom, SEA_LEVEL, 'up', GOLD_COLUMN)
+  for (const fx of [sx + 10, sx + PILLAR_WIDTH - 12]) {
+    c.fillStyle = '#7c2d12'
+    c.fillRect(fx, bottom - 30, 2, 30)
+    c.fillStyle = '#f97316'
+    c.beginPath()
+    c.moveTo(fx + 2, bottom - 30)
+    c.lineTo(fx + 16, bottom - 25)
+    c.lineTo(fx + 2, bottom - 19)
+    c.closePath()
+    c.fill()
+  }
+  if (!o.passed) drawLabel(c, 'Ayodhya', mid, top + 22)
+}
+
+function drawFlightPath(c: CanvasRenderingContext2D, sx: number, top: number, bottom: number) {
+  const mid = (top + bottom) / 2
+  const light = c.createLinearGradient(0, top, 0, bottom)
+  light.addColorStop(0, 'rgba(255, 251, 235, 0.15)')
+  light.addColorStop(0.5, 'rgba(255, 251, 235, 0.5)')
+  light.addColorStop(1, 'rgba(255, 251, 235, 0.15)')
+  c.fillStyle = light
+  c.fillRect(sx, top, PILLAR_WIDTH, bottom - top)
+  c.strokeStyle = 'rgba(180, 83, 9, 0.55)'
+  c.lineWidth = 3
+  c.lineCap = 'round'
+  c.lineJoin = 'round'
+  for (let i = 0; i < 3; i++) {
+    const x = sx + 14 + i * 14
+    c.beginPath()
+    c.moveTo(x, mid - 7)
+    c.lineTo(x + 7, mid)
+    c.lineTo(x, mid + 7)
+    c.stroke()
+  }
+}
+
+type ColumnPalette = { dark: string; light: string; shade: string; band: string; cap: string; bead: string; outline: string }
+const MAROON_COLUMN: ColumnPalette = { dark: '#5b0f14', light: '#9f1d22', shade: '#3f0a0e', band: '#f59e0b', cap: '#fbbf24', bead: '#ea580c', outline: '#2a0607' }
+const GOLD_COLUMN: ColumnPalette = { dark: '#92400e', light: '#f59e0b', shade: '#78350f', band: '#fff7ed', cap: '#fde68a', bead: '#dc2626', outline: '#451a03' }
+
+/** `edge` is the end that faces the gap: the bottom of an upper column, the top of a lower one. */
+function drawGateColumn(c: CanvasRenderingContext2D, sx: number, y0: number, y1: number, edge: 'up' | 'down', palette = MAROON_COLUMN) {
+  if (y1 - y0 < 1) return
+  const body = c.createLinearGradient(sx, 0, sx + PILLAR_WIDTH, 0)
+  body.addColorStop(0, palette.dark)
+  body.addColorStop(0.45, palette.light)
+  body.addColorStop(1, palette.shade)
+  c.fillStyle = body
+  c.fillRect(sx, y0, PILLAR_WIDTH, y1 - y0)
+
+  c.fillStyle = palette.band
+  const gapEnd = edge === 'down' ? y1 : y0
+  const away = edge === 'down' ? -1 : 1
+  for (let y = gapEnd + away * 44; edge === 'down' ? y > y0 : y < y1; y += away * 56) {
+    c.fillRect(sx + 3, y - 2, PILLAR_WIDTH - 6, 4)
+  }
+
+  const capY = edge === 'down' ? y1 - 14 : y0
+  c.fillStyle = palette.cap
+  c.fillRect(sx, capY, PILLAR_WIDTH, 14)
+  c.fillStyle = palette.bead
+  for (let i = 0; i < 6; i++) {
+    c.beginPath()
+    c.arc(sx + 7 + i * 10, capY + 7, 3.6, 0, Math.PI * 2)
+    c.fill()
+  }
+
+  c.strokeStyle = palette.outline
+  c.lineWidth = 2.5
+  c.strokeRect(sx + 1.25, y0 + 1.25, PILLAR_WIDTH - 2.5, y1 - y0 - 2.5)
 }
 
 /** Vanaras on the causeway, with Shri Ram and Lakshman leading at the first stones. */
@@ -1623,6 +1898,8 @@ function drawObstacle(c: CanvasRenderingContext2D, o: Obstacle, sx: number, now:
     drawRavan(c, o, sx, gapShift(o, run.swing))
   } else if (o.kind === 'dawn') {
     drawDawnGate(c, o, sx, gapShift(o, run.swing))
+  } else if (o.kind === 'ayodhya') {
+    drawAyodhyaArch(c, o, sx)
   } else {
     drawStormColumn(c, sx, o.gapTop)
     if (o.kind === 'surasa') {
@@ -2081,6 +2358,84 @@ function drawTailFlame(c: CanvasRenderingContext2D, now: number) {
   c.fill()
 }
 
+/** A faint Hanumanji flying today’s best run. */
+function drawGhost(c: CanvasRenderingContext2D, now: number) {
+  if (!ghost?.alive || !heroSheet?.complete || !heroSheet.naturalWidth) return
+  const gx = HERO_X + ghost.distance - run.distance
+  if (gx < -80 || gx > WORLD_WIDTH + 80) return
+  const r = heroRadius(ghost)
+  const [x, y, w, h, ax, ay] = HERO_GLIDE[Math.floor(now / 90) % HERO_GLIDE.length]!
+  const s = HERO_SHEET_SCALE
+  c.save()
+  c.globalAlpha = 0.34
+  c.translate(gx, ghost.y)
+  c.rotate(Math.max(-0.2, Math.min(0.35, ghost.vy * 0.035)))
+  c.scale(r / HERO_RADIUS, r / HERO_RADIUS)
+  c.drawImage(heroSheet, x, y, w, h, (x - ax) * s, (y - ay) * s, w * s, h * s)
+  c.restore()
+  c.save()
+  c.globalAlpha = 0.75
+  drawLabel(c, 'Best', gx, ghost.y - 28)
+  c.restore()
+}
+
+/** A line across the sky at the gate where today’s best flight ended. */
+function drawBestMark(c: CanvasRenderingContext2D, d: number) {
+  if (run.practice || day.best <= run.score) return
+  const gate = run.course[day.best]
+  if (!gate) return
+  const x = gate.x - d + PILLAR_WIDTH / 2
+  if (x < -20 || x > WORLD_WIDTH + 20) return
+  c.save()
+  c.strokeStyle = 'rgba(255, 251, 235, 0.8)'
+  c.lineWidth = 2
+  c.setLineDash([6, 8])
+  c.beginPath()
+  c.moveTo(x, 172)
+  c.lineTo(x, SEA_LEVEL)
+  c.stroke()
+  c.setLineDash([])
+  c.restore()
+  drawLabel(c, `Your best · ${day.best}`, Math.min(x, WORLD_WIDTH - 44), 166)
+}
+
+function drawEffects(c: CanvasRenderingContext2D, now: number) {
+  if (now < fireworksUntil && now >= nextFirework) {
+    nextFirework = now + 200 + Math.random() * 180
+    const colors = [FESTIVE[Math.floor(Math.random() * FESTIVE.length)]!, '#fff7ed']
+    burst(40 + Math.random() * (WORLD_WIDTH - 80), 110 + Math.random() * 200, 56, colors, 0.24, 0.00012, 1.5)
+  }
+  if (sparks.length) {
+    sparks = sparks.filter(p => now - p.born < p.life)
+    for (const p of sparks) {
+      const t = now - p.born
+      const fade = 1 - t / p.life
+      c.globalAlpha = Math.max(0, fade)
+      c.fillStyle = p.color
+      c.beginPath()
+      c.arc(p.x + p.vx * t, p.y + p.vy * t + p.fall * t * t, p.size * (0.5 + fade * 0.5), 0, Math.PI * 2)
+      c.fill()
+    }
+    c.globalAlpha = 1
+  }
+  if (popups.length) {
+    popups = popups.filter(p => now - p.born < 900)
+    c.textAlign = 'center'
+    c.font = 'bold 15px system-ui, sans-serif'
+    c.lineWidth = 4
+    for (const p of popups) {
+      const t = (now - p.born) / 900
+      c.globalAlpha = 1 - t * t
+      const y = p.y - t * 26
+      c.strokeStyle = 'rgba(30, 27, 75, 0.75)'
+      c.strokeText(p.text, p.x, y)
+      c.fillStyle = p.color
+      c.fillText(p.text, p.x, y)
+    }
+    c.globalAlpha = 1
+  }
+}
+
 function drawHud(c: CanvasRenderingContext2D) {
   c.textAlign = 'center'
   c.font = 'bold 44px system-ui, sans-serif'
@@ -2094,8 +2449,10 @@ function drawHud(c: CanvasRenderingContext2D) {
   const barX = WORLD_WIDTH / 2 - barWidth / 2
   c.fillStyle = 'rgba(255, 255, 255, 0.55)'
   c.fillRect(barX, 76, barWidth, 6)
-  const act = run.reachedRavan || ravanGlow() > 0.45
-    ? { name: 'Jai Shri Ram', bar: '#d97706', ink: '#92400e', span: 1, done: 1 }
+  const act = run.reachedAyodhya
+    ? { name: `Deepavali · ${run.score - AYODHYA_AT - 1} bonus`, bar: '#f59e0b', ink: '#92400e', span: 1, done: 1 }
+    : run.reachedRavan || ravanGlow() > 0.45
+    ? { name: 'Home to Ayodhya', bar: '#d97706', ink: '#92400e', span: AYODHYA_AT - RAVAN_AT, done: Math.max(0, run.score - RAVAN_AT - 1) }
     : run.reachedBattle || battleGlow() > 0.45
       ? { name: 'The battle', bar: '#9f1239', ink: '#881337', span: RAVAN_AT - BATTLE_AT, done: Math.max(0, run.score - BATTLE_AT) }
       : run.reachedBridge || bridgeGlow() > 0.55

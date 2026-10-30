@@ -50,6 +50,10 @@
                 class="crown-sparkle h-3.5 w-3.5 shrink-0 text-amber-600"
                 :aria-label="label"
               />
+              <span
+                v-if="badge?.(row.entry)"
+                class="shrink-0 rounded-full bg-amber-100 px-1.5 py-px text-[10px] font-semibold leading-tight text-amber-900"
+              >{{ badge(row.entry) }}</span>
               <span v-if="row.mine" class="shrink-0 text-xs font-semibold text-[hsl(var(--golden-900))]">you</span>
             </span>
             <p
@@ -116,6 +120,8 @@ const props = defineProps<{
   game?: GameLeaderboardId
   /** Override the default ranking blurb for this game. */
   rules?: string
+  /** A short tag after the player’s name, such as the furthest scene reached. */
+  badge?: (entry: LeaderboardRow) => string | undefined
 }>()
 
 const achievements = useAchievements()
