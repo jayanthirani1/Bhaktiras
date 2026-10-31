@@ -201,7 +201,9 @@ import {
   HERO_X,
   BATTLE_AT,
   BRIDGE_AT,
+  FIRE_AT,
   LANKA_AT,
+  MUDRIKA_AT,
   RAVAN_AT,
   PILLAR_WIDTH,
   SEA_LEVEL,
@@ -214,7 +216,6 @@ import {
 import { IconLock, IconMusic, IconVolume, IconVolumeOff } from '@tabler/icons-vue'
 import { LANKA_LEAP_UNLOCK_DAYS } from '~/composables/useLankaLeapUnlock'
 import { ukDateId } from '~/utils/gameDay'
-import { useLankaLeapSound } from '~/composables/useLankaLeapSound'
 type RunState = ReturnType<typeof createRun>
 type Obstacle = RunState['course'][number]
 type Phase = 'ready' | 'playing' | 'paused' | 'over'
@@ -291,13 +292,8 @@ function toggleMuted() {
   if (muted.value) pauseChalisa()
   else if (phase.value === 'playing') playChalisa()
 }
-const sound = useLankaLeapSound(muted)
-
-function buzz(pattern: number | number[]) {
-  try {
-    if (navigator.vibrate) navigator.vibrate(pattern)
-  } catch {}
-}
+const sound = useGameSound(muted)
+const buzz = sound.buzz
 const {
   entries: boardEntries,
   loading: boardLoading,
@@ -377,7 +373,8 @@ const SCENES = [
   { from: RAVAN_AT + 1, name: 'Ravan has fallen', short: 'Ravan', icon: '🏹' },
   { from: BATTLE_AT + 1, name: 'The battle', short: 'Battle', icon: '⚔️' },
   { from: BRIDGE_AT + 1, name: 'The crossing', short: 'Crossing', icon: '🌉' },
-  { from: LANKA_AT + 1, name: 'Lanka alight', short: 'Lanka', icon: '🔥' },
+  { from: FIRE_AT + 1, name: 'Lanka alight', short: 'Lanka', icon: '🔥' },
+  { from: LANKA_AT + 1, name: 'Ashok Vatika', short: 'Vatika', icon: '🌳' },
 ] as const
 
 function sceneFor(score: number) {
@@ -615,6 +612,7 @@ const DEATH_TITLES: Record<DeathCause, string> = {
   surasa: 'Surasa blocked the way',
   simhika: 'Simhika seized your shadow',
   lankini: 'Lankini stopped you at the gate',
+  vatika: 'Caught in Ashok Vatika',
   tower: 'Struck a palace wall',
   fire: 'Caught in the flames',
   stone: 'Struck the bridge',
@@ -628,6 +626,7 @@ const DEATH_TIPS: Record<DeathCause, string> = {
   surasa: 'Take the blue Laghima orb just before Surasa to become tiny.',
   simhika: 'Stay high over the dark water. Simhika drags you down.',
   lankini: 'The gate to Lanka is wide. Aim for the middle.',
+  vatika: 'The ashoka trees are solid. Fly the lit gaps between their branches.',
   tower: 'The rooftops are solid. Thread the gap above the fire.',
   fire: 'Over Lanka the flames rise. Stay in the top of each gap.',
   stone: 'The stones of the bridge are solid. Fly above the vanaras.',
@@ -701,6 +700,7 @@ function restart() {
   leaps = []
   pendingLeap = false
   banner = null
+  sceneCard = null
   lastRun.value = null
   newBest.value = false
   phase.value = 'ready'
@@ -730,19 +730,30 @@ function showBanner(text: string) {
   banner = { text, until: performance.now() + 1800 }
 }
 
+/** A chapter title over the flight as each part of the story begins. */
+let sceneCard: { title: string; line: string; born: number } | null = null
+const SCENE_CARD_MS = 2800
+
+function showSceneCard(title: string, line: string) {
+  sceneCard = { title, line, born: performance.now() }
+  banner = null
+}
+
 function handleEvents() {
   for (const event of run.events) {
     reactTo(event)
     if (event === 'laghima') showBanner('Laghima: Hanumanji becomes tiny')
     else if (event === 'mainak') showBanner('Mainak rises to help: one hit forgiven')
     else if (event === 'shield-break') showBanner('Mainak’s blessing is spent')
-    else if (event === 'lanka') showBanner('Jay Hanuman! Lanka catches light')
-    else if (event === 'bridge') showBanner('Shri Ram and Lakshman cross with the vanaras')
+    else if (event === 'lanka') showSceneCard('Lanka', 'Lankini steps aside. Enter, Hanumanji')
+    else if (event === 'mudrika') showBanner('Sita Mata receives Shri Ram’s ring. Her blessing forgives one hit')
+    else if (event === 'fire') showSceneCard('Lanka Dahan', 'Hanumanji’s tail is set alight. Lanka burns')
+    else if (event === 'bridge') showSceneCard('Ram Setu', 'Shri Ram and Lakshman cross with the vanaras')
     else if (event === 'sanjeevani') showBanner('Sanjeevani: Hanumanji carries the mountain')
-    else if (event === 'battle') showBanner('The battle for Lanka')
+    else if (event === 'battle') showSceneCard('Yuddha', 'The battle for Lanka')
     else if (event === 'revive') showBanner('Lakshman revives. Shri Ram and Lakshman ride on')
-    else if (event === 'ayodhya') showBanner('Jai Shri Ram! Home to Ayodhya')
-    else if (event === 'ravan') showBanner('Ravan has fallen. Fly for Ayodhya')
+    else if (event === 'ayodhya') showSceneCard('Ayodhya', 'Jai Shri Ram! Shri Ram is home')
+    else if (event === 'ravan') showSceneCard('Vijaya', 'Ravan has fallen. Fly for Ayodhya')
     else if (event === 'pushpak') showBanner('Pushpak: the way home steadies')
   }
 }
@@ -754,7 +765,7 @@ function reactTo(event: RunState['events'][number]) {
   else if (event === 'tulsi') {
     sound.play('tulsi')
     burst(HERO_X + 16, hy, 8, ['#4ade80', '#bbf7d0'], 0.08)
-  } else if (event === 'laghima' || event === 'mainak' || event === 'sanjeevani' || event === 'pushpak') {
+  } else if (event === 'laghima' || event === 'mainak' || event === 'sanjeevani' || event === 'pushpak' || event === 'mudrika') {
     sound.play('power')
     buzz(20)
     const colors = event === 'laghima' ? ['#7dd3fc', '#e0f2fe'] : event === 'sanjeevani' ? ['#4ade80', '#dcfce7'] : GOLD
@@ -763,10 +774,10 @@ function reactTo(event: RunState['events'][number]) {
     sound.play('shield-break')
     buzz([30, 40, 30])
     burst(HERO_X, hy, 18, ['#facc15', '#a16207'], 0.2)
-  } else if (event === 'lanka' || event === 'bridge' || event === 'battle' || event === 'ravan' || event === 'revive') {
+  } else if (event === 'lanka' || event === 'fire' || event === 'bridge' || event === 'battle' || event === 'ravan' || event === 'revive') {
     sound.play(event === 'revive' ? 'power' : 'scene')
     buzz([20, 50, 20])
-    burst(HERO_X, hy, 40, event === 'lanka' ? ['#fb923c', '#fde68a', '#ef4444'] : GOLD, 0.22)
+    burst(HERO_X, hy, 40, event === 'fire' ? ['#fb923c', '#fde68a', '#ef4444'] : GOLD, 0.22)
   } else if (event === 'ayodhya') {
     sound.play('ayodhya')
     buzz([40, 60, 40, 60, 90])
@@ -926,7 +937,6 @@ onBeforeUnmount(() => {
   pauseChalisa()
   chalisa?.removeEventListener('ended', onChalisaEnded)
   chalisa = null
-  sound.close()
 })
 
 // ---------------------------------------------------------------------------
@@ -949,6 +959,10 @@ function draw(now: number) {
     drawLanka(c, d)
     c.restore()
   }
+  const vatika = vatikaCover()
+  if (vatika > 0.02) drawVatikaNight(c, d, now, vatika)
+  const alight = fireBlend()
+  if (alight > 0.02) drawCityAblaze(c, d, now, alight)
   for (const o of run.course) {
     const sx = o.x - d
     if (sx > WORLD_WIDTH + SIMHIKA_REACH) break
@@ -963,7 +977,9 @@ function draw(now: number) {
   drawBestMark(c, d)
   drawGhost(c, now)
   drawHero(c, now)
+  spawnTailEmbers(now)
   drawEffects(c, now)
+  drawSceneCard(c, now)
   drawHud(c)
   if (phase.value === 'ready') drawReady(c)
   if (banner && now < banner.until) drawBanner(c, banner.text, (banner.until - now) / 1800)
@@ -1017,12 +1033,24 @@ function ravanGlow() {
 }
 
 /** The street catches light just after Lankini’s gate, and fades as the bridge begins. */
+/** Lanka catches light as the last ashoka tree of the garden passes, and fades as the bridge begins. */
 function fireBlend() {
   if (!run.reachedLanka) return 0
-  const gate = run.course[LANKA_AT]
-  const past = gate ? run.distance - (gate.x + PILLAR_WIDTH) : 180
-  const lit = Math.max(0, Math.min(1, past / 180))
+  const gate = run.course[FIRE_AT - 1]
+  if (!gate) return 0
+  const lit = clamp01((run.distance - (gate.x + PILLAR_WIDTH)) / 180)
   return lit * (1 - bridgeGlow())
+}
+
+/** Night in Ashok Vatika: from Lankini’s gate until the fire takes the city. */
+function vatikaCover() {
+  if (!run.reachedLanka) return 0
+  const gate = run.course[LANKA_AT]
+  if (!gate) return 0
+  const enter = clamp01((run.distance - gate.x + 60) / 320)
+  const last = run.course[FIRE_AT - 1]
+  const leave = last ? clamp01((run.distance - (last.x + PILLAR_WIDTH)) / 180) : 0
+  return enter * (1 - leave)
 }
 
 function mixHex(from: string, to: string, t: number) {
@@ -1575,73 +1603,144 @@ function drawGateTower(c: CanvasRenderingContext2D, sx: number, bottom: number) 
   c.stroke()
 }
 
+/**
+ * Nala’s bridge: floating stones, each carved with Shri Ram’s name, which is why
+ * they floated. Both columns fill exactly the area that strikes Hanumanji.
+ */
 function drawBridgeStone(c: CanvasRenderingContext2D, o: Obstacle, sx: number) {
   const mid = sx + PILLAR_WIDTH / 2
-  const shelf = c.createLinearGradient(0, 0, 0, o.gapTop)
-  shelf.addColorStop(0, 'rgba(255, 251, 235, 0.15)')
-  shelf.addColorStop(1, 'rgba(253, 230, 138, 0.9)')
-  c.fillStyle = shelf
-  c.beginPath()
-  c.moveTo(sx - 6, 0)
-  c.lineTo(sx + PILLAR_WIDTH + 6, 0)
-  c.lineTo(sx + PILLAR_WIDTH - 4, o.gapTop - 10)
-  c.quadraticCurveTo(mid, o.gapTop + 8, sx + 4, o.gapTop - 10)
-  c.closePath()
-  c.fill()
-
-  const rock = c.createLinearGradient(sx, o.gapBottom, sx, SEA_LEVEL)
-  rock.addColorStop(0, '#f5e6c8')
-  rock.addColorStop(0.4, '#d6b48a')
-  rock.addColorStop(1, '#8a6a45')
-  c.fillStyle = rock
-  c.beginPath()
-  c.moveTo(sx - 8, SEA_LEVEL + 8)
-  c.lineTo(sx + 6, o.gapBottom + 16)
-  c.quadraticCurveTo(mid, o.gapBottom - 6, sx + PILLAR_WIDTH - 6, o.gapBottom + 16)
-  c.lineTo(sx + PILLAR_WIDTH + 8, SEA_LEVEL + 8)
-  c.closePath()
-  c.fill()
-  c.fillStyle = 'rgba(255, 251, 235, 0.55)'
-  c.fillRect(sx + 16, o.gapBottom + 18, 18, 4)
-  if (o.kind === 'setu') drawLabel(c, 'Nala’s bridge', mid, o.gapTop - 16)
+  drawFlightPath(c, sx, o.gapTop, o.gapBottom)
+  drawStoneColumn(c, sx, 0, o.gapTop, 'down')
+  drawStoneColumn(c, sx, o.gapBottom, SEA_LEVEL, 'up')
+  if (o.kind === 'setu') drawLabel(c, 'Nala’s bridge', mid, o.gapTop - 30)
 }
 
+function drawStoneColumn(c: CanvasRenderingContext2D, sx: number, y0: number, y1: number, edge: 'up' | 'down') {
+  if (y1 - y0 < 1) return
+  const stone = c.createLinearGradient(sx, 0, sx + PILLAR_WIDTH, 0)
+  stone.addColorStop(0, '#57534e')
+  stone.addColorStop(0.45, '#a8a29e')
+  stone.addColorStop(1, '#44403c')
+  c.fillStyle = stone
+  c.fillRect(sx, y0, PILLAR_WIDTH, y1 - y0)
+  c.strokeStyle = 'rgba(41, 37, 36, 0.55)'
+  c.lineWidth = 1.5
+  const gapEnd = edge === 'down' ? y1 : y0
+  const away = edge === 'down' ? -1 : 1
+  let row = 0
+  for (let y = gapEnd + away * 26; edge === 'down' ? y > y0 : y < y1; y += away * 26) {
+    c.beginPath()
+    c.moveTo(sx + 2, y)
+    c.lineTo(sx + PILLAR_WIDTH - 2, y)
+    const joint = sx + (row % 2 === 0 ? 24 : 40)
+    c.moveTo(joint, y)
+    c.lineTo(joint, y - away * 26)
+    c.stroke()
+    row++
+  }
+  const slabY = edge === 'down' ? y1 - 20 : y0
+  c.fillStyle = '#d6d3d1'
+  c.fillRect(sx, slabY, PILLAR_WIDTH, 20)
+  c.fillStyle = '#c2410c'
+  c.font = '700 12px "Noto Sans Devanagari", "Kohinoor Devanagari", system-ui, sans-serif'
+  c.textAlign = 'center'
+  c.fillText('श्री राम', sx + PILLAR_WIDTH / 2, slabY + 15)
+  c.strokeStyle = '#292524'
+  c.lineWidth = 2.5
+  c.strokeRect(sx + 1.25, y0 + 1.25, PILLAR_WIDTH - 2.5, y1 - y0 - 2.5)
+}
+
+/**
+ * A rakshasa chariot of the battle: a war mast with its banner above the gap,
+ * and below it the chariot itself, canopy, gold trim and a turning spoked wheel.
+ * Both fill exactly the area that strikes Hanumanji and move with the gap.
+ */
 function drawChariot(c: CanvasRenderingContext2D, o: Obstacle, sx: number, shift: number) {
   const mid = sx + PILLAR_WIDTH / 2
   const top = o.gapTop + shift
   const bottom = o.gapBottom + shift
-  c.fillStyle = '#44403c'
-  c.fillRect(sx + 10, 0, PILLAR_WIDTH - 20, Math.max(0, top - 16))
-  c.fillStyle = '#b45309'
-  c.beginPath()
-  c.moveTo(sx + 6, top - 20)
-  c.lineTo(sx + PILLAR_WIDTH - 6, top - 20)
-  c.lineTo(mid, top + 2)
-  c.closePath()
-  c.fill()
+  drawFlightPath(c, sx, top, bottom)
+
+  if (top > 1) {
+    const mast = c.createLinearGradient(sx, 0, sx + PILLAR_WIDTH, 0)
+    mast.addColorStop(0, '#292524')
+    mast.addColorStop(0.5, '#57534e')
+    mast.addColorStop(1, '#1c1917')
+    c.fillStyle = mast
+    c.fillRect(sx, 0, PILLAR_WIDTH, top)
+    c.fillStyle = '#7f1d1d'
+    const bannerTop = Math.max(6, top - 130)
+    c.beginPath()
+    c.moveTo(sx + 10, bannerTop)
+    c.lineTo(sx + PILLAR_WIDTH - 10, bannerTop)
+    c.lineTo(sx + PILLAR_WIDTH - 10, Math.max(bannerTop + 10, top - 46))
+    c.lineTo(mid, Math.max(bannerTop + 20, top - 34))
+    c.lineTo(sx + 10, Math.max(bannerTop + 10, top - 46))
+    c.closePath()
+    c.fill()
+    c.fillStyle = '#fbbf24'
+    if (top - 46 - bannerTop > 30) {
+      c.beginPath()
+      c.moveTo(mid, bannerTop + 8)
+      c.lineTo(mid + 9, bannerTop + 18)
+      c.lineTo(mid, bannerTop + 28)
+      c.lineTo(mid - 9, bannerTop + 18)
+      c.closePath()
+      c.fill()
+    }
+    c.fillRect(sx, top - 12, PILLAR_WIDTH, 5)
+    c.fillStyle = '#a16207'
+    for (let i = 0; i < 4; i++) {
+      c.beginPath()
+      c.moveTo(sx + 4 + i * 15, top - 7)
+      c.lineTo(sx + 11.5 + i * 15, top - 1)
+      c.lineTo(sx + 19 + i * 15, top - 7)
+      c.closePath()
+      c.fill()
+    }
+    c.strokeStyle = '#0c0a09'
+    c.lineWidth = 2.5
+    c.strokeRect(sx + 1.25, 1.25, PILLAR_WIDTH - 2.5, top - 2.5)
+  }
+
+  const body = c.createLinearGradient(sx, 0, sx + PILLAR_WIDTH, 0)
+  body.addColorStop(0, '#450a0a')
+  body.addColorStop(0.5, '#991b1b')
+  body.addColorStop(1, '#3f0a0a')
+  c.fillStyle = body
+  c.fillRect(sx, bottom, PILLAR_WIDTH, SEA_LEVEL - bottom)
   c.fillStyle = '#fbbf24'
-  c.fillRect(sx + 18, top - 34, 3, 16)
   c.beginPath()
-  c.moveTo(sx + 21, top - 34)
-  c.lineTo(sx + 38, top - 26)
-  c.lineTo(sx + 21, top - 18)
-  c.fill()
-  c.fillStyle = '#78350f'
-  c.beginPath()
-  c.moveTo(sx - 6, SEA_LEVEL + 6)
-  c.lineTo(sx + 10, bottom + 8)
-  c.lineTo(sx + PILLAR_WIDTH - 10, bottom + 8)
-  c.lineTo(sx + PILLAR_WIDTH + 6, SEA_LEVEL + 6)
+  c.moveTo(sx + 4, bottom + 16)
+  c.quadraticCurveTo(mid, bottom - 2, sx + PILLAR_WIDTH - 4, bottom + 16)
   c.closePath()
   c.fill()
-  c.strokeStyle = '#fbbf24'
+  c.fillRect(sx, bottom + 16, PILLAR_WIDTH, 4)
+  c.fillRect(sx, bottom + 40, PILLAR_WIDTH, 3)
+  const hub = bottom + 66
+  if (hub + 22 < SEA_LEVEL + 10) {
+    const spin = run.distance / 22
+    c.strokeStyle = '#fbbf24'
+    c.lineWidth = 3
+    c.beginPath()
+    c.arc(mid, hub, 20, 0, Math.PI * 2)
+    c.stroke()
+    c.lineWidth = 1.6
+    for (let k = 0; k < 8; k++) {
+      const a = spin + (k * Math.PI) / 4
+      c.beginPath()
+      c.moveTo(mid, hub)
+      c.lineTo(mid + Math.cos(a) * 20, hub + Math.sin(a) * 20)
+      c.stroke()
+    }
+    c.fillStyle = '#fde68a'
+    c.beginPath()
+    c.arc(mid, hub, 4, 0, Math.PI * 2)
+    c.fill()
+  }
+  c.strokeStyle = '#1c0505'
   c.lineWidth = 2.5
-  c.beginPath()
-  c.arc(sx + 14, bottom + 22, 8, 0, Math.PI * 2)
-  c.arc(sx + PILLAR_WIDTH - 14, bottom + 22, 8, 0, Math.PI * 2)
-  c.stroke()
-  c.fillStyle = '#fbbf24'
-  c.fillRect(sx + 16, bottom + 16, PILLAR_WIDTH - 32, 7)
+  c.strokeRect(sx + 1.25, bottom + 1.25, PILLAR_WIDTH - 2.5, SEA_LEVEL - bottom - 2.5)
 }
 
 function drawRavan(c: CanvasRenderingContext2D, o: Obstacle, sx: number, shift: number) {
@@ -1781,79 +1880,195 @@ function drawGateColumn(c: CanvasRenderingContext2D, sx: number, y0: number, y1:
   c.strokeRect(sx + 1.25, y0 + 1.25, PILLAR_WIDTH - 2.5, y1 - y0 - 2.5)
 }
 
-/** Vanaras on the causeway, with Shri Ram and Lakshman leading at the first stones. */
+/**
+ * The causeway grows behind Hanumanji from Nala’s first stone. Vanaras carry
+ * rocks along it, one splashes a new stone into the sea at its end, and Shri Ram
+ * and Lakshman walk at the head of the army.
+ */
 function drawCrossing(c: CanvasRenderingContext2D, d: number, now: number) {
+  const setu = run.course[BRIDGE_AT]
+  if (!setu) return
   c.save()
   c.globalAlpha = Math.min(1, bridgeGlow() * 1.4) * (1 - battleGlow())
+  const start = setu.x - d - 30
+  const battle = run.course[BATTLE_AT]
+  const end = Math.min(HERO_X - 30, battle ? battle.x - d : WORLD_WIDTH + 40)
+  if (end > start) {
+    const from = Math.max(-20, start)
+    c.fillStyle = '#78716c'
+    c.fillRect(from, SEA_LEVEL - 6, end - from, 12)
+    for (let x = Math.floor((from - start) / 22) * 22 + start; x < end; x += 22) {
+      c.fillStyle = (Math.round((x - start) / 22) % 2) ? '#a8a29e' : '#d6d3d1'
+      c.beginPath()
+      c.roundRect(x, SEA_LEVEL - 9, 20, 10, 4)
+      c.fill()
+    }
+    const t = (now % 1100) / 1100
+    const dropX = end + 8
+    if (t < 0.6) {
+      c.fillStyle = '#a8a29e'
+      c.beginPath()
+      c.arc(dropX, SEA_LEVEL - 70 + (t / 0.6) * 66, 6, 0, Math.PI * 2)
+      c.fill()
+    } else {
+      const ring = (t - 0.6) / 0.4
+      c.strokeStyle = `rgba(255, 255, 255, ${0.9 * (1 - ring)})`
+      c.lineWidth = 2
+      c.beginPath()
+      c.ellipse(dropX, SEA_LEVEL, 6 + ring * 18, 2 + ring * 4, 0, 0, Math.PI * 2)
+      c.stroke()
+    }
+  }
   for (const o of run.course) {
     if (o.kind !== 'stone' && o.kind !== 'setu') continue
     const sx = o.x - d
     if (sx > WORLD_WIDTH + 40) break
     if (sx < -220) continue
-    for (let i = 0; i < 4; i++) {
-      const x = sx + PILLAR_WIDTH + 18 + i * 48
-      drawVanara(c, x, SEA_LEVEL - 2, 1.15 + (i % 2) * 0.25, now / 170 + o.index + i)
+    for (let i = 0; i < 3; i++) {
+      const x = sx + PILLAR_WIDTH + 24 + i * 52
+      if (x > end) continue
+      drawVanara(c, x, SEA_LEVEL - 8, 1 + (i % 2) * 0.2, now / 170 + o.index + i, i !== 1)
     }
-    if (o.kind === 'setu') {
-      drawBrother(c, sx - 78, SEA_LEVEL - 2, '#f59e0b', true)
-      drawBrother(c, sx - 46, SEA_LEVEL - 2, '#0284c7', true)
-      drawLabel(c, 'Shri Ram', sx - 78, SEA_LEVEL - 86)
-      drawLabel(c, 'Lakshman', sx - 46, SEA_LEVEL - 78)
+  }
+  // Shri Ram and Lakshman walk at the head of the causeway, just behind Hanumanji.
+  if (end - start > 60) {
+    drawBrother(c, end - 22, SEA_LEVEL - 8, 'ram', now)
+    drawBrother(c, end - 50, SEA_LEVEL - 8, 'lakshman', now + 300)
+    if (run.score <= BRIDGE_AT + 3) {
+      drawLabel(c, 'Shri Ram', end - 22, SEA_LEVEL - 96)
+      drawLabel(c, 'Lakshman', end - 50, SEA_LEVEL - 86)
     }
   }
   c.restore()
 }
 
-function drawVanara(c: CanvasRenderingContext2D, x: number, y: number, scale: number, phase: number) {
-  const hop = Math.abs(Math.sin(phase)) * 3 * scale
+/** A vanara walking the causeway, often with a rock held overhead for the next stone. */
+function drawVanara(c: CanvasRenderingContext2D, x: number, y: number, scale: number, phase: number, carrying: boolean) {
+  const step = Math.sin(phase)
+  const hop = Math.abs(step) * 2.5 * scale
   c.save()
   c.translate(x, y - hop)
+  c.scale(scale, scale)
+  c.strokeStyle = '#7c2d12'
+  c.lineWidth = 3
+  c.lineCap = 'round'
+  c.beginPath()
+  c.moveTo(-2, -8)
+  c.lineTo(-4 + step * 3, 0)
+  c.moveTo(2, -8)
+  c.lineTo(4 - step * 3, 0)
+  c.stroke()
+  c.lineWidth = 2
+  c.beginPath()
+  c.moveTo(-5, -12)
+  c.bezierCurveTo(-16, -10, -16, -26, -9, -27)
+  c.stroke()
   c.fillStyle = '#9a3412'
   c.beginPath()
-  c.moveTo(-4 * scale, 0)
-  c.lineTo(-3 * scale, -12 * scale)
-  c.lineTo(-7 * scale, -16 * scale)
-  c.lineTo(0, -14 * scale)
-  c.lineTo(7 * scale, -16 * scale)
-  c.lineTo(3 * scale, -12 * scale)
-  c.lineTo(4 * scale, 0)
-  c.closePath()
+  c.ellipse(0, -15, 6, 8, 0, 0, Math.PI * 2)
+  c.fill()
+  c.beginPath()
+  c.arc(0, -27, 5.5, 0, Math.PI * 2)
+  c.fill()
+  c.fillStyle = '#fed7aa'
+  c.beginPath()
+  c.ellipse(1.5, -26, 3.4, 3, 0, 0, Math.PI * 2)
   c.fill()
   c.strokeStyle = '#9a3412'
-  c.lineWidth = 1.4 * scale
+  c.lineWidth = 2.4
   c.beginPath()
-  c.moveTo(-2 * scale, -2 * scale)
-  c.quadraticCurveTo(-10 * scale, -1 * scale, -7 * scale, -9 * scale)
+  if (carrying) {
+    c.moveTo(-4, -19)
+    c.lineTo(-5, -34)
+    c.moveTo(4, -19)
+    c.lineTo(5, -34)
+  } else {
+    c.moveTo(-4, -19)
+    c.lineTo(-7 - step * 2, -10)
+    c.moveTo(4, -19)
+    c.lineTo(7 + step * 2, -10)
+  }
   c.stroke()
+  if (carrying) {
+    c.fillStyle = '#a8a29e'
+    c.beginPath()
+    c.ellipse(0, -39, 8, 6, 0, 0, Math.PI * 2)
+    c.fill()
+    c.fillStyle = '#c2410c'
+    c.font = '700 5px system-ui, sans-serif'
+    c.textAlign = 'center'
+    c.fillText('राम', 0, -37)
+  }
   c.restore()
 }
 
-function drawBrother(c: CanvasRenderingContext2D, x: number, y: number, robe: string, bow: boolean) {
+/** Shri Ram, blue as in the riders sheet, and Lakshman, each with a bow, walking at the head of the army. */
+function drawBrother(c: CanvasRenderingContext2D, x: number, y: number, who: 'ram' | 'lakshman', now: number) {
+  const ram = who === 'ram'
+  const skin = ram ? '#60a5fa' : '#fcd9b6'
+  const dhoti = ram ? '#facc15' : '#fb923c'
+  const step = Math.sin(now / 220)
   c.save()
   c.translate(x, y)
-  c.fillStyle = robe
-  c.fillRect(-6, -28, 12, 28)
-  c.fillRect(-8, -46, 16, 20)
-  c.fillStyle = '#f6d7b0'
+  c.strokeStyle = skin
+  c.lineWidth = 3.5
+  c.lineCap = 'round'
   c.beginPath()
-  c.arc(0, -52, 7, 0, Math.PI * 2)
+  c.moveTo(-3, -18)
+  c.lineTo(-4 + step * 3, 0)
+  c.moveTo(3, -18)
+  c.lineTo(4 - step * 3, 0)
+  c.stroke()
+  c.fillStyle = dhoti
+  c.beginPath()
+  c.moveTo(-8, -32)
+  c.lineTo(8, -32)
+  c.lineTo(7, -15)
+  c.lineTo(-7, -15)
+  c.closePath()
+  c.fill()
+  c.fillStyle = skin
+  c.beginPath()
+  c.roundRect(-7, -50, 14, 19, 4)
+  c.fill()
+  c.fillStyle = '#dc2626'
+  c.beginPath()
+  c.moveTo(-7, -49)
+  c.lineTo(7, -36)
+  c.lineTo(5, -33)
+  c.lineTo(-7, -45)
+  c.closePath()
+  c.fill()
+  c.fillStyle = skin
+  c.beginPath()
+  c.arc(0, -57, 7, 0, Math.PI * 2)
+  c.fill()
+  c.fillStyle = '#1c1917'
+  c.beginPath()
+  c.arc(-1, -60, 7, Math.PI * 0.95, Math.PI * 2.05)
   c.fill()
   c.fillStyle = '#fbbf24'
   c.beginPath()
-  c.moveTo(-7, -56)
-  c.lineTo(-4, -66)
-  c.lineTo(0, -58)
-  c.lineTo(4, -66)
-  c.lineTo(7, -56)
+  c.moveTo(-7, -61)
+  c.lineTo(-5, -71)
+  c.lineTo(-2, -64)
+  c.lineTo(0, -74)
+  c.lineTo(2, -64)
+  c.lineTo(5, -71)
+  c.lineTo(7, -61)
   c.closePath()
   c.fill()
-  if (bow) {
-    c.strokeStyle = '#78350f'
-    c.lineWidth = 1.5
-    c.beginPath()
-    c.arc(12, -36, 14, -1.15, 1.15)
-    c.stroke()
-  }
+  c.strokeStyle = '#92400e'
+  c.lineWidth = 2
+  c.beginPath()
+  c.arc(11, -40, 17, -1.2, 1.2)
+  c.stroke()
+  c.strokeStyle = 'rgba(254, 243, 199, 0.9)'
+  c.lineWidth = 0.8
+  c.beginPath()
+  c.moveTo(11 + 17 * Math.cos(-1.2), -40 + 17 * Math.sin(-1.2))
+  c.lineTo(11 + 17 * Math.cos(1.2), -40 + 17 * Math.sin(1.2))
+  c.stroke()
   c.restore()
 }
 
@@ -1883,11 +2098,20 @@ function drawObstacle(c: CanvasRenderingContext2D, o: Obstacle, sx: number, now:
     if (img) {
       const aspect = img.naturalHeight / img.naturalWidth
       const width = Math.min(205, Math.max(110, (SEA_LEVEL + 10 - o.gapBottom) / (aspect * 0.9)))
+      // Struck by Hanumanji, she bows as he passes and gives way.
+      const bow = o.passed ? clamp01((run.distance + HERO_X - (o.x + PILLAR_WIDTH)) / 140) : 0
+      c.save()
+      c.translate(mid, SEA_LEVEL)
+      c.rotate(0.3 * bow)
+      c.translate(-mid, -SEA_LEVEL + 22 * bow)
       drawFromSea(c, img, mid, o.gapBottom - width * aspect * 0.1, width)
+      c.restore()
     } else {
       drawRockPillar(c, sx, o.gapBottom)
     }
-    drawLabel(c, 'Lankini’s gate', mid, o.gapTop - 22)
+    drawLabel(c, o.passed ? 'Lankini bows' : 'Lankini’s gate', mid, o.gapTop - 22)
+  } else if (o.kind === 'vatika') {
+    drawAshokaGate(c, o, sx, now)
   } else if (o.kind === 'roof') {
     drawRoof(c, o, sx, now)
   } else if (o.kind === 'setu' || o.kind === 'stone') {
@@ -1941,6 +2165,9 @@ function drawObstacle(c: CanvasRenderingContext2D, o: Obstacle, sx: number, now:
     c.ellipse(px + 6, py, 7, 3.5, 0.6, 0, Math.PI * 2)
     c.fill()
     drawLabel(c, 'Sanjeevani', px, py - 18)
+  } else if (p.kind === 'mudrika') {
+    drawMudrika(c, px, py, pulse, now)
+    drawLabel(c, 'Shri Ram’s ring', px, py - 22)
   } else if (p.kind === 'pushpak') {
     drawPushpak(c, px, py, pulse)
     drawLabel(c, 'Pushpak', px, py - 28)
@@ -2016,21 +2243,238 @@ function traceWave(c: CanvasRenderingContext2D, base: number, amp: number, offse
   for (let x = 8; x <= WORLD_WIDTH; x += 8) c.lineTo(x, waveY(x + offset, base, amp, shift))
 }
 
-function drawPalaceWall(c: CanvasRenderingContext2D, sx: number, y0: number, y1: number) {
+/** Moonlit garden behind Ravan’s palace: deep blue over the golden city, ashoka silhouettes and fireflies. */
+function drawVatikaNight(c: CanvasRenderingContext2D, d: number, now: number, alpha: number) {
+  c.save()
+  c.globalAlpha = alpha
+  const sky = c.createLinearGradient(0, 0, 0, SEA_LEVEL)
+  sky.addColorStop(0, 'rgba(15, 23, 72, 0.92)')
+  sky.addColorStop(0.65, 'rgba(30, 41, 99, 0.82)')
+  sky.addColorStop(1, 'rgba(20, 83, 45, 0.85)')
+  c.fillStyle = sky
+  c.fillRect(0, 0, WORLD_WIDTH, SEA_LEVEL)
+  for (let i = 0; i < 26; i++) {
+    const x = (i * 97 + 13) % WORLD_WIDTH
+    const y = 20 + ((i * 53) % 220)
+    c.fillStyle = `rgba(255, 255, 255, ${0.35 + 0.35 * Math.sin(now / 600 + i)})`
+    c.fillRect(x, y, 1.6, 1.6)
+  }
+  c.fillStyle = '#fef9c3'
+  c.beginPath()
+  c.arc(318, 92, 22, 0, Math.PI * 2)
+  c.fill()
+  c.fillStyle = 'rgba(254, 249, 195, 0.18)'
+  c.beginPath()
+  c.arc(318, 92, 40, 0, Math.PI * 2)
+  c.fill()
+  const span = WORLD_WIDTH + 160
+  for (let i = 0; i < 7; i++) {
+    const x = ((((i * 131) - d * 0.3) % span) + span) % span - 80
+    const h = 120 + (i % 3) * 40
+    drawAshokaSilhouette(c, x, SEA_LEVEL - 8, h, 'rgba(6, 46, 30, 0.9)')
+  }
+  for (let i = 0; i < 14; i++) {
+    const x = ((((i * 61) - d * 0.45 + now * 0.01) % span) + span) % span - 80
+    const y = SEA_LEVEL - 60 - ((i * 37) % 200) + Math.sin(now / 500 + i) * 10
+    c.fillStyle = `rgba(253, 224, 71, ${0.45 + 0.4 * Math.sin(now / 260 + i * 2)})`
+    c.beginPath()
+    c.arc(x, y, 1.8, 0, Math.PI * 2)
+    c.fill()
+  }
+  c.restore()
+}
+
+function drawAshokaSilhouette(c: CanvasRenderingContext2D, x: number, base: number, height: number, color: string) {
+  c.fillStyle = color
+  c.fillRect(x - 3, base - height * 0.55, 6, height * 0.55)
+  for (const [dx, dy, r] of [[0, -0.75, 0.22], [-0.16, -0.6, 0.16], [0.16, -0.62, 0.17], [0, -0.95, 0.15]] as const) {
+    c.beginPath()
+    c.ellipse(x + dx * height, base + dy * height, r * height * 0.7, r * height, 0, 0, Math.PI * 2)
+    c.fill()
+  }
+}
+
+function drawGardenFloor(c: CanvasRenderingContext2D, d: number) {
+  const floor = c.createLinearGradient(0, SEA_LEVEL - 10, 0, WORLD_HEIGHT)
+  floor.addColorStop(0, '#166534')
+  floor.addColorStop(0.3, '#14532d')
+  floor.addColorStop(1, '#052e16')
+  c.fillStyle = floor
+  c.fillRect(0, SEA_LEVEL - 4, WORLD_WIDTH, WORLD_HEIGHT - SEA_LEVEL + 4)
+  c.strokeStyle = 'rgba(134, 239, 172, 0.45)'
+  c.lineWidth = 1.2
+  for (let x = -((d * 0.9) % 9); x < WORLD_WIDTH; x += 9) {
+    c.beginPath()
+    c.moveTo(x, SEA_LEVEL)
+    c.lineTo(x + 2, SEA_LEVEL - 7)
+    c.stroke()
+  }
+}
+
+/**
+ * An ashoka tree as a gate: a hanging canopy above the gap and a trunk below,
+ * each filling exactly the area that strikes Hanumanji, with the gap lit between.
+ */
+function drawAshokaGate(c: CanvasRenderingContext2D, o: Obstacle, sx: number, now: number) {
+  const top = o.gapTop
+  const bottom = o.gapBottom
+  const mid = sx + PILLAR_WIDTH / 2
+  drawFlightPath(c, sx, top, bottom)
+
+  const leaves = c.createLinearGradient(sx, 0, sx + PILLAR_WIDTH, 0)
+  leaves.addColorStop(0, '#14532d')
+  leaves.addColorStop(0.5, '#15803d')
+  leaves.addColorStop(1, '#052e16')
+  c.fillStyle = leaves
+  c.fillRect(sx, 0, PILLAR_WIDTH, top)
+  c.fillStyle = 'rgba(134, 239, 172, 0.35)'
+  for (let y = top - 22; y > 0; y -= 30) {
+    for (let i = 0; i < 3; i++) {
+      c.beginPath()
+      c.ellipse(sx + 12 + i * 20, y - (i % 2) * 10, 9, 5, -0.5, 0, Math.PI * 2)
+      c.fill()
+    }
+  }
+  c.fillStyle = '#f97316'
+  for (let i = 0; i < 5; i++) {
+    c.beginPath()
+    c.arc(sx + 8 + i * 12, top - 6 - (i % 2) * 5, 3.2, 0, Math.PI * 2)
+    c.fill()
+  }
+
+  const bark = c.createLinearGradient(sx, 0, sx + PILLAR_WIDTH, 0)
+  bark.addColorStop(0, '#3f2a1d')
+  bark.addColorStop(0.45, '#78522f')
+  bark.addColorStop(1, '#2a1a10')
+  c.fillStyle = bark
+  c.fillRect(sx, bottom, PILLAR_WIDTH, SEA_LEVEL - bottom)
+  c.strokeStyle = 'rgba(28, 16, 8, 0.6)'
+  c.lineWidth = 1.5
+  for (let y = bottom + 22; y < SEA_LEVEL; y += 26) {
+    c.beginPath()
+    c.moveTo(sx + 10, y)
+    c.quadraticCurveTo(mid, y + 8, sx + PILLAR_WIDTH - 10, y - 2)
+    c.stroke()
+  }
+  c.fillStyle = '#16a34a'
+  c.fillRect(sx, bottom, PILLAR_WIDTH, 12)
+  c.fillStyle = '#f97316'
+  for (let i = 0; i < 5; i++) {
+    c.beginPath()
+    c.arc(sx + 8 + i * 12, bottom + 6, 3, 0, Math.PI * 2)
+    c.fill()
+  }
+
+  c.strokeStyle = '#052e16'
+  c.lineWidth = 2.5
+  c.strokeRect(sx + 1.25, 1.25, PILLAR_WIDTH - 2.5, top - 2.5)
+  c.strokeRect(sx + 1.25, bottom + 1.25, PILLAR_WIDTH - 2.5, SEA_LEVEL - bottom - 2.5)
+
+  if (o.index === MUDRIKA_AT) drawSitaMata(c, sx + PILLAR_WIDTH + 30, SEA_LEVEL - 14, now)
+}
+
+/** Sita Mata beneath the ashoka tree, shown as a lotus in a soft halo rather than drawn as a figure. */
+function drawSitaMata(c: CanvasRenderingContext2D, x: number, y: number, now: number) {
+  const pulse = 1 + Math.sin(now / 500) * 0.06
+  const halo = c.createRadialGradient(x, y - 14, 2, x, y - 14, 34 * pulse)
+  halo.addColorStop(0, 'rgba(255, 251, 235, 0.95)')
+  halo.addColorStop(0.5, 'rgba(253, 224, 71, 0.4)')
+  halo.addColorStop(1, 'rgba(253, 224, 71, 0)')
+  c.fillStyle = halo
+  c.beginPath()
+  c.arc(x, y - 14, 34 * pulse, 0, Math.PI * 2)
+  c.fill()
+  c.fillStyle = '#f9a8d4'
+  for (const angle of [-0.9, -0.45, 0, 0.45, 0.9]) {
+    c.save()
+    c.translate(x, y - 4)
+    c.rotate(angle)
+    c.beginPath()
+    c.ellipse(0, -9, 4.5, 10, 0, 0, Math.PI * 2)
+    c.fill()
+    c.restore()
+  }
+  c.fillStyle = '#fde68a'
+  c.beginPath()
+  c.arc(x, y - 6, 3, 0, Math.PI * 2)
+  c.fill()
+  drawLabel(c, 'Sita Mata', x, y - 46)
+}
+
+/** Shri Ram’s signet ring, carried to Sita Mata. */
+function drawMudrika(c: CanvasRenderingContext2D, px: number, py: number, pulse: number, now: number) {
+  const glow = c.createRadialGradient(px, py, 2, px, py, 18 * pulse)
+  glow.addColorStop(0, 'rgba(255, 251, 235, 0.9)')
+  glow.addColorStop(1, 'rgba(250, 204, 21, 0)')
+  c.fillStyle = glow
+  c.beginPath()
+  c.arc(px, py, 18 * pulse, 0, Math.PI * 2)
+  c.fill()
+  c.strokeStyle = '#ca8a04'
+  c.lineWidth = 4
+  c.beginPath()
+  c.ellipse(px, py + 2, 8.5, 7.5, 0, 0, Math.PI * 2)
+  c.stroke()
+  c.strokeStyle = '#fde68a'
+  c.lineWidth = 1.4
+  c.beginPath()
+  c.ellipse(px, py + 2, 8.5, 7.5, 0, Math.PI * 1.1, Math.PI * 1.7)
+  c.stroke()
+  c.fillStyle = '#dc2626'
+  c.beginPath()
+  c.moveTo(px, py - 11)
+  c.lineTo(px + 4.5, py - 6)
+  c.lineTo(px, py - 2)
+  c.lineTo(px - 4.5, py - 6)
+  c.closePath()
+  c.fill()
+  c.fillStyle = `rgba(255, 255, 255, ${0.6 + 0.4 * Math.sin(now / 200)})`
+  c.fillRect(px - 1, py - 9, 2, 2)
+}
+
+/**
+ * A palace of golden Lanka: carved gold bands, arched windows and an outline.
+ * `burn` runs from 0 to 1 once Hanumanji’s burning tail has passed it.
+ */
+function drawPalaceWall(c: CanvasRenderingContext2D, sx: number, y0: number, y1: number, burn = 0, now = 0) {
   const body = c.createLinearGradient(sx, 0, sx + PILLAR_WIDTH, 0)
   body.addColorStop(0, '#7f1d1d')
   body.addColorStop(0.4, '#b45309')
   body.addColorStop(1, '#431407')
   c.fillStyle = body
   c.fillRect(sx, y0, PILLAR_WIDTH, y1 - y0)
+  c.fillStyle = '#fbbf24'
+  for (let y = y1 - 46; y > y0 + 6; y -= 72) c.fillRect(sx + 2, y, PILLAR_WIDTH - 4, 4)
+  for (let y = y1 - 32; y > y0 + 10; y -= 36) {
+    for (const wx of [sx + 9, sx + PILLAR_WIDTH - 21]) {
+      const flicker = burn > 0 ? 0.5 + 0.5 * Math.sin(now / 80 + wx + y) : 0
+      c.fillStyle = burn > 0
+        ? `rgba(${249}, ${Math.round(115 + 80 * flicker)}, 22, ${0.6 + 0.4 * burn})`
+        : 'rgba(254, 243, 199, 0.85)'
+      c.beginPath()
+      c.moveTo(wx, y + 14)
+      c.lineTo(wx, y + 5)
+      c.arc(wx + 6, y + 5, 6, Math.PI, 0)
+      c.lineTo(wx + 12, y + 14)
+      c.closePath()
+      c.fill()
+      if (burn > 0.3) {
+        c.fillStyle = `rgba(254, 215, 170, ${0.7 * burn})`
+        c.beginPath()
+        c.moveTo(wx + 1, y + 2)
+        c.quadraticCurveTo(wx + 6, y - 16 - 9 * flicker * burn, wx + 11, y + 2)
+        c.closePath()
+        c.fill()
+      }
+    }
+  }
+  if (burn > 0) {
+    c.fillStyle = `rgba(220, 38, 38, ${0.32 * burn})`
+    c.fillRect(sx, y0, PILLAR_WIDTH, y1 - y0)
+  }
   c.strokeStyle = '#451a03'
   c.lineWidth = 2
-  c.strokeRect(sx, y0, PILLAR_WIDTH, y1 - y0)
-  c.fillStyle = 'rgba(254, 243, 199, 0.85)'
-  for (let y = y1 - 28; y > y0 + 8; y -= 36) {
-    c.fillRect(sx + 10, y, 8, 12)
-    c.fillRect(sx + PILLAR_WIDTH - 18, y, 8, 12)
-  }
+  c.strokeRect(sx + 1, y0, PILLAR_WIDTH - 2, y1 - y0)
 }
 
 function drawFlames(c: CanvasRenderingContext2D, sx: number, top: number, bottom: number, now: number) {
@@ -2055,7 +2499,8 @@ function drawFlames(c: CanvasRenderingContext2D, sx: number, top: number, bottom
 }
 
 function drawRoof(c: CanvasRenderingContext2D, o: Obstacle, sx: number, now: number) {
-  drawPalaceWall(c, sx, -20, o.gapTop)
+  const burn = clamp01((run.distance + HERO_X - o.x - 10) / 30)
+  drawPalaceWall(c, sx, -20, o.gapTop, burn, now)
   c.fillStyle = '#fcd34d'
   c.beginPath()
   c.moveTo(sx - 6, o.gapTop)
@@ -2065,7 +2510,7 @@ function drawRoof(c: CanvasRenderingContext2D, o: Obstacle, sx: number, now: num
   c.fill()
 
   const flames = flameTop(o, run.distance + HERO_X)
-  drawPalaceWall(c, sx, o.gapBottom, SEA_LEVEL + 12)
+  drawPalaceWall(c, sx, o.gapBottom, SEA_LEVEL + 12, burn, now)
   c.fillStyle = '#44403c'
   c.fillRect(sx - 4, o.gapBottom - 8, PILLAR_WIDTH + 8, 10)
   drawFlames(c, sx, flames, o.gapBottom + 16, now + o.index * 40)
@@ -2090,6 +2535,13 @@ function drawSea(c: CanvasRenderingContext2D, d: number, now: number) {
     c.save()
     c.globalAlpha = water
     drawOcean(c, d, now)
+    c.restore()
+  }
+  const garden = vatikaCover()
+  if (garden > 0.02) {
+    c.save()
+    c.globalAlpha = garden
+    drawGardenFloor(c, d)
     c.restore()
   }
   if (alight > 0.02 && dust < 0.98) {
@@ -2358,6 +2810,106 @@ function drawTailFlame(c: CanvasRenderingContext2D, now: number) {
   c.fill()
 }
 
+/**
+ * Lanka burning on the horizon: fires and smoke rise from more of the city the
+ * deeper Hanumanji flies into it, so the burning spreads behind him.
+ */
+function drawCityAblaze(c: CanvasRenderingContext2D, d: number, now: number, alpha: number) {
+  const spread = clamp01((run.score - FIRE_AT + 2) / (BRIDGE_AT - FIRE_AT))
+  const fires = 2 + Math.round(spread * 7)
+  const span = WORLD_WIDTH + 200
+  c.save()
+  c.globalAlpha = alpha
+  const haze = c.createLinearGradient(0, SEA_LEVEL - 260, 0, SEA_LEVEL)
+  haze.addColorStop(0, 'rgba(127, 29, 29, 0)')
+  haze.addColorStop(1, `rgba(234, 88, 12, ${0.15 + 0.3 * spread})`)
+  c.fillStyle = haze
+  c.fillRect(0, SEA_LEVEL - 260, WORLD_WIDTH, 260)
+  for (let i = 0; i < fires; i++) {
+    const x = ((((i * 151 + 40) - d * 0.18) % span) + span) % span - 100
+    const base = SEA_LEVEL - 70 - (i % 3) * 18
+    for (let k = 0; k < 4; k++) {
+      const rise = ((now * 0.02 + k * 40 + i * 17) % 160)
+      const r = 12 + rise * 0.22
+      c.fillStyle = `rgba(41, 37, 36, ${0.35 * (1 - rise / 160)})`
+      c.beginPath()
+      c.arc(x + Math.sin(rise / 30 + i) * 8, base - 20 - rise, r, 0, Math.PI * 2)
+      c.fill()
+    }
+    const flicker = Math.sin(now / 90 + i * 2)
+    c.fillStyle = 'rgba(249, 115, 22, 0.85)'
+    c.beginPath()
+    c.moveTo(x - 14, base + 6)
+    c.quadraticCurveTo(x - 4, base - 18 - flicker * 6, x, base - 30 - flicker * 8)
+    c.quadraticCurveTo(x + 6, base - 14, x + 14, base + 6)
+    c.closePath()
+    c.fill()
+    c.fillStyle = 'rgba(254, 240, 138, 0.9)'
+    c.beginPath()
+    c.moveTo(x - 6, base + 4)
+    c.quadraticCurveTo(x, base - 14 - flicker * 4, x + 6, base + 4)
+    c.closePath()
+    c.fill()
+  }
+  c.restore()
+}
+
+/** Sparks shed by the burning tail while Lanka is alight. */
+let nextTailEmber = 0
+function spawnTailEmbers(now: number) {
+  if (phase.value !== 'playing' || fireBlend() < 0.2 || now < nextTailEmber) return
+  nextTailEmber = now + 45
+  const r = heroRadius(run) / HERO_RADIUS
+  sparks.push({
+    x: HERO_X - 52 * r,
+    y: run.y - 30 * r,
+    vx: -0.06 - Math.random() * 0.05,
+    vy: -0.02 - Math.random() * 0.04,
+    born: now,
+    life: 500 + Math.random() * 400,
+    color: Math.random() < 0.4 ? '#fde68a' : '#f97316',
+    size: 1.2 + Math.random() * 1.6,
+    fall: -0.00004
+  })
+}
+
+function drawSceneCard(c: CanvasRenderingContext2D, now: number) {
+  if (!sceneCard) return
+  const t = now - sceneCard.born
+  if (t > SCENE_CARD_MS) {
+    sceneCard = null
+    return
+  }
+  const fade = Math.min(1, t / 350, (SCENE_CARD_MS - t) / 500)
+  const y = 196
+  c.save()
+  c.globalAlpha = fade
+  const band = c.createLinearGradient(0, y - 46, 0, y + 30)
+  band.addColorStop(0, 'rgba(30, 27, 75, 0)')
+  band.addColorStop(0.3, 'rgba(30, 27, 75, 0.72)')
+  band.addColorStop(0.7, 'rgba(30, 27, 75, 0.72)')
+  band.addColorStop(1, 'rgba(30, 27, 75, 0)')
+  c.fillStyle = band
+  c.fillRect(0, y - 46, WORLD_WIDTH, 76)
+  c.strokeStyle = 'rgba(251, 191, 36, 0.9)'
+  c.lineWidth = 1.5
+  const reach = 120 * Math.min(1, t / 600)
+  for (const ly of [y - 32, y + 18]) {
+    c.beginPath()
+    c.moveTo(WORLD_WIDTH / 2 - reach, ly)
+    c.lineTo(WORLD_WIDTH / 2 + reach, ly)
+    c.stroke()
+  }
+  c.textAlign = 'center'
+  c.fillStyle = '#fde68a'
+  c.font = '700 26px Cinzel, Georgia, serif'
+  c.fillText(sceneCard.title, WORLD_WIDTH / 2, y - 2)
+  c.fillStyle = '#fff'
+  c.font = '600 12px system-ui, sans-serif'
+  c.fillText(sceneCard.line, WORLD_WIDTH / 2, y + 12)
+  c.restore()
+}
+
 /** A faint Hanumanji flying today’s best run. */
 function drawGhost(c: CanvasRenderingContext2D, now: number) {
   if (!ghost?.alive || !heroSheet?.complete || !heroSheet.naturalWidth) return
@@ -2457,8 +3009,10 @@ function drawHud(c: CanvasRenderingContext2D) {
       ? { name: 'The battle', bar: '#9f1239', ink: '#881337', span: RAVAN_AT - BATTLE_AT, done: Math.max(0, run.score - BATTLE_AT) }
       : run.reachedBridge || bridgeGlow() > 0.55
         ? { name: 'The crossing', bar: '#d97706', ink: '#92400e', span: BATTLE_AT - BRIDGE_AT, done: Math.max(0, run.score - BRIDGE_AT) }
+        : run.reachedLanka && run.score < FIRE_AT
+          ? { name: 'Ashok Vatika', bar: '#16a34a', ink: '#14532d', span: FIRE_AT - LANKA_AT - 1, done: Math.max(0, run.score - LANKA_AT - 1) }
         : run.reachedLanka
-          ? { name: 'Lanka alight', bar: '#ea580c', ink: '#7c2d12', span: BRIDGE_AT - LANKA_AT, done: Math.max(0, run.score - LANKA_AT) }
+          ? { name: 'Lanka alight', bar: '#ea580c', ink: '#7c2d12', span: BRIDGE_AT - FIRE_AT + 1, done: Math.max(0, run.score - FIRE_AT + 1) }
           : { name: 'To Lanka', bar: '#d97706', ink: '#1e3a8a', span: LANKA_AT, done: run.score }
   c.fillStyle = act.bar
   c.fillRect(barX, 76, barWidth * Math.min(act.done / act.span, 1), 6)

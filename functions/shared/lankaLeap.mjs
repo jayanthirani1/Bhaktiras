@@ -17,6 +17,14 @@ export const HERO_SMALL_RADIUS = 7
 export const PILLAR_WIDTH = 64
 /** Obstacle index of Lankini's gate; passing it means Hanumanji reached Lanka. */
 export const LANKA_AT = 40
+/**
+ * The first gates past Lankini are Ashok Vatika, where Hanumanji finds Sita Mata.
+ * Its ashoka trees have no fire; Lanka burns from the gate after the garden.
+ */
+export const VATIKA_GATES = 6
+export const FIRE_AT = LANKA_AT + VATIKA_GATES + 1
+/** The garden gate where Shri Ram's ring waits for Sita Mata. */
+export const MUDRIKA_AT = LANKA_AT + 3
 /** Obstacle index where the fire ends and Nala's bridge begins. */
 export const BRIDGE_AT = LANKA_AT + 24
 /** Obstacle index where the crossing gives way to the battle on Lanka. */
@@ -66,10 +74,10 @@ export const FIRE_LEAD = 340
 /** Gap left above the flames once they have fully risen. */
 export const FIRE_CLEAR = 108
 
-/** @typedef {'gate' | 'surasa' | 'simhika' | 'mainak' | 'lankini' | 'roof' | 'setu' | 'stone' | 'field' | 'ravan' | 'dawn' | 'ayodhya'} ObstacleKind */
-/** @typedef {'tulsi' | 'laghima' | 'mainak' | 'sanjeevani' | 'pushpak'} PickupKind */
-/** @typedef {'rock' | 'sea' | 'surasa' | 'simhika' | 'lankini' | 'tower' | 'fire' | 'stone' | 'field' | 'ravan' | 'time'} DeathCause */
-/** @typedef {'leap' | 'score' | 'tulsi' | 'laghima' | 'mainak' | 'sanjeevani' | 'pushpak' | 'shield-break' | 'lanka' | 'bridge' | 'battle' | 'revive' | 'ravan' | 'ayodhya' | 'dead'} RunEvent */
+/** @typedef {'gate' | 'surasa' | 'simhika' | 'mainak' | 'lankini' | 'vatika' | 'roof' | 'setu' | 'stone' | 'field' | 'ravan' | 'dawn' | 'ayodhya'} ObstacleKind */
+/** @typedef {'tulsi' | 'laghima' | 'mainak' | 'sanjeevani' | 'pushpak' | 'mudrika'} PickupKind */
+/** @typedef {'rock' | 'sea' | 'surasa' | 'simhika' | 'lankini' | 'vatika' | 'tower' | 'fire' | 'stone' | 'field' | 'ravan' | 'time'} DeathCause */
+/** @typedef {'leap' | 'score' | 'tulsi' | 'laghima' | 'mainak' | 'sanjeevani' | 'pushpak' | 'mudrika' | 'shield-break' | 'lanka' | 'fire' | 'bridge' | 'battle' | 'revive' | 'ravan' | 'ayodhya' | 'dead'} RunEvent */
 
 /**
  * @typedef {object} Pickup
@@ -212,7 +220,7 @@ function scheduleAvoidingLanka(s, index) {
  * @param {number} heroX
  */
 export function flameTop(obstacle, heroX) {
-  if (!obstacle || obstacle.index <= LANKA_AT || obstacle.index >= BRIDGE_AT) return obstacle ? obstacle.gapBottom : SEA_LEVEL
+  if (!obstacle || obstacle.index < FIRE_AT || obstacle.index >= BRIDGE_AT) return obstacle ? obstacle.gapBottom : SEA_LEVEL
   const room = obstacle.gapBottom - obstacle.gapTop - FIRE_CLEAR
   if (room <= 0) return obstacle.gapBottom
   const t = clamp((heroX - (obstacle.x - FIRE_LEAD)) / FIRE_LEAD, 0, 1)
@@ -255,6 +263,7 @@ function makeObstacle(s, index) {
   else if (index > RAVAN_AT) kind = 'dawn'
   else if (index >= BATTLE_AT) kind = 'field'
   else if (index > BRIDGE_AT) kind = 'stone'
+  else if (index > LANKA_AT && index < FIRE_AT) kind = 'vatika'
   else if (index > LANKA_AT) kind = 'roof'
   else if (index === s.nextSurasa) {
     kind = 'surasa'
@@ -271,7 +280,7 @@ function makeObstacle(s, index) {
   let gap = 196 - 56 * toLanka - 16 * beyond
   if (kind === 'surasa') gap = SURASA_GAP
   if (kind === 'lankini') gap = 170
-  if (kind === 'roof') gap = 228 - Math.min(index - LANKA_AT, 12)
+  if (kind === 'roof' || kind === 'vatika') gap = 228 - Math.min(index - LANKA_AT, 12)
   if (kind === 'setu' || kind === 'stone') gap = 206
   if (kind === 'field') gap = 190 - Math.min(index - BATTLE_AT, 32) * 1.25
   if (kind === 'ravan') gap = 150
@@ -280,7 +289,7 @@ function makeObstacle(s, index) {
 
   const prevCenter = prev ? (prev.gapTop + (prev.kind === 'simhika' ? prev.reachY - 30 : prev.gapBottom)) / 2 : SEA_LEVEL / 2
   const dawnShift = 76 + 46 * pastRavan(index)
-  const maxShift = kind === 'surasa' ? 90 : kind === 'roof' ? 80 : kind === 'setu' || kind === 'stone' ? 62 : kind === 'field' ? 74 : kind === 'ravan' ? 34 : kind === 'dawn' ? dawnShift : kind === 'ayodhya' ? 70 : 160
+  const maxShift = kind === 'surasa' ? 90 : kind === 'roof' || kind === 'vatika' ? 80 : kind === 'setu' || kind === 'stone' ? 62 : kind === 'field' ? 74 : kind === 'ravan' ? 34 : kind === 'dawn' ? dawnShift : kind === 'ayodhya' ? 70 : 160
   const lo = GAP_TOP_LIMIT + gap / 2
   const hi = (kind === 'simhika' ? GAP_BOTTOM_LIMIT - 110 : GAP_BOTTOM_LIMIT) - gap / 2
   const target = lo + rnd() * (hi - lo)
@@ -293,6 +302,7 @@ function makeObstacle(s, index) {
   const midX = x + PILLAR_WIDTH / 2
   if (index <= LANKA_AT && index + 1 === s.nextSurasa) pickup = { kind: 'laghima', x: midX, y: center, taken: false }
   else if (kind === 'mainak') pickup = { kind: 'mainak', x: midX, y: lower - 24, taken: false }
+  else if (kind === 'vatika' && index === MUDRIKA_AT) pickup = { kind: 'mudrika', x: midX, y: center, taken: false }
   else if (kind === 'field' && index === BATTLE_AT) pickup = { kind: 'sanjeevani', x: midX, y: center, taken: false }
   else if (kind === 'dawn' && index >= s.nextPushpak) {
     pickup = { kind: 'pushpak', x: midX, y: center, taken: false }
@@ -481,6 +491,9 @@ export function step(s, leap) {
         } else if (p.kind === 'pushpak') {
           s.calmTicks = s.calmTicks > 0 ? CALM_TICKS - CALM_FADE : CALM_TICKS
           s.events.push('pushpak')
+        } else if (p.kind === 'mudrika') {
+          s.shield = true
+          s.events.push('mudrika')
         } else {
           s.shield = true
           s.events.push('mainak')
@@ -496,6 +509,7 @@ export function step(s, leap) {
         s.reachedLanka = true
         s.events.push('lanka')
       }
+      if (o.index === FIRE_AT - 1) s.events.push('fire')
       if (o.kind === 'setu') {
         s.reachedBridge = true
         s.events.push('bridge')
@@ -520,7 +534,7 @@ export function step(s, leap) {
     }
 
     if (s.graceTicks === 0) {
-      const cause = o.kind === 'roof' ? 'tower' : o.kind === 'stone' || o.kind === 'setu' ? 'stone' : o.kind === 'field' || o.kind === 'dawn' || o.kind === 'ayodhya' ? 'field' : o.kind === 'ravan' ? 'ravan' : o.kind === 'gate' || o.kind === 'mainak' ? 'rock' : o.kind
+      const cause = o.kind === 'roof' ? 'tower' : o.kind === 'vatika' ? 'vatika' : o.kind === 'stone' || o.kind === 'setu' ? 'stone' : o.kind === 'field' || o.kind === 'dawn' || o.kind === 'ayodhya' ? 'field' : o.kind === 'ravan' ? 'ravan' : o.kind === 'gate' || o.kind === 'mainak' ? 'rock' : o.kind
       const top = o.gapTop + shift
       const bottom = o.gapBottom + shift
       if (hitsRect(x, s.y, rNow, o.x, -1000, o.x + PILLAR_WIDTH, top)) takeHit(s, cause)
@@ -536,7 +550,7 @@ export function step(s, leap) {
   }
 
   if (s.y + rNow >= SEA_LEVEL) {
-    const ground = s.grabbed ? 'simhika' : s.reachedLanka && !s.reachedBridge ? 'fire' : s.reachedBattle && !s.reachedRavan ? 'field' : 'sea'
+    const ground = s.grabbed ? 'simhika' : s.reachedLanka && !s.reachedBridge ? (s.score >= FIRE_AT ? 'fire' : 'vatika') : s.reachedBattle && !s.reachedRavan ? 'field' : 'sea'
     if (s.shield || s.graceTicks > 0) {
       if (s.graceTicks === 0) takeHit(s, ground)
       s.y = SEA_LEVEL - rNow - 1

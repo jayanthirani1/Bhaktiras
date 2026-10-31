@@ -6,7 +6,8 @@
     <li>Before <StoryLink id="surasa">Surasa</StoryLink>, take the blue Laghima orb. Hanumanji becomes tiny and slips through her narrow mouth.</li>
     <li><StoryLink id="mainak">Mainak</StoryLink> rises from the sea with a golden orb. Take it and the next hit is forgiven.</li>
     <li>Over <StoryLink id="simhika">Simhika</StoryLink>’s dark water, stay high. She seizes your shadow and drags you down.</li>
-    <li>Pass <StoryLink id="lankini">Lankini</StoryLink>’s gate and Lanka catches light. Fly the rooftops and stay above the rising flames.</li>
+    <li>Pass <StoryLink id="lankini">Lankini</StoryLink>’s gate and she bows. Fly through Ashok Vatika’s ashoka trees and take Shri Ram’s ring to Sita Mata: her blessing forgives one hit.</li>
+    <li>Then Hanumanji’s tail is set alight and Lanka burns. Fly the rooftops and stay above the rising flames.</li>
     <li>After the fire, <StoryLink id="setu">Shri Ram, Lakshman and the vanaras</StoryLink> cross the sea. The way opens above the bridge.</li>
     <li>On the <StoryLink id="battle">battlefield</StoryLink> the chariots rise and fall. One green sanjeevani waits there. Take it and Hanumanji carries the mountain until Lakshman revives. Then Shri Ram and Lakshman ride on his shoulders into battle.</li>
     <li>Pass <StoryLink id="ravan">Ravan</StoryLink>’s chariot and he falls. The way home is the hardest flight of all: faster, narrower, and the gates swing wide. Every gate still scores a point.</li>
