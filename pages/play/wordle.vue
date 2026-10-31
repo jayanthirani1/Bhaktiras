@@ -2,7 +2,7 @@
   <div class="min-h-screen bg-[hsl(var(--background))] pb-24 pt-0 md:pt-12 px-4">
     <div class="max-w-lg mx-auto">
       <!-- Pinned so Back stays reachable while scrolling -->
-      <div class="sticky top-0 z-40 -mx-4 mb-6 border-b border-[hsl(var(--border))] bg-[hsl(var(--background))]/95 px-4 py-2 backdrop-blur md:top-16">
+      <div class="sticky top-0 z-40 -mx-4 mb-6 flex items-center justify-between border-b border-[hsl(var(--border))] bg-[hsl(var(--background))]/95 px-4 py-2 backdrop-blur md:top-16">
         <NuxtLink
           to="/play"
           class="inline-flex items-center gap-2 rounded-full bg-[hsl(var(--muted))] px-3 py-1.5 text-sm font-medium text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]"
@@ -10,12 +10,14 @@
           <IconArrowLeft class="w-4 h-4" />
           Back
         </NuxtLink>
+        <GameSoundToggle />
       </div>
 
       <PageHeader
         title="Wordle"
         subtitle="Guess the devotional word in six tries."
       />
+      <GameMissedDayBanner v-if="playDay.isArchive" :label="playDay.label" path="/play/wordle" />
 
       <ClientOnly>
         <template #fallback>
@@ -94,7 +96,7 @@
         </div>
         <div class="mt-4 flex flex-col items-center gap-2">
           <button
-            v-if="isWin && isLoggedIn && !scoreSubmitted"
+            v-if="rankable && isWin && isLoggedIn && !scoreSubmitted"
             type="button"
             class="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-50"
             :disabled="submittingScore"
@@ -103,13 +105,13 @@
             {{ submittingScore ? 'Submitting...' : 'Submit to leaderboard' }}
           </button>
           <NuxtLink
-            v-else-if="isWin && !isLoggedIn && !scoreSubmitted"
+            v-else-if="rankable && isWin && !isLoggedIn && !scoreSubmitted"
             to="/login?redirect=/play/wordle"
             class="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800"
           >
             Sign in to submit score
           </NuxtLink>
-          <p v-else-if="scoreSubmitted" class="text-sm text-emerald-700">Score submitted to the leaderboard.</p>
+          <p v-else-if="rankable && scoreSubmitted" class="text-sm text-emerald-700">Score submitted to the leaderboard.</p>
           <p v-if="submitError" class="text-sm text-red-600">{{ submitError }}</p>
           <button
             type="button"
@@ -233,9 +235,10 @@
         </div>
       </div>
 
-      <GameCrowns :ids="['wordle-fastest', 'wordle-fewest-guesses']" />
+      <GameCrowns v-if="rankable" :ids="['wordle-fastest', 'wordle-fewest-guesses']" />
 
       <GameLeaderboard
+        v-if="rankable"
         :entries="leaderboardEntries"
         :loading="leaderboardLoading"
         :date-id="leaderboardDateId"
@@ -347,7 +350,7 @@
               </div>
             </div>
 
-            <div v-if="isWin && !scoreSubmitted" class="mb-4">
+            <div v-if="rankable && isWin && !scoreSubmitted" class="mb-4">
               <button
                 v-if="isLoggedIn"
                 type="button"
@@ -398,7 +401,7 @@
 
 <script setup lang="ts">
 import { IconArrowLeft, IconCrown } from '@tabler/icons-vue'
-import { getWordForDate, resolveWordleWord, wordleDateId } from '~/utils/wordleDaily'
+import { getWordForDateId, resolveWordleWord } from '~/utils/wordleDaily'
 import { isStaleGameDay } from '~/utils/gameDay'
 import { getFeedback } from '~/utils/wordle'
 import { findGameWord } from '~/utils/gameWordBank'
@@ -413,15 +416,26 @@ const KEYBOARD_TOP = ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P']
 const KEYBOARD_MID = ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L']
 const KEYBOARD_BOT = ['Z', 'X', 'C', 'V', 'B', 'N', 'M']
 
-const DAILY_STORAGE_KEY = 'wordle-daily'
+definePageMeta({ key: route => route.fullPath })
+
+const playDay = usePlayDay()
+/** A missed day is practice: off the leaderboard, crowns and stats. */
+const rankable = !playDay.isArchive
+// Today's board keeps its one long-standing key; a missed day gets its own.
+const DAILY_STORAGE_KEY = rankable ? 'wordle-daily' : `wordle-archive:${playDay.dateId}`
 const howto = useHowToPlay('wordle', ['wordle-daily', 'wordle-timer:'])
 
 const remoteExtraWords = ref<string[]>([])
 const remoteWordEntries = ref<GameWordEntry[]>([])
 const solutionReady = ref(false)
 
+/** The day being played: today, or the missed day from `?day=`. */
 function getTodayId(): string {
-  return wordleDateId()
+  return playDay.dateId
+}
+
+function middayOf(dateId: string) {
+  return new Date(`${dateId}T12:00:00Z`)
 }
 
 /**
@@ -446,7 +460,7 @@ type DailyState = {
 function freshDailyState(): DailyState {
   return {
     date: getTodayId(),
-    solution: getWordForDate(new Date()),
+    solution: getWordForDateId(getTodayId()),
     guesses: [],
     isComplete: false,
     scoreSubmitted: false
@@ -504,7 +518,6 @@ const scoreSubmitted = ref(false)
 const submittingScore = ref(false)
 const submitError = ref('')
 const invalidWordMessage = ref('')
-const shareCopied = ref(false)
 const modalBackdropRef = ref<HTMLElement | null>(null)
 const modalContentRef = ref<HTMLElement | null>(null)
 
@@ -529,7 +542,7 @@ const {
   result: elsewhereResult,
   markDone,
   backfill
-} = useDailyGameCompletion('wordle')
+} = useDailyGameCompletion('wordle', { archive: playDay.isArchive })
 
 const elsewhereSummary = computed(() => {
   const r = elsewhereResult.value
@@ -657,12 +670,11 @@ function isAllowedGuess(word: string) {
   return isValidWord(w, [...remoteExtraWords.value, solution.value])
 }
 
+const sound = useGameSound()
+const { share, shareCopied } = useShareResult()
+
 function haptic(pattern: number | number[] = 10) {
-  try {
-    if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
-      navigator.vibrate(pattern)
-    }
-  } catch {}
+  sound.buzz(pattern)
 }
 
 function pressKeyVisual(key: string) {
@@ -677,7 +689,7 @@ function runKey(key: string) {
   // stay pinned to yesterday. `game-day-rollover` normally catches that on
   // resume — if it did not, refuse the keystroke rather than let yesterday's
   // game be finished into today's record.
-  if (isStaleGameDay(boardDate.value)) {
+  if (rankable && isStaleGameDay(boardDate.value)) {
     window.location.reload()
     return
   }
@@ -697,6 +709,7 @@ function runKey(key: string) {
   }
   pressKeyVisual(k)
   haptic(10)
+  sound.play('tap')
   addLetter(k)
 }
 
@@ -726,6 +739,7 @@ function submitGuess() {
     haptic([30, 50, 30])
     shakeRow.value = currentRow
     setTimeout(() => { shakeRow.value = null }, 500)
+    sound.play('wrong')
     invalidWordMessage.value = 'Enter 5 letters.'
     setTimeout(() => { invalidWordMessage.value = '' }, 2500)
     return
@@ -734,6 +748,7 @@ function submitGuess() {
     haptic([30, 50, 30])
     shakeRow.value = currentRow
     setTimeout(() => { shakeRow.value = null }, 500)
+    sound.play('wrong')
     invalidWordMessage.value = 'Not in word list.'
     setTimeout(() => { invalidWordMessage.value = '' }, 2500)
     return
@@ -752,13 +767,20 @@ function submitGuess() {
       detail: `${guesses.value.length}/${ROWS}`
     })
     // Let the green tiles reveal, then celebrate the row before covering it.
-    setTimeout(() => { shouldDance.value = true }, 1000)
+    setTimeout(() => {
+      shouldDance.value = true
+      sound.play('solve')
+      haptic([20, 40, 20, 40, 60])
+    }, 1000)
     setTimeout(() => { showResultModal.value = true }, 2100)
   } else if (guesses.value.length >= ROWS) {
     isComplete.value = true
     timer.stop()
     void markDone({ timeMs: timer.elapsedMs.value, detail: `X/${ROWS}` })
+    setTimeout(() => { sound.play('lose') }, 900)
     setTimeout(() => { showResultModal.value = true }, 1000)
+  } else {
+    setTimeout(() => { sound.play('select') }, 700)
   }
 }
 
@@ -798,7 +820,7 @@ function reset() {
 }
 
 watch([isComplete, isWin, isLose, guesses], () => {
-  if (isComplete.value && !hasRecordedResult.value) {
+  if (rankable && isComplete.value && !hasRecordedResult.value) {
     if (isWin.value) wordleStats.recordWin(guesses.value.length)
     else if (isLose.value) wordleStats.recordLoss()
     hasRecordedResult.value = true
@@ -831,6 +853,7 @@ watch([isComplete, isWin, () => auth.user.value?.uid], ([complete, won, uid]) =>
 })
 
 async function submitToLeaderboard() {
+  if (!rankable) return
   if (!auth.user.value || !isWin.value || scoreSubmitted.value || submittingScore.value) return
   // `submitScore` stamps a fresh `ukDateId()`, so a board left over from
   // yesterday would land on today's leaderboard — and this runs off a watcher,
@@ -844,11 +867,9 @@ async function submitToLeaderboard() {
   submittingScore.value = true
   try {
     await submitScore(
-      guesses.value.length,
-      solution.value,
+      guesses.value,
       auth.userName.value || auth.userEmail.value || 'Player',
       auth.user.value.uid,
-      auth.userEmail.value || undefined,
       timer.elapsedMs.value
     )
     await achievements.processWordleResult({
@@ -911,12 +932,7 @@ function shareResult() {
     '',
     shareUrl ? `Play today's puzzle: ${shareUrl}` : ''
   ].join('\n').trimEnd()
-  if (navigator.clipboard?.writeText) {
-    navigator.clipboard.writeText(text).then(() => {
-      shareCopied.value = true
-      setTimeout(() => { shareCopied.value = false }, 2000)
-    })
-  }
+  void share(text)
 }
 
 function closeModal() {
@@ -946,7 +962,7 @@ onMounted(async () => {
 
   const started = state.guesses.length > 0 || state.isComplete
   try {
-    const remote = await fetchWordleRemote(new Date())
+    const remote = await fetchWordleRemote(middayOf(getTodayId()))
     remoteWordEntries.value = remote.wordEntries
     const official = resolveWordleWord(getTodayId(), remote.dailyWord)
     remoteExtraWords.value = [
@@ -955,7 +971,7 @@ onMounted(async () => {
     ]
     if (!started) solution.value = official
   } catch (_) {
-    if (!started) solution.value = getWordForDate(new Date())
+    if (!started) solution.value = getWordForDateId(getTodayId())
   }
   solutionReady.value = true
 

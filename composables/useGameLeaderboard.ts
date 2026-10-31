@@ -1,22 +1,29 @@
+import { getApp } from 'firebase/app'
 import {
   collection,
-  deleteDoc,
   doc,
   getDoc,
   getDocs,
-  setDoc,
   query,
   where,
-  limit,
-  serverTimestamp
+  limit
 } from 'firebase/firestore'
+import { getFunctions, httpsCallable } from 'firebase/functions'
 import type { GameLeaderboardId, GameScoreEntry, LegacyGameLeaderboardId } from '~/types'
 import { ukDateId } from '~/utils/gameDay'
 
 const USERNAME_MAX_LENGTH = 32
 const SCORES_COLLECTION = 'gameScores'
-/** Max score value (covers time in seconds or ms-scale rankings). */
-const SCORE_MAX = 9_999_999
+
+/** What a finished game proves, replayed by `submitGameScore` (see utils/gameVerify.ts). */
+export type ScoreProof = {
+  guesses?: string[]
+  attempts?: string[][]
+  answers?: string[]
+  letters?: Record<string, string>
+  drops?: Array<[number, number]>
+  board?: Array<Array<0 | 1 | null>>
+}
 
 /** Older Surya Chandra rows were written as Bhakti Marg. Read both; write the new id. */
 const SCORE_GAME_ALIASES: Partial<Record<GameLeaderboardId, LegacyGameLeaderboardId[]>> = {
@@ -258,71 +265,42 @@ export function useGameLeaderboard(
     }
   }
 
+  /**
+   * Sends a finished game to `submitGameScore`, which replays `proof` against
+   * the day's puzzle and writes the row itself; browsers cannot write scores.
+   * The server keeps whichever row ranks better and returns it.
+   */
   async function submitScore(payload: {
-    score: number
     userName: string
     userId: string
-    userEmail?: string
-    detail?: string
-    timeMs?: number
+    timeMs: number
+    proof: ScoreProof
+    hintsUsed?: number
+    moves?: number
   }) {
     if (!payload.userId) throw new Error('Sign in to submit your score.')
-    if (!Number.isFinite(payload.score) || payload.score < 0) throw new Error('Invalid score.')
-    const db = getDb()
-    if (!db) throw new Error('Firebase not configured')
     const today = ukDateId()
     dateId.value = today
-    const score = Math.trunc(Number(payload.score))
-    if (score > SCORE_MAX) throw new Error('Invalid score.')
-
-    const scoreId = allTime ? `${game}_${payload.userId}` : `${game}_${today}_${payload.userId}`
-    const scoreRef = doc(db, SCORES_COLLECTION, scoreId)
-    const existing = await getDoc(scoreRef)
-    if (existing.exists()) {
-      const prev = mapScoreDoc(existing.id, existing.data() as Record<string, unknown>, game)
-      const next: GameScoreEntry = {
-        ...prev,
-        score,
-        timeMs: payload.timeMs,
-        detail: payload.detail,
-        userName: safeDisplayName(payload.userName)
-      }
-      if (!isBetter(next, prev, sortDir, rankBy)) {
-        upsertLocal(prev)
-        return
-      }
+    const call = httpsCallable<
+      { game: GameLeaderboardId; dateId: string; userName: string; timeMs: number; proof: ScoreProof; hintsUsed?: number; moves?: number },
+      { id: string; entry: Record<string, unknown> }
+    >(getFunctions(getApp(), 'europe-west2'), 'submitGameScore')
+    try {
+      const { data } = await call({
+        game,
+        dateId: today,
+        userName: safeDisplayName(payload.userName),
+        timeMs: Math.trunc(payload.timeMs),
+        proof: payload.proof,
+        hintsUsed: payload.hintsUsed,
+        moves: payload.moves
+      })
+      // `completedAt` is the one field the server fills in; use now until the next refresh.
+      upsertLocal(mapScoreDoc(data.id, { ...data.entry, completedAt: new Date() }, game))
+    } catch (error) {
+      const message = (error as { message?: string })?.message || ''
+      throw new Error(message && !/^internal$/i.test(message) ? message : 'Could not submit your score. Please try again.')
     }
-
-    const data: Record<string, unknown> = {
-      game,
-      dateId: today,
-      userId: payload.userId,
-      userName: safeDisplayName(payload.userName),
-      score,
-      completedAt: serverTimestamp()
-    }
-    if (payload.detail) data.detail = String(payload.detail).slice(0, 64)
-    if (payload.timeMs != null && Number.isFinite(payload.timeMs)) {
-      const timeMs = Math.trunc(payload.timeMs)
-      // Crossword restore races were submitting ~1s finishes (shown as 0:00).
-      const minMs = game === 'mini-crossword' ? 5_000 : 1
-      if (timeMs < minMs) throw new Error('Invalid time.')
-      data.timeMs = timeMs
-    }
-
-    await setDoc(scoreRef, data)
-    for (const alias of SCORE_GAME_ALIASES[game] || []) {
-      const legacyId = allTime ? `${alias}_${payload.userId}` : `${alias}_${today}_${payload.userId}`
-      try {
-        await deleteDoc(doc(db, SCORES_COLLECTION, legacyId))
-      } catch {
-        // Old Bhakti Marg row may not exist.
-      }
-    }
-    // Merge locally rather than refetching: the write has already succeeded, and
-    // `completedAt` is the only field the server fills in — it matters for tie
-    // breaks, so use the moment of writing until the next natural refresh.
-    upsertLocal(mapScoreDoc(scoreId, { ...data, completedAt: new Date() }, game))
   }
 
   function onVisible() {

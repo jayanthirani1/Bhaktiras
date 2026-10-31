@@ -14,12 +14,14 @@
           <span v-if="cleared" class="rounded-full bg-[hsl(var(--golden-50))] px-3 py-1">
             Cleared {{ cleared }}
           </span>
+          <GameSoundToggle />
         </div>
       </div>
       <PageHeader
         title="1% Club"
         :subtitle="headerSubtitle"
       />
+      <GameMissedDayBanner v-if="playDay.isArchive" :label="playDay.label" path="/play/one-percent" />
 
       <GamePlayedElsewhere
         v-if="playedElsewhere"
@@ -71,8 +73,12 @@
           Cleared {{ cleared }}/{{ ladder.length }} · {{ timerDisplay }}
           <span v-if="failPercent != null"> · fell at {{ failPercent }}%</span>
         </p>
+        <button type="button" class="mr-2 rounded-xl bg-[hsl(var(--primary))] px-4 py-2 text-sm font-semibold text-white" @click="shareResult">
+          {{ shareCopied ? 'Copied!' : 'Share result' }}
+        </button>
+        <p v-if="playDay.isArchive" class="text-sm text-emerald-700">A missed day, played for fun.</p>
         <button
-          v-if="isLoggedIn && !scoreSubmitted"
+          v-else-if="isLoggedIn && !scoreSubmitted"
           type="button"
           class="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-50"
           :disabled="submitting"
@@ -129,6 +135,7 @@
       </div>
 
       <GameLeaderboard
+        v-if="!playDay.isArchive"
         :entries="entries"
         :loading="boardLoading"
         :date-id="dateId"
@@ -141,18 +148,21 @@
           to submit yours.
         </template>
       </GameLeaderboard>
-      <GameCrowns :ids="['one-percent-highest', 'one-percent-fastest']" />
+      <GameCrowns v-if="!playDay.isArchive" :ids="['one-percent-highest', 'one-percent-fastest']" />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ukDateId, formatUkDateLabel } from '~/utils/gameDay'
+import { formatUkDateLabel } from '~/utils/gameDay'
 import { formatElapsed } from '~/composables/useGameTimer'
 
-const RUN_KEY = `one-percent-run:${ukDateId()}`
+definePageMeta({ key: route => route.fullPath })
 
-const { questions, pack, loading } = useOnePercentQuestions()
+const playDay = usePlayDay()
+const RUN_KEY = `one-percent-run:${playDay.dateId}`
+
+const { questions, pack, loading } = useOnePercentQuestions(playDay.dateId)
 const auth = useAuth()
 const achievements = useAchievements()
 const isLoggedIn = computed(() => !!auth.user.value)
@@ -164,7 +174,7 @@ const {
   refetch
 } = useGameLeaderboard('one-percent', { sort: 'desc' })
 
-const timer = useGameTimer(`one-percent-timer:${ukDateId()}`)
+const timer = useGameTimer(`one-percent-timer:${playDay.dateId}`)
 const howto = useHowToPlay('one-percent', ['one-percent-run:', 'one-percent-timer:'])
 const timerDisplay = computed(() => timer.display.value)
 const {
@@ -172,7 +182,7 @@ const {
   result: elsewhereResult,
   markDone,
   backfill
-} = useDailyGameCompletion('one-percent')
+} = useDailyGameCompletion('one-percent', { archive: playDay.isArchive })
 
 const elsewhereSummary = computed(() => {
   const r = elsewhereResult.value
@@ -191,6 +201,10 @@ const selected = ref('')
 const scoreSubmitted = ref(false)
 const submitting = ref(false)
 const submitError = ref('')
+/** The option chosen on each rung, in order, for the server's replay. */
+const answers = ref<string[]>([])
+const sound = useGameSound()
+const { share, shareCopied } = useShareResult()
 
 const ladder = computed(() =>
   [...questions.value].sort((a, b) => (b.percent - a.percent) || (a.order ?? 0) - (b.order ?? 0))
@@ -219,6 +233,7 @@ function saveRun() {
       index: index.value,
       cleared: cleared.value,
       failPercent: failPercent.value,
+      answers: answers.value,
       scoreSubmitted: scoreSubmitted.value
     }))
   } catch {}
@@ -234,6 +249,7 @@ function loadRun() {
     index.value = Number(data.index) || 0
     cleared.value = Number(data.cleared) || 0
     failPercent.value = data.failPercent ?? null
+    answers.value = Array.isArray(data.answers) ? data.answers : []
     scoreSubmitted.value = !!data.scoreSubmitted
   } catch {}
 }
@@ -264,10 +280,14 @@ function finishRun() {
 function answer(opt: string) {
   if (!current.value || feedback.value || finished.value || playedElsewhere.value) return
   selected.value = opt
+  answers.value = [...answers.value, opt]
   const ok = opt.trim() === current.value.correctAnswer.trim()
   feedbackOk.value = ok
   if (ok) {
     cleared.value += 1
+    const last = index.value + 1 >= ladder.value.length
+    sound.play(last ? 'solve' : 'correct')
+    sound.buzz(last ? [20, 40, 20, 40, 60] : 20)
     feedback.value = 'Correct — next rung!'
     saveRun()
     setTimeout(() => {
@@ -281,10 +301,26 @@ function answer(opt: string) {
     }, 700)
   } else {
     failPercent.value = current.value.percent
+    sound.play('lose')
+    sound.buzz([30, 50, 30])
     feedback.value = `Not quite — the answer was “${current.value.correctAnswer}”.`
     saveRun()
     setTimeout(finishRun, 1100)
   }
+}
+
+function shareResult() {
+  const rungs = ladder.value.map((_, i) => i < cleared.value ? '🟩' : i === cleared.value && failPercent.value != null ? '🟥' : '⬜').join('')
+  const shareUrl = typeof window !== 'undefined' ? `${window.location.origin}/play/one-percent` : ''
+  const text = [
+    'Bhaktiras 1% Club',
+    `Cleared ${cleared.value}/${ladder.value.length}${failPercent.value != null ? ` · fell at ${failPercent.value}%` : ''} · ${timerDisplay.value}`,
+    '',
+    rungs,
+    '',
+    shareUrl ? `Climb the ladder: ${shareUrl}` : ''
+  ].join('\n').trimEnd()
+  void share(text)
 }
 
 function formatBoardScore(e: { score?: number; timeMs?: number }) {
@@ -293,17 +329,16 @@ function formatBoardScore(e: { score?: number; timeMs?: number }) {
 }
 
 async function submitToLeaderboard() {
+  if (playDay.isArchive) return
   if (!auth.user.value || !finished.value || scoreSubmitted.value || submitting.value) return
   submitError.value = ''
   submitting.value = true
   try {
     await submitScore({
-      score: cleared.value,
       timeMs: timer.elapsedMs.value,
+      proof: { answers: answers.value },
       userName: auth.userName.value || auth.userEmail.value || 'Player',
-      userId: auth.user.value.uid,
-      userEmail: auth.userEmail.value || undefined,
-      detail: failPercent.value != null ? `fell@${failPercent.value}%` : '1% club'
+      userId: auth.user.value.uid
     })
     try {
       await achievements.processResult('one-percent', {

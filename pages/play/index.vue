@@ -147,6 +147,40 @@
           </NuxtLink>
         </li>
       </ul>
+
+      <section class="mt-10 rounded-2xl border border-[hsl(var(--golden-200))] bg-[hsl(var(--card))] p-4 sm:p-5">
+        <h2 class="font-display text-lg font-bold text-[hsl(var(--primary))]">Missed a day?</h2>
+        <p class="mt-0.5 text-sm text-[hsl(var(--muted-foreground))]">
+          Play any puzzle from the last week, just for fun. Missed days do not count for the leaderboard, crowns or streaks.
+        </p>
+        <div class="-mx-1 mt-3 flex gap-1.5 overflow-x-auto px-1 pb-1" role="tablist" aria-label="Missed day">
+          <button
+            v-for="day in missedDays"
+            :key="day.id"
+            type="button"
+            role="tab"
+            :aria-selected="day.id === missedDay"
+            class="shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold"
+            :class="day.id === missedDay ? 'bg-[hsl(var(--primary))] text-white' : 'bg-[hsl(var(--muted))] text-[hsl(var(--foreground))]'"
+            @click="missedDay = day.id"
+          >
+            {{ day.short }}
+          </button>
+        </div>
+        <div class="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+          <NuxtLink
+            v-for="game in missedDayGames"
+            :key="game.slug"
+            :to="{ path: game.href, query: { day: missedDay } }"
+            class="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold ring-1 ring-[hsl(var(--golden-200))] hover:bg-[hsl(var(--golden-50))]"
+          >
+            <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg" :class="game.tile">
+              <component :is="game.icon" class="h-4 w-4" stroke-width="2" />
+            </span>
+            <span class="truncate text-[hsl(var(--primary))]">{{ game.title }}</span>
+          </NuxtLink>
+        </div>
+      </section>
     </div>
   </div>
 </template>
@@ -166,6 +200,7 @@ import {
 } from '@tabler/icons-vue'
 import NectarIcon from '~/components/NectarIcon.vue'
 import { LANKA_LEAP_UNLOCK_DAYS } from '~/composables/useLankaLeapUnlock'
+import { missedDayIds, playDayLabel } from '~/composables/usePlayDay'
 
 import type { PlayGameSlug } from '~/utils/playCompletion'
 
@@ -196,6 +231,14 @@ const allGames: Array<{
 const games = allGames.filter(game => !game.testOnly || showPrototypeGames())
 
 const { done, results } = usePlayCompletion(games.map(g => g.slug))
+
+/** Lanka Leap's leaderboard is all-time and replay-checked, so it has no missed days. */
+const missedDayGames = games.filter(game => game.slug !== 'lanka-leap')
+const missedDays = missedDayIds().map((id, i) => ({
+  id,
+  short: i === 0 ? 'Yesterday' : playDayLabel(id).split(' ').slice(0, 2).join(' ')
+}))
+const missedDay = ref(missedDays[0]!.id)
 
 const lankaUnlock = games.some(g => g.slug === 'lanka-leap') ? useLankaLeapUnlock() : null
 const lankaDaysShown = computed(() => Math.min(lankaUnlock?.daysDone.value ?? 0, LANKA_LEAP_UNLOCK_DAYS))

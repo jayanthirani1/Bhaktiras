@@ -67,5 +67,51 @@
       "type": "image/png",
       "purpose": "maskable"
     }
+  ],
+  "categories": [
+    "lifestyle",
+    "games",
+    "social"
+  ],
+  "shortcuts": [
+    {
+      "name": "Daily games",
+      "short_name": "Games",
+      "description": "Today’s Wordle, Crossword, Connections and more",
+      "url": "/play",
+      "icons": [
+        {
+          "src": "/icon-96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Our Niyams",
+      "short_name": "Niyams",
+      "description": "Log today’s niyams",
+      "url": "/niyams",
+      "icons": [
+        {
+          "src": "/icon-96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Our Events",
+      "short_name": "Events",
+      "description": "Upcoming events at the mandir",
+      "url": "/events",
+      "icons": [
+        {
+          "src": "/icon-96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    }
   ]
 }

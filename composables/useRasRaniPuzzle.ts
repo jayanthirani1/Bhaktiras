@@ -6,12 +6,12 @@ import {
   type RasRaniPuzzle
 } from '~/data/rasRaniPuzzles'
 
-export function useRasRaniPuzzle() {
-  const puzzle = ref<RasRaniPuzzle>(getRasRaniPuzzleForDate(ukDateId()))
+export function useRasRaniPuzzle(dateId = ukDateId()) {
+  const puzzle = ref<RasRaniPuzzle>(getRasRaniPuzzleForDate(dateId))
   const loading = ref(false)
 
   function refresh() {
-    puzzle.value = getRasRaniPuzzleForDate(ukDateId())
+    puzzle.value = getRasRaniPuzzleForDate(dateId)
   }
 
   onMounted(refresh)

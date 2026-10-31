@@ -66,7 +66,10 @@ is nothing left to write. The niyams area is the challenges now, where the share
 derived by a Cloud Function and `allow write: if false` from the browser — the fix this
 entry asked for, arrived at by deleting the feature.
 
-### 4. Unauthenticated deletion of leaderboard history
+### 4. Unauthenticated deletion of leaderboard history — ~~closed~~
+
+Both deletes now require the admin or the row's owner, and the old-day sweep runs in
+`pruneOldGameScores` with admin credentials. The original finding is kept below.
 
 `firestore.rules:157-160` — `wordleScores` has `allow delete: if true;`. Legacy, but any
 anonymous visitor can empty it.
@@ -95,7 +98,13 @@ rules, or remove the field so the UI stops implying a distinction that does not 
 
 ## P1 — Integrity
 
-### 6. Achievements and crowns are self-reported
+### 6. Achievements and crowns are self-reported — ~~closed~~
+
+Fixed as suggested: every daily puzzle's row is written by the `submitGameScore` callable
+after it replays the play against the day's puzzle (`utils/gameVerify.ts`), browsers can
+no longer write `gameScores`, and `processGameAchievements` reads its numbers from that
+row. Still trusted: clock times (bounded by a floor) and hint counts, which a replay
+cannot prove. The original finding is kept below.
 
 `functions/index.js:229`
 
@@ -229,6 +238,12 @@ longer describe what ships — **variety on the current generator has not been m
 **Fix.** Measure distinct answers and puzzles over ~1000 simulated days against the
 current generator before acting. If variety is still short, the remedy is a content task,
 not a code one: grow the bank at lengths 4 and 5, where it is thinnest.
+
+**Measured (31 Oct 2026, 1000 days from 1 Nov 2026, bank of 581 words).** Every day is a
+different puzzle (1000 of 1000) with 10–13 answers, drawing on 491 distinct answers. The
+repeats come from the short words: AMAS, ATMA and AGNA each appear on about 27% of days,
+and 895 of 993 days share three or more answers with the week before. The bank has 48
+four-letter and 87 five-letter words, so the content fix above still stands.
 
 ---
 

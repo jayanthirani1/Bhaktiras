@@ -5,12 +5,16 @@
         <NuxtLink to="/play" class="rounded-full bg-[hsl(var(--muted))] px-3 py-1.5 text-sm font-medium text-[hsl(var(--muted-foreground))]">
           ‹ Back
         </NuxtLink>
-        <span class="rounded-full bg-[hsl(var(--muted))] px-3 py-1 text-sm font-semibold tabular-nums text-[hsl(var(--primary))]">
-          ⏱ {{ timer.display.value }}
-        </span>
+        <div class="flex items-center gap-2">
+          <span class="rounded-full bg-[hsl(var(--muted))] px-3 py-1 text-sm font-semibold tabular-nums text-[hsl(var(--primary))]">
+            ⏱ {{ timer.display.value }}
+          </span>
+          <GameSoundToggle />
+        </div>
       </div>
 
       <PageHeader title="Connections" subtitle="Find four groups of four satsang-related words." />
+      <GameMissedDayBanner v-if="playDay.isArchive" :label="playDay.label" path="/play/connections" />
 
       <GamePlayedElsewhere
         v-if="playedElsewhere"
@@ -88,16 +92,21 @@
           <p class="text-sm text-[hsl(var(--muted-foreground))]">
             {{ solvedGroups.length }}/4 groups · {{ mistakes }} mistake{{ mistakes === 1 ? '' : 's' }} · {{ timer.display.value }}
           </p>
-          <button
-            v-if="isLoggedIn && !scoreSubmitted"
-            type="button"
-            class="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
-            :disabled="submitting"
-            @click="submitToLeaderboard"
-          >
-            {{ submitting ? 'Submitting…' : 'Submit to leaderboard' }}
-          </button>
-          <NuxtLink v-else-if="!isLoggedIn && !scoreSubmitted" to="/login?redirect=/play/connections" class="text-sm font-semibold text-[hsl(var(--primary))] underline">
+          <div class="flex flex-wrap justify-center gap-2">
+            <button type="button" class="rounded-xl bg-[hsl(var(--primary))] px-4 py-2 text-sm font-semibold text-white" @click="shareResult">
+              {{ shareCopied ? 'Copied!' : 'Share result' }}
+            </button>
+            <button
+              v-if="!playDay.isArchive && isLoggedIn && !scoreSubmitted"
+              type="button"
+              class="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+              :disabled="submitting"
+              @click="submitToLeaderboard"
+            >
+              {{ submitting ? 'Submitting…' : 'Submit to leaderboard' }}
+            </button>
+          </div>
+          <NuxtLink v-if="!playDay.isArchive && !isLoggedIn && !scoreSubmitted" to="/login?redirect=/play/connections" class="text-sm font-semibold text-[hsl(var(--primary))] underline">
             Sign in to submit your result
           </NuxtLink>
           <p v-if="submitError" class="text-sm text-red-600">{{ submitError }}</p>
@@ -111,9 +120,10 @@
           </ol>
         </GameHowTo>
 
-        <GameCrowns :ids="['connections-fastest', 'connections-fewest-mistakes']" />
+        <GameCrowns v-if="!playDay.isArchive" :ids="['connections-fastest', 'connections-fewest-mistakes']" />
 
         <GameLeaderboard
+          v-if="!playDay.isArchive"
           :entries="entries"
           :loading="boardLoading"
           :date-id="dateId"
@@ -128,17 +138,19 @@
 
 <script setup lang="ts">
 import type { ConnectionsGroup } from '~/types'
-import { ukDateId } from '~/utils/gameDay'
 import { formatElapsed } from '~/composables/useGameTimer'
 
-const STORAGE_KEY = `connections:${ukDateId()}`
-const { puzzle, loading } = useConnectionsPuzzle()
-const timer = useGameTimer(`connections-timer:${ukDateId()}`)
+definePageMeta({ key: route => route.fullPath })
+
+const playDay = usePlayDay()
+const STORAGE_KEY = `connections:${playDay.dateId}`
+const { puzzle, loading } = useConnectionsPuzzle(playDay.dateId)
+const timer = useGameTimer(`connections-timer:${playDay.dateId}`)
 const howto = useHowToPlay('connections', ['connections:', 'connections-timer:'])
 const auth = useAuth()
 const achievements = useAchievements()
 const isLoggedIn = computed(() => !!auth.user.value)
-const { playedElsewhere, result: elsewhereResult, markDone } = useDailyGameCompletion('connections')
+const { playedElsewhere, result: elsewhereResult, markDone } = useDailyGameCompletion('connections', { archive: playDay.isArchive })
 const { entries, loading: boardLoading, dateId, submitScore } = useGameLeaderboard('connections', { sort: 'asc' })
 
 const remainingWords = ref<string[]>([])
@@ -153,6 +165,10 @@ const feedbackOk = ref(false)
 const scoreSubmitted = ref(false)
 const submitting = ref(false)
 const submitError = ref('')
+/** Every group submitted, in order, for the shared result and the server's replay. */
+const attempts = ref<string[][]>([])
+const sound = useGameSound()
+const { share, shareCopied } = useShareResult()
 
 const allGroups = computed(() => [...puzzle.value.groups].sort((a, b) => a.difficulty - b.difficulty))
 const solvedGroups = computed(() =>
@@ -166,7 +182,7 @@ const elsewhereSummary = computed(() => {
 
 function seededWords() {
   const words = puzzle.value.groups.flatMap(group => group.words)
-  let seed = [...`${ukDateId()}:${puzzle.value.id}`].reduce((sum, char) => (sum * 31 + char.charCodeAt(0)) >>> 0, 2166136261)
+  let seed = [...`${playDay.dateId}:${puzzle.value.id}`].reduce((sum, char) => (sum * 31 + char.charCodeAt(0)) >>> 0, 2166136261)
   const out = [...words]
   for (let i = out.length - 1; i > 0; i--) {
     seed = (seed * 1664525 + 1013904223) >>> 0
@@ -183,6 +199,7 @@ function saveState() {
       remainingWords: remainingWords.value,
       solvedDifficulties: solvedDifficulties.value,
       mistakes: mistakes.value,
+      attempts: attempts.value,
       finished: finished.value,
       won: won.value,
       scoreSubmitted: scoreSubmitted.value
@@ -199,6 +216,7 @@ function loadState() {
     remainingWords.value = Array.isArray(data.remainingWords) ? data.remainingWords : seededWords()
     solvedDifficulties.value = Array.isArray(data.solvedDifficulties) ? data.solvedDifficulties : []
     mistakes.value = Number(data.mistakes) || 0
+    attempts.value = Array.isArray(data.attempts) ? data.attempts : []
     finished.value = !!data.finished
     won.value = !!data.won
     scoreSubmitted.value = !!data.scoreSubmitted
@@ -212,8 +230,13 @@ function toggleWord(word: string) {
   if (finished.value || checking.value) return
   timer.ensureStarted()
   const index = selected.value.indexOf(word)
-  if (index >= 0) selected.value.splice(index, 1)
-  else if (selected.value.length < 4) selected.value.push(word)
+  if (index >= 0) {
+    selected.value.splice(index, 1)
+    sound.play('tap')
+  } else if (selected.value.length < 4) {
+    selected.value.push(word)
+    sound.play('select')
+  }
 }
 
 function shuffleWords() {
@@ -241,6 +264,8 @@ function finish(didWin: boolean) {
     remainingWords.value = []
   }
   saveState()
+  sound.play(didWin ? 'solve' : 'lose')
+  if (didWin) sound.buzz([20, 40, 20, 40, 60])
   void markDone({
     score: mistakes.value,
     timeMs: timer.elapsedMs.value,
@@ -251,6 +276,7 @@ function finish(didWin: boolean) {
 function submitSelection() {
   if (selected.value.length !== 4 || checking.value) return
   checking.value = true
+  attempts.value = [...attempts.value, [...selected.value]]
   const chosen = new Set(selected.value.map(word => word.toLocaleLowerCase()))
   const match = allGroups.value.find(group =>
     !solvedDifficulties.value.includes(group.difficulty)
@@ -260,6 +286,8 @@ function submitSelection() {
   if (match) {
     feedbackOk.value = true
     feedback.value = 'Connection found!'
+    if (solvedDifficulties.value.length < 3) sound.play('correct')
+    sound.buzz(20)
     solvedDifficulties.value.push(match.difficulty)
     remainingWords.value = remainingWords.value.filter(word => !chosen.has(word.toLocaleLowerCase()))
     selected.value = []
@@ -277,6 +305,8 @@ function submitSelection() {
     return group.words.filter(word => chosen.has(word.toLocaleLowerCase())).length === 3
   })
   mistakes.value += 1
+  sound.play('wrong')
+  sound.buzz([30, 50, 30])
   feedbackOk.value = false
   feedback.value = oneAway ? 'One away…' : 'Not quite'
   selected.value = []
@@ -288,23 +318,43 @@ function submitSelection() {
   }, 700)
 }
 
+const GROUP_EMOJI = ['🟨', '🟩', '🟦', '🟪']
+
+function shareResult() {
+  const difficultyOf = new Map(allGroups.value.flatMap(group =>
+    group.words.map(word => [word.toLocaleLowerCase(), group.difficulty] as const)
+  ))
+  const colours = attempts.value.map(words => words.map(word => difficultyOf.get(word.toLocaleLowerCase()) ?? 0))
+  const rows = colours.map(row => row.map(d => GROUP_EMOJI[d]).join(''))
+  const found = colours.filter(row => row.every(d => d === row[0])).length
+  const shareUrl = typeof window !== 'undefined' ? `${window.location.origin}/play/connections` : ''
+  const text = [
+    'Bhaktiras Connections',
+    `${won.value ? `${mistakes.value} mistake${mistakes.value === 1 ? '' : 's'}` : `${found}/4 groups`} · ${timer.display.value}`,
+    '',
+    ...rows,
+    '',
+    shareUrl ? `Find the connections: ${shareUrl}` : ''
+  ].join('\n').trimEnd()
+  void share(text)
+}
+
 function formatBoardScore(entry: { score?: number; timeMs?: number }) {
   const time = entry.timeMs != null ? ` · ${formatElapsed(entry.timeMs)}` : ''
   return `${entry.score ?? 0} mistake${entry.score === 1 ? '' : 's'}${time}`
 }
 
 async function submitToLeaderboard() {
+  if (playDay.isArchive) return
   if (!auth.user.value || scoreSubmitted.value || submitting.value || !finished.value) return
   submitting.value = true
   submitError.value = ''
   try {
     await submitScore({
-      score: mistakes.value,
       timeMs: timer.elapsedMs.value,
-      detail: won.value ? 'Solved' : `${solvedGroups.value.length}/4 groups`,
+      proof: { attempts: attempts.value },
       userId: auth.user.value.uid,
-      userName: auth.user.value.displayName || auth.user.value.email?.split('@')[0] || 'Player',
-      userEmail: auth.user.value.email || undefined
+      userName: auth.user.value.displayName || auth.user.value.email?.split('@')[0] || 'Player'
     })
     try {
       await achievements.processResult('connections', {

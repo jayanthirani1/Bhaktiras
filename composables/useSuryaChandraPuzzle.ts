@@ -1,18 +1,19 @@
 import { collection, getDocs, query, where, limit } from 'firebase/firestore'
 import { ukDateId } from '~/utils/gameDay'
-import { generateSuryaChandraPuzzle, parseTangoPuzzle, type TangoPuzzle } from '~/utils/tango'
+import { pickSuryaChandra } from '~/utils/gameVerify'
+import type { TangoPuzzle } from '~/utils/tango'
 
 function getDb() {
   if (import.meta.server) return null
   return (useNuxtApp().$firebaseDb as import('firebase/firestore').Firestore | null) ?? null
 }
 
-export function useSuryaChandraPuzzle() {
-  const puzzle = ref<TangoPuzzle>(generateSuryaChandraPuzzle(ukDateId()))
+export function useSuryaChandraPuzzle(dayId = ukDateId()) {
+  const puzzle = ref<TangoPuzzle>(pickSuryaChandra(dayId))
   const loading = ref(true)
 
   async function fetchPuzzle() {
-    const dateId = ukDateId()
+    const dateId = dayId
     loading.value = true
     try {
       const db = getDb()
@@ -23,20 +24,17 @@ export function useSuryaChandraPuzzle() {
           where('published', '==', true),
           limit(1)
         ))
-        if (!snap.empty) {
-          const doc = snap.docs[0]
-          const parsed = parseTangoPuzzle(doc.id, doc.data() as Record<string, unknown>)
-          if (parsed) {
-            puzzle.value = parsed
-            loading.value = false
-            return
-          }
+        const doc = snap.docs[0]
+        if (doc) {
+          puzzle.value = pickSuryaChandra(dateId, { id: doc.id, data: doc.data() as Record<string, unknown> })
+          loading.value = false
+          return
         }
       }
     } catch {
       // Fall back to the generated daily board.
     }
-    puzzle.value = generateSuryaChandraPuzzle(dateId)
+    puzzle.value = pickSuryaChandra(dateId)
     loading.value = false
   }
 

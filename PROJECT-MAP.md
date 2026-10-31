@@ -46,7 +46,8 @@ Requires the **Blaze** plan (Functions + Storage).
 `/darshan` `/legacy` `/haar` (hidden) `/account` `/login` `/signup` `/privacy` `/policy` `/submit-bug`
 
 **Games** — `/play` plus `wordle`, `crossword`, `mini-crossword`, `connections`,
-`one-percent`, `achievements`, `streaks`
+`one-percent`, `ras-rani`, `surya-chandra`, `lanka-leap`, `achievements`, `streaks`.
+The six daily puzzles also take `?day=YYYY-MM-DD` for a missed day in the last week.
 
 **Admin** — `/admin` plus `auth`, `timeline`, `events`, `niyam-challenges`, `yajman`,
 `notifications`, `legal`, `bugs`, `content/{index,homepage,community,navigation,seva,sections}`,
@@ -202,12 +203,33 @@ console, that rule and the legacy branch in `useAccountPrivacy` can go too.
 Utsav sponsorship opportunities with amounts and contact links, admin-managed.
 
 ### Games
-Four daily games — **Wordle, Mini Crossword, 1% Club, Connections** —
-with active-play timers that pause when you leave the game and resume when you return,
-daily leaderboards, cross-device
+Six daily puzzles — **Wordle, Crossword, 1% Club, Connections, Surya Chandra, Ras Rani** —
+and **Lanka Leap**, a flying game unlocked by Daily Darshan, with active-play timers that
+pause when you leave the game and resume when you return, daily leaderboards, cross-device
 completion tracking (`playCompletions`), daily visit streaks, an achievements system, and
-all-time "crowns" for record holders. Achievements and crowns are awarded server-side by
-Cloud Functions. Puzzle content is admin-editable per game, with static fallbacks.
+all-time "crowns" for record holders. Puzzle content is admin-editable per game, with
+static fallbacks.
+
+**Scores are checked on the server.** `utils/gameVerify.ts` picks each day's puzzle (the
+pages use it) and replays a finished play against it. `scripts/buildFunctionsShared.mjs`
+bundles it into `functions/shared/gameVerify.mjs` before every functions deploy, so the
+`submitGameScore` callable rebuilds exactly the puzzle the player saw, scores the guesses,
+groups, answers or grid itself, and writes the `gameScores` row; browsers cannot write
+rows. `processGameAchievements` then takes its numbers from that row. Lanka Leap is
+replayed the same way from its leap ticks (`functions/shared/lankaLeap.mjs`). Times cannot
+be replayed (the clock pauses in the background), so they stay the browser's, with a floor.
+
+**Missed days.** `/play` lists the last seven days; each puzzle opens a past day with
+`?day=` (`usePlayDay`). A missed day keeps its own progress and never reaches the
+leaderboard, crowns or streaks.
+
+**Sound and sharing.** `useGameSound` plays short Web Audio effects and vibration in every
+game, behind one mute (`GameSoundToggle`). `useShareResult` shares a spoiler-free result
+through the phone's share sheet, or copies it.
+
+**Offline.** The generated service worker (`scripts/writeFirebaseMessagingSw.mjs`) also
+caches hashed build files and game images, and serves the last good copy of a page when
+the network is down. Pages always try the network first.
 
 ### The Haar Trail (escape room)
 Puzzle 7 of the escape room, not linked from anywhere. **Four quick taps on Seva in the

@@ -8,6 +8,7 @@
         <span class="rounded-full bg-[hsl(var(--muted))] px-3 py-1 text-sm font-semibold tabular-nums text-[hsl(var(--primary))]">
           ⏱ {{ timer.display.value }}
         </span>
+        <GameSoundToggle />
         <div v-if="!playedElsewhere && !loading && !finished && !howto.showIntro.value" class="ml-auto flex gap-2">
           <button type="button" class="rounded-full border border-[hsl(var(--border))] px-3 py-1.5 text-sm font-semibold" @click="clearGrid">Clear</button>
           <button type="button" class="rounded-full border border-[hsl(var(--border))] px-3 py-1.5 text-sm font-semibold" @click="useHint">Hint</button>
@@ -15,6 +16,7 @@
       </div>
 
       <PageHeader title="Surya Chandra" subtitle="Fill the grid with suns and moons. Three of each in every row and column — never three in a line." />
+      <GameMissedDayBanner v-if="playDay.isArchive" :label="playDay.label" path="/play/surya-chandra" />
 
       <GamePlayedElsewhere
         v-if="playedElsewhere"
@@ -117,7 +119,7 @@
               {{ shareCopied ? 'Copied!' : 'Share result' }}
             </button>
             <button
-              v-if="isLoggedIn && !scoreSubmitted"
+              v-if="!playDay.isArchive && isLoggedIn && !scoreSubmitted"
               type="button"
               class="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
               :disabled="submitting"
@@ -125,14 +127,14 @@
             >
               {{ submitting ? 'Submitting…' : 'Submit to leaderboard' }}
             </button>
-            <NuxtLink v-else-if="!isLoggedIn" to="/login?redirect=/play/surya-chandra" class="self-center text-sm font-semibold text-[hsl(var(--primary))] underline">
+            <NuxtLink v-else-if="!playDay.isArchive && !isLoggedIn" to="/login?redirect=/play/surya-chandra" class="self-center text-sm font-semibold text-[hsl(var(--primary))] underline">
               Sign in to submit your result
             </NuxtLink>
           </div>
           <p v-if="submitError" class="text-sm text-red-600">{{ submitError }}</p>
         </div>
 
-        <GameCrowns :ids="['surya-chandra-fastest']" />
+        <GameCrowns v-if="!playDay.isArchive" :ids="['surya-chandra-fastest']" />
 
         <GameHowTo>
           <ol class="list-decimal space-y-2 pl-5">
@@ -144,6 +146,7 @@
         </GameHowTo>
 
         <GameLeaderboard
+          v-if="!playDay.isArchive"
           :entries="entries"
           :loading="boardLoading"
           :date-id="dateId"
@@ -158,7 +161,6 @@
 
 <script setup lang="ts">
 import { IconMoon, IconSun } from '@tabler/icons-vue'
-import { ukDateId } from '~/utils/gameDay'
 import { formatElapsed, formatElapsedForLeaderboard } from '~/composables/useGameTimer'
 import {
   boardIsSolved,
@@ -170,7 +172,10 @@ import {
   type TangoCell
 } from '~/utils/tango'
 
-const dateIdToday = ukDateId()
+definePageMeta({ key: route => route.fullPath })
+
+const playDay = usePlayDay()
+const dateIdToday = playDay.dateId
 const STORAGE_KEY = `surya-chandra:${dateIdToday}`
 const LEGACY_STORAGE_KEY = `bhakti-marg:${dateIdToday}`
 const TIMER_KEY = `surya-chandra-timer:${dateIdToday}`
@@ -208,7 +213,7 @@ function migrateLegacyLocalKeys() {
 
 migrateLegacyLocalKeys()
 
-const { puzzle, loading } = useSuryaChandraPuzzle()
+const { puzzle, loading } = useSuryaChandraPuzzle(playDay.dateId)
 const timer = useGameTimer(TIMER_KEY)
 const howto = useHowToPlay('surya-chandra', [
   'surya-chandra:',
@@ -218,7 +223,7 @@ const howto = useHowToPlay('surya-chandra', [
 ])
 const auth = useAuth()
 const isLoggedIn = computed(() => !!auth.user.value)
-const { playedElsewhere, result: elsewhereResult, markDone } = useDailyGameCompletion('surya-chandra')
+const { playedElsewhere, result: elsewhereResult, markDone } = useDailyGameCompletion('surya-chandra', { archive: playDay.isArchive })
 const { entries, loading: boardLoading, dateId, submitScore } = useGameLeaderboard('surya-chandra', { sort: 'asc', rankBy: 'timeMs' })
 const achievements = useAchievements()
 
@@ -226,13 +231,20 @@ const board = ref<TangoCell[][]>(emptyBoard())
 const history = ref<TangoCell[][][]>([])
 const moves = ref(0)
 const hintsUsed = ref(0)
-const shareCopied = ref(false)
+const sound = useGameSound()
+const { share, shareCopied } = useShareResult()
 const scoreSubmitted = ref(false)
 const submitting = ref(false)
 const submitError = ref('')
 
 const violations = computed(() => cellViolations(board.value, puzzle.value.links))
 const hasViolation = computed(() => violations.value.size > 0)
+watch(() => hasViolation.value, (bad, was) => {
+  if (bad && !was && !finished.value) {
+    sound.play('wrong')
+    sound.buzz([30, 50, 30])
+  }
+})
 const finished = computed(() => boardIsSolved(board.value, puzzle.value.links))
 
 const resultSummary = computed(() => [
@@ -315,6 +327,7 @@ function toggleCell(row: number, col: number) {
   const next = cyclePlayCell(board.value[row][col], false)
   board.value = board.value.map((line, ri) => line.map((cell, ci) => (ri === row && ci === col ? next : cell)))
   moves.value += 1
+  sound.play('tap')
   saveState()
   if (boardIsSolved(board.value, puzzle.value.links)) finishGame()
 }
@@ -335,6 +348,7 @@ function useHint() {
   const hint = getTangoHint(board.value, puzzle.value)
   if (!hint) return
   hintsUsed.value += 1
+  sound.play('hint')
   timer.addPenalty(10_000)
   history.value = [...history.value, cloneBoard(board.value)]
   board.value = board.value.map((line, ri) => line.map((cell, ci) => (ri === hint.row && ci === hint.col ? hint.value : cell)))
@@ -345,6 +359,8 @@ function useHint() {
 
 function finishGame() {
   timer.stop()
+  sound.play('solve')
+  sound.buzz([20, 40, 20, 40, 60])
   saveState()
   void markDone({
     timeMs: timer.elapsedMs.value,
@@ -364,12 +380,7 @@ function shareResult() {
     '',
     shareUrl
   ].join('\n').trimEnd()
-  if (navigator.clipboard?.writeText) {
-    navigator.clipboard.writeText(text).then(() => {
-      shareCopied.value = true
-      setTimeout(() => { shareCopied.value = false }, 2000)
-    })
-  }
+  void share(text)
 }
 
 function formatBoardScore(entry: { score?: number, timeMs?: number, detail?: string }) {
@@ -385,18 +396,19 @@ function formatBoardScore(entry: { score?: number, timeMs?: number, detail?: str
 }
 
 async function submitToLeaderboard() {
+  if (playDay.isArchive) return
   if (!auth.user.value || scoreSubmitted.value || submitting.value || !finished.value) return
   submitting.value = true
   submitError.value = ''
   const userName = auth.user.value.displayName || auth.user.value.email?.split('@')[0] || 'Player'
   try {
     await submitScore({
-      score: timer.elapsedMs.value,
       timeMs: timer.elapsedMs.value,
-      detail: hintsUsed.value === 0 ? 'no hints' : `${hintsUsed.value} hints`,
+      proof: { board: board.value },
+      moves: moves.value,
+      hintsUsed: hintsUsed.value,
       userId: auth.user.value.uid,
-      userName,
-      userEmail: auth.user.value.email || undefined
+      userName
     })
     scoreSubmitted.value = true
     saveState()

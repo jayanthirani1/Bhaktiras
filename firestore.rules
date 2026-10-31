@@ -184,85 +184,26 @@ service cloud.firestore {
         && request.resource.data.updatedAt == request.time;
     }
 
-    // Daily leaderboards (all games). Read public; submit requires login.
+    // Daily leaderboards (all games) and Lanka Leap's all-time board. Read
+    // public. Rows are written only by Cloud Functions, under the pinned id
+    // `{game}_{dateId}_{uid}` (or `{game}_{uid}` for an all-time board), after
+    // the play has been replayed, so a score cannot be typed into the console.
     //
-    // The document id is pinned to `{game}_{dateId}_{uid}` (or `{game}_{uid}`
-    // for an all-time board). Without that constraint a signed-in user could
-    // write unlimited documents under any id, with any `userName` and any
-    // `dateId` — which on a mandir leaderboard makes impersonating a sant or a
-    // trustee a one-line console command, and makes flooding free.
-    //
-    // Still open by design: `userName` is client-supplied, so a player can set
-    // the name shown against their own row. Rules cannot fix that — the only
-    // trustworthy name lives in the auth token, and email/password accounts
-    // have no `name` claim to read. Closing it means submitting scores through
-    // a callable that stamps the name server-side, the way
-    // `handleGameAchievements` already does for broadcast text.
+    // Still open by design: the name shown is the one the player sends, as it
+    // was before. Email/password accounts carry no `name` claim to check it
+    // against.
     match /gameScores/{scoreId} {
-      function ownsScoreId() {
-        return scoreId == request.resource.data.game + '_' + request.resource.data.dateId + '_' + request.auth.uid
-          || scoreId == request.resource.data.game + '_' + request.auth.uid;
-      }
-
-      // Crossword restore races were writing ~1–2s times (shown as 0:00 / 0:02)
-      // and stealing the monthly crown. Other games still allow any non-negative.
-      function validScoreTimeMs() {
-        return !('timeMs' in request.resource.data)
-          || (
-            request.resource.data.timeMs is number
-            && request.resource.data.timeMs == int(request.resource.data.timeMs)
-            && request.resource.data.timeMs <= 86400000
-            && (
-              request.resource.data.game == 'mini-crossword'
-                ? request.resource.data.timeMs >= 5000
-                : request.resource.data.timeMs >= 0
-            )
-          );
-      }
-
-      // Lanka Leap rows are written by processGameAchievements after it
-      // replays the run, so no browser write is accepted for that game.
+      // Every row is written by a Cloud Function after it checks the play:
+      // `submitGameScore` replays the daily puzzles, and processGameAchievements
+      // replays Lanka Leap runs. A browser may only follow a name change on
+      // its own rows, and may delete them.
       allow read: if true;
-      allow create: if isSignedIn()
-        && request.resource.data.game != 'lanka-leap'
-        && ownsScoreId()
-        && request.resource.data.keys().hasOnly([
-          'game', 'dateId', 'userId', 'userName', 'score', 'timeMs', 'detail', 'completedAt'
-        ])
-        && request.resource.data.userId == request.auth.uid
-        && request.resource.data.game is string
-        && request.resource.data.dateId is string
-        && request.resource.data.dateId.matches('^20[2-9][0-9]-[0-1][0-9]-[0-3][0-9]$')
-        && request.resource.data.completedAt == request.time
-        && request.resource.data.userName is string
-        && request.resource.data.userName.size() <= 32
-        && request.resource.data.score is number
-        && request.resource.data.score == int(request.resource.data.score)
-        && request.resource.data.score >= 0
-        && request.resource.data.score <= 9999999
-        && (
-          request.resource.data.game != 'wordle'
-          || (request.resource.data.score >= 1 && request.resource.data.score <= 6)
-        )
-        && validScoreTimeMs();
-      // Own score updates. Identity and the day it belongs to are immutable;
-      // only the result may improve.
+      allow create: if false;
       allow update: if isSignedIn()
-        && resource.data.game != 'lanka-leap'
         && resource.data.userId == request.auth.uid
-        && request.resource.data.userId == request.auth.uid
-        && request.resource.data.game == resource.data.game
-        && request.resource.data.dateId == resource.data.dateId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['userName'])
         && request.resource.data.userName is string
-        && request.resource.data.userName.size() <= 32
-        && request.resource.data.keys().hasOnly([
-          'game', 'dateId', 'userId', 'userName', 'score', 'timeMs', 'detail', 'completedAt'
-        ])
-        && request.resource.data.score is number
-        && request.resource.data.score == int(request.resource.data.score)
-        && request.resource.data.score >= 0
-        && request.resource.data.score <= 9999999
-        && validScoreTimeMs();
+        && request.resource.data.userName.size() <= 32;
       // Previously: anyone, signed in or not, could delete any row from a past
       // day — because `cleanseOldScores` ran the sweep in every visitor's
       // browser and the rule had to permit it. The sweep is now
