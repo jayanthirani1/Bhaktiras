@@ -1,29 +1,21 @@
 <template>
   <div class="min-h-screen bg-[hsl(var(--background))] pb-[calc(16.5rem+env(safe-area-inset-bottom))] pt-0 md:pb-24 md:pt-12 px-3 sm:px-4">
     <div class="mx-auto max-w-3xl">
-      <!-- Top bar: pinned so Back and Check stay reachable while scrolling -->
-      <div class="sticky top-0 z-40 -mx-3 mb-3 flex items-center justify-between gap-2 border-b border-[hsl(var(--border))] bg-[hsl(var(--background))]/95 px-3 py-2 backdrop-blur sm:-mx-4 sm:px-4 md:top-16 md:mb-6">
-        <NuxtLink
-          to="/play"
-          class="inline-flex items-center gap-1.5 rounded-full bg-[hsl(var(--muted))] px-3 py-1.5 text-sm font-medium text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]"
-        >
-          ‹ Back
-        </NuxtLink>
-        <div class="flex items-center gap-2 text-sm font-semibold text-[hsl(var(--primary))]">
-          <span class="rounded-full bg-[hsl(var(--muted))] px-3 py-1 tabular-nums">⏱ {{ timerDisplay }}</span>
-          <span v-if="solved" class="rounded-full bg-emerald-50 px-3 py-1 text-emerald-700">Solved</span>
-          <GameSoundToggle />
-        </div>
+      <!-- Check sits in the bar on desktop only: phones have Check answers above the keyboard. -->
+      <GameTopBar class="-mx-3 !mb-3 px-3 sm:-mx-4 sm:px-4 md:!mb-6" :timer="timerDisplay">
+        <template #status>
+          <span v-if="solved" class="game-bar-pill bg-emerald-50 text-emerald-700">Solved</span>
+        </template>
         <button
           v-if="!playedElsewhere"
           type="button"
-          class="rounded-full bg-[hsl(var(--primary))] px-4 py-2 text-sm font-bold text-white shadow-lg shadow-[hsl(var(--primary))]/20 disabled:opacity-40"
+          class="game-bar-pill tap-target hidden bg-[hsl(var(--primary))] px-4 font-bold text-white disabled:opacity-40 md:inline-flex"
           :disabled="!layout || solved || howto.showIntro.value"
           @click="checkAnswers"
         >
           ✓ Check
         </button>
-      </div>
+      </GameTopBar>
 
       <div class="mb-4 hidden md:block">
         <PageHeader
@@ -148,7 +140,6 @@
           </div>
 
           <div class="mt-4 hidden flex-wrap gap-2 md:flex">
-            <button type="button" class="btn-primary text-sm" :disabled="solved" @click="checkAnswers">Check</button>
             <button
               type="button"
               class="inline-flex items-center gap-1.5 rounded-xl bg-amber-100 px-4 py-2 text-sm font-semibold text-amber-900 hover:bg-amber-200 disabled:opacity-40"

@@ -1,7 +1,7 @@
 <template>
   <button
     type="button"
-    class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--muted))] text-[hsl(var(--muted-foreground))]"
+    class="tap-target inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--muted))] text-[hsl(var(--muted-foreground))]"
     :aria-label="muted ? 'Turn game sounds on' : 'Mute game sounds'"
     :aria-pressed="!muted"
     @click="toggle"

@@ -1,25 +1,17 @@
 <template>
   <div class="min-h-screen bg-[hsl(var(--background))] pb-24 pt-0 md:pt-12 px-4">
     <div class="mx-auto max-w-lg">
-      <!-- Pinned so Back and the clock stay visible while scrolling -->
-      <div class="sticky top-0 z-40 -mx-4 mb-4 flex items-center justify-between gap-2 border-b border-[hsl(var(--border))] bg-[hsl(var(--background))]/95 px-4 py-2 backdrop-blur md:top-16">
-        <NuxtLink
-          to="/play"
-          class="inline-flex items-center gap-1.5 rounded-full bg-[hsl(var(--muted))] px-3 py-1.5 text-sm font-medium text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]"
-        >
-          ‹ Back
-        </NuxtLink>
-        <div class="flex items-center gap-2 text-sm font-semibold text-[hsl(var(--primary))]">
-          <span class="rounded-full bg-[hsl(var(--muted))] px-3 py-1 tabular-nums">⏱ {{ timerDisplay }}</span>
-          <span v-if="cleared" class="rounded-full bg-[hsl(var(--golden-50))] px-3 py-1">
+      <GameTopBar class="-mx-4 px-4" :timer="timerDisplay">
+        <template #status>
+          <span v-if="cleared" class="game-bar-pill bg-[hsl(var(--golden-50))] text-[hsl(var(--primary))]">
             Cleared {{ cleared }}
           </span>
-          <GameSoundToggle />
-        </div>
-      </div>
+        </template>
+      </GameTopBar>
       <PageHeader
         title="1% Club"
         :subtitle="headerSubtitle"
+        compact-on-mobile
       />
       <GameMissedDayBanner v-if="playDay.isArchive" :label="playDay.label" path="/play/one-percent" />
 

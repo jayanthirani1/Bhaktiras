@@ -1,19 +1,9 @@
 <template>
   <div class="min-h-screen bg-[hsl(var(--background))] px-3 pb-24 pt-0 md:px-4 md:pt-12">
     <div class="mx-auto max-w-2xl">
-      <div class="sticky top-0 z-40 -mx-3 mb-4 flex items-center justify-between border-b border-[hsl(var(--border))] bg-[hsl(var(--background))]/95 px-3 py-2 backdrop-blur md:top-16 md:-mx-4 md:px-4">
-        <NuxtLink to="/play" class="rounded-full bg-[hsl(var(--muted))] px-3 py-1.5 text-sm font-medium text-[hsl(var(--muted-foreground))]">
-          ‹ Back
-        </NuxtLink>
-        <div class="flex items-center gap-2">
-          <span class="rounded-full bg-[hsl(var(--muted))] px-3 py-1 text-sm font-semibold tabular-nums text-[hsl(var(--primary))]">
-            ⏱ {{ timer.display.value }}
-          </span>
-          <GameSoundToggle />
-        </div>
-      </div>
+      <GameTopBar class="-mx-3 px-3 md:-mx-4 md:px-4" :timer="timer.display.value" />
 
-      <PageHeader title="Connections" subtitle="Find four groups of four satsang-related words." />
+      <PageHeader title="Connections" subtitle="Find four groups of four satsang-related words." compact-on-mobile />
       <GameMissedDayBanner v-if="playDay.isArchive" :label="playDay.label" path="/play/connections" />
 
       <GamePlayedElsewhere

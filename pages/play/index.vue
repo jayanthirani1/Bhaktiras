@@ -61,7 +61,25 @@
         to start a daily Games streak.
       </p>
 
-      <ul class="mt-10 divide-y divide-[hsl(var(--golden-200))] overflow-hidden rounded-2xl border border-[hsl(var(--golden-200))] bg-[hsl(var(--card))] shadow-[0_18px_40px_-32px_rgba(61,0,102,0.55)]">
+      <div class="mt-8">
+        <div class="flex items-baseline justify-between gap-3">
+          <h2 class="text-base font-semibold">Today’s puzzles</h2>
+          <p class="text-sm tabular-nums text-[hsl(var(--muted-foreground))]">
+            <template v-if="dailyDoneCount === DAILY_PLAY_GAMES.length">All {{ DAILY_PLAY_GAMES.length }} done — see you tomorrow</template>
+            <template v-else><span class="font-semibold text-[hsl(var(--primary))]">{{ dailyDoneCount }}</span> of {{ DAILY_PLAY_GAMES.length }} done</template>
+          </p>
+        </div>
+        <div class="mt-2 grid gap-1" :style="{ gridTemplateColumns: `repeat(${DAILY_PLAY_GAMES.length}, minmax(0, 1fr))` }" aria-hidden="true">
+          <span
+            v-for="slug in DAILY_PLAY_GAMES"
+            :key="slug"
+            class="h-1.5 rounded-full transition-colors"
+            :class="done[slug] ? 'bg-[hsl(var(--golden-500))]' : 'bg-[hsl(var(--muted))]'"
+          />
+        </div>
+      </div>
+
+      <ul class="mt-4 divide-y divide-[hsl(var(--golden-200))] overflow-hidden rounded-2xl border border-[hsl(var(--golden-200))] bg-[hsl(var(--card))] shadow-[0_18px_40px_-32px_rgba(61,0,102,0.55)]">
         <li v-for="game in games" :key="game.slug">
           <NuxtLink
             v-if="isLocked(game.slug)"
@@ -139,8 +157,10 @@
             </div>
 
             <span
-              class="shrink-0 rounded-full px-4 py-2 text-sm font-bold shadow-sm sm:px-5"
-              :class="done[game.slug] ? 'bg-emerald-700 text-white' : game.button"
+              class="shrink-0 rounded-full px-4 py-2 text-sm font-bold sm:px-5"
+              :class="done[game.slug]
+                ? 'bg-white text-[hsl(var(--primary))] ring-1 ring-inset ring-[hsl(var(--golden-200))]'
+                : 'bg-[hsl(var(--primary))] text-white shadow-sm'"
             >
               {{ done[game.slug] ? 'Results' : 'Play' }}
             </span>
@@ -202,7 +222,7 @@ import NectarIcon from '~/components/NectarIcon.vue'
 import { LANKA_LEAP_UNLOCK_DAYS } from '~/composables/useLankaLeapUnlock'
 import { missedDayIds, playDayLabel } from '~/composables/usePlayDay'
 
-import type { PlayGameSlug } from '~/utils/playCompletion'
+import { DAILY_PLAY_GAMES, type PlayGameSlug } from '~/utils/playCompletion'
 
 const auth = useAuth()
 const isLoggedIn = computed(() => !!auth.user.value)
@@ -214,23 +234,23 @@ const allGames: Array<{
   description: string
   icon: Component
   href: string
-  /** Icon tile colours, mirrored by the call-to-action pill. */
+  /** Icon tile colours. The Play pill is the same for every game. */
   tile: string
-  button: string
   /** Prototype: listed only on the test site and in local dev. */
   testOnly?: boolean
 }> = [
-  { slug: 'wordle', title: 'Wordle', description: 'Guess the word in six tries — the timer pauses if you leave.', icon: IconTypography, href: '/play/wordle', tile: 'bg-emerald-100 text-emerald-700', button: 'bg-emerald-700 text-white' },
-  { slug: 'mini-crossword', title: 'Crossword', description: 'A quick Telegraph-style grid. Beat the clock.', icon: IconGrid3x3, href: '/play/crossword', tile: 'bg-sky-100 text-sky-700', button: 'bg-sky-700 text-white' },
-  { slug: 'one-percent', title: '1% Club', description: 'Daily Vachnamrut climb from 90% to 1%. One wrong answer ends your run.', icon: IconChartBar, href: '/play/one-percent', tile: 'bg-orange-100 text-orange-700', button: 'bg-orange-800 text-white' },
-  { slug: 'connections', title: 'Connections', description: 'Find four groups of four satsang-related words.', icon: IconCirclesRelation, href: '/play/connections', tile: 'bg-fuchsia-100 text-fuchsia-700', button: 'bg-fuchsia-600 text-white' },
-  { slug: 'surya-chandra', title: 'Surya Chandra', description: 'Suns and moons on a 6×6 grid. Three of each per row and column, never three in a line.', icon: IconSun, href: '/play/surya-chandra', tile: 'bg-amber-100 text-amber-800', button: 'bg-amber-600 text-white' },
-  { slug: 'ras-rani', title: 'Ras Rani 🍯', description: 'One nectar drop per row, column and colour. Easy 7×7, Medium 8–9×9 and Difficult 10–11×11 rotate daily.', icon: NectarIcon, href: '/play/ras-rani', tile: 'bg-amber-100 text-amber-700', button: 'bg-amber-700 text-white' },
-  { slug: 'lanka-leap', title: 'Lanka Leap', description: 'Leap across the ocean with Hanumanji. Get past Surasa and Simhika and reach Lanka.', icon: IconWind, href: '/play/lanka-leap', tile: 'bg-sky-100 text-sky-700', button: 'bg-sky-700 text-white' },
+  { slug: 'wordle', title: 'Wordle', description: 'Guess the word in six tries — the timer pauses if you leave.', icon: IconTypography, href: '/play/wordle', tile: 'bg-emerald-100 text-emerald-700' },
+  { slug: 'mini-crossword', title: 'Crossword', description: 'A quick Telegraph-style grid. Beat the clock.', icon: IconGrid3x3, href: '/play/crossword', tile: 'bg-sky-100 text-sky-700' },
+  { slug: 'one-percent', title: '1% Club', description: 'Daily Vachnamrut climb from 90% to 1%. One wrong answer ends your run.', icon: IconChartBar, href: '/play/one-percent', tile: 'bg-orange-100 text-orange-700' },
+  { slug: 'connections', title: 'Connections', description: 'Find four groups of four satsang-related words.', icon: IconCirclesRelation, href: '/play/connections', tile: 'bg-fuchsia-100 text-fuchsia-700' },
+  { slug: 'surya-chandra', title: 'Surya Chandra', description: 'Suns and moons on a 6×6 grid. Three of each per row and column, never three in a line.', icon: IconSun, href: '/play/surya-chandra', tile: 'bg-amber-100 text-amber-800' },
+  { slug: 'ras-rani', title: 'Ras Rani 🍯', description: 'One nectar drop per row, column and colour. Easy 7×7, Medium 8–9×9 and Difficult 10–11×11 rotate daily.', icon: NectarIcon, href: '/play/ras-rani', tile: 'bg-amber-100 text-amber-700' },
+  { slug: 'lanka-leap', title: 'Lanka Leap', description: 'Leap across the ocean with Hanumanji. Get past Surasa and Simhika and reach Lanka.', icon: IconWind, href: '/play/lanka-leap', tile: 'bg-sky-100 text-sky-700' },
 ]
 const games = allGames.filter(game => !game.testOnly || showPrototypeGames())
 
 const { done, results } = usePlayCompletion(games.map(g => g.slug))
+const dailyDoneCount = computed(() => DAILY_PLAY_GAMES.filter(slug => done.value[slug]).length)
 
 /** Lanka Leap's leaderboard is all-time and replay-checked, so it has no missed days. */
 const missedDayGames = games.filter(game => game.slug !== 'lanka-leap')

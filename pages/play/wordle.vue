@@ -1,21 +1,12 @@
 <template>
   <div class="min-h-screen bg-[hsl(var(--background))] pb-24 pt-0 md:pt-12 px-4">
     <div class="max-w-lg mx-auto">
-      <!-- Pinned so Back stays reachable while scrolling -->
-      <div class="sticky top-0 z-40 -mx-4 mb-6 flex items-center justify-between border-b border-[hsl(var(--border))] bg-[hsl(var(--background))]/95 px-4 py-2 backdrop-blur md:top-16">
-        <NuxtLink
-          to="/play"
-          class="inline-flex items-center gap-2 rounded-full bg-[hsl(var(--muted))] px-3 py-1.5 text-sm font-medium text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]"
-        >
-          <IconArrowLeft class="w-4 h-4" />
-          Back
-        </NuxtLink>
-        <GameSoundToggle />
-      </div>
+      <GameTopBar class="-mx-4 px-4" :timer="timer.display.value" />
 
       <PageHeader
         title="Wordle"
         subtitle="Guess the devotional word in six tries."
+        compact-on-mobile
       />
       <GameMissedDayBanner v-if="playDay.isArchive" :label="playDay.label" path="/play/wordle" />
 
@@ -34,10 +25,6 @@
       <p v-else-if="!howto.ready.value || !solutionReady" class="mt-8 text-center text-sm text-[hsl(var(--muted-foreground))]">
         Loading Wordle…
       </p>
-
-      <div v-if="!playedElsewhere && howto.ready.value && solutionReady" class="mb-4 flex items-center justify-center gap-2 text-sm font-semibold text-[hsl(var(--primary))]">
-        <span class="rounded-full bg-[hsl(var(--muted))] px-3 py-1 tabular-nums">⏱ {{ timer.display.value }}</span>
-      </div>
 
       <GameHowTo
         v-if="!playedElsewhere && solutionReady && howto.showIntro.value"
@@ -400,7 +387,7 @@
 </template>
 
 <script setup lang="ts">
-import { IconArrowLeft, IconCrown } from '@tabler/icons-vue'
+import { IconCrown } from '@tabler/icons-vue'
 import { getWordForDateId, resolveWordleWord } from '~/utils/wordleDaily'
 import { isStaleGameDay } from '~/utils/gameDay'
 import { getFeedback } from '~/utils/wordle'

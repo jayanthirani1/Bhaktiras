@@ -93,7 +93,8 @@
     font-variation-settings: 'wght' 700, 'opsz' 8;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: #FDC500;
+    /* #FDC500 measured 1.57:1 on the page; golden-900 is the gold that passes AA. */
+    color: hsl(var(--golden-900));
   }
 }
 
@@ -105,6 +106,23 @@
   .btn-primary:hover {
     @apply -translate-y-0.5 shadow-[0_18px_40px_-14px_hsl(var(--primary)/0.45)];
     color: hsl(var(--gold));
+  }
+  /**
+   * Grows a small control's hit area to 44px without growing what you see.
+   * The game bar's pills are 36px tall so the bar stays slim; the transparent
+   * ring around them is what a thumb actually lands on.
+   */
+  .tap-target {
+    position: relative;
+  }
+  .tap-target::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+  }
+  /** The pill shape shared by everything in a game's top bar. */
+  .game-bar-pill {
+    @apply inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-full bg-[hsl(var(--muted))] px-3 text-sm font-semibold;
   }
   .card-surface {
     @apply rounded-2xl border border-[hsl(var(--golden-200))] bg-white shadow-[0_8px_30px_-18px_rgba(61,0,102,0.18)];

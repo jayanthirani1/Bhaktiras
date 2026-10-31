@@ -1,21 +1,14 @@
 <template>
   <div class="min-h-screen bg-[hsl(var(--background))] px-3 pb-24 pt-0 md:px-4 md:pt-12">
     <div class="mx-auto max-w-2xl">
-      <div class="sticky top-0 z-40 -mx-3 mb-4 flex items-center gap-2 border-b border-[hsl(var(--border))] bg-[hsl(var(--background))]/95 px-3 py-2 backdrop-blur md:top-16 md:-mx-4 md:px-4">
-        <NuxtLink to="/play" class="rounded-full bg-[hsl(var(--muted))] px-3 py-1.5 text-sm font-medium text-[hsl(var(--muted-foreground))]">
-          ‹ Back
-        </NuxtLink>
-        <span class="rounded-full bg-[hsl(var(--muted))] px-3 py-1 text-sm font-semibold tabular-nums text-[hsl(var(--primary))]">
-          ⏱ {{ timer.display.value }}
-        </span>
-        <GameSoundToggle />
-        <div v-if="!playedElsewhere && !loading && !finished && !howto.showIntro.value" class="ml-auto flex gap-2">
-          <button type="button" class="rounded-full border border-[hsl(var(--border))] px-3 py-1.5 text-sm font-semibold" @click="clearGrid">Clear</button>
-          <button type="button" class="rounded-full border border-[hsl(var(--border))] px-3 py-1.5 text-sm font-semibold" @click="useHint">Hint</button>
-        </div>
-      </div>
+      <GameTopBar class="-mx-3 px-3 md:-mx-4 md:px-4" :timer="timer.display.value">
+        <template v-if="!playedElsewhere && !loading && !finished && !howto.showIntro.value">
+          <button type="button" class="game-bar-pill tap-target border border-[hsl(var(--border))] bg-white text-[hsl(var(--primary))]" @click="clearGrid">Clear</button>
+          <button type="button" class="game-bar-pill tap-target border border-[hsl(var(--border))] bg-white text-[hsl(var(--primary))]" @click="useHint">Hint</button>
+        </template>
+      </GameTopBar>
 
-      <PageHeader title="Surya Chandra" subtitle="Fill the grid with suns and moons. Three of each in every row and column — never three in a line." />
+      <PageHeader title="Surya Chandra" subtitle="Fill the grid with suns and moons. Three of each in every row and column — never three in a line." compact-on-mobile />
       <GameMissedDayBanner v-if="playDay.isArchive" :label="playDay.label" path="/play/surya-chandra" />
 
       <GamePlayedElsewhere
