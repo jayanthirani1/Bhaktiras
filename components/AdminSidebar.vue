@@ -1,7 +1,7 @@
 <template>
   <div class="flex h-full min-h-0 flex-col bg-white">
     <div class="flex items-center justify-between border-b border-[hsl(var(--border))] px-4 py-4">
-      <NuxtLink to="/admin" class="min-w-0" @click="$emit('navigate')">
+      <NuxtLink :to="isShopOnly ? '/admin/shop' : '/admin'" class="min-w-0" @click="$emit('navigate')">
         <p class="font-display text-lg font-semibold text-[hsl(var(--primary))]">Bhaktiras</p>
         <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-[hsl(var(--golden-900))]">Admin portal</p>
       </NuxtLink>
@@ -16,7 +16,7 @@
     </div>
 
     <nav class="flex-1 space-y-4 overflow-y-auto p-3">
-      <div class="space-y-0.5">
+      <div v-if="!isShopOnly" class="space-y-0.5">
         <NuxtLink
           v-for="item in ADMIN_MENU_TOP"
           :key="item.to"
@@ -36,7 +36,7 @@
         </NuxtLink>
       </div>
 
-      <div v-for="group in ADMIN_MENU_GROUPS" :key="group.id" class="space-y-0.5">
+      <div v-for="group in menuGroups" :key="group.id" class="space-y-0.5">
         <button
           type="button"
           class="flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-[11px] font-bold uppercase tracking-[0.14em] text-[hsl(var(--muted-foreground))] transition-colors hover:bg-[hsl(var(--muted))] hover:text-[hsl(var(--primary))]"
@@ -65,9 +65,9 @@
     </nav>
 
     <div class="border-t border-[hsl(var(--border))] p-4">
-      <p class="truncate text-sm font-medium text-[hsl(var(--primary))]">{{ adminRecord?.name || 'Admin' }}</p>
-      <!-- Every admins document is full access; there is no tier to display. -->
-      <p class="mb-3 truncate text-xs text-[hsl(var(--muted-foreground))]">Full access</p>
+      <p class="truncate text-sm font-medium text-[hsl(var(--primary))]">{{ adminRecord?.name || shopRecord?.name || 'Admin' }}</p>
+      <!-- Every admins document is full access; shop staff see the shop only. -->
+      <p class="mb-3 truncate text-xs text-[hsl(var(--muted-foreground))]">{{ isShopOnly ? 'Shop access' : 'Full access' }}</p>
       <button type="button" class="admin-btn-danger w-full" @click="$emit('logout')">
         Sign out
       </button>
@@ -77,13 +77,18 @@
 
 <script setup lang="ts">
 import { collection, getDocs, query, where, type Firestore } from 'firebase/firestore'
-import { ADMIN_MENU_GROUPS, ADMIN_MENU_TOP } from '~/data/adminMenu'
+import { ADMIN_MENU_GROUPS, ADMIN_MENU_TOP, SHOP_MENU_GROUP } from '~/data/adminMenu'
 
 defineProps<{ showClose?: boolean }>()
 defineEmits<{ navigate: []; close: []; logout: [] }>()
 
 const route = useRoute()
-const { adminRecord } = useAdminAccess()
+const { adminRecord, shopRecord, isShopOnly } = useAdminAccess()
+
+/** Shop staff see the Shop group alone, without its admin-only pages. */
+const menuGroups = computed(() => isShopOnly.value
+  ? [{ ...SHOP_MENU_GROUP, items: SHOP_MENU_GROUP.items.filter(item => !item.adminOnly) }]
+  : ADMIN_MENU_GROUPS)
 const openBugCount = useState<number | null>('admin-open-bug-count', () => null)
 const openGroups = useState<Record<string, boolean>>('admin-nav-open-groups', () => ({ content: true }))
 
@@ -99,7 +104,7 @@ function linkClass(to: string) {
 }
 
 function groupContainsActive(groupId: string) {
-  const group = ADMIN_MENU_GROUPS.find(g => g.id === groupId)
+  const group = menuGroups.value.find(g => g.id === groupId)
   return !!group?.items.some(item => isActive(item.to))
 }
 
@@ -116,7 +121,7 @@ function toggleGroup(groupId: string) {
 }
 
 function ensureActiveGroupOpen() {
-  for (const group of ADMIN_MENU_GROUPS) {
+  for (const group of menuGroups.value) {
     if (groupContainsActive(group.id)) {
       openGroups.value = { ...openGroups.value, [group.id]: true }
     }
@@ -124,6 +129,7 @@ function ensureActiveGroupOpen() {
 }
 
 async function loadOpenBugCount() {
+  if (isShopOnly.value) return
   try {
     const db = useNuxtApp().$firebaseDb as Firestore | null
     if (!db) return

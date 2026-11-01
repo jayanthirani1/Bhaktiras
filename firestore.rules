@@ -12,6 +12,21 @@ service cloud.firestore {
     }
 
     /**
+     * The souvenir shop team: the Souvenir lead and the Treasury team. A
+     * `shopStaff/{uid}` document grants the shop and nothing else; full admins
+     * hold it implicitly. Only an admin can create one (see `shopStaff` below
+     * and the `grantShopAccess` function), so the shop team cannot widen itself.
+     */
+    function isShopStaff() {
+      return isAdmin()
+        || (
+          isSignedIn()
+          && exists(/databases/$(database)/documents/shopStaff/$(request.auth.uid))
+          && get(/databases/$(database)/documents/shopStaff/$(request.auth.uid)).data.active != false
+        );
+    }
+
+    /**
      * The community wall's whole reaction vocabulary. This list is the feature
      * — `data/communityReactions.ts` only decides how these five are drawn.
      */
@@ -765,6 +780,83 @@ service cloud.firestore {
     match /siteContent/{id} {
       allow read: if true;
       allow create, update, delete: if isAdmin();
+    }
+
+    // ------------------------------------------------------------------
+    // Shop — souvenir pre-orders, paid outside the app.
+    // ------------------------------------------------------------------
+
+    // Doc ID = Auth UID. Fields: name, email, active, addedBy, createdAt.
+    // Written by admins only — directly, or by `grantShopAccess`, which
+    // looks the account up by email. Shop staff can read their own.
+    match /shopStaff/{uid} {
+      allow read: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+      allow create, update, delete: if isAdmin();
+    }
+
+    // The catalogue. Devotees see only active products — the shop queries
+    // `active == true`, which this rule requires. Shop staff see everything.
+    match /shopProducts/{id} {
+      allow read: if resource.data.active == true || isShopStaff();
+      allow create, update: if isShopStaff()
+        && request.resource.data.keys().hasOnly([
+          'name', 'description', 'category', 'images', 'sizes', 'price', 'childPrice',
+          'opensAt', 'closesAt', 'active', 'order', 'createdAt', 'updatedAt'
+        ])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 1
+        && request.resource.data.name.size() <= 100
+        && request.resource.data.price is int
+        && request.resource.data.price >= 0
+        && (request.resource.data.childPrice == null
+          || (request.resource.data.childPrice is int && request.resource.data.childPrice >= 0))
+        && request.resource.data.images is list
+        && request.resource.data.images.size() <= 8
+        && request.resource.data.sizes is list
+        && request.resource.data.sizes.size() <= 30
+        && request.resource.data.active is bool;
+      // A product is hidden rather than deleted once orders reference it; the
+      // editor only offers delete for that reason, and orders keep their own
+      // copy of name and price either way.
+      allow delete: if isShopStaff();
+    }
+
+    // Bank details and shop copy. Public, because the order confirmation
+    // shows the bank details to the devotee who placed it.
+    match /shopSettings/{id} {
+      allow read: if true;
+      allow create, update: if isShopStaff();
+      allow delete: if false;
+    }
+
+    // Doc ID = the payment reference, BRSHOP-0001 onwards.
+    //
+    // Created only by the `placeShopOrder` function, which prices every line
+    // from the product and allocates the reference in a transaction — so no
+    // browser can write an order, choose its own price or reuse a reference.
+    // A devotee reads their own orders (the query filters on `userId`); the
+    // shop team reads and edits all of them, but cannot rewrite who placed
+    // an order or which reference it has. Nothing is ever deleted: a
+    // cancelled order is a status, and every record is kept.
+    match /shopOrders/{orderId} {
+      allow read: if isShopStaff()
+        || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow create: if false;
+      allow update: if isShopStaff()
+        && request.resource.data.reference == resource.data.reference
+        && request.resource.data.number == resource.data.number
+        && request.resource.data.userId == resource.data.userId
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.status in ['awaiting_payment', 'paid', 'cancelled']
+        && request.resource.data.items is list
+        && request.resource.data.total is int
+        && request.resource.data.total >= 0;
+      allow delete: if false;
+    }
+
+    // The reference counter. Only the `placeShopOrder` function touches it.
+    match /shopCounters/{id} {
+      allow read, write: if false;
     }
 
     // Bilingual reading texts linked from niyams (stotra, path, etc.). Public read.

@@ -31,7 +31,8 @@ service firebase.storage {
     }
 
     /**
-     * Admin-uploaded site imagery: event posters and timeline photographs.
+     * Admin-uploaded site imagery: event posters, timeline photographs and
+     * shop product photos (`shop/`, uploaded by the shop team).
      * `AdminImageUpload` writes `{folder}/{timestamp}-{name}`, so every upload
      * is a new object and none of these paths is ever legitimately overwritten.
      *
@@ -57,7 +58,7 @@ service firebase.storage {
         && (
           (
             isSafeImage()
-            && (folder == 'events' || folder == 'timeline' || folder == 'uploads')
+            && (folder == 'events' || folder == 'timeline' || folder == 'uploads' || folder == 'shop')
           )
           || (
             isSafeAudio()

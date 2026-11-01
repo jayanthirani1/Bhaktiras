@@ -28,7 +28,7 @@ Site-wide constants — utsav dates, WhatsApp invite, journey range, gallery lin
 - **Nuxt 3** static/SSR, deployed to **Firebase App Hosting** (`apphosting.yaml`,
   backend `sksswoolwich-bhaktiras`). The GitHub Actions workflow targeting static Hosting
   is vestigial.
-- **Firestore** — 35 collections, fully ruled (`firestore.rules`, 693 lines)
+- **Firestore** — 40 collections, fully ruled (`firestore.rules`, 886 lines)
 - **Firebase Auth** — email/password + Google, with account linking
 - **Firebase Storage** — admin image uploads (`storage.rules`)
 - **Firebase Cloud Messaging** — web push, service worker generated at build by
@@ -45,11 +45,14 @@ Requires the **Blaze** plan (Functions + Storage).
 **Public** — `/` `/journey` `/events` `/community` `/seva` `/niyams` `/yajman`
 `/darshan` `/legacy` `/haar` (hidden) `/account` `/login` `/signup` `/privacy` `/policy` `/submit-bug`
 
+**Shop** (hidden until switched on) — `/shop`, `/shop/basket`, `/shop/orders/[reference]`
+
 **Games** — `/play` plus `wordle`, `crossword`, `mini-crossword`, `connections`,
 `one-percent`, `achievements`, `streaks`
 
 **Admin** — `/admin` plus `auth`, `timeline`, `events`, `niyam-challenges`, `yajman`,
 `notifications`, `legal`, `bugs`, `content/{index,homepage,community,navigation,seva,sections}`,
+`shop/{index,products,totals,settings,team}`,
 `games/{wordle,crossword,mini-crossword,connections,one-percent,word-bank}`
 
 ## Sections
@@ -229,6 +232,55 @@ the image (`server/assets/haar-trail/evidence.jpg`) and the chain of evidence
 client bundle; replace the image (`.jpg`, `.png` or `.webp`) or edit the chain and redeploy. An
 admin can switch the whole thing off under **Content → Sections**, and the taps then do nothing.
 
+### Shop (souvenir pre-orders)
+
+Pre-orders for the Patotsav souvenir stand: apparel (hoodies, t-shirts, polos, jabhos,
+sarees) and one-size items (water bottles, Lego). **No payment is taken in the app.** A
+devotee signs in, orders, and is shown a payment reference — `BRSHOP-0001` onwards — with
+the mandir's bank details; they pay by bank transfer or at the mandir. The Treasury team
+marks the order paid and sends confirmation and receipts outside the app. Collection is at
+the mandir on set evenings; the team announces it on WhatsApp. The app does not post items
+or track collection.
+
+**Ships switched off.** `shop` is the one section in `data/siteSections.ts` with
+`defaultVisible: false`, so nothing appears until an admin turns it on under
+Content → Sections. The nav item is added to stored navs without replacing them
+(`NAV_ITEMS_ADDED` in `data/siteContent.ts`), and is hidden with the section.
+
+**Only paid orders count.** Unpaid orders are not cancelled automatically when a window
+closes — the Souvenir team chases them — but Order totals (`/admin/shop/totals`) counts
+only `paid` towards what is ordered from suppliers, showing awaiting payment alongside.
+
+How it fits together:
+
+- `shopProducts` — name, description, category, up to 8 photos (`shop/` in Storage), a
+  size list per product with each size marked adult or child, an adult/standard price and
+  a child price (pence), and **a pre-order window per product** (`opensAt`/`closesAt`,
+  either open-ended). Devotees read only `active` products.
+- `shopOrders/{BRSHOP-nnnn}` — **created only by the `placeShopOrder` callable.** The
+  browser sends product, size and quantity; the function prices each line from the
+  product, checks the window and allocates the reference from `shopCounters/orders` in one
+  transaction. So no client can set a price or reuse a reference. Each line keeps the
+  name and price it was ordered at. The shop team can edit customer details, note and
+  items, mark paid/unpaid, cancel and reinstate; every change is appended to `history`
+  with who did it. Orders are **never deleted** and **survive account deletion** — the
+  Treasury needs them; the privacy policy and the account page say so. They are in the
+  data export.
+- `shopSettings/main` — bank details (blank until Treasury confirms; the shop then says
+  details will follow) and the shop wording, including the pre-order terms a devotee must
+  tick. Copy fields store overrides only, defaults in `data/shop.ts`. Each order records
+  the `termsVersion` it was placed under.
+- `shopStaff/{uid}` — **the Shop role**, for the Souvenir lead and Treasury team. It
+  grants the `/admin/shop` pages and nothing else (`isShopStaff()` in the rules; the
+  middleware and sidebar route accordingly). Only full admins grant it, at
+  `/admin/shop/team`, by email via the `grantShopAccess` callable; full admins have the
+  shop implicitly.
+- Exports: one CSV row per item ordered (all order and customer fields on each row) from
+  the orders page, respecting the current filter; and a totals CSV from Order totals.
+
+The basket lives in `localStorage` and holds only product, size and quantity. My orders is
+a section on `/account`, shown while the shop is open or once someone has an order.
+
 ### Account & legal
 `/account` offers self-serve **GDPR data export and account deletion**, plus auth
 provider linking. `/privacy` and `/policy` render from the `sitePages` collection and are
@@ -241,7 +293,8 @@ closed.
 ## Admin
 
 Gated by an `admins/{uid}` **Firestore document** — not hardcoded UIDs — so adding a
-moderator is a document write, no rules edit or redeploy. Enforced in
+moderator is a document write, no rules edit or redeploy. The one narrower role is
+`shopStaff/{uid}`, which sees the Shop pages only (see Shop above). Enforced in
 `firestore.rules:8` (`isAdmin()`), in Cloud Functions, and cosmetically by
 `middleware/admin.ts` + `layouts/admin.vue`.
 
@@ -283,6 +336,8 @@ and the game banks (`connectionsPuzzles`, `miniCrossword`,
 `yajmanOpportunities`
 
 **User-generated** — `gratitude` (wall) · `bugReports`
+
+**Shop** — `shopProducts` `shopOrders` `shopSettings` `shopStaff` `shopCounters`
 
 **Identity** — `admins` `users`
 

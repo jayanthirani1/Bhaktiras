@@ -64,11 +64,24 @@ export function useAccountPrivacy() {
     return { profile, publicProfile, admin, scores, legacyWordleScores, streak, achievements, legacyNiyams, completions, pushSubscriptions, mandirVisits, reactionVotes }
   }
 
+  /**
+   * Export only. Shop orders are deliberately not part of `linkedData`, which
+   * account deletion also walks: orders are kept for the Treasury's records
+   * (see the Shop section of PROJECT-MAP.md), and the rules refuse their delete.
+   */
+  async function shopOrders(db: Firestore, uid: string) {
+    try {
+      return (await getDocs(query(collection(db, 'shopOrders'), where('userId', '==', uid)))).docs
+    } catch {
+      return []
+    }
+  }
+
   async function exportMyData() {
     exporting.value = true
     try {
       const { db, currentUser } = services()
-      const data = await linkedData(db, currentUser.uid)
+      const [data, orders] = await Promise.all([linkedData(db, currentUser.uid), shopOrders(db, currentUser.uid)])
       const payload = {
         exportedAt: new Date().toISOString(),
         account: {
@@ -95,7 +108,9 @@ export function useAccountPrivacy() {
         })),
         mandirVisits: data.mandirVisits.docs.map(item => ({ id: item.id, ...item.data() })),
         communityReactions: data.reactionVotes.docs.map(item => ({ id: item.id, ...item.data() })),
+        shopOrders: orders.map(item => ({ id: item.id, ...item.data() })),
         notes: [
+          'Shop orders are kept for the mandir’s records when you delete your account, so the Treasury team can match payments and receipts.',
           'Anonymous community wall posts carry no link to your account and are not listed here. A signed post is linked and is included above.',
           'Community niyam challenge totals are combined figures and do not contain your user ID.',
           'The reaction counts shown on the community wall are combined figures. Which reaction you chose is the record listed above, and it is visible to nobody but you.'

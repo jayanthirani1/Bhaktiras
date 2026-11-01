@@ -7,6 +7,7 @@ import {
   IconHeartHandshake,
   IconHome,
   IconMapPin,
+  IconShoppingBag,
   IconUsers
 } from '@tabler/icons-vue'
 import type { CommunityPromptContent, HomeTileContent, NavItemContent, NiyamCopyContent, SevaTeamContent, SiteContentSettings, SiteIconKey, SiteSectionContent } from '~/types'
@@ -29,7 +30,8 @@ export const SITE_ICON_OPTIONS: Array<{ key: SiteIconKey, label: string }> = [
   { key: 'niyams', label: 'Niyams' },
   { key: 'games', label: 'Games' },
   { key: 'yajman', label: 'Yajman' },
-  { key: 'donate', label: 'Donate' }
+  { key: 'donate', label: 'Donate' },
+  { key: 'shop', label: 'Shop' }
 ]
 
 export const SITE_ICON_COMPONENTS = {
@@ -41,7 +43,8 @@ export const SITE_ICON_COMPONENTS = {
   niyams: IconFlame,
   games: IconDeviceGamepad2,
   yajman: IconHeartHandshake,
-  donate: IconGift
+  donate: IconGift,
+  shop: IconShoppingBag
 } satisfies Record<SiteIconKey, unknown>
 
 export const DEFAULT_HOME_TILES: HomeTileContent[] = [
@@ -64,7 +67,9 @@ export const DEFAULT_NAV_ITEMS: NavItemContent[] = [
   { id: 'journey', label: 'Journey', href: '/journey', icon: 'journey', order: 6, active: true, showInDesktopNav: true, showInMobileNav: true },
   { id: 'games', label: 'Games', href: '/play', icon: 'games', order: 7, active: true, showInDesktopNav: true, showInMobileNav: true, mobilePrimary: true },
   { id: 'yajman', label: 'Yajman', href: '/yajman', icon: 'yajman', order: 8, active: true, showInMobileNav: true },
-  { id: 'donate', label: 'Donate', href: 'https://www.sksswoolwich.org/donate', icon: 'donate', external: true, order: 9, active: true, showInMobileNav: true }
+  { id: 'donate', label: 'Donate', href: 'https://www.sksswoolwich.org/donate', icon: 'donate', external: true, order: 9, active: true, showInMobileNav: true },
+  // Hidden with the Shop section until an admin switches it on.
+  { id: 'shop', label: 'Shop', href: '/shop', icon: 'shop', order: 10, active: true, showInDesktopNav: true, showInMobileNav: true }
 ]
 
 /**
@@ -79,11 +84,26 @@ export const HOME_TILES_REVISION = 2
  *
  * `siteContent/main` in Firestore normally wins over these defaults, so a stored
  * copy of an older default set would quietly undo the change on every load. A
- * stored document written before this revision is treated as stale and these
- * defaults are used instead, until an admin saves Admin -> Content -> Navigation:
- * that save stamps the current revision and hands control back to the CMS.
+ * stored document written before NAV_ITEMS_RESET_REVISION is treated as stale and
+ * these defaults are used instead, until an admin saves Admin -> Content ->
+ * Navigation: that save stamps the current revision and hands control back to
+ * the CMS. Revisions since then have only added items (NAV_ITEMS_ADDED), which
+ * are appended to a stored nav instead of replacing it.
  */
-export const NAV_ITEMS_REVISION = 2
+export const NAV_ITEMS_REVISION = 3
+
+/**
+ * Stored nav older than this is replaced by the defaults outright — the
+ * contract described above. Revisions after it only *add* items (see
+ * `NAV_ITEMS_ADDED`), so an admin's existing nav is kept and the new item is
+ * appended to it until they next save the Navigation editor.
+ */
+export const NAV_ITEMS_RESET_REVISION = 2
+
+/** Items introduced after NAV_ITEMS_RESET_REVISION, with the revision that added each. */
+export const NAV_ITEMS_ADDED: Array<{ id: string; since: number }> = [
+  { id: 'shop', since: 3 }
+]
 
 export const DEFAULT_COMMUNITY_PROMPTS: CommunityPromptContent[] = [
   { id: 'meaning', text: 'What does this mandir mean to you?', order: 1, active: true },
@@ -207,9 +227,27 @@ export function parseContentRevision(raw: unknown): number {
   return Number.isFinite(value) && value > 0 ? value : 0
 }
 
-/** True when a stored document predates the current DEFAULT_NAV_ITEMS. */
+/** True when a stored document predates the DEFAULT_NAV_ITEMS it must not outlive. */
 export function navItemsAreStale(storedRevision: unknown): boolean {
-  return parseContentRevision(storedRevision) < NAV_ITEMS_REVISION
+  return parseContentRevision(storedRevision) < NAV_ITEMS_RESET_REVISION
+}
+
+/**
+ * Appends default items added since the stored revision. A nav saved at or
+ * after an item's revision was saved with that item in front of the admin,
+ * so whatever they did with it — kept, untick, removed — stands.
+ */
+function withAddedNavItems(items: NavItemContent[], storedRevision: unknown): NavItemContent[] {
+  const revision = parseContentRevision(storedRevision)
+  const out = [...items]
+  for (const addition of NAV_ITEMS_ADDED) {
+    if (revision >= addition.since) continue
+    const item = DEFAULT_NAV_ITEMS.find(value => value.id === addition.id)
+    if (!item || out.some(value => value.id === item.id || value.href === item.href)) continue
+    const order = Math.max(0, ...out.map(value => value.order ?? 0)) + 1
+    out.push({ ...item, order })
+  }
+  return out
 }
 
 /** True when a stored document predates the current DEFAULT_HOME_TILES. */
@@ -220,7 +258,7 @@ export function homeTilesAreStale(storedRevision: unknown): boolean {
 export function navItemsFromSource(raw: unknown, storedRevision?: unknown): NavItemContent[] {
   if (navItemsAreStale(storedRevision)) return cloneList(DEFAULT_NAV_ITEMS)
   const parsed = parseNavItems(raw)
-  return parsed.length ? parsed : cloneList(DEFAULT_NAV_ITEMS)
+  return parsed.length ? withAddedNavItems(parsed, storedRevision) : cloneList(DEFAULT_NAV_ITEMS)
 }
 
 export function communityPromptsFromSource(raw: unknown): CommunityPromptContent[] {

@@ -352,6 +352,7 @@ export type SiteIconKey =
   | 'yajman'
   | 'donate'
   | 'home'
+  | 'shop'
 
 export interface HomeTileContent {
   id: string
@@ -594,3 +595,103 @@ export interface MandirVisit {
   createdAt?: FirestoreTimestampLike
 }
 
+
+// ---------------------------------------------------------------------------
+// Shop — souvenir pre-orders. See the Shop section of PROJECT-MAP.md.
+// ---------------------------------------------------------------------------
+
+/** Adult and child sizes are priced differently; nothing else is. */
+export type ShopSizeGroup = 'adult' | 'child'
+
+export interface ShopSize {
+  label: string
+  group: ShopSizeGroup
+}
+
+export interface ShopProduct {
+  id: string
+  name: string
+  description: string
+  category: string
+  /** Download URLs, first one is the cover photo. */
+  images: string[]
+  /** Empty for a one-size item (a water bottle, a Lego set). */
+  sizes: ShopSize[]
+  /** Pence. The price of a one-size item, or of every adult size. */
+  price: number
+  /** Pence. Only meaningful when the product has child sizes. */
+  childPrice: number | null
+  /** The pre-order window. Either end may be open. */
+  opensAt: Date | null
+  closesAt: Date | null
+  /** Shown in the shop at all. A hidden product keeps its orders. */
+  active: boolean
+  order: number
+}
+
+export type ShopOrderStatus = 'awaiting_payment' | 'paid' | 'cancelled'
+
+export interface ShopOrderItem {
+  productId: string
+  name: string
+  category: string
+  size: string | null
+  group: ShopSizeGroup | null
+  /** Pence, as it was when the line was added. */
+  unitPrice: number
+  quantity: number
+  lineTotal: number
+}
+
+export interface ShopOrderHistoryEntry {
+  at: Date | null
+  byName: string
+  action: string
+  detail?: string
+}
+
+export interface ShopOrder {
+  /** Document ID and payment reference, e.g. BRSHOP-0042. */
+  id: string
+  reference: string
+  number: number
+  userId: string
+  customer: { name: string; email: string; phone: string }
+  note: string
+  items: ShopOrderItem[]
+  /** Pence. */
+  total: number
+  status: ShopOrderStatus
+  paidAt: Date | null
+  paidBy: string | null
+  termsVersion: string
+  createdAt: Date | null
+  updatedAt: Date | null
+  history: ShopOrderHistoryEntry[]
+}
+
+/** `shopSettings/main`. Blank copy fields fall back to `data/shop.ts`. */
+export interface ShopSettings {
+  bankAccountName: string
+  bankName: string
+  sortCode: string
+  accountNumber: string
+  intro: string
+  paymentInstructions: string
+  collectionInfo: string
+  terms: string
+}
+
+export interface ShopStaffRecord {
+  id: string
+  name: string
+  email: string
+  active: boolean
+}
+
+/** One line in the basket, before an order exists. */
+export interface ShopBasketLine {
+  productId: string
+  size: string | null
+  quantity: number
+}

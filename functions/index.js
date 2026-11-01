@@ -2269,3 +2269,192 @@ exports.syncNiyamChallengeTotals = onDocumentWritten(
     }
   }
 )
+
+// ---------------------------------------------------------------------------
+// Shop — souvenir pre-orders, paid outside the app.
+//
+// The browser cannot write an order (`shopOrders` create is `false` in
+// firestore.rules). It sends what it wants — product, size, quantity, contact
+// details — and this function prices every line from the product document,
+// checks each product's pre-order window and allocates the next BRSHOP-
+// reference in the same transaction. `data/shop.ts` holds the client side of
+// `shopReference` and `unitPriceFor` (here `shopUnitPrice`); keep them in step.
+// ---------------------------------------------------------------------------
+
+const SHOP_REFERENCE_PREFIX = 'BRSHOP-'
+const SHOP_MAX_LINES = 40
+const SHOP_MAX_QUANTITY = 99
+
+function shopReference(number) {
+  return `${SHOP_REFERENCE_PREFIX}${String(number).padStart(4, '0')}`
+}
+
+function shopUnitPrice(product, size) {
+  const sizes = Array.isArray(product.sizes) ? product.sizes : []
+  const match = sizes.find(item => item && item.label === size)
+  if (match && match.group === 'child' && Number.isInteger(product.childPrice)) return product.childPrice
+  return Number.isInteger(product.price) ? product.price : 0
+}
+
+function shopText(value, max, label, { required = false } = {}) {
+  const text = typeof value === 'string' ? value.trim() : ''
+  if (required && !text) throw new HttpsError('invalid-argument', `Please enter your ${label}.`)
+  if (text.length > max) throw new HttpsError('invalid-argument', `Your ${label} is too long.`)
+  return text
+}
+
+function readShopOrderInput(data) {
+  const name = shopText(data?.name, 80, 'name', { required: true })
+  const email = shopText(data?.email, 200, 'email address', { required: true })
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    throw new HttpsError('invalid-argument', 'Please enter a valid email address.')
+  }
+  const phone = shopText(data?.phone, 30, 'phone number', { required: true })
+  const digits = phone.replace(/\D/g, '')
+  if (digits.length < 10 || digits.length > 15 || !/^[+\d\s()-]+$/.test(phone)) {
+    throw new HttpsError('invalid-argument', 'Please enter a valid phone number.')
+  }
+  const note = shopText(data?.note, 500, 'note')
+  const termsVersion = shopText(data?.termsVersion, 60, 'terms version')
+  if (data?.acceptTerms !== true || !termsVersion) {
+    throw new HttpsError('invalid-argument', 'Please agree to the pre-order terms.')
+  }
+
+  const rawItems = Array.isArray(data?.items) ? data.items : []
+  if (!rawItems.length) throw new HttpsError('invalid-argument', 'Your basket is empty.')
+  if (rawItems.length > SHOP_MAX_LINES) throw new HttpsError('invalid-argument', 'Too many different items in one order.')
+
+  // Merge repeated lines so the same product and size is one row.
+  const merged = new Map()
+  for (const raw of rawItems) {
+    const productId = typeof raw?.productId === 'string' ? raw.productId : ''
+    const size = typeof raw?.size === 'string' && raw.size ? raw.size : null
+    const quantity = Number(raw?.quantity)
+    if (!productId || productId.includes('/') || !Number.isInteger(quantity) || quantity < 1) {
+      throw new HttpsError('invalid-argument', 'Something in your basket is not valid.')
+    }
+    const key = `${productId}::${size ?? ''}`
+    const line = merged.get(key) || { productId, size, quantity: 0 }
+    line.quantity += quantity
+    if (line.quantity > SHOP_MAX_QUANTITY) {
+      throw new HttpsError('invalid-argument', `Please order at most ${SHOP_MAX_QUANTITY} of one item.`)
+    }
+    merged.set(key, line)
+  }
+  return { name, email, phone, note, termsVersion, lines: [...merged.values()] }
+}
+
+exports.placeShopOrder = onCall(
+  { region: 'europe-west2', timeoutSeconds: 60 },
+  async (request) => {
+    const uid = request.auth?.uid
+    if (!uid) throw new HttpsError('unauthenticated', 'Please sign in to place an order.')
+    const input = readShopOrderInput(request.data)
+    const db = getFirestore()
+    const counterRef = db.doc('shopCounters/orders')
+    const productIds = [...new Set(input.lines.map(line => line.productId))]
+    const now = new Date()
+
+    const reference = await db.runTransaction(async (tx) => {
+      const counterSnap = await tx.get(counterRef)
+      const productSnaps = await tx.getAll(...productIds.map(id => db.doc(`shopProducts/${id}`)))
+      const products = new Map(productSnaps.map(snap => [snap.id, snap]))
+
+      const items = input.lines.map((line) => {
+        const snap = products.get(line.productId)
+        const product = snap && snap.exists ? snap.data() : null
+        if (!product || product.active !== true) {
+          throw new HttpsError('failed-precondition', 'One of the items in your basket is no longer available.')
+        }
+        const opensAt = product.opensAt?.toDate?.() || null
+        const closesAt = product.closesAt?.toDate?.() || null
+        if ((opensAt && now < opensAt) || (closesAt && now > closesAt)) {
+          throw new HttpsError('failed-precondition', `Pre-orders for ${product.name} are not open.`)
+        }
+        const sizes = Array.isArray(product.sizes) ? product.sizes.filter(size => size && size.label) : []
+        let group = null
+        if (sizes.length) {
+          const match = sizes.find(size => size.label === line.size)
+          if (!match) throw new HttpsError('invalid-argument', `Please choose a size for ${product.name}.`)
+          group = match.group === 'child' ? 'child' : 'adult'
+        } else if (line.size) {
+          throw new HttpsError('invalid-argument', `${product.name} does not come in sizes.`)
+        }
+        const unitPrice = shopUnitPrice(product, line.size)
+        return {
+          productId: line.productId,
+          name: String(product.name || ''),
+          category: String(product.category || ''),
+          size: sizes.length ? line.size : null,
+          group,
+          unitPrice,
+          quantity: line.quantity,
+          lineTotal: unitPrice * line.quantity
+        }
+      })
+
+      const last = counterSnap.exists ? Number(counterSnap.data().last) || 0 : 0
+      const number = last + 1
+      const ref = shopReference(number)
+      const orderRef = db.doc(`shopOrders/${ref}`)
+      const createdAt = FieldValue.serverTimestamp()
+      tx.set(counterRef, { last: number, updatedAt: createdAt }, { merge: true })
+      // `create` fails rather than overwrites if the reference somehow exists.
+      tx.create(orderRef, {
+        reference: ref,
+        number,
+        userId: uid,
+        customer: { name: input.name, email: input.email, phone: input.phone },
+        note: input.note,
+        items,
+        total: items.reduce((sum, item) => sum + item.lineTotal, 0),
+        status: 'awaiting_payment',
+        paidAt: null,
+        paidBy: null,
+        termsAccepted: true,
+        termsVersion: input.termsVersion,
+        createdAt,
+        updatedAt: createdAt,
+        history: [{ at: now, byName: input.name, action: 'Order placed' }]
+      })
+      return ref
+    })
+
+    logger.info('Shop order placed', { reference, uid, lines: input.lines.length })
+    return { reference }
+  }
+)
+
+/**
+ * Gives an account the shop and nothing else. Admins only — the shop team
+ * cannot add to itself. Looked up by email because nobody knows a UID; the
+ * person has to have signed up to Bhaktiras first.
+ */
+exports.grantShopAccess = onCall(
+  { region: 'europe-west2', timeoutSeconds: 30 },
+  async (request) => {
+    const adminUid = await requireAdmin(request)
+    const email = typeof request.data?.email === 'string' ? request.data.email.trim().toLowerCase() : ''
+    if (!email) throw new HttpsError('invalid-argument', 'Enter an email address.')
+    let user
+    try {
+      user = await getAuth().getUserByEmail(email)
+    } catch (error) {
+      if (error?.code === 'auth/user-not-found') {
+        throw new HttpsError('not-found', 'No Bhaktiras account uses that email. Ask them to sign up first, then try again.')
+      }
+      throw error
+    }
+    const name = (typeof request.data?.name === 'string' && request.data.name.trim().slice(0, 80))
+      || user.displayName
+      || email
+    await getFirestore().doc(`shopStaff/${user.uid}`).set({
+      name,
+      email,
+      active: true,
+      addedBy: adminUid,
+      createdAt: FieldValue.serverTimestamp()
+    }, { merge: true })
+    return { uid: user.uid, name, email }
+  }
+)

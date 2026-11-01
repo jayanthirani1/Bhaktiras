@@ -62,17 +62,22 @@ const error = ref('')
 const loading = ref(false)
 const googleLoading = ref(false)
 const { signIn, signInWithGoogle, signOut } = useAuth()
-const { refreshAdmin, isAdminUser } = useAdminAccess()
+const { refreshAdmin, isAdminUser, isShopUser } = useAdminAccess()
 
 async function enterIfAdmin() {
   await refreshAdmin()
-  if (!isAdminUser.value) {
-    await signOut()
-    error.value = 'This account is not an admin. Add admins/{your Auth UID} with name and active: true.'
-    return false
+  if (isAdminUser.value) {
+    await navigateTo('/admin')
+    return true
   }
-  await navigateTo('/admin')
-  return true
+  // The shop team signs in here too, and lands on the shop.
+  if (isShopUser.value) {
+    await navigateTo('/admin/shop')
+    return true
+  }
+  await signOut()
+  error.value = 'This account does not have admin or shop access. Ask an admin to add you.'
+  return false
 }
 
 async function onGoogle() {
