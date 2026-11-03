@@ -29,7 +29,12 @@ export class PlayRejected extends Error {}
 /** A Firestore document reduced to its id and fields, so this file needs no Firebase types. */
 export type PlainDoc = { id: string; data: Record<string, unknown> }
 
-export const MIN_PLAY_MS = { wordle: 3_000, connections: 5_000, 'mini-crossword': 5_000, 'one-percent': 3_000, 'ras-rani': 5_000, 'surya-chandra': 5_000 } as const
+/**
+ * The quickest believable clock for each game. Wordle's is per guess: the clock
+ * starts on the first letter, and a guess is five letters and Enter, so a
+ * player who opens with the answer can genuinely finish in about a second.
+ */
+export const MIN_PLAY_MS = { wordle: 1_000, connections: 5_000, 'mini-crossword': 5_000, 'one-percent': 3_000, 'ras-rani': 5_000, 'surya-chandra': 5_000 } as const
 
 // ---------------------------------------------------------------------------
 // Pickers: today's puzzle from the built-in banks and any admin overrides.

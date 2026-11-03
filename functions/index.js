@@ -1541,8 +1541,12 @@ function isBetterScoreRow(next, prev, { sort, rankBy }) {
 /** Replays one finished daily game against the day's puzzle and returns the row it earns. */
 async function replayDailyGame(db, game, dateId, data) {
   const V = await import('./shared/gameVerify.mjs')
-  const timeMs = intInRange(data?.timeMs, V.MIN_PLAY_MS[game], 86_400_000)
+  const timeMs = intInRange(data?.timeMs, 1, 86_400_000)
   if (timeMs == null) throw new HttpsError('invalid-argument', 'Time not recorded. Finish with the clock running to submit.')
+  const tooQuick = (floorMs) => {
+    if (timeMs < floorMs) throw new HttpsError('invalid-argument', 'That time is too quick to count on the leaderboard.')
+  }
+  tooQuick(V.MIN_PLAY_MS[game])
   const proof = data?.proof || {}
   const hintsUsed = intInRange(data?.hintsUsed ?? 0, 0, 500)
   const moves = intInRange(data?.moves ?? 0, 0, 5000)
@@ -1552,6 +1556,7 @@ async function replayDailyGame(db, game, dateId, data) {
       const scheduled = await db.doc(`wordleDaily/${dateId}`).get()
       const answer = V.pickWordleAnswer(dateId, scheduled.exists ? scheduled.data() : null)
       const { guesses } = V.replayWordle(answer, proof.guesses)
+      tooQuick(guesses * V.MIN_PLAY_MS.wordle)
       return { score: guesses, timeMs, detail: answer, verified: { guesses, timeMs } }
     }
     if (game === 'connections') {
