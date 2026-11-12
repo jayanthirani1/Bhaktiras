@@ -34,6 +34,7 @@ import {
   isPublished,
   mergeChallenges,
   GLOSS_MAX,
+  OFFLINE_USER_ID,
   mandirApprovedSabhasSinceLaunch,
   planAdminCheckinCredits,
   percentOf,
@@ -42,7 +43,6 @@ import {
   safeResourceUrl,
   sortChallenges,
   sortSubmissionsNewestFirst,
-  statusForAmount,
   statusKey,
   SUBMISSION_NOTE_MAX,
   userChallengeKey
@@ -152,7 +152,7 @@ function emptyStats(challengeId: string): NiyamChallengeStats {
  * which matters because the deploy service account cannot create them.
  */
 export function useAdminNiyamChallenges() {
-  const { user, userName } = useAuth()
+  const { user } = useAuth()
 
   const challenges = useAdminCollection<NiyamChallenge>('niyamChallenges')
 
@@ -538,19 +538,17 @@ export function useAdminNiyamChallenges() {
   }
 
   /**
-   * Record a count the mandir gathered on paper.
+   * Record an offline count — what the sangat did on paper, at sabha.
    *
-   * The rules only let a signed-in user create a submission under their own
-   * `userId`, so this is written under the admin's uid with an attributed
-   * `userName` and a note saying where the count came from. It gets no special
-   * treatment: `maxPerSubmission` still refuses anything larger, and
-   * `statusForAmount` still decides whether it counts at once or waits in the
-   * queue — which is why the caller is handed the status back.
+   * It is filed under `OFFLINE_USER_ID` rather than the admin's own account,
+   * so it joins the niyam's total (and its `offlineTotal`) without landing on
+   * anybody's leaderboard row or crown. The admin is the reviewer, so it is
+   * approved at once; `maxPerSubmission` still applies, to catch a stray zero.
    */
-  async function logMandirEntry(
+  async function logOfflineEntry(
     challenge: NiyamChallenge,
     input: { amount: number; name: string; note: string; dayKey?: string }
-  ): Promise<{ status: NiyamSubmissionStatus; amount: number; id: string }> {
+  ): Promise<{ amount: number; id: string }> {
     mandirError.value = ''
     const uid = user.value?.uid
     const db = getDb()
@@ -560,7 +558,7 @@ export function useAdminNiyamChallenges() {
     function refusalReason(): string {
       if (mandirSaving.value) return 'Still saving the last entry.'
       if (!db) return 'Firebase is not configured.'
-      if (!uid) return 'Sign in again — an entry has to sit under an account.'
+      if (!uid) return 'Sign in again as an admin.'
       if (!isPublished(challenge)) return 'Publish this niyam before adding to it.'
       if (!isChallengeOpen(challenge)) return 'This niyam is not open for entries.'
       if (amount < 1) return 'Enter how many to add.'
@@ -577,7 +575,6 @@ export function useAdminNiyamChallenges() {
     }
 
     const dayKey = input.dayKey || ukDateId()
-    const status = statusForAmount(challenge, amount)
     const id = buildSubmissionId(challenge.id)
     const note = input.note.trim().slice(0, SUBMISSION_NOTE_MAX)
 
@@ -585,18 +582,19 @@ export function useAdminNiyamChallenges() {
     try {
       await setDoc(doc(db, 'niyamSubmissions', id), {
         challengeId: challenge.id,
-        userId: uid,
-        userName: input.name.trim() ? safeMemberName(input.name) : safeMemberName(userName.value),
+        userId: OFFLINE_USER_ID,
+        userName: input.name.trim() ? safeMemberName(input.name) : 'Offline',
         amount,
         note: note || null,
-        status,
-        statusKey: statusKey(challenge.id, status),
-        userChallengeKey: userChallengeKey(uid, challenge.id),
+        status: 'approved',
+        statusKey: statusKey(challenge.id, 'approved'),
+        userChallengeKey: userChallengeKey(OFFLINE_USER_ID, challenge.id),
         dayKey,
+        offline: true,
         createdAt: serverTimestamp()
       })
       await refreshChallenge(challenge.id)
-      return { status, amount, id }
+      return { amount, id }
     } catch (e) {
       mandirError.value = (e as Error).message
       throw e
@@ -794,7 +792,7 @@ export function useAdminNiyamChallenges() {
     removeSubmission,
     publishDefault,
     publishAllDefaults,
-    logMandirEntry,
+    logOfflineEntry,
     creditCheckinsForDevotee,
     mandirSaving,
     mandirError,

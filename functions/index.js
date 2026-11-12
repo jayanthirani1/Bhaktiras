@@ -2268,9 +2268,18 @@ function readNiyamSubmission(snap) {
     userName: cleanText(data.userName, 32) || 'Devotee',
     dayKey: typeof data.dayKey === 'string' ? data.dayKey.trim() : '',
     amount,
-    status
+    status,
+    // Either marker is enough: an offline row must never become a contributor.
+    offline: data.offline === true || userId === NIYAM_OFFLINE_USER_ID
   }
 }
+
+/**
+ * Who offline entries are filed under: counts an admin types in from paper at
+ * sabha. They join the niyam's total but belong to no devotee, so they never
+ * reach the leaderboard or a crown.
+ */
+const NIYAM_OFFLINE_USER_ID = 'offline'
 
 /** How much of the per-day breakdown is kept. Two weeks covers "today" and "this week". */
 const NIYAM_DAILY_WINDOW_DAYS = 14
@@ -2372,8 +2381,12 @@ async function maybeNotifyNiyamMilestone(db, challengeId, prevTotal, newTotal) {
   })
 }
 
-async function applyNiyamDelta(db, { challengeId, userId, userName, dayKey }, delta) {
+async function applyNiyamDelta(db, { challengeId, userId, userName, dayKey, offline }, delta) {
   if (isEmptyNiyamDelta(delta)) return
+  if (offline) {
+    await applyOfflineNiyamDelta(db, { challengeId, dayKey }, delta)
+    return
+  }
   const statsRef = db.doc(`niyamChallengeStats/${challengeId}`)
   const contributorRef = db.doc(`niyamChallenges/${challengeId}/contributors/${userId}`)
 
@@ -2433,6 +2446,40 @@ async function applyNiyamDelta(db, { challengeId, userId, userName, dayKey }, de
   }
 }
 
+/**
+ * An offline entry moves the shared total, the day's total and the queue
+ * counts like any other, plus `offlineTotal` so the page can say how much of
+ * the total came in on paper. It has no contributor row and adds nobody to
+ * `participants`.
+ */
+async function applyOfflineNiyamDelta(db, { challengeId, dayKey }, delta) {
+  const statsRef = db.doc(`niyamChallengeStats/${challengeId}`)
+  let prevStatsApproved = 0
+  let nextStatsApproved = 0
+
+  await db.runTransaction(async (tx) => {
+    const stats = (await tx.get(statsRef)).data() || {}
+    prevStatsApproved = niyamCounters(stats.approvedTotal)
+    nextStatsApproved = Math.max(0, prevStatsApproved + delta.approvedTotal)
+    const dailyPatch = dailyTotalsPatch(stats.dailyTotals, dayKey, delta.approvedTotal)
+
+    tx.set(statsRef, {
+      challengeId,
+      approvedTotal: nextStatsApproved,
+      offlineTotal: Math.max(0, niyamCounters(stats.offlineTotal) + delta.approvedTotal),
+      pendingTotal: Math.max(0, niyamCounters(stats.pendingTotal) + delta.pendingTotal),
+      approvedCount: Math.max(0, niyamCounters(stats.approvedCount) + delta.approvedCount),
+      pendingCount: Math.max(0, niyamCounters(stats.pendingCount) + delta.pendingCount),
+      ...(Object.keys(dailyPatch).length ? { dailyTotals: dailyPatch } : {}),
+      updatedAt: FieldValue.serverTimestamp()
+    }, { merge: true })
+  })
+
+  if (delta.approvedTotal > 0) {
+    await maybeNotifyNiyamMilestone(db, challengeId, prevStatsApproved, nextStatsApproved)
+  }
+}
+
 exports.syncNiyamChallengeTotals = onDocumentWritten(
   { document: 'niyamSubmissions/{submissionId}', region: 'europe-west2' },
   async (event) => {
@@ -2442,7 +2489,9 @@ exports.syncNiyamChallengeTotals = onDocumentWritten(
 
     const db = getFirestore()
 
-    if (!before && event.data?.after) {
+    // Offline counts are an admin copying a paper sheet, not a devotee tapping,
+    // so the per-person spam limits do not apply to them.
+    if (!before && event.data?.after && !after?.offline) {
       const mandirRejected = await rejectMandirCheckinSpam(db, event.params.submissionId, event.data.after)
       if (mandirRejected) return
       const doubleTapRejected = await rejectNiyamDoubleTap(db, event.params.submissionId, event.data.after)

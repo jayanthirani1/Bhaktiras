@@ -605,7 +605,7 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly([
              'challengeId', 'userId', 'userName', 'amount', 'note',
              'status', 'statusKey', 'userChallengeKey', 'dayKey', 'createdAt',
-             'checkinSlot', 'adminCredited'
+             'checkinSlot', 'adminCredited', 'offline'
            ])
         && request.resource.data.keys().hasAll([
              'challengeId', 'userId', 'userName', 'amount',
@@ -634,9 +634,15 @@ service cloud.firestore {
         && isOpen(challenge())
         && request.resource.data.status == (
              (('inputMode' in challenge()) && challenge().inputMode == 'checkin')
+               || request.resource.data.get('offline', false) == true
                ? 'approved'
                : (request.resource.data.amount <= autoApproveMax(challenge()) ? 'approved' : 'pending')
            )
+        // Offline counts, copied in by an admin from paper, sit under the one
+        // `offline` id and nowhere else. They join the niyam's total but have
+        // no contributor row, so they never reach the leaderboard or a crown.
+        && (request.resource.data.get('offline', false) == true) == (request.resource.data.userId == 'offline')
+        && (request.resource.data.get('offline', false) == false || request.resource.data.offline == true)
         && (
              !('checkinSlot' in request.resource.data)
              || (
@@ -652,6 +658,12 @@ service cloud.firestore {
                && !('adminCredited' in request.resource.data)
              )
              || (
+               // Offline count, approved at once: the admin is the reviewer.
+               isAdmin()
+               && request.resource.data.userId == 'offline'
+               && !('adminCredited' in request.resource.data)
+             )
+             || (
                // Admin correction: credit a check-in (or count) to another devotee.
                isAdmin()
                && request.resource.data.adminCredited == true
@@ -662,14 +674,15 @@ service cloud.firestore {
 
       // Only an admin decides what counts. Identity, amount, day and the
       // challenge it belongs to are immutable — a review changes the verdict,
-      // never the claim. `adminCredited` is set at create and must not move.
+      // never the claim. `adminCredited` and `offline` are set at create and must not move.
       allow update: if isAdmin()
         && request.resource.data.keys().hasOnly([
              'challengeId', 'userId', 'userName', 'amount', 'note',
              'status', 'statusKey', 'userChallengeKey', 'dayKey', 'createdAt',
-             'checkinSlot', 'adminCredited', 'reviewedAt', 'reviewedBy', 'reviewNote',
+             'checkinSlot', 'adminCredited', 'offline', 'reviewedAt', 'reviewedBy', 'reviewNote',
              'spamRejected'
            ])
+        && request.resource.data.get('offline', false) == resource.data.get('offline', false)
         && request.resource.data.challengeId == resource.data.challengeId
         && request.resource.data.userId == resource.data.userId
         && request.resource.data.userChallengeKey == resource.data.userChallengeKey

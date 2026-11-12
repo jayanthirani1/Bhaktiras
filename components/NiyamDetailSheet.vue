@@ -51,6 +51,12 @@
       <p class="mt-2 text-xs text-[hsl(var(--muted-foreground))]">
         {{ percentLabel(stats.approvedTotal, challenge.target) }} of the way, counting only entries that have been confirmed.
       </p>
+      <p v-if="offlineTotal > 0" class="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
+        <span class="font-semibold text-[hsl(var(--foreground))]">
+          Includes {{ formatCount(offlineTotal) }} {{ unitLabel(challenge, offlineTotal) }} counted offline.
+        </span>
+        {{ copy('offlineNote') }}
+      </p>
 
       <dl class="mt-5 grid grid-cols-3 gap-2 text-center">
         <div class="rounded-xl bg-[hsl(var(--muted))]/60 px-2 py-3">
@@ -226,6 +232,7 @@ const needsSignIn = computed(() => challengeOpen.value && !props.isLoggedIn)
 const showRing = computed(() => !!props.challenge && iconFor(props.challenge) === 'mala')
 const EMPTY_WINDOW = { startMs: 0, endMs: 0, hasStarted: true, hasEnded: false, daysLeft: 0, totalDays: 0 }
 const range = computed(() => (props.challenge ? challengeWindow(props.challenge) : EMPTY_WINDOW))
+const offlineTotal = computed(() => Math.max(0, props.stats.offlineTotal || 0))
 const milestone = computed(() =>
   milestoneFor(props.stats.approvedTotal, props.challenge?.target || 0)
 )

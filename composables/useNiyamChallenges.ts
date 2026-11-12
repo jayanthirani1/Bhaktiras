@@ -32,6 +32,7 @@ import {
   niyamDoubleTapMessage,
   niyamSubmitCooldown,
   NIYAM_DOUBLE_TAP_MS,
+  OFFLINE_USER_ID,
   mergeChallenges,
   GLOSS_MAX,
   RESOURCE_LABEL_MAX,
@@ -198,6 +199,7 @@ export function mapStats(id: string, data: Record<string, unknown> | undefined):
     approvedCount: Math.max(0, Number(data.approvedCount) || 0),
     pendingCount: Math.max(0, Number(data.pendingCount) || 0),
     participants: Math.max(0, Number(data.participants) || 0),
+    offlineTotal: Math.max(0, Number(data.offlineTotal) || 0),
     updatedAt: data.updatedAt as NiyamChallengeStats['updatedAt']
   }
 }
@@ -219,6 +221,7 @@ export function mapSubmission(id: string, data: Record<string, unknown>): NiyamS
     dayKey: String(data.dayKey || ''),
     checkinSlot,
     adminCredited: data.adminCredited === true,
+    offline: data.offline === true,
     createdAt: data.createdAt as NiyamSubmission['createdAt'],
     reviewedAt: (data.reviewedAt as NiyamSubmission['reviewedAt']) ?? null,
     reviewedBy: (data.reviewedBy as string | null) ?? null,
@@ -336,7 +339,8 @@ export function useNiyamChallenges() {
         ...topContributors.value,
         [challengeId]: snap.docs
           .map(d => mapContributor(d.id, d.data()))
-          .filter(row => row.approvedTotal > 0)
+          // Offline counts belong to nobody, so they never sit on the board or hold the crown.
+          .filter(row => row.approvedTotal > 0 && row.userId !== OFFLINE_USER_ID)
       }
     } catch {
       topContributors.value = { ...topContributors.value, [challengeId]: [] }
@@ -592,21 +596,26 @@ export function useNiyamChallenges() {
       return
     }
     if (!publishedChallenges.value.length) return
-    // One equality filter per challenge on the composite `userChallengeKey`.
-    // Filtering on userId and challengeId separately would need a composite
-    // index, and the deploy service account is not allowed to create those.
+    // One query per challenge on the composite `userChallengeKey`. The `userId`
+    // filter is what the security rules check: Firestore refuses a query unless
+    // its filters prove every result is readable, and it cannot see the uid
+    // inside `userChallengeKey`, so without it every non-admin got nothing.
+    // Equality filters alone need no composite index.
     // Newest-first via inverted ids in the document key (see buildSubmissionId).
     const results = await Promise.all(
       publishedChallenges.value.map(async (c) => {
         try {
           const snap = await getDocs(query(
             collection(db, 'niyamSubmissions'),
+            where('userId', '==', uid),
             where('userChallengeKey', '==', userChallengeKey(uid, c.id)),
             // Document ids embed an inverted timestamp, so default id order is newest-first.
             limit(inputModeFor(c) === 'checkin' ? 800 : MY_SUBMISSION_LIMIT)
           ))
           return snap.docs.map(d => mapSubmission(d.id, d.data()))
-        } catch {
+        } catch (e) {
+          // An empty list still renders, so say why somewhere it can be found.
+          console.warn(`Could not load your entries for ${c.id}`, e)
           return [] as NiyamSubmission[]
         }
       })
