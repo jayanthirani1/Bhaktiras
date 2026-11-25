@@ -32,23 +32,27 @@
           :to="item.href"
           :target="item.external ? '_blank' : undefined"
           :rel="item.external ? 'noopener noreferrer' : undefined"
-          class="flex min-w-0 flex-1 flex-col items-center justify-center space-y-0.5 rounded-xl p-2 transition-colors"
-          :class="isActive(item.href) ? 'text-[#FDC500]' : 'text-[hsl(var(--muted-foreground))] hover:text-[#FDC500] active:text-[#FDC500]'"
+          class="group flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-xl px-1 py-1.5 transition-colors"
+          :class="isActive(item.href) ? tabActiveClass : tabIdleClass"
           @click="closeDrawer(); haarTrail.tap(item.href)"
         >
-          <component :is="item.icon" class="h-5 w-5 shrink-0" />
-          <span class="truncate text-[10px] font-medium">{{ item.label }}</span>
+          <span class="flex h-7 w-12 items-center justify-center rounded-full transition-colors" :class="isActive(item.href) ? tabPillActiveClass : tabPillIdleClass">
+            <component :is="item.icon" class="h-5 w-5 shrink-0" />
+          </span>
+          <span class="truncate text-[11px] leading-none">{{ item.label }}</span>
         </NuxtLink>
         <button
           type="button"
-          class="flex min-w-0 flex-1 flex-col items-center justify-center space-y-0.5 rounded-xl p-2 transition-colors"
-          :class="drawerOpen || drawerHoldsRoute ? 'text-[#FDC500]' : 'text-[hsl(var(--muted-foreground))] hover:text-[#FDC500] active:text-[#FDC500]'"
+          class="group flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-xl px-1 py-1.5 transition-colors"
+          :class="drawerOpen || drawerHoldsRoute ? tabActiveClass : tabIdleClass"
           aria-label="Open more navigation"
           :aria-expanded="drawerOpen"
           @click="drawerOpen = !drawerOpen"
         >
-          <IconLayoutGrid class="h-5 w-5 shrink-0" />
-          <span class="truncate text-[10px] font-medium">More</span>
+          <span class="flex h-7 w-12 items-center justify-center rounded-full transition-colors" :class="drawerOpen || drawerHoldsRoute ? tabPillActiveClass : tabPillIdleClass">
+            <IconLayoutGrid class="h-5 w-5 shrink-0" />
+          </span>
+          <span class="truncate text-[11px] leading-none">More</span>
         </button>
       </div>
     </div>
@@ -179,6 +183,16 @@ const haarTrail = useHaarTrailTrigger()
 const drawerOpen = ref(false)
 const sheetOffset = ref(0)
 const isGamePage = computed(() => isGamePagePath(route.path))
+
+/**
+ * Tab bar states. The active tab used to be #FDC500 text on white, which
+ * measures 1.6:1 — you could hardly tell which tab you were on. Purple text
+ * carries the meaning now, and the gold stays as a soft pill behind the icon.
+ */
+const tabActiveClass = 'font-semibold text-[hsl(var(--primary))]'
+const tabIdleClass = 'font-medium text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--primary))]'
+const tabPillActiveClass = 'bg-[hsl(var(--golden-100))]'
+const tabPillIdleClass = 'group-active:bg-[hsl(var(--muted))]'
 const navItems = computed(() => managedNavItems.value.map(item => ({
   ...item,
   icon: SITE_ICON_COMPONENTS[item.icon]

@@ -124,7 +124,20 @@ export function usePlayCompletionStore() {
 }
 
 /** Per-game guard so a game finished on another device cannot be replayed. */
-export function useDailyGameCompletion(slug: PlayGameSlug) {
+/**
+ * Today's completion for one game. A missed day (`archive`) is practice: it never
+ * reads as played elsewhere and records nothing, so streaks and prompts stay today's.
+ */
+export function useDailyGameCompletion(slug: PlayGameSlug, options: { archive?: boolean } = {}) {
+  if (options.archive) {
+    return {
+      playedElsewhere: computed(() => false),
+      result: computed<PlayCompletionEntry | null>(() => null),
+      ready: ref(true),
+      markDone: async (_meta: PlayCompletionEntry = {}) => {},
+      backfill: (_getMeta: () => PlayCompletionEntry) => {}
+    }
+  }
   const auth = useAuth()
   const { request: requestPushPrompt } = usePushPrompt()
   const { request: requestInstallPrompt } = useInstallPrompt()

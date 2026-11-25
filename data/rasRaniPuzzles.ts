@@ -317,13 +317,27 @@ export const RAS_RANI_PUZZLES: RasRaniPuzzle[] = [
   }
 ]
 
+function dayOrdinal(dateId: string): number | null {
+  const [year, month, day] = dateId.split('-').map(Number)
+  if (!year || !month || !day) return null
+  return Math.floor(Date.UTC(year, month - 1, day) / 86_400_000)
+}
+
 /** Cycles Easy → Medium → Difficult by UK calendar day. */
 export function rasRaniDifficultyForDate(dateId: string): RasRaniDifficulty {
-  const [year, month, day] = dateId.split('-').map(Number)
-  if (!year || !month || !day) return 'easy'
-  const ordinal = Math.floor(Date.UTC(year, month - 1, day) / 86_400_000)
+  const ordinal = dayOrdinal(dateId)
+  if (ordinal == null) return 'easy'
   return RAS_RANI_DIFFICULTY_ORDER[((ordinal % 3) + 3) % 3]
 }
+
+/**
+ * First UK day picked by tier rotation. Earlier days keep the old string-hash
+ * pick so past and in-progress days (missed-day play, server score checks)
+ * rebuild the same puzzle. That hash is congruent mod 3 to the date's digit
+ * sum, so with three Easy puzzles every Easy day in a month got the same one.
+ * Must be later than the deploy day: the site and functions ship together.
+ */
+export const RAS_RANI_ROTATION_FROM = '2026-11-01'
 
 export function getRasRaniPuzzleForDate(dateId: string, bank: RasRaniPuzzle[] = RAS_RANI_PUZZLES): RasRaniPuzzle {
   const scheduled = bank.find(p => p.dateId === dateId && p.published !== false)
@@ -335,6 +349,12 @@ export function getRasRaniPuzzleForDate(dateId: string, bank: RasRaniPuzzle[] = 
   const difficulty = rasRaniDifficultyForDate(dateId)
   const pool = published.filter(p => (p.difficulty || inferRasRaniDifficulty(p.gridSize)) === difficulty)
   const choices = pool.length ? pool : published
+
+  const ordinal = dayOrdinal(dateId)
+  if (ordinal != null && dateId >= RAS_RANI_ROTATION_FROM) {
+    // Each tier comes round every third day; step one puzzle along its pool each time.
+    return choices[Math.floor(ordinal / 3) % choices.length]
+  }
 
   const seed = [...dateId].reduce((sum, ch) => (sum * 31 + ch.charCodeAt(0)) >>> 0, 2166136261)
   return choices[seed % choices.length]

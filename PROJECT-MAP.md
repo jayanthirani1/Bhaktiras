@@ -48,7 +48,8 @@ Requires the **Blaze** plan (Functions + Storage).
 **Shop** (hidden until switched on) — `/shop`, `/shop/basket`, `/shop/orders/[reference]`
 
 **Games** — `/play` plus `wordle`, `crossword`, `mini-crossword`, `connections`,
-`one-percent`, `achievements`, `streaks`
+`one-percent`, `ras-rani`, `surya-chandra`, `lanka-leap`, `achievements`, `streaks`.
+The six daily puzzles also take `?day=YYYY-MM-DD` for a missed day in the last week.
 
 **Admin** — `/admin` plus `auth`, `timeline`, `events`, `niyam-challenges`, `yajman`,
 `notifications`, `legal`, `bugs`, `content/{index,homepage,community,navigation,seva,sections}`,
@@ -169,13 +170,20 @@ waiting), one-tap publishing of the defaults, a **Section copy** panel (`AdminNi
 holding every front-end string listed above, the editor with a live preview of the
 devotee card, and per-challenge entries, filters and per-person totals.
 
-It also has "log on behalf of the mandir", for counts gathered on paper at sabha. The
-rules only let a signed-in user create a submission under their **own** `userId`, so this
-writes under the admin's uid with an attributed `userName` ("Mandir sabha") and a note.
-It needs no rules change and gets no special treatment — the same ceiling and the same
-auto-approve rule apply. The wrinkle to know: those counts and that admin's personal
-counts share one contributor rollup, so their per-person total mixes the two. Separating
-them properly would need a rules change allowing a synthetic account.
+It also has **offline counts**, for what was counted on paper at sabha. They are filed
+under the one synthetic `userId` `offline` (`OFFLINE_USER_ID`) with `offline: true`, which
+the rules allow only for an admin, and only together. They are approved at once (the admin
+is the reviewer), still capped by `maxPerSubmission`, and skip the per-person spam checks.
+The trigger adds them to `approvedTotal`, the day's total and a separate `offlineTotal`,
+which the detail sheet shows as "Includes N counted offline". They get **no contributor
+row**, so they never reach the leaderboard, the crown or `participants`. Entries made by the
+older "on behalf of the mandir" tool were written under an admin's own uid and still sit on
+that admin's contributor row; to move one off the board, delete it and add it again as an
+offline count.
+
+Each niyam has an **all-time crown**: whoever holds the highest counted total, which is the
+top of its leaderboard (ties share it). It is read from the same contributor query, so it
+needs no extra storage, and it shows on the detail sheet above the top five.
 
 The integrity model is worth knowing before changing anything here:
 
@@ -205,12 +213,33 @@ console, that rule and the legacy branch in `useAccountPrivacy` can go too.
 Utsav sponsorship opportunities with amounts and contact links, admin-managed.
 
 ### Games
-Four daily games — **Wordle, Mini Crossword, 1% Club, Connections** —
-with active-play timers that pause when you leave the game and resume when you return,
-daily leaderboards, cross-device
+Six daily puzzles — **Wordle, Crossword, 1% Club, Connections, Surya Chandra, Ras Rani** —
+and **Lanka Leap**, a flying game unlocked by Daily Darshan, with active-play timers that
+pause when you leave the game and resume when you return, daily leaderboards, cross-device
 completion tracking (`playCompletions`), daily visit streaks, an achievements system, and
-all-time "crowns" for record holders. Achievements and crowns are awarded server-side by
-Cloud Functions. Puzzle content is admin-editable per game, with static fallbacks.
+all-time "crowns" for record holders. Puzzle content is admin-editable per game, with
+static fallbacks.
+
+**Scores are checked on the server.** `utils/gameVerify.ts` picks each day's puzzle (the
+pages use it) and replays a finished play against it. `scripts/buildFunctionsShared.mjs`
+bundles it into `functions/shared/gameVerify.mjs` before every functions deploy, so the
+`submitGameScore` callable rebuilds exactly the puzzle the player saw, scores the guesses,
+groups, answers or grid itself, and writes the `gameScores` row; browsers cannot write
+rows. `processGameAchievements` then takes its numbers from that row. Lanka Leap is
+replayed the same way from its leap ticks (`functions/shared/lankaLeap.mjs`). Times cannot
+be replayed (the clock pauses in the background), so they stay the browser's, with a floor.
+
+**Missed days.** `/play` lists the last seven days; each puzzle opens a past day with
+`?day=` (`usePlayDay`). A missed day keeps its own progress and never reaches the
+leaderboard, crowns or streaks.
+
+**Sound and sharing.** `useGameSound` plays short Web Audio effects and vibration in every
+game, behind one mute (`GameSoundToggle`). `useShareResult` shares a spoiler-free result
+through the phone's share sheet, or copies it.
+
+**Offline.** The generated service worker (`scripts/writeFirebaseMessagingSw.mjs`) also
+caches hashed build files and game images, and serves the last good copy of a page when
+the network is down. Pages always try the network first.
 
 ### The Haar Trail (escape room)
 Puzzle 7 of the escape room, not linked from anywhere. **Four quick taps on Seva in the

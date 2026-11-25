@@ -52,6 +52,13 @@ export function statusKey(challengeId: string, status: NiyamSubmissionStatus): s
   return `${challengeId}__${status}`
 }
 
+/**
+ * Who offline entries are filed under: counts an admin copies in from paper.
+ * They join a niyam's total but belong to no devotee, so the trigger gives them
+ * no contributor row and they never reach the leaderboard or the crown.
+ */
+export const OFFLINE_USER_ID = 'offline'
+
 export function userChallengeKey(userId: string, challengeId: string): string {
   return `${userId}__${challengeId}`
 }

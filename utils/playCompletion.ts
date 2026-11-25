@@ -9,6 +9,16 @@ export type PlayGameSlug =
   | 'ras-rani'
   | 'lanka-leap'
 
+/** The puzzles that reset each day. Lanka Leap is all-time, so it is not one. */
+export const DAILY_PLAY_GAMES: PlayGameSlug[] = [
+  'wordle',
+  'mini-crossword',
+  'one-percent',
+  'connections',
+  'surya-chandra',
+  'ras-rani'
+]
+
 export interface PlayCompletionEntry {
   /** Game-specific headline number (guesses, cleared rungs, words found). */
   score?: number

@@ -1,6 +1,6 @@
 <template>
   <div class="min-h-screen pb-28 md:pb-16">
-    <section class="relative overflow-hidden px-4 pt-8 pb-10 md:pt-14 md:pb-16">
+    <section class="relative overflow-hidden px-4 pt-6 pb-8 md:pt-14 md:pb-12">
       <div class="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[hsl(var(--golden-300))] to-transparent" />
       <div class="pointer-events-none absolute -top-32 left-1/2 h-64 w-64 -translate-x-1/2 rounded-full bg-[hsl(var(--golden-100))]/70 blur-3xl" />
 
@@ -8,7 +8,7 @@
         <p class="reveal text-[11px] font-semibold uppercase tracking-[0.28em] text-[hsl(var(--golden-900))]">
           {{ greeting || 'Jay Swaminarayan' }}
         </p>
-        <div class="reveal reveal-delay-1 mt-6 md:mt-8">
+        <div class="reveal reveal-delay-1 mt-4 md:mt-8">
           <BhaktirasLogo size="lg" animate />
         </div>
 
@@ -17,7 +17,7 @@
         </p>
 
         <ClientOnly>
-          <div class="reveal reveal-delay-2 mt-8 w-full max-w-lg">
+          <div class="reveal reveal-delay-2 mt-6 w-full max-w-lg md:mt-8">
             <p v-if="countdown.isLive.value" class="text-sm font-semibold uppercase tracking-[0.2em] text-red-600">
               Live now · {{ SITE.patotsavLabel }}
             </p>
@@ -44,11 +44,16 @@
         </ClientOnly>
 
         <!-- Hidden along with the Seva section itself, so the hero never points at a gate. -->
-        <NuxtLink v-if="isSectionVisible('seva')" to="/seva" class="reveal reveal-delay-3 mt-8">
-          <button class="btn-primary text-sm md:text-base">Join the seva</button>
+        <!-- One link, no button inside it: a button nested in a link is two
+             controls to a screen reader. The span keeps the reveal animation
+             off the element that lifts on hover. -->
+        <NuxtLink v-if="isSectionVisible('seva')" to="/seva" class="reveal reveal-delay-3 mt-8 rounded-full">
+          <span class="btn-primary text-sm md:text-base">Join the seva</span>
         </NuxtLink>
       </div>
     </section>
+
+    <HomeToday class="mb-10 md:mb-12" />
 
     <section class="mx-auto max-w-2xl px-4">
       <div class="card-surface p-6 sm:p-8 text-center">

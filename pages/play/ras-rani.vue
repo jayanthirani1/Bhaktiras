@@ -1,28 +1,23 @@
 <template>
   <div class="min-h-screen bg-[hsl(var(--background))] px-3 pb-24 pt-0 md:px-4 md:pt-12">
     <div class="mx-auto max-w-2xl">
-      <div class="sticky top-0 z-40 -mx-3 mb-4 flex items-center gap-2 border-b border-[hsl(var(--border))] bg-[hsl(var(--background))]/95 px-3 py-2 backdrop-blur md:top-16 md:-mx-4 md:px-4">
-        <NuxtLink to="/play" class="rounded-full bg-[hsl(var(--muted))] px-3 py-1.5 text-sm font-medium text-[hsl(var(--muted-foreground))]">
-          ‹ Back
-        </NuxtLink>
-        <span class="rounded-full bg-[hsl(var(--muted))] px-3 py-1 text-sm font-semibold tabular-nums text-[hsl(var(--primary))]">
-          ⏱ {{ timer.display.value }}
-        </span>
-        <div v-if="!playedElsewhere && !loading && !finished && !howto.showIntro.value" class="ml-auto flex gap-2">
-          <button type="button" class="rounded-full border border-[hsl(var(--border))] px-3 py-1.5 text-sm font-semibold" @click="clearGrid">Clear</button>
-          <button type="button" class="rounded-full border border-[hsl(var(--border))] px-3 py-1.5 text-sm font-semibold" @click="useHint">Hint</button>
-        </div>
-      </div>
+      <GameTopBar class="-mx-3 px-3 md:-mx-4 md:px-4" :timer="timer.display.value">
+        <template v-if="!playedElsewhere && !loading && !finished && !howto.showIntro.value">
+          <button type="button" class="game-bar-pill tap-target border border-[hsl(var(--border))] bg-white text-[hsl(var(--primary))]" @click="clearGrid">Clear</button>
+          <button type="button" class="game-bar-pill tap-target border border-[hsl(var(--border))] bg-white text-[hsl(var(--primary))]" @click="useHint">Hint</button>
+        </template>
+      </GameTopBar>
 
-      <PageHeader title="Ras Rani" subtitle="Place one nectar drop in every row, column and colour. No two can touch — not even diagonally.">
+      <PageHeader title="Ras Rani" subtitle="Place one nectar drop in every row, column and colour. No two can touch — not even diagonally." compact-on-mobile>
         <RasRaniTitle honey />
       </PageHeader>
+      <GameMissedDayBanner v-if="playDay.isArchive" :label="playDay.label" path="/play/ras-rani" />
 
       <p
         v-if="!playedElsewhere && !loading"
         class="mb-4 text-center text-xs font-bold uppercase tracking-[0.16em] text-amber-800"
       >
-        Today · {{ difficultyLabel }} · {{ puzzle.gridSize }}×{{ puzzle.gridSize }}
+        {{ playDay.isArchive ? playDay.label : 'Today' }} · {{ difficultyLabel }} · {{ puzzle.gridSize }}×{{ puzzle.gridSize }}
       </p>
 
       <GamePlayedElsewhere
@@ -145,7 +140,7 @@
               {{ shareCopied ? 'Copied!' : 'Share result' }}
             </button>
             <button
-              v-if="isLoggedIn && !scoreSubmitted"
+              v-if="!playDay.isArchive && isLoggedIn && !scoreSubmitted"
               type="button"
               class="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
               :disabled="submitting"
@@ -153,14 +148,14 @@
             >
               {{ submitting ? 'Submitting…' : 'Submit to leaderboard' }}
             </button>
-            <NuxtLink v-else-if="!isLoggedIn" to="/login?redirect=/play/ras-rani" class="self-center text-sm font-semibold text-[hsl(var(--primary))] underline">
+            <NuxtLink v-else-if="!playDay.isArchive && !isLoggedIn" to="/login?redirect=/play/ras-rani" class="self-center text-sm font-semibold text-[hsl(var(--primary))] underline">
               Sign in to submit your result
             </NuxtLink>
           </div>
           <p v-if="submitError" class="text-sm text-red-600">{{ submitError }}</p>
         </div>
 
-        <GameCrowns :ids="crownIds" />
+        <GameCrowns v-if="!playDay.isArchive" :ids="crownIds" />
 
         <GameHowTo>
           <ol class="list-decimal space-y-3 pl-5">
@@ -178,6 +173,7 @@
         </GameHowTo>
 
         <GameLeaderboard
+          v-if="!playDay.isArchive"
           :entries="entries"
           :loading="boardLoading"
           :date-id="dateId"
@@ -191,7 +187,6 @@
 </template>
 
 <script setup lang="ts">
-import { ukDateId } from '~/utils/gameDay'
 import { formatElapsed } from '~/composables/useGameTimer'
 import { getRegionColor, inferRasRaniDifficulty } from '~/data/rasRaniPuzzles'
 import {
@@ -206,13 +201,16 @@ import {
   type CellState
 } from '~/utils/rasRani'
 
-const STORAGE_KEY = `ras-rani-v3:${ukDateId()}`
-const { puzzle, loading, difficultyLabel } = useRasRaniPuzzle()
-const timer = useGameTimer(`ras-rani-timer:${ukDateId()}`)
+definePageMeta({ key: route => route.fullPath })
+
+const playDay = usePlayDay()
+const STORAGE_KEY = `ras-rani-v3:${playDay.dateId}`
+const { puzzle, loading, difficultyLabel } = useRasRaniPuzzle(playDay.dateId)
+const timer = useGameTimer(`ras-rani-timer:${playDay.dateId}`)
 const howto = useHowToPlay('ras-rani', ['ras-rani', 'ras-rani-v3:', 'ras-rani-timer:'])
 const auth = useAuth()
 const isLoggedIn = computed(() => !!auth.user.value)
-const { playedElsewhere, result: elsewhereResult, markDone } = useDailyGameCompletion('ras-rani')
+const { playedElsewhere, result: elsewhereResult, markDone } = useDailyGameCompletion('ras-rani', { archive: playDay.isArchive })
 const { entries, loading: boardLoading, dateId, submitScore } = useGameLeaderboard('ras-rani', { sort: 'asc', rankBy: 'timeMs' })
 const achievements = useAchievements()
 
@@ -228,7 +226,8 @@ const moves = ref(0)
 const hintsUsed = ref(0)
 const feedback = ref('')
 const feedbackOk = ref(false)
-const shareCopied = ref(false)
+const sound = useGameSound()
+const { share, shareCopied } = useShareResult()
 const scoreSubmitted = ref(false)
 const submitting = ref(false)
 const submitError = ref('')
@@ -238,6 +237,12 @@ const cellRefs = ref<(HTMLElement | null)[]>([])
 const queenCount = computed(() => getQueenPositions(grid.value).length)
 const highlightCells = computed(() => violationHighlightCells(grid.value, puzzle.value))
 const hasViolation = computed(() => hasViolations(grid.value, puzzle.value))
+watch(() => hasViolation.value, (bad, was) => {
+  if (bad && !was && !finished.value) {
+    sound.play('wrong')
+    sound.buzz([30, 50, 30])
+  }
+})
 const finished = computed(() => isPuzzleSolved(grid.value, puzzle.value))
 
 function cellAria(row: number, col: number) {
@@ -325,6 +330,7 @@ function toggleCell(row: number, col: number) {
   if (next === 'queen') {
     triggerNectarAnimation(row, col)
   }
+  sound.play(next === 'queen' ? 'select' : 'tap')
 
   moves.value += 1
   saveState()
@@ -357,6 +363,7 @@ function useHint() {
   }
 
   hintsUsed.value += 1
+  sound.play('hint')
   timer.addPenalty(10000)
 
   if (hint.type === 'error') {
@@ -379,6 +386,8 @@ function useHint() {
 
 function finishGame() {
   timer.stop()
+  sound.play('solve')
+  sound.buzz([20, 40, 20, 40, 60])
   saveState()
   void markDone({
     score: moves.value,
@@ -401,12 +410,7 @@ function shareResult() {
     '',
     shareUrl ? `Find the nectar: ${shareUrl}` : ''
   ].join('\n').trimEnd()
-  if (navigator.clipboard?.writeText) {
-    navigator.clipboard.writeText(text).then(() => {
-      shareCopied.value = true
-      setTimeout(() => { shareCopied.value = false }, 2000)
-    })
-  }
+  void share(text)
 }
 
 function formatBoardScore(entry: { score?: number; timeMs?: number; detail?: string }) {
@@ -416,18 +420,19 @@ function formatBoardScore(entry: { score?: number; timeMs?: number; detail?: str
 }
 
 async function submitToLeaderboard() {
+  if (playDay.isArchive) return
   if (!auth.user.value || scoreSubmitted.value || submitting.value || !finished.value) return
   submitting.value = true
   submitError.value = ''
   const userName = auth.user.value.displayName || auth.user.value.email?.split('@')[0] || 'Player'
   try {
     await submitScore({
-      score: timer.elapsedMs.value,
       timeMs: timer.elapsedMs.value,
-      detail: `${moves.value} moves · ${hintsUsed.value} hints`,
+      proof: { drops: getQueenPositions(grid.value) },
+      moves: moves.value,
+      hintsUsed: hintsUsed.value,
       userId: auth.user.value.uid,
-      userName,
-      userEmail: auth.user.value.email || undefined
+      userName
     })
     scoreSubmitted.value = true
     saveState()

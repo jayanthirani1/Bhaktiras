@@ -527,31 +527,36 @@
             </p>
           </div>
 
-          <!-- ── Logging on behalf of the mandir ─────────────────── -->
+          <!-- ── Offline counts ───────────────────────────────────── -->
           <div
-            v-if="editingId && editingPublished && form.inputMode !== 'checkin'"
+            v-if="editingId && editingPublished"
             class="border-t border-[hsl(var(--border))] pt-5"
           >
             <h3 class="font-display text-lg font-semibold text-[hsl(var(--primary))]">
-              Add a count on behalf of the mandir
+              Add an offline count
             </h3>
             <p class="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
-              For what the sangat did together — the collective Janmangal, a sheet of counts gathered
-              at sabha. It is written as an ordinary entry under <strong>your own admin account</strong>,
-              because an entry can only be created under the account making it; the name below is what
-              everyone will see against it. The niyam's hard limit and auto-approve figure apply exactly
-              as they do to anyone else, so a large count will be held for review — yours to approve, in
-              the queue above.
+              For what was done away from the app — the collective Janmangal, a sheet of counts gathered
+              at sabha. It joins the niyam's total straight away and is shown to everyone as the
+              <strong>offline count</strong>, but it belongs to no devotee: it never appears on the
+              leaderboard or counts towards the crown. The niyam's hard limit of
+              {{ formatCount(form.maxPerSubmission) }} per entry still applies.
             </p>
-            <form class="mt-3 space-y-3" @submit.prevent="onLogMandir">
+            <p class="mt-2 text-sm text-[hsl(var(--foreground))]">
+              Offline so far:
+              <span class="font-semibold text-[hsl(var(--primary))]">
+                {{ formatCount(stats?.offlineTotal || 0) }} {{ unitLabel(previewChallenge, stats?.offlineTotal || 0) }}
+              </span>
+            </p>
+            <form class="mt-3 space-y-3" @submit.prevent="onLogOffline">
               <div class="grid gap-3 sm:grid-cols-2">
                 <div>
-                  <label :for="`${uid}-mandir-amount`" class="admin-label">
+                  <label :for="`${uid}-offline-amount`" class="admin-label">
                     How many {{ form.unit }}?
                   </label>
                   <input
-                    :id="`${uid}-mandir-amount`"
-                    v-model.number="mandir.amount"
+                    :id="`${uid}-offline-amount`"
+                    v-model.number="offline.amount"
                     type="number"
                     inputmode="numeric"
                     min="1"
@@ -561,27 +566,27 @@
                   >
                 </div>
                 <div>
-                  <label :for="`${uid}-mandir-day`" class="admin-label">Day it was done</label>
-                  <input :id="`${uid}-mandir-day`" v-model="mandir.dayKey" type="date" class="admin-input">
+                  <label :for="`${uid}-offline-day`" class="admin-label">Day it was done</label>
+                  <input :id="`${uid}-offline-day`" v-model="offline.dayKey" type="date" class="admin-input">
                 </div>
               </div>
               <div class="grid gap-3 sm:grid-cols-2">
                 <div>
-                  <label :for="`${uid}-mandir-name`" class="admin-label">Shown as (max 32 characters)</label>
+                  <label :for="`${uid}-offline-name`" class="admin-label">Label in the entries list (max 32 characters)</label>
                   <input
-                    :id="`${uid}-mandir-name`"
-                    v-model="mandir.name"
+                    :id="`${uid}-offline-name`"
+                    v-model="offline.name"
                     type="text"
                     :maxlength="SUBMISSION_NAME_MAX"
                     class="admin-input"
-                    placeholder="Mandir sabha"
+                    placeholder="Offline"
                   >
                 </div>
                 <div>
-                  <label :for="`${uid}-mandir-note`" class="admin-label">Where the count came from</label>
+                  <label :for="`${uid}-offline-note`" class="admin-label">Where the count came from</label>
                   <input
-                    :id="`${uid}-mandir-note`"
-                    v-model="mandir.note"
+                    :id="`${uid}-offline-note`"
+                    v-model="offline.note"
                     type="text"
                     :maxlength="SUBMISSION_NOTE_MAX"
                     class="admin-input"
@@ -590,11 +595,11 @@
                 </div>
               </div>
               <p class="text-xs text-[hsl(var(--muted-foreground))]">
-                {{ mandirOutlook }}
+                {{ offlineOutlook }}
               </p>
               <div class="flex flex-wrap items-center gap-2">
                 <button type="submit" class="admin-btn min-h-[44px]" :disabled="mandirSaving || !isChallengeOpen(previewChallenge)">
-                  {{ mandirSaving ? 'Adding…' : 'Add to this niyam' }}
+                  {{ mandirSaving ? 'Adding…' : 'Add offline count' }}
                 </button>
                 <span v-if="!isChallengeOpen(previewChallenge)" class="text-xs text-amber-800">
                   This niyam is not open, so no entry can be created against it.
@@ -603,21 +608,10 @@
             </form>
             <p v-if="mandirError" class="mt-2 text-sm text-red-600">{{ mandirError }}</p>
             <p
-              v-else-if="mandirResult"
-              class="mt-2 rounded-lg px-3 py-2 text-sm"
-              :class="mandirResult.held
-                ? 'bg-amber-50 text-amber-800'
-                : 'bg-[hsl(var(--golden-50))] text-[hsl(var(--primary))]'"
+              v-else-if="offlineResult"
+              class="mt-2 rounded-lg bg-[hsl(var(--golden-50))] px-3 py-2 text-sm text-[hsl(var(--primary))]"
             >
-              {{ mandirResult.message }}
-              <button
-                v-if="mandirResult.held"
-                type="button"
-                class="font-semibold underline underline-offset-2"
-                @click="goToQueue(editingId || '')"
-              >
-                Approve it in the queue
-              </button>
+              {{ offlineResult }}
             </p>
           </div>
 
@@ -671,6 +665,10 @@
                   <tr v-for="entry in filtered" :key="entry.id">
                     <td class="py-2 pr-3">
                       <span class="font-semibold text-[hsl(var(--foreground))]">{{ entry.userName }}</span>
+                      <span
+                        v-if="entry.offline"
+                        class="ml-1.5 rounded-full bg-[hsl(var(--golden-50))] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[hsl(var(--golden-900))]"
+                      >Offline</span>
                       <span v-if="entry.note" class="block text-xs text-[hsl(var(--muted-foreground))]">{{ entry.note }}</span>
                       <span v-if="entry.reviewNote" class="block text-xs text-red-700">{{ entry.reviewNote }}</span>
                       <span v-if="entry.status === 'pending'" class="block text-xs text-[hsl(var(--muted-foreground))]">
@@ -827,7 +825,6 @@ import {
   formatCount,
   GLOSS_MAX,
   isChallengeOpen,
-  needsReview,
   NIYAM_GLOSS_BY_ICON,
   RESOURCE_LABEL_MAX,
   RESOURCE_URL_MAX,
@@ -876,7 +873,7 @@ const {
   removeSubmission,
   publishDefault,
   publishAllDefaults,
-  logMandirEntry,
+  logOfflineEntry,
   creditCheckinsForDevotee,
   mandirSaving,
   mandirError,
@@ -951,13 +948,13 @@ watch(() => form.resourceUrl, (url) => {
   if (safeResourceUrl(url)) form.resourceDocumentId = ''
 })
 
-const mandir = reactive({
+const offline = reactive({
   amount: '' as number | string,
-  name: 'Mandir sabha',
+  name: 'Offline',
   note: '',
   dayKey: ''
 })
-const mandirResult = ref<{ held: boolean; message: string } | null>(null)
+const offlineResult = ref('')
 
 const credit = reactive({
   userId: '',
@@ -977,7 +974,7 @@ const creditPeople = computed(() => {
     })
   }
   for (const entry of submissions.value) {
-    if (!entry.userId || byId.has(entry.userId)) continue
+    if (!entry.userId || entry.offline || byId.has(entry.userId)) continue
     byId.set(entry.userId, {
       userId: entry.userId,
       userName: entry.userName,
@@ -1073,17 +1070,15 @@ const previewChallenge = computed<NiyamChallenge>(() => ({
   icon: form.icon
 }))
 
-/** Says up front whether this mandir entry will count or wait for approval. */
-const mandirOutlook = computed(() => {
-  const amount = Math.floor(Number(mandir.amount) || 0)
+/** Says up front what this offline entry will do, or why it will be refused. */
+const offlineOutlook = computed(() => {
+  const amount = Math.floor(Number(offline.amount) || 0)
   const unit = unitLabel(previewChallenge.value, amount || 2)
-  if (amount < 1) return `Recorded as “${mandir.name.trim() || 'Mandir sabha'}”, with your account behind it.`
+  if (amount < 1) return 'Counts towards the total straight away, and towards nobody on the leaderboard.'
   if (amount > previewChallenge.value.maxPerSubmission) {
     return `Over the hard limit of ${formatCount(previewChallenge.value.maxPerSubmission)} ${unit} — Firestore will refuse it. Split it across entries.`
   }
-  return needsReview(previewChallenge.value, amount)
-    ? `${formatCount(amount)} ${unit} is above the auto-approve figure, so it will be held and you will need to approve it in the queue.`
-    : `${formatCount(amount)} ${unit} counts towards the total straight away.`
+  return `${formatCount(amount)} ${unit} will join the total and the offline count straight away.`
 })
 
 /** The last few days the Cloud Function has rolled up, when it has written any. */
@@ -1150,11 +1145,11 @@ function listChipClass(challenge: NiyamChallenge) {
 }
 
 function resetMandirForm() {
-  mandir.amount = ''
-  mandir.name = 'Mandir sabha'
-  mandir.note = ''
-  mandir.dayKey = ukDateId()
-  mandirResult.value = null
+  offline.amount = ''
+  offline.name = 'Offline'
+  offline.note = ''
+  offline.dayKey = ukDateId()
+  offlineResult.value = ''
   mandirError.value = ''
   credit.userId = ''
   credit.userName = ''
@@ -1373,29 +1368,20 @@ async function onPublishAll() {
   }
 }
 
-async function onLogMandir() {
+async function onLogOffline() {
   const challenge = allChallenges.value.find(c => c.id === editingId.value)
   if (!challenge) return
-  mandirResult.value = null
+  offlineResult.value = ''
   try {
-    const result = await logMandirEntry(challenge, {
-      amount: Number(mandir.amount) || 0,
-      name: mandir.name,
-      note: mandir.note,
-      dayKey: mandir.dayKey || ukDateId()
+    const result = await logOfflineEntry(challenge, {
+      amount: Number(offline.amount) || 0,
+      name: offline.name,
+      note: offline.note,
+      dayKey: offline.dayKey || ukDateId()
     })
-    const unit = unitLabel(challenge, result.amount)
-    mandirResult.value = result.status === 'pending'
-      ? {
-          held: true,
-          message: `${formatCount(result.amount)} ${unit} recorded as “${mandir.name.trim() || 'Mandir sabha'}” and held for review — it is over the auto-approve figure, so it is not in the total yet.`
-        }
-      : {
-          held: false,
-          message: `${formatCount(result.amount)} ${unit} added to the total as “${mandir.name.trim() || 'Mandir sabha'}”.`
-        }
-    mandir.amount = ''
-    mandir.note = ''
+    offlineResult.value = `${formatCount(result.amount)} ${unitLabel(challenge, result.amount)} added to the total as an offline count.`
+    offline.amount = ''
+    offline.note = ''
   } catch {
     /* mandirError is already set by the composable */
   }

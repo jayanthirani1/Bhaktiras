@@ -1,28 +1,21 @@
 <template>
   <div class="min-h-screen bg-[hsl(var(--background))] pb-[calc(16.5rem+env(safe-area-inset-bottom))] pt-0 md:pb-24 md:pt-12 px-3 sm:px-4">
     <div class="mx-auto max-w-3xl">
-      <!-- Top bar: pinned so Back and Check stay reachable while scrolling -->
-      <div class="sticky top-0 z-40 -mx-3 mb-3 flex items-center justify-between gap-2 border-b border-[hsl(var(--border))] bg-[hsl(var(--background))]/95 px-3 py-2 backdrop-blur sm:-mx-4 sm:px-4 md:top-16 md:mb-6">
-        <NuxtLink
-          to="/play"
-          class="inline-flex items-center gap-1.5 rounded-full bg-[hsl(var(--muted))] px-3 py-1.5 text-sm font-medium text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]"
-        >
-          ‹ Back
-        </NuxtLink>
-        <div class="flex items-center gap-2 text-sm font-semibold text-[hsl(var(--primary))]">
-          <span class="rounded-full bg-[hsl(var(--muted))] px-3 py-1 tabular-nums">⏱ {{ timerDisplay }}</span>
-          <span v-if="solved" class="rounded-full bg-emerald-50 px-3 py-1 text-emerald-700">Solved</span>
-        </div>
+      <!-- Check sits in the bar on desktop only: phones have Check answers above the keyboard. -->
+      <GameTopBar class="-mx-3 !mb-3 px-3 sm:-mx-4 sm:px-4 md:!mb-6" :timer="timerDisplay">
+        <template #status>
+          <span v-if="solved" class="game-bar-pill bg-emerald-50 text-emerald-700">Solved</span>
+        </template>
         <button
           v-if="!playedElsewhere"
           type="button"
-          class="rounded-full bg-[hsl(var(--primary))] px-4 py-2 text-sm font-bold text-white shadow-lg shadow-[hsl(var(--primary))]/20 disabled:opacity-40"
+          class="game-bar-pill tap-target hidden bg-[hsl(var(--primary))] px-4 font-bold text-white disabled:opacity-40 md:inline-flex"
           :disabled="!layout || solved || howto.showIntro.value"
           @click="checkAnswers"
         >
           ✓ Check
         </button>
-      </div>
+      </GameTopBar>
 
       <div class="mb-4 hidden md:block">
         <PageHeader
@@ -30,6 +23,7 @@
           subtitle="A quick grid — race the clock. Your timer pauses if you leave and picks up when you return."
         />
       </div>
+      <GameMissedDayBanner v-if="playDay.isArchive" :label="playDay.label" path="/play/crossword" />
       <h1 class="mb-3 text-center font-display text-xl font-semibold text-[hsl(var(--primary))] md:hidden">
         {{ active?.title || 'Crossword' }}
       </h1>
@@ -120,8 +114,12 @@
 
           <div v-if="solved" class="mt-4 space-y-3 text-center">
             <p class="text-sm font-semibold text-emerald-700">Finished in {{ timerDisplay }}</p>
+            <button type="button" class="mr-2 rounded-xl bg-[hsl(var(--primary))] px-4 py-2 text-sm font-semibold text-white" @click="shareResult">
+              {{ shareCopied ? 'Copied!' : 'Share result' }}
+            </button>
+            <p v-if="playDay.isArchive" class="text-sm text-emerald-700">A missed day, played for fun.</p>
             <button
-              v-if="freshSolveThisSession && isLoggedIn && !scoreSubmitted"
+              v-else-if="freshSolveThisSession && isLoggedIn && !scoreSubmitted"
               type="button"
               class="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-50"
               :disabled="submitting"
@@ -142,7 +140,6 @@
           </div>
 
           <div class="mt-4 hidden flex-wrap gap-2 md:flex">
-            <button type="button" class="btn-primary text-sm" :disabled="solved" @click="checkAnswers">Check</button>
             <button
               type="button"
               class="inline-flex items-center gap-1.5 rounded-xl bg-amber-100 px-4 py-2 text-sm font-semibold text-amber-900 hover:bg-amber-200 disabled:opacity-40"
@@ -218,8 +215,9 @@
       </div>
 
       <div class="mt-10">
-        <GameCrowns :ids="['crossword-fastest', 'crossword-fewest-hints']" />
+        <GameCrowns v-if="!playDay.isArchive" :ids="['crossword-fastest', 'crossword-fewest-hints']" />
         <GameLeaderboard
+          v-if="!playDay.isArchive"
           :entries="entries"
           :loading="boardLoading"
           :date-id="dateId"
@@ -294,13 +292,15 @@
 <script setup lang="ts">
 import { IconEye, IconHelp } from '@tabler/icons-vue'
 import { cellKey, layoutAnyCrossword, type LaidWord } from '~/utils/crosswordLayout'
-import { ukDateId } from '~/utils/gameDay'
 import { formatElapsed, formatElapsedForLeaderboard } from '~/composables/useGameTimer'
 import { isPlayDoneLocally, readLocalPlayCompletion } from '~/utils/playCompletion'
 
-const STATE_KEY = `mini-crossword:${ukDateId()}`
+definePageMeta({ key: route => route.fullPath })
 
-const { puzzles, loading } = useMiniCrosswordPuzzles()
+const playDay = usePlayDay()
+const STATE_KEY = `mini-crossword:${playDay.dateId}`
+
+const { puzzles, loading } = useMiniCrosswordPuzzles(playDay.dateId)
 const auth = useAuth()
 const achievements = useAchievements()
 const isLoggedIn = computed(() => !!auth.user.value)
@@ -312,7 +312,7 @@ const {
   refetch
 } = useGameLeaderboard('mini-crossword', { sort: 'asc' })
 
-const timer = useGameTimer(`mini-crossword-timer:${ukDateId()}`)
+const timer = useGameTimer(`mini-crossword-timer:${playDay.dateId}`)
 const howto = useHowToPlay('mini-crossword', ['mini-crossword:', 'mini-crossword-timer:'])
 const timerDisplay = computed(() => timer.display.value)
 const {
@@ -320,7 +320,7 @@ const {
   result: elsewhereResult,
   markDone,
   backfill
-} = useDailyGameCompletion('mini-crossword')
+} = useDailyGameCompletion('mini-crossword', { archive: playDay.isArchive })
 
 const elsewhereSummary = computed(() =>
   elsewhereResult.value?.timeMs != null ? `solved in ${formatElapsed(elsewhereResult.value.timeMs)}` : ''
@@ -342,6 +342,8 @@ const hintsUsed = ref(0)
 const freshSolveThisSession = ref(false)
 /** Restore finished for today's puzzle; do not start the clock before this. */
 const stateHydrated = ref(false)
+const sound = useGameSound()
+const { share, shareCopied } = useShareResult()
 
 const active = computed(() => puzzles.value.find(p => p.id === activeId.value) || puzzles.value[0] || null)
 const layout = computed(() => active.value ? layoutAnyCrossword(active.value) : null)
@@ -452,7 +454,7 @@ function fillSolutionGuesses() {
 function resolveSavedTimeMs(data?: { timeMs?: unknown } | null): number {
   const fromState = Number(data?.timeMs)
   if (Number.isFinite(fromState) && fromState >= 5_000) return Math.trunc(fromState)
-  const fromDone = Number(readLocalPlayCompletion('mini-crossword')?.timeMs)
+  const fromDone = playDay.isArchive ? NaN : Number(readLocalPlayCompletion('mini-crossword')?.timeMs)
   if (Number.isFinite(fromDone) && fromDone >= 5_000) return Math.trunc(fromDone)
   const fromTimer = timer.elapsedMs.value
   if (fromTimer >= 5_000) return fromTimer
@@ -473,7 +475,7 @@ function hydrateSolvedClock(data?: { timeMs?: unknown } | null) {
 function restore() {
   try {
     const raw = localStorage.getItem(STATE_KEY)
-    const doneToday = isPlayDoneLocally('mini-crossword')
+    const doneToday = !playDay.isArchive && isPlayDoneLocally('mini-crossword')
     if (!raw) {
       if (doneToday && puzzles.value[0]) {
         activeId.value = puzzles.value[0].id
@@ -613,6 +615,8 @@ function maybeComplete() {
   freshSolveThisSession.value = true
   timer.stop()
   persist()
+  sound.play('solve')
+  sound.buzz([20, 40, 20, 40, 60])
   void markDone({ timeMs: timer.elapsedMs.value, detail: 'Solved' })
 }
 
@@ -647,6 +651,7 @@ function revealLetter() {
   activeCol.value = target.col
   checked.value = false
   hintsUsed.value += 1
+  sound.play('hint')
   timer.addPenalty(5_000)
   persist()
   maybeComplete()
@@ -660,6 +665,7 @@ function revealWord() {
   })
   checked.value = false
   hintsUsed.value += 1
+  sound.play('hint')
   timer.addPenalty(20_000)
   persist()
   maybeComplete()
@@ -670,6 +676,7 @@ function typeLetter(letter: string) {
   if (!layout.value?.letters[activeRow.value]?.[activeCol.value]) return
   timer.ensureStarted()
   guesses[cellKey(activeRow.value, activeCol.value)] = letter.toUpperCase()
+  sound.play('tap')
   checked.value = false
   persist()
   moveInWord(1)
@@ -695,6 +702,31 @@ function checkAnswers() {
   if (playedElsewhere.value) return
   checked.value = true
   maybeComplete()
+  if (!solved.value) sound.play(correctCount.value === layout.value?.words.length ? 'correct' : 'wrong')
+}
+
+/** The grid’s shape only, never its letters, so the result can be shared without spoiling it. */
+function shareResult() {
+  const l = layout.value
+  if (!l) return
+  const rows = l.letters.map(row => row.map(cell => (cell ? '🟨' : '⬛')))
+  const used = (line: string[]) => line.some(cell => cell === '🟨')
+  const top = rows.findIndex(used)
+  const bottom = rows.length - 1 - [...rows].reverse().findIndex(used)
+  const cols = rows[0]?.map((_, c) => rows.map(row => row[c]!)) ?? []
+  const left = cols.findIndex(used)
+  const right = cols.length - 1 - [...cols].reverse().findIndex(used)
+  const grid = rows.slice(top, bottom + 1).map(row => row.slice(left, right + 1).join('')).join('\n')
+  const shareUrl = typeof window !== 'undefined' ? `${window.location.origin}/play/crossword` : ''
+  const text = [
+    'Bhaktiras Crossword',
+    `${timerDisplay.value} · ${hintsUsed.value === 0 ? 'no hints' : `${hintsUsed.value} hint${hintsUsed.value === 1 ? '' : 's'}`}`,
+    '',
+    grid,
+    '',
+    shareUrl ? `Race the clock: ${shareUrl}` : ''
+  ].join('\n').trimEnd()
+  void share(text)
 }
 
 function clearGuesses() {
@@ -725,6 +757,7 @@ function select(id: string) {
 }
 
 async function submitToLeaderboard() {
+  if (playDay.isArchive) return
   if (!auth.user.value || !solved.value || scoreSubmitted.value || submitting.value) return
   // Revisits of an already-finished puzzle must not publish a new clock reading.
   if (!freshSolveThisSession.value) {
@@ -743,12 +776,11 @@ async function submitToLeaderboard() {
   try {
     const userName = auth.userName.value || auth.userEmail.value || 'Player'
     await submitScore({
-      score: Math.max(1, Math.ceil(ms / 1000)),
       timeMs: ms,
+      proof: { letters: { ...guesses } },
+      hintsUsed: hintsUsed.value,
       userName,
-      userId: auth.user.value.uid,
-      userEmail: auth.userEmail.value || undefined,
-      detail: active.value?.title || 'crossword'
+      userId: auth.user.value.uid
     })
     try {
       await achievements.processResult('crossword', {

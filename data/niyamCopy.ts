@@ -41,8 +41,12 @@ export const DEFAULT_NIYAM_COPY = {
   myEntriesNote: 'Your last five entries, private to you. Removing one takes it back out of the total.',
   myEntriesEmpty: 'Nothing yet. Whatever you add appears here, and you can remove any of it.',
   removeConfirm: 'Remove this entry?',
+  offlineNote: 'Counted on paper at sabha. It is in the total, but on nobody\'s leaderboard row.',
   leaderboardTitle: 'Top contributors',
-  leaderboardEmpty: 'No entries yet — be the first on the board.'
+  leaderboardEmpty: 'No entries yet — be the first on the board.',
+  crownTitle: 'All-time crown',
+  crownHint: 'The highest total counted so far. Pass it to take the crown.',
+  crownUnclaimed: 'Unclaimed — the first counted entry takes it.'
 } satisfies NiyamCopyContent
 
 export type NiyamCopyKey = keyof typeof DEFAULT_NIYAM_COPY
@@ -143,6 +147,13 @@ export const NIYAM_COPY_FIELDS: NiyamCopyField[] = [
     help: 'The question asked before an entry is actually removed.'
   },
   {
+    key: 'offlineNote',
+    group: 'sheet',
+    label: 'Offline count — note',
+    help: 'Under the offline count on the detail sheet, once an admin has added one.',
+    multiline: true
+  },
+  {
     key: 'leaderboardTitle',
     group: 'leaderboard',
     label: 'Leaderboard heading',
@@ -154,13 +165,33 @@ export const NIYAM_COPY_FIELDS: NiyamCopyField[] = [
     label: 'Leaderboard — nobody yet',
     help: 'Shown while no one has a counted entry.',
     multiline: true
+  },
+  {
+    key: 'crownTitle',
+    group: 'leaderboard',
+    label: 'Crown heading',
+    help: 'Above the name of whoever holds the niyam\'s all-time crown.'
+  },
+  {
+    key: 'crownHint',
+    group: 'leaderboard',
+    label: 'Crown — how to take it',
+    help: 'Under the crown holder. Offline counts never count towards it.',
+    multiline: true
+  },
+  {
+    key: 'crownUnclaimed',
+    group: 'leaderboard',
+    label: 'Crown — nobody yet',
+    help: 'Shown while no one has a counted entry.',
+    multiline: true
   }
 ]
 
 export const NIYAM_COPY_GROUPS: { id: NiyamCopyField['group']; label: string; help: string }[] = [
   { id: 'page', label: 'The niyams page', help: 'Heading, hint and the states before any niyam is open.' },
   { id: 'sheet', label: 'The sheets that open over it', help: 'Logging an entry, and the detail view behind it.' },
-  { id: 'leaderboard', label: 'Top contributors', help: 'The public five on each niyam\'s detail sheet.' }
+  { id: 'leaderboard', label: 'Top contributors and crown', help: 'The public five and the all-time crown on each niyam\'s detail sheet.' }
 ]
 
 /** Longest a single line of section copy can be, in the editor and on write. */

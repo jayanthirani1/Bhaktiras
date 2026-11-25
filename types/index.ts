@@ -297,6 +297,8 @@ export interface NiyamSubmission {
   checkinSlot?: MandirCheckinSlot | null
   /** Set when an admin credited this entry to the devotee (missed auto check-in, etc.). */
   adminCredited?: boolean
+  /** A count an admin copied in from paper, filed under `OFFLINE_USER_ID`. In the total, never on the leaderboard. */
+  offline?: boolean
 }
 
 /**
@@ -318,6 +320,8 @@ export interface NiyamChallengeStats {
    * is the number that visibly does. Absent until the trigger has written once.
    */
   dailyTotals?: Record<string, number>
+  /** How much of `approvedTotal` came from offline entries, which belong to no devotee. */
+  offlineTotal?: number
   updatedAt?: FirestoreTimestampLike
 }
 

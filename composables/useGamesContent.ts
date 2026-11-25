@@ -1,20 +1,16 @@
 import { collection, doc, getDoc, getDocs, type Firestore } from 'firebase/firestore'
 import type { ConnectionsPuzzle, CrosswordPuzzle, GameWordEntry, OnePercentQuestion, WordleWordDoc } from '~/types'
-import { DEFAULT_MINI_CROSSWORD } from '~/data/miniCrossword'
-import { DEFAULT_CONNECTIONS_PUZZLES } from '~/data/connectionsPuzzles'
-import {
-  onePercentPackForDate,
-  withShuffledOptions,
-  type OnePercentPack
-} from '~/data/onePercentClub'
+import type { OnePercentPack } from '~/data/onePercentClub'
 import { ukDateId } from '~/utils/gameDay'
 import { wordleDateId } from '~/utils/wordleDaily'
+import { mergeGameWords } from '~/utils/gameWordBank'
 import {
-  createFittedDailyCrossword,
-  gameTargetsForAnswer,
-  mergeGameWords,
-  normalizeGameWord
-} from '~/utils/gameWordBank'
+  mapCustomGameWords as mapCustomWordDocs,
+  pickConnectionsPuzzle,
+  pickDailyCrossword,
+  pickOnePercent,
+  type PlainDoc
+} from '~/utils/gameVerify'
 
 function getDb(): Firestore | null {
   if (import.meta.server) return null
@@ -22,21 +18,11 @@ function getDb(): Firestore | null {
 }
 
 function mapCustomGameWords(snap: Awaited<ReturnType<typeof getDocs>>): GameWordEntry[] {
-  return snap.docs.map((item) => {
-    const data = item.data() as Record<string, unknown>
-    const answer = normalizeGameWord(String(data.answer || data.display || ''))
-    const replaces = normalizeGameWord(String(data.replaces || ''))
-    return {
-      id: item.id,
-      answer,
-      display: String(data.display || answer).trim(),
-      clue: String(data.clue || '').trim(),
-      category: String(data.category || 'custom').trim() || 'custom',
-      source: replaces ? 'Edited' : 'Custom',
-      games: gameTargetsForAnswer(answer),
-      ...(replaces ? { replaces } : {})
-    }
-  }).filter(entry => entry.answer.length >= 3 && entry.answer.length <= 24 && entry.clue)
+  return mapCustomWordDocs(plainDocs(snap))
+}
+
+function plainDocs(snap: Awaited<ReturnType<typeof getDocs>>): PlainDoc[] {
+  return snap.docs.map(item => ({ id: item.id, data: item.data() as Record<string, unknown> }))
 }
 
 export async function fetchMergedGameWords(): Promise<GameWordEntry[]> {
@@ -46,8 +32,8 @@ export async function fetchMergedGameWords(): Promise<GameWordEntry[]> {
   return mergeGameWords(mapCustomGameWords(snap))
 }
 
-export function useMiniCrosswordPuzzles() {
-  const today = wordleDateId()
+export function useMiniCrosswordPuzzles(dateId = wordleDateId()) {
+  const today = dateId
   // Stay empty until the final daily puzzle is chosen. Seeding a static-bank
   // grid first caused restore() to see a signature mismatch and wipe progress
   // when the Firestore word-bank puzzle replaced it.
@@ -56,32 +42,18 @@ export function useMiniCrosswordPuzzles() {
 
   onMounted(async () => {
     try {
-      const fallback = createFittedDailyCrossword(today) || { ...DEFAULT_MINI_CROSSWORD }
       const db = getDb()
       if (!db) {
-        puzzles.value = [fallback]
+        puzzles.value = [pickDailyCrossword(today)]
         return
       }
       const [snap, wordSnap] = await Promise.all([
         getDocs(collection(db, 'miniCrosswordPuzzles')),
         getDocs(collection(db, 'gameWords'))
       ])
-      const remote = snap.docs.map(d => ({ id: d.id, ...d.data() } as CrosswordPuzzle))
-        .filter(p => p.title && p.clues?.length)
-      const customDaily = createFittedDailyCrossword(
-        today,
-        mergeGameWords(mapCustomGameWords(wordSnap))
-      )
-      const overrideId = `daily-${today}`
-      const override = remote.find(p => p.id === overrideId)
       // The generated puzzle is the only player-facing crossword. Admin-authored
       // puzzles and the built-in fallback remain if generation has too few words.
-      puzzles.value = [
-        override
-        || customDaily
-        || remote[0]
-        || fallback
-      ]
+      puzzles.value = [pickDailyCrossword(today, plainDocs(snap), plainDocs(wordSnap))]
     } finally {
       loading.value = false
     }
@@ -90,11 +62,10 @@ export function useMiniCrosswordPuzzles() {
   return { puzzles, loading }
 }
 
-export function useOnePercentQuestions() {
-  const dateId = ukDateId()
-  const fallback = onePercentPackForDate(dateId)
-  const pack = ref<OnePercentPack>(fallback)
-  const questions = ref<OnePercentQuestion[]>(fallback.questions.map(q => withShuffledOptions(q, dateId)))
+export function useOnePercentQuestions(dateId = ukDateId()) {
+  const fallback = pickOnePercent(dateId)
+  const pack = ref<OnePercentPack>(fallback.pack)
+  const questions = ref<OnePercentQuestion[]>(fallback.questions)
   const loading = ref(true)
 
   onMounted(async () => {
@@ -102,24 +73,9 @@ export function useOnePercentQuestions() {
       const db = getDb()
       if (!db) return
       const snap = await getDocs(collection(db, 'onePercentQuestions'))
-      const remote = snap.docs.map(d => ({ id: d.id, ...d.data() } as OnePercentQuestion))
-        .filter(q => q.question && q.options?.length && q.correctAnswer && q.percent != null)
-      const todayExact = remote
-        .filter(q => q.dateId === dateId || q.packId === `daily-${dateId}`)
-        .sort((a, b) => (b.percent - a.percent) || (a.order ?? 0) - (b.order ?? 0))
-      const packOverride = remote
-        .filter(q => q.packId === fallback.id)
-        .sort((a, b) => (b.percent - a.percent) || (a.order ?? 0) - (b.order ?? 0))
-      const chosen = todayExact.length >= 4 ? todayExact : packOverride.length >= 4 ? packOverride : fallback.questions
-      if (todayExact.length >= 4) {
-        pack.value = {
-          ...fallback,
-          id: `daily-${dateId}`,
-          title: 'Today’s Vachnamrut ladder',
-          questions: todayExact
-        }
-      }
-      questions.value = chosen.map(q => withShuffledOptions(q, dateId))
+      const chosen = pickOnePercent(dateId, plainDocs(snap))
+      pack.value = chosen.pack
+      questions.value = chosen.questions
     } finally {
       loading.value = false
     }
@@ -128,11 +84,8 @@ export function useOnePercentQuestions() {
   return { questions, pack, dateId, loading }
 }
 
-export function useConnectionsPuzzle() {
-  const dateId = ukDateId()
-  const dateSeed = [...dateId].reduce((hash, char) => (hash * 31 + char.charCodeAt(0)) >>> 0, 2166136261)
-  const fallbackIndex = dateSeed % DEFAULT_CONNECTIONS_PUZZLES.length
-  const puzzle = ref<ConnectionsPuzzle>(DEFAULT_CONNECTIONS_PUZZLES[fallbackIndex])
+export function useConnectionsPuzzle(dateId = ukDateId()) {
+  const puzzle = ref<ConnectionsPuzzle>(pickConnectionsPuzzle(dateId))
   const loading = ref(true)
 
   onMounted(async () => {
@@ -140,18 +93,7 @@ export function useConnectionsPuzzle() {
       const db = getDb()
       if (!db) return
       const snap = await getDocs(collection(db, 'connectionsPuzzles'))
-      const remote = snap.docs
-        .map(d => ({ id: d.id, ...d.data() } as ConnectionsPuzzle))
-        .filter(item =>
-          item.published !== false
-          && item.groups?.length === 4
-          && item.groups.every(group => group.title && group.words?.length === 4)
-        )
-      const exact = remote.find(item => item.id === `daily-${dateId}` || item.dateId === dateId)
-      if (exact) puzzle.value = exact
-      else if (remote.length) {
-        puzzle.value = remote[dateSeed % remote.length]
-      }
+      puzzle.value = pickConnectionsPuzzle(dateId, plainDocs(snap))
     } finally {
       loading.value = false
     }

@@ -115,7 +115,7 @@ const markup = computed(() =>
 
 const sizeClass = computed(() => {
   if (props.size === 'sm') return 'h-7 w-auto aspect-[321/55] max-w-[14rem] sm:h-8 md:h-9 md:max-w-[20rem]'
-  if (props.size === 'lg') return 'w-44 sm:w-56 md:w-64 aspect-[267/345]'
+  if (props.size === 'lg') return 'w-32 sm:w-56 md:w-64 aspect-[267/345]'
   return 'w-28 sm:w-36 aspect-[267/345]'
 })
 </script>

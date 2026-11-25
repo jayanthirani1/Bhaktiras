@@ -1139,6 +1139,20 @@ async function handleGameAchievements(request) {
   if (game === 'bhakti-marg') game = 'surya-chandra'
   if (!GAME_ACHIEVEMENTS[game]) throw new HttpsError('invalid-argument', 'Unknown game.')
 
+  // These games' numbers come from the row `submitGameScore` wrote after
+  // replaying the play, never from the request, so a crown cannot be claimed
+  // for a game that was not played.
+  const rowGame = VERIFIED_ACHIEVEMENT_ROWS[game]
+  if (rowGame && request.auth?.uid) {
+    const today = ukDateIdNow()
+    const rows = await Promise.all([today, previousUkDate(today)].map(day =>
+      getFirestore().doc(`gameScores/${rowGame}_${day}_${request.auth.uid}`).get()
+    ))
+    const verified = rows.find(snap => snap.exists && snap.data().verified)?.data().verified
+    if (!verified) throw new HttpsError('failed-precondition', 'Submit your result before claiming achievements.')
+    request = { ...request, data: { ...request.data, ...verified } }
+  }
+
   const userName = cleanText(request.data?.userName, 32) || 'Player'
   const uid = request.auth.uid
   const db = getFirestore()
@@ -1458,6 +1472,202 @@ async function handleGameAchievements(request) {
 
   return { unlockedIds, claimedCrownIds, crowns }
 }
+
+/**
+ * Daily leaderboards whose rows only the server writes. `submitGameScore`
+ * rebuilds the day's puzzle with the pages' own picker code
+ * (`shared/gameVerify.mjs`, bundled from `utils/gameVerify.ts` at deploy) and
+ * replays what the player did, so a row's score is the replay's, never the
+ * browser's. Sort and rank mirror `useGameLeaderboard` on each page.
+ */
+const VERIFIED_SCORE_GAMES = {
+  wordle: { sort: 'asc', rankBy: 'score' },
+  connections: { sort: 'asc', rankBy: 'score' },
+  'mini-crossword': { sort: 'asc', rankBy: 'score' },
+  'one-percent': { sort: 'desc', rankBy: 'score' },
+  'ras-rani': { sort: 'asc', rankBy: 'timeMs' },
+  'surya-chandra': { sort: 'asc', rankBy: 'timeMs' }
+}
+
+/** Achievement game ids whose numbers come from the server-written row. */
+const VERIFIED_ACHIEVEMENT_ROWS = {
+  wordle: 'wordle',
+  crossword: 'mini-crossword',
+  connections: 'connections',
+  'one-percent': 'one-percent',
+  'ras-rani': 'ras-rani',
+  'surya-chandra': 'surya-chandra'
+}
+
+/** Rows a renamed game used to write, removed when the new row lands. */
+const LEGACY_SCORE_GAMES = { 'surya-chandra': ['bhakti-marg'] }
+
+function plainDocs(snap) {
+  return snap.docs.map(item => ({ id: item.id, data: item.data() }))
+}
+
+function scoreRankValue(row, rankBy) {
+  if (rankBy === 'timeMs') {
+    const ms = row.timeMs ?? (Number(row.score) >= 1000 ? Number(row.score) : null)
+    return ms != null && ms > 0 ? ms : Number.POSITIVE_INFINITY
+  }
+  return Number(row.score)
+}
+
+function movesFromScoreRow(row) {
+  const match = String(row.detail || '').match(/(\d+)\s+moves?/)
+  if (match) return Number(match[1])
+  if (row.timeMs != null && row.score > 0 && row.score < 10_000) return Number(row.score)
+  return Number.POSITIVE_INFINITY
+}
+
+/** Same order as `isBetter` in composables/useGameLeaderboard.ts. A tie goes to the newer row. */
+function isBetterScoreRow(next, prev, { sort, rankBy }) {
+  const a = scoreRankValue(next, rankBy)
+  const b = scoreRankValue(prev, rankBy)
+  if (a !== b) return sort === 'asc' ? a < b : a > b
+  if (rankBy === 'timeMs') {
+    const am = movesFromScoreRow(next)
+    const bm = movesFromScoreRow(prev)
+    if (am !== bm) return am < bm
+  } else if (Number(next.score) === Number(prev.score)) {
+    const at = next.timeMs ?? Number.POSITIVE_INFINITY
+    const bt = prev.timeMs ?? Number.POSITIVE_INFINITY
+    if (at !== bt) return at < bt
+  }
+  return true
+}
+
+/** Replays one finished daily game against the day's puzzle and returns the row it earns. */
+async function replayDailyGame(db, game, dateId, data) {
+  const V = await import('./shared/gameVerify.mjs')
+  const timeMs = intInRange(data?.timeMs, 1, 86_400_000)
+  if (timeMs == null) throw new HttpsError('invalid-argument', 'Time not recorded. Finish with the clock running to submit.')
+  const tooQuick = (floorMs) => {
+    if (timeMs < floorMs) throw new HttpsError('invalid-argument', 'That time is too quick to count on the leaderboard.')
+  }
+  tooQuick(V.MIN_PLAY_MS[game])
+  const proof = data?.proof || {}
+  const hintsUsed = intInRange(data?.hintsUsed ?? 0, 0, 500)
+  const moves = intInRange(data?.moves ?? 0, 0, 5000)
+  if (hintsUsed == null || moves == null) throw new HttpsError('invalid-argument', 'Invalid result.')
+  try {
+    if (game === 'wordle') {
+      const scheduled = await db.doc(`wordleDaily/${dateId}`).get()
+      const answer = V.pickWordleAnswer(dateId, scheduled.exists ? scheduled.data() : null)
+      const { guesses } = V.replayWordle(answer, proof.guesses)
+      tooQuick(guesses * V.MIN_PLAY_MS.wordle)
+      return { score: guesses, timeMs, detail: answer, verified: { guesses, timeMs } }
+    }
+    if (game === 'connections') {
+      const puzzle = V.pickConnectionsPuzzle(dateId, plainDocs(await db.collection('connectionsPuzzles').get()))
+      const { won, mistakes, groupsFound } = V.replayConnections(puzzle, proof.attempts)
+      return { score: mistakes, timeMs, detail: won ? 'Solved' : `${groupsFound}/4 groups`, verified: { won, mistakes, timeMs } }
+    }
+    if (game === 'one-percent') {
+      const { questions } = V.pickOnePercent(dateId, plainDocs(await db.collection('onePercentQuestions').get()))
+      const { cleared, clearedAll, failPercent } = V.replayOnePercent(questions, proof.answers)
+      return {
+        score: cleared,
+        timeMs,
+        detail: failPercent != null ? `fell@${failPercent}%` : '1% club',
+        verified: { score: cleared, clearedAll, timeMs }
+      }
+    }
+    if (game === 'mini-crossword') {
+      const [puzzleSnap, wordSnap] = await Promise.all([
+        db.collection('miniCrosswordPuzzles').get(),
+        db.collection('gameWords').get()
+      ])
+      const puzzle = V.pickDailyCrossword(dateId, plainDocs(puzzleSnap), plainDocs(wordSnap))
+      const { title } = V.replayCrossword(puzzle, proof.letters)
+      return { score: Math.max(1, Math.ceil(timeMs / 1000)), timeMs, detail: title, verified: { timeMs, hintsUsed } }
+    }
+    if (game === 'ras-rani') {
+      const { difficulty } = V.replayRasRani(V.pickRasRani(dateId), proof.drops)
+      const played = Math.max(1, moves)
+      return {
+        score: timeMs,
+        timeMs,
+        detail: `${played} moves · ${hintsUsed} hints`,
+        verified: { timeMs, moves: played, hintsUsed, difficulty }
+      }
+    }
+    if (game === 'surya-chandra') {
+      const snap = await db.collection('suryaChandraPuzzles')
+        .where('dateId', '==', dateId)
+        .where('published', '==', true)
+        .limit(1)
+        .get()
+      const scheduled = snap.empty ? null : { id: snap.docs[0].id, data: snap.docs[0].data() }
+      V.replaySuryaChandra(V.pickSuryaChandra(dateId, scheduled), proof.board)
+      return {
+        score: timeMs,
+        timeMs,
+        detail: hintsUsed === 0 ? 'no hints' : `${hintsUsed} hints`,
+        verified: { timeMs, moves, hintsUsed }
+      }
+    }
+  } catch (error) {
+    if (error instanceof V.PlayRejected) throw new HttpsError('invalid-argument', error.message)
+    throw error
+  }
+  throw new HttpsError('invalid-argument', 'Unknown game.')
+}
+
+exports.submitGameScore = onCall(
+  { region: 'europe-west2', timeoutSeconds: 60 },
+  async (request) => {
+    const uid = request.auth?.uid
+    if (!uid) throw new HttpsError('unauthenticated', 'Sign in to submit your score.')
+    const game = String(request.data?.game || '')
+    const ranking = VERIFIED_SCORE_GAMES[game]
+    if (!ranking) throw new HttpsError('invalid-argument', 'Unknown game.')
+    // Yesterday's puzzle is still accepted for a game started before midnight.
+    const today = ukDateIdNow()
+    const dateId = String(request.data?.dateId || today)
+    if (dateId !== today && dateId !== previousUkDate(today)) {
+      throw new HttpsError('invalid-argument', 'That puzzle has closed.')
+    }
+    const db = getFirestore()
+    const result = await replayDailyGame(db, game, dateId, request.data)
+    const id = `${game}_${dateId}_${uid}`
+    const row = {
+      game,
+      dateId,
+      userId: uid,
+      userName: cleanText(request.data?.userName, 32) || 'Player',
+      score: result.score,
+      timeMs: result.timeMs,
+      detail: String(result.detail).slice(0, 64),
+      verified: result.verified
+    }
+    const ref = db.doc(`gameScores/${id}`)
+    const kept = await db.runTransaction(async (transaction) => {
+      const snap = await transaction.get(ref)
+      if (snap.exists && !isBetterScoreRow(row, snap.data(), ranking)) return snap.data()
+      transaction.set(ref, { ...row, completedAt: FieldValue.serverTimestamp() })
+      return null
+    })
+    for (const alias of LEGACY_SCORE_GAMES[game] || []) {
+      await db.doc(`gameScores/${alias}_${dateId}_${uid}`).delete().catch(() => {})
+    }
+    const saved = kept || row
+    return {
+      id,
+      improved: !kept,
+      entry: {
+        game,
+        dateId,
+        userId: uid,
+        userName: saved.userName,
+        score: saved.score,
+        timeMs: saved.timeMs,
+        detail: saved.detail
+      }
+    }
+  }
+)
 
 exports.processGameAchievements = onCall(
   { region: 'europe-west2', timeoutSeconds: 60 },
@@ -2058,9 +2268,18 @@ function readNiyamSubmission(snap) {
     userName: cleanText(data.userName, 32) || 'Devotee',
     dayKey: typeof data.dayKey === 'string' ? data.dayKey.trim() : '',
     amount,
-    status
+    status,
+    // Either marker is enough: an offline row must never become a contributor.
+    offline: data.offline === true || userId === NIYAM_OFFLINE_USER_ID
   }
 }
+
+/**
+ * Who offline entries are filed under: counts an admin types in from paper at
+ * sabha. They join the niyam's total but belong to no devotee, so they never
+ * reach the leaderboard or a crown.
+ */
+const NIYAM_OFFLINE_USER_ID = 'offline'
 
 /** How much of the per-day breakdown is kept. Two weeks covers "today" and "this week". */
 const NIYAM_DAILY_WINDOW_DAYS = 14
@@ -2162,8 +2381,12 @@ async function maybeNotifyNiyamMilestone(db, challengeId, prevTotal, newTotal) {
   })
 }
 
-async function applyNiyamDelta(db, { challengeId, userId, userName, dayKey }, delta) {
+async function applyNiyamDelta(db, { challengeId, userId, userName, dayKey, offline }, delta) {
   if (isEmptyNiyamDelta(delta)) return
+  if (offline) {
+    await applyOfflineNiyamDelta(db, { challengeId, dayKey }, delta)
+    return
+  }
   const statsRef = db.doc(`niyamChallengeStats/${challengeId}`)
   const contributorRef = db.doc(`niyamChallenges/${challengeId}/contributors/${userId}`)
 
@@ -2223,6 +2446,40 @@ async function applyNiyamDelta(db, { challengeId, userId, userName, dayKey }, de
   }
 }
 
+/**
+ * An offline entry moves the shared total, the day's total and the queue
+ * counts like any other, plus `offlineTotal` so the page can say how much of
+ * the total came in on paper. It has no contributor row and adds nobody to
+ * `participants`.
+ */
+async function applyOfflineNiyamDelta(db, { challengeId, dayKey }, delta) {
+  const statsRef = db.doc(`niyamChallengeStats/${challengeId}`)
+  let prevStatsApproved = 0
+  let nextStatsApproved = 0
+
+  await db.runTransaction(async (tx) => {
+    const stats = (await tx.get(statsRef)).data() || {}
+    prevStatsApproved = niyamCounters(stats.approvedTotal)
+    nextStatsApproved = Math.max(0, prevStatsApproved + delta.approvedTotal)
+    const dailyPatch = dailyTotalsPatch(stats.dailyTotals, dayKey, delta.approvedTotal)
+
+    tx.set(statsRef, {
+      challengeId,
+      approvedTotal: nextStatsApproved,
+      offlineTotal: Math.max(0, niyamCounters(stats.offlineTotal) + delta.approvedTotal),
+      pendingTotal: Math.max(0, niyamCounters(stats.pendingTotal) + delta.pendingTotal),
+      approvedCount: Math.max(0, niyamCounters(stats.approvedCount) + delta.approvedCount),
+      pendingCount: Math.max(0, niyamCounters(stats.pendingCount) + delta.pendingCount),
+      ...(Object.keys(dailyPatch).length ? { dailyTotals: dailyPatch } : {}),
+      updatedAt: FieldValue.serverTimestamp()
+    }, { merge: true })
+  })
+
+  if (delta.approvedTotal > 0) {
+    await maybeNotifyNiyamMilestone(db, challengeId, prevStatsApproved, nextStatsApproved)
+  }
+}
+
 exports.syncNiyamChallengeTotals = onDocumentWritten(
   { document: 'niyamSubmissions/{submissionId}', region: 'europe-west2' },
   async (event) => {
@@ -2232,7 +2489,9 @@ exports.syncNiyamChallengeTotals = onDocumentWritten(
 
     const db = getFirestore()
 
-    if (!before && event.data?.after) {
+    // Offline counts are an admin copying a paper sheet, not a devotee tapping,
+    // so the per-person spam limits do not apply to them.
+    if (!before && event.data?.after && !after?.offline) {
       const mandirRejected = await rejectMandirCheckinSpam(db, event.params.submissionId, event.data.after)
       if (mandirRejected) return
       const doubleTapRejected = await rejectNiyamDoubleTap(db, event.params.submissionId, event.data.after)

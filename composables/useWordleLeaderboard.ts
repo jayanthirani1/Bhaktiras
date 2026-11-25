@@ -1,17 +1,6 @@
 import type { WordleScoreEntry } from '~/types/wordle'
 import { useGameLeaderboard } from '~/composables/useGameLeaderboard'
 
-const WORD_LEN = 5
-
-function validateScore(guesses: number, word: string): void {
-  if (!Number.isInteger(guesses) || guesses < 1 || guesses > 6) {
-    throw new Error('Invalid guesses (must be 1–6).')
-  }
-  const w = (word || '').toUpperCase().trim()
-  if (w.length !== WORD_LEN || !/^[A-Z]+$/.test(w)) {
-    throw new Error('Invalid word.')
-  }
-}
 
 export function useWordleLeaderboard() {
   const board = useGameLeaderboard('wordle', { sort: 'asc' })
@@ -30,24 +19,10 @@ export function useWordleLeaderboard() {
     }))
   )
 
-  async function submitScore(
-    guesses: number,
-    word: string,
-    userName: string,
-    userId: string,
-    userEmail?: string,
-    timeMs?: number
-  ) {
+  /** The guesses themselves go to the server, which checks the last one is today's word. */
+  async function submitScore(guesses: string[], userName: string, userId: string, timeMs: number) {
     if (!userId) throw new Error('Sign in to submit your score.')
-    validateScore(guesses, word)
-    await board.submitScore({
-      score: guesses,
-      userName,
-      userId,
-      userEmail,
-      detail: (word || '').toUpperCase().trim(),
-      timeMs
-    })
+    await board.submitScore({ userName, userId, timeMs, proof: { guesses } })
   }
 
   return {

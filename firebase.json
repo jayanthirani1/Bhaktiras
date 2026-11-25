@@ -5,7 +5,10 @@
   },
   "functions": {
     "source": "functions",
-    "runtime": "nodejs22"
+    "runtime": "nodejs22",
+    "predeploy": [
+      "node \"$PROJECT_DIR/scripts/buildFunctionsShared.mjs\""
+    ]
   },
   "storage": {
     "rules": "storage.rules"

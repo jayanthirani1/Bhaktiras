@@ -20,3 +20,7 @@ public/firebase-messaging-sw.js
 
 # Scratch git worktrees used by background agents — never part of the app.
 .claude/worktrees/
+
+# Bundled from utils/gameVerify.ts by scripts/buildFunctionsShared.mjs before
+# every functions deploy, so the server scores plays with the pages' own code.
+functions/shared/gameVerify.mjs
