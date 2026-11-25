@@ -6,7 +6,7 @@ export const DEFAULT_LEGAL_PAGES: Record<LegalSlug, SitePage> = {
   privacy: {
     id: 'privacy',
     title: 'Privacy Policy',
-    body: `Last updated: 17 August 2026
+    body: `Last updated: 1 November 2026
 
 Bhaktiras is the community site for Shree KS Swaminarayan Temple Woolwich. This policy explains what information we collect, how we use it, and how we keep it safe — especially when you sign in.
 
@@ -40,6 +40,7 @@ Depending on how you use the site, we may store:
 - What you submit to a niyam challenge: the count, an optional note, and the day
 - Community wall messages you post (you can post anonymously)
 - Bug reports you submit, including an optional contact email
+- Shop pre-orders you place: your name, phone number, email, any note you add, the items ordered and whether they have been paid for
 - A device notification token and the update categories you choose, if you opt in to push notifications
 - The versions and times of policies accepted when creating an account
 - Admin-only records if you are a temple editor
@@ -56,6 +57,7 @@ Access to data is limited by Firestore security rules. For example:
 - Only you and temple admins can read what you submitted to a niyam challenge; only you can add or withdraw your own entries
 - Only temple admins can edit site content, including this policy
 - Only temple admins can read submitted bug reports
+- Only you, the Souvenir team and the Treasury team can read your shop orders
 
 You should use a strong password (or Google sign-in with 2-step verification) and never share your account.
 
@@ -92,7 +94,7 @@ Anonymous wall posts, anonymous bug reports and anonymised community totals do n
 
 ## How long we keep data
 
-Account-linked data is kept while your account is active, unless it is needed for security, legal or safeguarding reasons. Self-service account deletion removes the account-linked records listed above. Public content submitted outside an account is kept until an admin removes it.
+Account-linked data is kept while your account is active, unless it is needed for security, legal or safeguarding reasons. Self-service account deletion removes the account-linked records listed above. Shop orders are the exception: they are kept for the mandir’s financial records, including after you delete your account, so the Treasury team can match payments and issue receipts. Public content submitted outside an account is kept until an admin removes it.
 
 ## Third parties
 

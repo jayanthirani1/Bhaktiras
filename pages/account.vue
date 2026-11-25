@@ -269,6 +269,10 @@
           <p v-if="linkError" role="alert" class="mt-3 text-sm text-red-600">{{ linkError }}</p>
         </section>
 
+        <ClientOnly>
+          <ShopMyOrders />
+        </ClientOnly>
+
         <section class="card-surface p-5 sm:p-6">
           <div class="flex items-start gap-3">
             <IconDownload class="mt-0.5 h-6 w-6 shrink-0 text-[hsl(var(--golden-900))]" />
@@ -276,8 +280,8 @@
               <h2 class="font-display text-xl font-semibold text-[hsl(var(--primary))]">Download your data</h2>
               <p class="mt-2 text-sm leading-relaxed text-[hsl(var(--muted-foreground))]">
                 Download a JSON file containing your account details, policy acceptance, game scores, streak,
-                daily game completions, your community wall reactions and anything left from the retired
-                niyam tracker.
+                daily game completions, your community wall reactions, your shop orders and anything left from
+                the retired niyam tracker.
               </p>
             </div>
           </div>
@@ -302,6 +306,10 @@
                 This permanently deletes your login, scores, streak, daily completions, saved niyam ticks,
                 your community wall reactions and your policy acceptance record. Anonymous posts and
                 anonymised community totals cannot be linked back to you.
+              </p>
+              <p class="mt-2 text-sm leading-relaxed text-red-800">
+                Shop orders are kept for the mandir’s records, with the name, phone number and email
+                on them, so the Treasury team can still match payments and receipts.
               </p>
             </div>
           </div>

@@ -8,6 +8,8 @@ export type AdminMenuItem = {
    * like Content settings, or read-only views like Insights) simply show none.
    */
   collection?: string
+  /** Hidden from shop staff, who otherwise see the whole Shop group. */
+  adminOnly?: boolean
 }
 
 export type AdminMenuGroup = {
@@ -24,8 +26,25 @@ export const ADMIN_MENU_TOP: AdminMenuItem[] = [
   { label: 'Bug reports', to: '/admin/bugs', subtitle: 'Review, resolve and close submitted bugs', collection: 'bugReports' }
 ]
 
+/**
+ * The shop pages. Shop staff (Souvenir lead, Treasury) see this group and
+ * nothing else; `adminOnly` items stay with full admins.
+ */
+export const SHOP_MENU_GROUP: AdminMenuGroup = {
+  id: 'shop',
+  label: 'Shop',
+  items: [
+    { label: 'Shop orders', to: '/admin/shop', subtitle: 'Pre-orders, payments and CSV export', collection: 'shopOrders' },
+    { label: 'Shop products', to: '/admin/shop/products', subtitle: 'Items, photos, sizes, prices and pre-order windows', collection: 'shopProducts' },
+    { label: 'Order totals', to: '/admin/shop/totals', subtitle: 'Paid quantities per item and size, for the supplier order' },
+    { label: 'Shop settings', to: '/admin/shop/settings', subtitle: 'Bank details, payment and collection wording, terms' },
+    { label: 'Shop team', to: '/admin/shop/team', subtitle: 'Who can manage the shop', collection: 'shopStaff', adminOnly: true }
+  ]
+}
+
 /** Collapsible sidebar sections. */
 export const ADMIN_MENU_GROUPS: AdminMenuGroup[] = [
+  SHOP_MENU_GROUP,
   {
     id: 'content',
     label: 'Site content',

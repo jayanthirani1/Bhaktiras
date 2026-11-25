@@ -9,7 +9,7 @@ import type { SiteSectionContent, SiteSectionVisibility } from '~/types'
  * can never resurrect a section that has been removed, or hide one behind a
  * stale label, and a section added in a later build simply shows up switched on.
  */
-export const SITE_SECTION_CATALOG: Array<Omit<SiteSectionContent, 'visible' | 'order'>> = [
+export const SITE_SECTION_CATALOG: Array<Omit<SiteSectionContent, 'visible' | 'order'> & { defaultVisible?: boolean }> = [
   {
     id: 'journey',
     label: 'Our Journey',
@@ -65,6 +65,15 @@ export const SITE_SECTION_CATALOG: Array<Omit<SiteSectionContent, 'visible' | 'o
     paths: ['/play']
   },
   {
+    // Ships switched off: the shop opens when the Souvenir team is ready,
+    // by an admin turning it on here — not on the deploy that carries it.
+    id: 'shop',
+    label: 'Shop',
+    description: 'Souvenir pre-orders, and My orders on the account page.',
+    paths: ['/shop'],
+    defaultVisible: false
+  },
+  {
     id: 'haar-trail',
     label: 'Haar Trail (escape room)',
     description: 'Puzzle 7 of the escape room, hidden behind four quick taps on Seva in the navigation bar.',
@@ -74,9 +83,13 @@ export const SITE_SECTION_CATALOG: Array<Omit<SiteSectionContent, 'visible' | 'o
 
 export const SITE_SECTION_IDS = SITE_SECTION_CATALOG.map(section => section.id)
 
+function catalogEntry({ defaultVisible: _defaultVisible, ...section }: (typeof SITE_SECTION_CATALOG)[number]) {
+  return { ...section, paths: [...section.paths] }
+}
+
 export const DEFAULT_SITE_SECTIONS: SiteSectionContent[] = SITE_SECTION_CATALOG.map((section, index) => ({
-  ...section,
-  visible: true,
+  ...catalogEntry(section),
+  visible: section.defaultVisible ?? true,
   order: index + 1
 }))
 
@@ -85,7 +98,8 @@ export const DEFAULT_SITE_SECTIONS: SiteSectionContent[] = SITE_SECTION_CATALOG.
  *
  * A section with nothing stored against it is visible, so switching a section
  * off is always a deliberate admin action and a fresh database renders the
- * whole site.
+ * whole site — except a section marked `defaultVisible: false`, which stays
+ * off until an admin switches it on.
  */
 export function siteSectionsFromSource(raw: unknown): SiteSectionContent[] {
   const stored = new Map<string, boolean>()
@@ -97,9 +111,8 @@ export function siteSectionsFromSource(raw: unknown): SiteSectionContent[] {
     }
   }
   return SITE_SECTION_CATALOG.map((section, index) => ({
-    ...section,
-    paths: [...section.paths],
-    visible: stored.get(section.id) ?? true,
+    ...catalogEntry(section),
+    visible: stored.get(section.id) ?? section.defaultVisible ?? true,
     order: index + 1
   }))
 }
@@ -109,7 +122,7 @@ export function siteSectionsWritePayload(sections: SiteSectionContent[]): SiteSe
   const chosen = new Map(sections.map(section => [section.id, section.visible !== false]))
   return SITE_SECTION_CATALOG.map(section => ({
     id: section.id,
-    visible: chosen.get(section.id) ?? true
+    visible: chosen.get(section.id) ?? section.defaultVisible ?? true
   }))
 }
 
