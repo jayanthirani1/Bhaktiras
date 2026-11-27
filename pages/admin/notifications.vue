@@ -374,6 +374,27 @@ function formatDate(value?: Timestamp | Date) {
   }).format(date)
 }
 
-onMounted(refresh)
+/**
+ * A draft handed over by another admin page — e.g. Shop settings' "Announce
+ * pre-orders" — as ?title=&body=&url=&topic=. It only fills the form; the
+ * admin still reviews, tests and sends it themselves.
+ */
+function applyDraftFromQuery() {
+  const query = useRoute().query
+  const text = (value: unknown, max: number) => typeof value === 'string' ? value.slice(0, max) : ''
+  const title = text(query.title, 80)
+  const body = text(query.body, 2000)
+  const url = text(query.url, 300)
+  const topic = text(query.topic, 40)
+  if (title) form.title = title
+  if (body) form.body = body
+  if (url.startsWith('/')) form.url = url
+  if (topic === 'all' || topic === 'announcements') form.topic = topic
+}
+
+onMounted(() => {
+  applyDraftFromQuery()
+  void refresh()
+})
 useHead({ title: 'Push notifications · Admin' })
 </script>

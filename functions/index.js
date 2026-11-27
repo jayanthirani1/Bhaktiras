@@ -2544,8 +2544,19 @@ const SHOP_REFERENCE_PREFIX = 'BRSHOP-'
 const SHOP_MAX_LINES = 40
 const SHOP_MAX_QUANTITY = 99
 
-function shopReference(number) {
-  return `${SHOP_REFERENCE_PREFIX}${String(number).padStart(4, '0')}`
+/**
+ * Real orders, and orders placed on the test site (bhaktiras-test). The test
+ * site shares this project's database, so its orders get their own reference
+ * series and counter, carry `test: true`, and are left out of the Treasury's
+ * totals and exports by default. Real references stay BRSHOP-0001 onwards.
+ */
+const SHOP_ORDER_MODES = {
+  live: { counter: 'shopCounters/orders', prefix: SHOP_REFERENCE_PREFIX, test: false },
+  test: { counter: 'shopCounters/test-orders', prefix: 'BRTEST-', test: true }
+}
+
+function shopReference(number, prefix = SHOP_REFERENCE_PREFIX) {
+  return `${prefix}${String(number).padStart(4, '0')}`
 }
 
 /**
@@ -2616,106 +2627,115 @@ function readShopOrderInput(data) {
   return { name, email, phone, note, termsVersion, lines: [...merged.values()] }
 }
 
-exports.placeShopOrder = onCall(
-  { region: 'europe-west2', timeoutSeconds: 60 },
-  async (request) => {
-    const uid = request.auth?.uid
-    if (!uid) throw new HttpsError('unauthenticated', 'Please sign in to place an order.')
-    const input = readShopOrderInput(request.data)
-    const db = getFirestore()
-    const counterRef = db.doc('shopCounters/orders')
-    const productIds = [...new Set(input.lines.map(line => line.productId))]
-    const now = new Date()
+async function placeOrder(request, mode) {
+  const uid = request.auth?.uid
+  if (!uid) throw new HttpsError('unauthenticated', 'Please sign in to place an order.')
+  const input = readShopOrderInput(request.data)
+  const db = getFirestore()
+  const counterRef = db.doc(mode.counter)
+  const productIds = [...new Set(input.lines.map(line => line.productId))]
+  const now = new Date()
 
-    const reference = await db.runTransaction(async (tx) => {
-      const counterSnap = await tx.get(counterRef)
-      const productSnaps = await tx.getAll(...productIds.map(id => db.doc(`shopProducts/${id}`)))
-      const products = new Map(productSnaps.map(snap => [snap.id, snap]))
+  const reference = await db.runTransaction(async (tx) => {
+    const counterSnap = await tx.get(counterRef)
+    const productSnaps = await tx.getAll(...productIds.map(id => db.doc(`shopProducts/${id}`)))
+    const products = new Map(productSnaps.map(snap => [snap.id, snap]))
 
-      const priced = input.lines.map((line) => {
-        const snap = products.get(line.productId)
-        const product = snap && snap.exists ? snap.data() : null
-        if (!product || product.active !== true) {
-          throw new HttpsError('failed-precondition', 'One of the items in your basket is no longer available.')
-        }
-        const opensAt = product.opensAt?.toDate?.() || null
-        const closesAt = product.closesAt?.toDate?.() || null
-        if ((opensAt && now < opensAt) || (closesAt && now > closesAt)) {
-          throw new HttpsError('failed-precondition', `Pre-orders for ${product.name} are not open.`)
-        }
-        const sizes = Array.isArray(product.sizes)
-          ? product.sizes
-            .filter(size => size && size.label)
-            .map(size => ({ label: size.label, group: size.group === 'child' ? 'child' : 'adult' }))
-          : []
-        let match = null
-        if (sizes.length) {
-          match = shopFindSize(sizes, line.size, line.group)
-          if (!match) throw new HttpsError('invalid-argument', `Please choose a size for ${product.name}.`)
-        } else if (line.size) {
-          throw new HttpsError('invalid-argument', `${product.name} does not come in sizes.`)
-        }
-        const unitPrice = shopUnitPrice(product, match)
-        return {
-          productId: line.productId,
-          name: String(product.name || ''),
-          category: String(product.category || ''),
-          size: match ? match.label : null,
-          group: match ? match.group : null,
-          unitPrice,
-          quantity: line.quantity,
-          lineTotal: unitPrice * line.quantity
-        }
-      })
-
-      // Two lines can resolve to the same size (one sent with its group, one
-      // from an older basket without), so merge again on what they matched.
-      const byKey = new Map()
-      for (const item of priced) {
-        const key = `${item.productId}::${item.group ?? ''}::${item.size ?? ''}`
-        const existing = byKey.get(key)
-        if (!existing) {
-          byKey.set(key, item)
-          continue
-        }
-        existing.quantity += item.quantity
-        if (existing.quantity > SHOP_MAX_QUANTITY) {
-          throw new HttpsError('invalid-argument', `Please order at most ${SHOP_MAX_QUANTITY} of one item.`)
-        }
-        existing.lineTotal = existing.unitPrice * existing.quantity
+    const priced = input.lines.map((line) => {
+      const snap = products.get(line.productId)
+      const product = snap && snap.exists ? snap.data() : null
+      if (!product || product.active !== true) {
+        throw new HttpsError('failed-precondition', 'One of the items in your basket is no longer available.')
       }
-      const items = [...byKey.values()]
-
-      const last = counterSnap.exists ? Number(counterSnap.data().last) || 0 : 0
-      const number = last + 1
-      const ref = shopReference(number)
-      const orderRef = db.doc(`shopOrders/${ref}`)
-      const createdAt = FieldValue.serverTimestamp()
-      tx.set(counterRef, { last: number, updatedAt: createdAt }, { merge: true })
-      // `create` fails rather than overwrites if the reference somehow exists.
-      tx.create(orderRef, {
-        reference: ref,
-        number,
-        userId: uid,
-        customer: { name: input.name, email: input.email, phone: input.phone },
-        note: input.note,
-        items,
-        total: items.reduce((sum, item) => sum + item.lineTotal, 0),
-        status: 'awaiting_payment',
-        paidAt: null,
-        paidBy: null,
-        termsAccepted: true,
-        termsVersion: input.termsVersion,
-        createdAt,
-        updatedAt: createdAt,
-        history: [{ at: now, byName: input.name, action: 'Order placed' }]
-      })
-      return ref
+      const opensAt = product.opensAt?.toDate?.() || null
+      const closesAt = product.closesAt?.toDate?.() || null
+      if ((opensAt && now < opensAt) || (closesAt && now > closesAt)) {
+        throw new HttpsError('failed-precondition', `Pre-orders for ${product.name} are not open.`)
+      }
+      const sizes = Array.isArray(product.sizes)
+        ? product.sizes
+          .filter(size => size && size.label)
+          .map(size => ({ label: size.label, group: size.group === 'child' ? 'child' : 'adult' }))
+        : []
+      let match = null
+      if (sizes.length) {
+        match = shopFindSize(sizes, line.size, line.group)
+        if (!match) throw new HttpsError('invalid-argument', `Please choose a size for ${product.name}.`)
+      } else if (line.size) {
+        throw new HttpsError('invalid-argument', `${product.name} does not come in sizes.`)
+      }
+      const unitPrice = shopUnitPrice(product, match)
+      return {
+        productId: line.productId,
+        name: String(product.name || ''),
+        category: String(product.category || ''),
+        size: match ? match.label : null,
+        group: match ? match.group : null,
+        unitPrice,
+        quantity: line.quantity,
+        lineTotal: unitPrice * line.quantity
+      }
     })
 
-    logger.info('Shop order placed', { reference, uid, lines: input.lines.length })
-    return { reference }
-  }
+    // Two lines can resolve to the same size (one sent with its group, one
+    // from an older basket without), so merge again on what they matched.
+    const byKey = new Map()
+    for (const item of priced) {
+      const key = `${item.productId}::${item.group ?? ''}::${item.size ?? ''}`
+      const existing = byKey.get(key)
+      if (!existing) {
+        byKey.set(key, item)
+        continue
+      }
+      existing.quantity += item.quantity
+      if (existing.quantity > SHOP_MAX_QUANTITY) {
+        throw new HttpsError('invalid-argument', `Please order at most ${SHOP_MAX_QUANTITY} of one item.`)
+      }
+      existing.lineTotal = existing.unitPrice * existing.quantity
+    }
+    const items = [...byKey.values()]
+
+    const last = counterSnap.exists ? Number(counterSnap.data().last) || 0 : 0
+    const number = last + 1
+    const ref = shopReference(number, mode.prefix)
+    const orderRef = db.doc(`shopOrders/${ref}`)
+    const createdAt = FieldValue.serverTimestamp()
+    tx.set(counterRef, { last: number, updatedAt: createdAt }, { merge: true })
+    // `create` fails rather than overwrites if the reference somehow exists.
+    tx.create(orderRef, {
+      reference: ref,
+      number,
+      userId: uid,
+      customer: { name: input.name, email: input.email, phone: input.phone },
+      note: input.note,
+      items,
+      total: items.reduce((sum, item) => sum + item.lineTotal, 0),
+      status: 'awaiting_payment',
+      paidAt: null,
+      paidBy: null,
+      termsAccepted: true,
+      termsVersion: input.termsVersion,
+      test: mode.test,
+      createdAt,
+      updatedAt: createdAt,
+      history: [{ at: now, byName: input.name, action: 'Order placed' }]
+    })
+    return ref
+  })
+
+  logger.info('Shop order placed', { reference, uid, lines: input.lines.length, test: mode.test })
+  return { reference }
+}
+
+exports.placeShopOrder = onCall(
+  { region: 'europe-west2', timeoutSeconds: 60 },
+  request => placeOrder(request, SHOP_ORDER_MODES.live)
+)
+
+/** The test site's checkout. Same checks and pricing; a BRTEST- reference. */
+exports.placeTestShopOrder = onCall(
+  { region: 'europe-west2', timeoutSeconds: 60 },
+  request => placeOrder(request, SHOP_ORDER_MODES.test)
 )
 
 /**

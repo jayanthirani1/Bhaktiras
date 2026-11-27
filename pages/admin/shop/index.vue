@@ -33,9 +33,20 @@
           {{ tab.label }}
         </button>
       </div>
-      <input v-model="search" type="search" class="admin-input max-w-xs flex-1" placeholder="Search reference, name, phone, email">
+      <input v-model="search" type="search" class="admin-input max-w-xs flex-1" placeholder="Reference (e.g. 42), name, phone, email">
       <button type="button" class="admin-btn-secondary" :disabled="loading" @click="fetchAll">Refresh</button>
       <button type="button" class="admin-btn" :disabled="!filtered.length" @click="exportCsv">Export CSV ({{ filtered.length }})</button>
+      <label v-if="testCount" class="flex items-center gap-2 text-xs font-semibold text-[hsl(var(--muted-foreground))]">
+        <input v-model="showTest" type="checkbox" class="h-4 w-4 rounded">
+        Show {{ testCount }} test order{{ testCount === 1 ? '' : 's' }}
+      </label>
+    </div>
+
+    <!-- Bulk: matching a bank statement means marking several paid at once. -->
+    <div v-if="checked.size" class="sticky top-16 z-10 flex flex-wrap items-center gap-3 rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-2.5">
+      <span class="text-sm font-semibold text-emerald-900">{{ checked.size }} selected · {{ formatPence(checkedTotal) }}</span>
+      <button type="button" class="admin-btn bg-emerald-700 hover:bg-emerald-800" :disabled="saving" @click="bulkMarkPaid">Mark {{ checked.size }} paid</button>
+      <button type="button" class="admin-btn-secondary" @click="checked = new Set()">Clear</button>
     </div>
 
     <div class="grid gap-4 xl:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] xl:items-start">
@@ -44,26 +55,41 @@
         <p v-else-if="!filtered.length" class="rounded-xl border border-dashed border-[hsl(var(--border))] bg-white px-3 py-6 text-center text-sm text-[hsl(var(--muted-foreground))]">
           {{ orders.length ? 'No orders match.' : 'No orders yet.' }}
         </p>
-        <button
+        <div
           v-for="order in filtered"
           :key="order.id"
-          type="button"
-          class="admin-row"
+          class="admin-row flex items-start gap-3 p-0"
           :class="selectedId === order.id ? 'admin-row-active' : ''"
-          @click="select(order)"
         >
-          <div class="flex items-start justify-between gap-3">
-            <div class="min-w-0">
-              <p class="font-mono text-sm font-bold text-[hsl(var(--primary))]">{{ order.reference }}</p>
-              <p class="truncate text-sm font-semibold">{{ order.customer.name }}</p>
-              <p class="truncate text-xs text-[hsl(var(--muted-foreground))]">{{ order.customer.phone }} · {{ formatShopDate(order.createdAt) }}</p>
-            </div>
-            <div class="flex shrink-0 flex-col items-end gap-1">
-              <ShopStatusBadge :status="order.status" />
-              <span class="text-sm font-semibold tabular-nums">{{ formatPence(order.total) }}</span>
-            </div>
+          <label v-if="order.status === 'awaiting_payment'" class="flex shrink-0 cursor-pointer items-start py-3 pl-3" :aria-label="`Select ${order.reference}`">
+            <input type="checkbox" class="h-5 w-5 rounded" :checked="checked.has(order.id)" @change="toggleChecked(order.id)">
+          </label>
+          <span v-else class="w-8 shrink-0" aria-hidden="true" />
+          <button type="button" class="min-w-0 flex-1 py-3 text-left" @click="select(order)">
+            <p class="font-mono text-sm font-bold text-[hsl(var(--primary))]">
+              {{ order.reference }}
+              <span v-if="order.test" class="ml-1 rounded bg-red-100 px-1.5 py-0.5 font-sans text-[10px] font-bold text-red-800">TEST</span>
+            </p>
+            <p class="truncate text-sm font-semibold">{{ order.customer.name }}</p>
+            <p class="truncate text-xs text-[hsl(var(--muted-foreground))]">
+              {{ order.customer.phone }} · {{ formatShopDate(order.createdAt) }}
+              <span v-if="isStale(order)" class="font-semibold text-amber-800"> · {{ daysWaiting(order) }} days unpaid</span>
+            </p>
+          </button>
+          <div class="flex shrink-0 flex-col items-end gap-1.5 py-3 pr-3">
+            <ShopStatusBadge :status="order.status" />
+            <span class="text-sm font-semibold tabular-nums">{{ formatPence(order.total) }}</span>
+            <button
+              v-if="order.status === 'awaiting_payment'"
+              type="button"
+              class="rounded-md bg-emerald-700 px-2.5 py-1 text-xs font-semibold text-white hover:bg-emerald-800 disabled:opacity-50"
+              :disabled="saving"
+              @click="quickMarkPaid(order)"
+            >
+              Mark paid
+            </button>
           </div>
-        </button>
+        </div>
       </div>
 
       <div class="admin-panel xl:sticky xl:top-20">
@@ -221,13 +247,15 @@ import {
 
 definePageMeta({ layout: 'admin', middleware: 'admin' })
 
-const { orders, loading, saving, error, fetchAll, setStatus, saveEdits } = useShopAdminOrders()
+const { orders: allOrders, loading, saving, error, fetchAll, setStatus, saveEdits, markManyPaid } = useShopAdminOrders()
 const { products, error: productError, fetchAll: fetchProducts } = useShopAdminProducts()
 
-type Filter = 'all' | ShopOrderStatus
+type Filter = 'all' | ShopOrderStatus | 'stale'
+const STALE_DAYS = 7
 const tabs: Array<{ id: Filter; label: string }> = [
   { id: 'all', label: 'All' },
   { id: 'awaiting_payment', label: 'Awaiting payment' },
+  { id: 'stale', label: `Unpaid ${STALE_DAYS}+ days` },
   { id: 'paid', label: 'Paid' },
   { id: 'cancelled', label: 'Cancelled' }
 ]
@@ -235,18 +263,85 @@ const statusFilter = ref<Filter>('all')
 const search = ref('')
 const selectedId = ref<string | null>(null)
 const editing = ref(false)
+const checked = ref<Set<string>>(new Set())
 
-const live = computed(() => orders.value.filter(order => order.status !== 'cancelled'))
-const awaiting = computed(() => orders.value.filter(order => order.status === 'awaiting_payment'))
-const paid = computed(() => orders.value.filter(order => order.status === 'paid'))
-const cancelledCount = computed(() => orders.value.length - live.value.length)
+/**
+ * Test orders (placed on the test site, BRTEST-…) are never counted in the
+ * figures above, and are listed only on request — on the test site itself
+ * they are shown by default, since that is where they are being tried.
+ */
+const showTest = ref(useIsTestSite())
+const testCount = computed(() => allOrders.value.filter(order => order.test).length)
+const realOrders = computed(() => allOrders.value.filter(order => !order.test))
+const orders = computed(() => showTest.value ? allOrders.value : realOrders.value)
+
+function daysWaiting(order: ShopOrder) {
+  if (!order.createdAt) return 0
+  return Math.floor((Date.now() - order.createdAt.getTime()) / 86_400_000)
+}
+
+function isStale(order: ShopOrder) {
+  return order.status === 'awaiting_payment' && daysWaiting(order) >= STALE_DAYS
+}
+
+function toggleChecked(id: string) {
+  const next = new Set(checked.value)
+  if (next.has(id)) next.delete(id)
+  else next.add(id)
+  checked.value = next
+}
+
+const checkedOrders = computed(() => orders.value.filter(order => checked.value.has(order.id)))
+const checkedTotal = computed(() => checkedOrders.value.reduce((total, order) => total + order.total, 0))
+
+async function quickMarkPaid(order: ShopOrder) {
+  if (!confirm(`Mark ${order.reference} (${order.customer.name}, ${formatPence(order.total)}) as paid?`)) return
+  try {
+    await setStatus(order, 'paid')
+    const next = new Set(checked.value)
+    next.delete(order.id)
+    checked.value = next
+  } catch {
+    // Shown via `error`.
+  }
+}
+
+async function bulkMarkPaid() {
+  const list = checkedOrders.value
+  if (!list.length) return
+  const refs = list.map(order => order.reference).join(', ')
+  if (!confirm(`Mark ${list.length} order${list.length === 1 ? '' : 's'} paid (${formatPence(checkedTotal.value)})?\n\n${refs}`)) return
+  try {
+    await markManyPaid(list)
+    checked.value = new Set()
+  } catch {
+    // Shown via `error`.
+  }
+}
+
+// Ticks on orders that are no longer unpaid, or no longer listed, are dropped.
+watch(orders, (list) => {
+  const unpaid = new Set(list.filter(order => order.status === 'awaiting_payment').map(order => order.id))
+  const kept = [...checked.value].filter(id => unpaid.has(id))
+  if (kept.length !== checked.value.size) checked.value = new Set(kept)
+})
+
+// The figures are always real orders only.
+const live = computed(() => realOrders.value.filter(order => order.status !== 'cancelled'))
+const awaiting = computed(() => realOrders.value.filter(order => order.status === 'awaiting_payment'))
+const paid = computed(() => realOrders.value.filter(order => order.status === 'paid'))
+const cancelledCount = computed(() => realOrders.value.length - live.value.length)
 const sum = (list: ShopOrder[]) => list.reduce((total, order) => total + order.total, 0)
 
 const filtered = computed(() => {
   const term = search.value.trim().toLowerCase()
   const digits = term.replace(/\D/g, '')
   return orders.value.filter((order) => {
-    if (statusFilter.value !== 'all' && order.status !== statusFilter.value) return false
+    if (statusFilter.value === 'stale') {
+      if (!isStale(order)) return false
+    } else if (statusFilter.value !== 'all' && order.status !== statusFilter.value) {
+      return false
+    }
     if (!term) return true
     return order.reference.toLowerCase().includes(term)
       || order.customer.name.toLowerCase().includes(term)

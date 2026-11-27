@@ -18,6 +18,10 @@
       </div>
 
       <div v-else class="space-y-5">
+        <ClientOnly>
+          <ShopMyOrders />
+        </ClientOnly>
+
         <section class="card-surface p-5 sm:p-6">
           <p class="text-xs font-bold uppercase tracking-[0.16em] text-[hsl(var(--golden-900))]">Account details</p>
           <dl class="mt-4 space-y-3 text-sm">
@@ -268,10 +272,6 @@
           <p v-if="linkMessage" class="mt-3 text-sm font-medium text-emerald-700">{{ linkMessage }}</p>
           <p v-if="linkError" role="alert" class="mt-3 text-sm text-red-600">{{ linkError }}</p>
         </section>
-
-        <ClientOnly>
-          <ShopMyOrders />
-        </ClientOnly>
 
         <section class="card-surface p-5 sm:p-6">
           <div class="flex items-start gap-3">

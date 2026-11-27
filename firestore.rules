@@ -801,6 +801,7 @@ service cloud.firestore {
         && request.resource.data.number == resource.data.number
         && request.resource.data.userId == resource.data.userId
         && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.get('test', false) == resource.data.get('test', false)
         && request.resource.data.status in ['awaiting_payment', 'paid', 'cancelled']
         && request.resource.data.items is list
         && request.resource.data.total is int

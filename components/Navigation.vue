@@ -11,6 +11,11 @@
         </NuxtLink>
         <!-- Positioned by a wrapper: the component's own root is `relative`, which
              would win over an `absolute` merged onto the same element. -->
+        <div class="absolute left-2 top-1/2 -translate-y-1/2">
+          <ClientOnly>
+            <ShopNavBasket />
+          </ClientOnly>
+        </div>
         <div class="absolute right-2 top-1/2 -translate-y-1/2">
           <ClientOnly>
             <NotificationInbox />
@@ -113,6 +118,9 @@
             <component :is="accountItem.icon" class="h-5 w-5 shrink-0 text-[hsl(var(--primary))]" />
             <span class="min-w-0 text-sm font-medium">{{ accountItem.label }}</span>
           </NuxtLink>
+          <ClientOnly>
+            <ShopNavOrdersLink @navigate="closeDrawer" />
+          </ClientOnly>
         </div>
       </div>
     </div>
@@ -139,6 +147,7 @@
             {{ item.label }}
           </NuxtLink>
           <ClientOnly>
+            <ShopNavBasket class="ml-1" />
             <NotificationInbox class="ml-1" />
           </ClientOnly>
           <span :key="isLoggedIn ? 'in' : 'out'" class="inline-flex items-center gap-2">

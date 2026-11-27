@@ -191,19 +191,29 @@ export interface PlaceShopOrderInput {
   termsVersion: string
 }
 
-export async function placeShopOrder(input: PlaceShopOrderInput): Promise<string> {
+/**
+ * The test site orders through its own function, which gives a BRTEST-
+ * reference and keeps the order out of the Treasury's totals. Live orders
+ * never go near it.
+ */
+export async function placeShopOrder(input: PlaceShopOrderInput, isTestSite: boolean): Promise<string> {
   const call = httpsCallable<PlaceShopOrderInput, { reference: string }>(
     getFunctions(getApp(), 'europe-west2'),
-    'placeShopOrder'
+    isTestSite ? 'placeTestShopOrder' : 'placeShopOrder'
   )
   const result = await call(input)
   return result.data.reference
 }
 
 /** A callable's error, in words a devotee can act on. */
-export function explainShopError(error: unknown): string {
+export function explainShopError(error: unknown, isTestSite = false): string {
   const code = typeof error === 'object' && error && 'code' in error ? String((error as { code?: string }).code) : ''
   const message = error instanceof Error ? error.message : ''
+  // Until the backend that carries placeTestShopOrder is deployed, the test
+  // site's checkout has nothing to call. Nothing was ordered, so say so.
+  if (isTestSite && (code.endsWith('not-found') || code.endsWith('internal'))) {
+    return 'Test checkout is not switched on yet: it needs the latest update deployed to the live backend. Nothing was ordered.'
+  }
   if (code.endsWith('unauthenticated')) return 'Please sign in again, then place your order.'
   if (code.endsWith('invalid-argument') || code.endsWith('failed-precondition') || code.endsWith('not-found')) {
     return message || 'Please check your order and try again.'
@@ -214,28 +224,42 @@ export function explainShopError(error: unknown): string {
   return message || 'Your order could not be placed. Please try again.'
 }
 
-/** The signed-in devotee's own orders, newest first. */
+/** Whether the Shop is switched on — or previewed, on the test site. */
+export function useShopVisible() {
+  const { isSectionVisible } = useSiteContent()
+  return computed(() => isSectionVisible('shop'))
+}
+
+let myOrdersInFlight: Promise<void> | null = null
+
+/**
+ * The signed-in devotee's own orders, newest first.
+ *
+ * Shared: the nav, the Shop's "awaiting payment" banner, My orders and the
+ * account page all read one list, fetched once per account and refreshed
+ * after an order is placed — not one query per component.
+ */
 export function useMyShopOrders() {
   const { user } = useAuth()
-  const orders = ref<ShopOrder[]>([])
-  const loading = ref(false)
-  const error = ref('')
+  const orders = useState<ShopOrder[]>('shop-my-orders', () => [])
+  const loadedFor = useState<string | null>('shop-my-orders-uid', () => null)
+  const loading = useState<boolean>('shop-my-orders-loading', () => false)
+  const error = useState<string>('shop-my-orders-error', () => '')
 
-  async function load() {
-    const uid = user.value?.uid
+  async function fetchOrders(uid: string) {
     const db = getDb()
-    if (!uid || !db) {
-      orders.value = []
-      return
-    }
+    if (!db) return
     loading.value = true
     error.value = ''
     try {
       // One equality filter, sorted here — no composite index needed.
       const snap = await getDocs(query(collection(db, 'shopOrders'), where('userId', '==', uid)))
+      // The account may have changed while this was in flight.
+      if (user.value?.uid !== uid) return
       orders.value = snap.docs
         .map(d => mapShopOrder(d.id, d.data()))
-        .sort((a, b) => b.number - a.number)
+        .sort((a, b) => (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0) || b.number - a.number)
+      loadedFor.value = uid
     } catch (e) {
       error.value = 'Your orders could not be loaded.'
       console.warn('[shop] could not load orders', e)
@@ -244,7 +268,23 @@ export function useMyShopOrders() {
     }
   }
 
-  return { orders, loading, error, load }
+  /** Loads once per account; `force` refreshes (after placing an order). */
+  async function load(force = false) {
+    const uid = user.value?.uid
+    if (!uid) {
+      orders.value = []
+      loadedFor.value = null
+      return
+    }
+    if (!force && loadedFor.value === uid) return
+    if (myOrdersInFlight && !force) return myOrdersInFlight
+    myOrdersInFlight = fetchOrders(uid).finally(() => { myOrdersInFlight = null })
+    return myOrdersInFlight
+  }
+
+  const awaitingPayment = computed(() => orders.value.filter(order => order.status === 'awaiting_payment'))
+
+  return { orders, awaitingPayment, loading, error, load }
 }
 
 export async function fetchShopOrder(reference: string): Promise<ShopOrder | null> {

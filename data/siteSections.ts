@@ -83,6 +83,21 @@ export const SITE_SECTION_CATALOG: Array<Omit<SiteSectionContent, 'visible' | 'o
 
 export const SITE_SECTION_IDS = SITE_SECTION_CATALOG.map(section => section.id)
 
+/**
+ * Sections that ship switched off are switched on for the test site
+ * (`bhaktiras-test`), so a section can be tried before launch. The switch
+ * lives in the live database the test site shares, so without this a
+ * section still waiting for launch could not be previewed anywhere.
+ */
+export const PREVIEW_ON_TEST_SITE = SITE_SECTION_CATALOG
+  .filter(section => section.defaultVisible === false)
+  .map(section => section.id)
+
+export function withTestSitePreview(sections: SiteSectionContent[], isTestSite: boolean): SiteSectionContent[] {
+  if (!isTestSite) return sections
+  return sections.map(section => PREVIEW_ON_TEST_SITE.includes(section.id) ? { ...section, visible: true } : section)
+}
+
 function catalogEntry({ defaultVisible: _defaultVisible, ...section }: (typeof SITE_SECTION_CATALOG)[number]) {
   return { ...section, paths: [...section.paths] }
 }

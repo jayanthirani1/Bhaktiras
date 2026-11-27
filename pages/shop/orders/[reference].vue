@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-screen bg-[hsl(var(--background))] px-4 pb-24 pt-8 md:pt-12">
     <div class="mx-auto max-w-2xl">
-      <NuxtLink to="/account#my-orders" class="mb-4 inline-flex items-center gap-1 text-sm font-semibold text-[hsl(var(--primary))]">
+      <NuxtLink to="/shop/orders" class="mb-4 inline-flex items-center gap-1 text-sm font-semibold text-[hsl(var(--primary))]">
         <IconArrowLeft class="h-4 w-4" /> My orders
       </NuxtLink>
 
@@ -27,6 +27,27 @@
           </div>
           <PageHeader v-else :title="`Order ${order.reference}`" />
 
+          <div v-if="order.test" class="rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-semibold text-red-900">
+            Test order, placed on the test site. It is not counted or ordered, and needs no payment.
+          </div>
+
+          <!-- Paying is the one thing to do next, so it comes first; the items
+               are reassurance and follow. -->
+          <template v-if="order.status === 'awaiting_payment'">
+            <ShopPaymentDetails :reference="order.reference" :total="order.total" :settings="settings" />
+            <ShopSaveDetails :reference="order.reference" :total="order.total" :settings="settings" />
+          </template>
+          <div v-else-if="order.status === 'paid'" class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
+            Payment received{{ order.paidAt ? ` on ${formatShopDate(order.paidAt)}` : '' }}. Thank you.
+          </div>
+          <div v-else class="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+            This order has been cancelled. Please contact the Souvenir team if you think this is a mistake.
+          </div>
+
+          <section class="card-surface p-5 sm:p-6">
+            <ShopOrderProgress :status="order.status" />
+          </section>
+
           <section class="card-surface p-5 sm:p-6">
             <div class="flex items-start justify-between gap-3">
               <div>
@@ -41,21 +62,14 @@
             <p v-if="order.note" class="mt-4 rounded-lg bg-[hsl(var(--muted))] p-3 text-sm"><span class="font-semibold">Your note:</span> {{ order.note }}</p>
           </section>
 
-          <ShopPaymentDetails v-if="order.status === 'awaiting_payment'" :reference="order.reference" :total="order.total" :settings="settings" />
-          <div v-else-if="order.status === 'paid'" class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
-            Payment received{{ order.paidAt ? ` on ${formatShopDate(order.paidAt)}` : '' }}. Thank you.
-          </div>
-          <div v-else class="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-            This order has been cancelled. Please contact the Souvenir team if you think this is a mistake.
-          </div>
-
           <section class="card-surface p-5 sm:p-6">
             <p class="text-xs font-bold uppercase tracking-[0.16em] text-[hsl(var(--golden-900))]">Collection</p>
             <p class="mt-2 text-sm leading-relaxed">{{ settings.collectionInfo }}</p>
             <p class="mt-3 text-sm text-[hsl(var(--muted-foreground))]">Need to change something? Please contact the Souvenir team with your reference.</p>
           </section>
 
-          <div class="text-center">
+          <div class="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
+            <NuxtLink to="/shop/orders" class="text-sm font-semibold text-[hsl(var(--primary))] underline">All my orders</NuxtLink>
             <NuxtLink to="/shop" class="text-sm font-semibold text-[hsl(var(--primary))] underline">Back to the shop</NuxtLink>
           </div>
         </div>

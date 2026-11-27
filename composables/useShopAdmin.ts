@@ -10,6 +10,7 @@ import {
   setDoc,
   Timestamp,
   updateDoc,
+  writeBatch,
   type Firestore
 } from 'firebase/firestore'
 import { getFunctions, httpsCallable } from 'firebase/functions'
@@ -168,6 +169,44 @@ export function useShopAdminOrders() {
     await write(order, changes, action, `${SHOP_STATUS_LABELS[order.status]} → ${SHOP_STATUS_LABELS[status]}`)
   }
 
+  /**
+   * Marks several unpaid orders paid in one batch — matching a bank
+   * statement at the mandir. Orders already paid or cancelled are skipped, so
+   * a stale selection cannot reopen a cancelled order.
+   */
+  async function markManyPaid(list: ShopOrder[]): Promise<number> {
+    const eligible = list.filter(order => order.status === 'awaiting_payment')
+    if (!eligible.length) return 0
+    saving.value = true
+    error.value = ''
+    try {
+      const db = requireDb()
+      const by = actorName()
+      // Firestore batches hold 500 writes; the shop never gets near that in
+      // one selection, but chunk anyway rather than fail on a large one.
+      for (let offset = 0; offset < eligible.length; offset += 400) {
+        const batch = writeBatch(db)
+        for (const order of eligible.slice(offset, offset + 400)) {
+          batch.update(doc(db, 'shopOrders', order.id), {
+            status: 'paid',
+            paidAt: serverTimestamp(),
+            paidBy: by,
+            updatedAt: serverTimestamp(),
+            history: arrayUnion(historyEntry('Marked paid', 'Awaiting payment → Paid (bulk)'))
+          })
+        }
+        await batch.commit()
+      }
+      await fetchAll()
+      return eligible.length
+    } catch (e) {
+      error.value = messageOf(e)
+      throw e
+    } finally {
+      saving.value = false
+    }
+  }
+
   async function saveEdits(order: ShopOrder, edits: { customer: ShopOrder['customer']; note: string; items: ShopOrderItem[] }) {
     const items = edits.items
       .filter(item => item.quantity > 0)
@@ -186,7 +225,7 @@ export function useShopAdminOrders() {
     )
   }
 
-  return { orders, loading, saving, error, fetchAll, setStatus, saveEdits }
+  return { orders, loading, saving, error, fetchAll, setStatus, saveEdits, markManyPaid }
 }
 
 export function useShopAdminSettings() {
@@ -199,6 +238,8 @@ export function useShopAdminSettings() {
     try {
       const payload: Record<string, unknown> = { updatedAt: serverTimestamp() }
       for (const field of SHOP_SETTINGS_FIELDS) payload[field.key] = (settings[field.key] || '').trim().slice(0, field.maxLength)
+      const guide = (settings.sizeGuideUrl || '').trim()
+      payload.sizeGuideUrl = /^https:\/\//.test(guide) ? guide.slice(0, 1000) : ''
       await setDoc(doc(requireDb(), 'shopSettings', SHOP_SETTINGS_DOC_ID), payload, { merge: true })
     } catch (e) {
       error.value = messageOf(e)

@@ -45,7 +45,7 @@ Requires the **Blaze** plan (Functions + Storage).
 **Public** — `/` `/journey` `/events` `/community` `/seva` `/niyams` `/yajman`
 `/darshan` `/legacy` `/haar` (hidden) `/account` `/login` `/signup` `/privacy` `/policy` `/submit-bug`
 
-**Shop** (hidden until switched on) — `/shop`, `/shop/basket`, `/shop/orders/[reference]`
+**Shop** (hidden until switched on) — `/shop`, `/shop/basket`, `/shop/orders`, `/shop/orders/[reference]`
 
 **Games** — `/play` plus `wordle`, `crossword`, `mini-crossword`, `connections`,
 `one-percent`, `ras-rani`, `surya-chandra`, `lanka-leap`, `achievements`, `streaks`.
@@ -307,8 +307,32 @@ How it fits together:
 - Exports: one CSV row per item ordered (all order and customer fields on each row) from
   the orders page, respecting the current filter; and a totals CSV from Order totals.
 
-The basket lives in `localStorage` and holds only product, size and quantity. My orders is
-a section on `/account`, shown while the shop is open or once someone has an order.
+The basket lives in `localStorage` and holds product, size (name **and** adult/child) and
+quantity. A product can list the same size name once as adult and once as child.
+
+**Getting people to pay.** After ordering, paying with the right reference is the one thing a
+devotee has to do, so it is never more than a tap away: `/shop/orders` (My orders) is linked
+from the Shop header, the order page, the top of `/account` (only for someone with orders) and
+the More drawer, and the Shop shows an "awaiting payment" banner with **Pay now**. Each order
+shows *Ordered → Paid → Collect*; "Collect" is announced on WhatsApp, not a status the team
+sets. The order page puts payment first, with *Save these details* (share sheet, WhatsApp,
+copy). `useMyShopOrders()` is shared state, fetched once per account.
+
+Elsewhere: a homepage banner while anything is open for pre-order, a basket icon with a count
+in the top bar on every page, an Adult/Child switch and an optional shop-wide **size guide**
+image (`shopSettings.sizeGuideUrl`) on the product sheet, and Shop settings' **Announce
+pre-orders** drafts, which open Push notifications pre-filled (admins only; nothing is sent
+until they press Send there). The Treasury list has **Mark paid** on each row, bulk Mark paid,
+and an *Unpaid 7+ days* filter.
+
+**On the test site** (`bhaktiras-test`), sections that ship hidden are shown anyway
+(`withTestSitePreview` in `data/siteSections.ts`), because the on/off switch lives in the live
+database the test site shares. Its checkout calls `placeTestShopOrder`, which runs the same
+checks but gives a **BRTEST-** reference from its own counter (`shopCounters/test-orders`)
+and stores `test: true`. Test orders are left out of the figures and Order totals, hidden in
+the live admin list unless asked for, and marked in the CSV. Staff cannot flip the flag.
+Until the functions deploy that carries `placeTestShopOrder` has run, the test site's
+checkout says so and orders nothing.
 
 ### Account & legal
 `/account` offers self-serve **GDPR data export and account deletion**, plus auth

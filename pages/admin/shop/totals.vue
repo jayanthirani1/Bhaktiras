@@ -58,7 +58,8 @@ const productsAdmin = useShopAdminProducts()
 const loading = computed(() => orders.loading.value || productsAdmin.loading.value)
 const error = computed(() => orders.error.value || productsAdmin.error.value)
 
-const rows = computed(() => supplierTotals(orders.orders.value, productsAdmin.products.value))
+// Test orders (placed on the test site) are never ordered from suppliers.
+const rows = computed(() => supplierTotals(orders.orders.value.filter(order => !order.test), productsAdmin.products.value))
 const grouped = computed(() => {
   const groups: Array<{ productId: string; name: string; category: string; rows: ShopTotalRow[]; paid: number; awaiting: number }> = []
   for (const row of rows.value) {
