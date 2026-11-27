@@ -116,8 +116,17 @@ export function hasBankDetails(settings: ShopSettings): boolean {
 
 // --- Sizes and prices -----------------------------------------------------
 
+const LETTER_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL']
+const sizesFor = (group: ShopSizeGroup): ShopSize[] => LETTER_SIZES.map(label => ({ label, group }))
+
+/**
+ * Shortcut buttons in the product editor. Each adds its sizes to the list,
+ * skipping any already there, so pressing one twice does nothing more.
+ */
 export const SHOP_SIZE_PRESETS: Array<{ label: string; sizes: ShopSize[] }> = [
-  { label: 'Adult S–XXL', sizes: ['S', 'M', 'L', 'XL', 'XXL'].map(label => ({ label, group: 'adult' as const })) },
+  { label: 'Child & Adult XS–XXL', sizes: [...sizesFor('child'), ...sizesFor('adult')] },
+  { label: 'Adult XS–XXL', sizes: sizesFor('adult') },
+  { label: 'Child XS–XXL', sizes: sizesFor('child') },
   { label: 'Child ages', sizes: ['3–4', '5–6', '7–8', '9–10', '11–12', '13–14'].map(label => ({ label: `Age ${label}`, group: 'child' as const })) }
 ]
 
