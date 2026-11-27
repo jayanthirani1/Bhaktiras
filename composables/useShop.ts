@@ -1,10 +1,11 @@
 import { getApp } from 'firebase/app'
 import { collection, doc, getDoc, getDocs, query, where, type Firestore } from 'firebase/firestore'
 import { getFunctions, httpsCallable } from 'firebase/functions'
-import type { ShopBasketLine, ShopOrder, ShopProduct, ShopSettings } from '~/types'
+import type { ShopBasketLine, ShopOrder, ShopProduct, ShopSettings, ShopSizeGroup } from '~/types'
 import {
   basketKey,
   DEFAULT_SHOP_SETTINGS,
+  findSize,
   mapShopOrder,
   mapShopProduct,
   SHOP_BASKET_KEY,
@@ -93,6 +94,7 @@ function readBasket(): ShopBasketLine[] {
       .map(line => ({
         productId: String(line?.productId || ''),
         size: typeof line?.size === 'string' && line.size ? line.size : null,
+        group: line?.group === 'child' || line?.group === 'adult' ? line.group as ShopSizeGroup : null,
         quantity: Math.min(SHOP_MAX_QUANTITY, Math.max(1, Math.floor(Number(line?.quantity) || 1)))
       }))
       .filter(line => line.productId)
@@ -132,8 +134,8 @@ export function useShopBasket() {
     writeBasket(next)
   }
 
-  function add(productId: string, size: string | null, quantity = 1) {
-    const key = basketKey({ productId, size })
+  function add(productId: string, size: string | null, group: ShopSizeGroup | null, quantity = 1) {
+    const key = basketKey({ productId, size, group })
     const existing = lines.value.find(line => basketKey(line) === key)
     if (existing) {
       save(lines.value.map(line => basketKey(line) === key
@@ -142,7 +144,7 @@ export function useShopBasket() {
       return
     }
     if (lines.value.length >= SHOP_MAX_LINES) return
-    save([...lines.value, { productId, size, quantity: Math.min(SHOP_MAX_QUANTITY, quantity) }])
+    save([...lines.value, { productId, size, group, quantity: Math.min(SHOP_MAX_QUANTITY, quantity) }])
   }
 
   function setQuantity(line: ShopBasketLine, quantity: number) {
@@ -165,9 +167,11 @@ export function useShopBasket() {
   /** Lines joined to their product. A line whose product is gone or closed is flagged, not dropped. */
   const detailed = computed(() => lines.value.map((line) => {
     const product = byId(line.productId)
-    const unitPrice = product ? unitPriceFor(product, line.size) : 0
+    const unitPrice = product ? unitPriceFor(product, line.size, line.group) : 0
+    // A line from a basket saved before sizes carried a group resolves by name
+    // when that is unambiguous; otherwise it is flagged for removal.
     const available = !!product && windowState(product) === 'open'
-      && (product.sizes.length ? product.sizes.some(size => size.label === line.size) : !line.size)
+      && (product.sizes.length ? !!findSize(product, line.size, line.group) : !line.size)
     return { line, product, unitPrice, lineTotal: unitPrice * line.quantity, available }
   }))
 

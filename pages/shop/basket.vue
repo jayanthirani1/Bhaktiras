@@ -26,7 +26,7 @@
                 <div class="min-w-0 flex-1">
                   <p class="font-semibold text-[hsl(var(--primary))]">{{ entry.product?.name || 'Item no longer available' }}</p>
                   <p class="text-xs text-[hsl(var(--muted-foreground))]">
-                    <span v-if="entry.line.size">{{ entry.line.size }} · </span>{{ formatPence(entry.unitPrice) }} each
+                    <span v-if="entry.line.size">{{ entry.line.size }}<span v-if="entry.line.group === 'child'"> (child)</span> · </span>{{ formatPence(entry.unitPrice) }} each
                   </p>
                   <p v-if="!entry.available" class="mt-1 text-xs font-semibold text-red-600">
                     {{ entry.product ? windowLabel(entry.product) : 'This item has been removed from the shop.' }} — please remove it.

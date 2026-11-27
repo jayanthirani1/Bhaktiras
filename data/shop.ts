@@ -125,15 +125,31 @@ export function hasChildSizes(product: Pick<ShopProduct, 'sizes'>): boolean {
   return product.sizes.some(size => size.group === 'child')
 }
 
-export function sizeGroupFor(product: Pick<ShopProduct, 'sizes'>, size: string | null): ShopSizeGroup | null {
-  if (!size) return null
-  return product.sizes.find(item => item.label === size)?.group ?? null
+/**
+ * A size is its name *and* whether it is adult or child: a product can list
+ * S, M and L once as child sizes and again as adult sizes. With no group (a
+ * basket saved before sizes carried one) the name alone decides, and only
+ * when it is not ambiguous.
+ */
+export function findSize(product: Pick<ShopProduct, 'sizes'>, label: string | null, group: ShopSizeGroup | null): ShopSize | null {
+  if (!label) return null
+  if (group) return product.sizes.find(item => item.label === label && item.group === group) ?? null
+  const matches = product.sizes.filter(item => item.label === label)
+  return matches.length === 1 ? matches[0] : null
+}
+
+/** Stable identity for one size of one product — e.g. `child:M`. */
+export function sizeKey(size: Pick<ShopSize, 'label' | 'group'>): string {
+  return `${size.group}:${size.label}`
+}
+
+export function sizeGroupFor(product: Pick<ShopProduct, 'sizes'>, size: string | null, group: ShopSizeGroup | null): ShopSizeGroup | null {
+  return findSize(product, size, group)?.group ?? null
 }
 
 /** Pence. A child size uses the child price when there is one. */
-export function unitPriceFor(product: Pick<ShopProduct, 'sizes' | 'price' | 'childPrice'>, size: string | null): number {
-  const group = sizeGroupFor(product, size)
-  if (group === 'child' && product.childPrice != null) return product.childPrice
+export function unitPriceFor(product: Pick<ShopProduct, 'sizes' | 'price' | 'childPrice'>, size: string | null, group: ShopSizeGroup | null): number {
+  if (sizeGroupFor(product, size, group) === 'child' && product.childPrice != null) return product.childPrice
   return product.price
 }
 
@@ -297,8 +313,8 @@ export function itemLabel(item: Pick<ShopOrderItem, 'name' | 'size' | 'group'>):
 
 // --- Basket ---------------------------------------------------------------
 
-export function basketKey(line: Pick<ShopBasketLine, 'productId' | 'size'>): string {
-  return `${line.productId}::${line.size ?? ''}`
+export function basketKey(line: Pick<ShopBasketLine, 'productId' | 'size' | 'group'>): string {
+  return `${line.productId}::${line.group ?? ''}::${line.size ?? ''}`
 }
 
 // --- CSV ------------------------------------------------------------------
@@ -375,7 +391,7 @@ export function supplierTotals(orders: ShopOrder[], products: ShopProduct[] = []
   for (const order of orders) {
     if (order.status === 'cancelled') continue
     for (const item of order.items) {
-      const key = `${item.productId}::${item.size ?? ''}`
+      const key = `${item.productId}::${item.group ?? ''}::${item.size ?? ''}`
       const row = rows.get(key) ?? { key, productId: item.productId, name: item.name, category: item.category, size: item.size, group: item.group, paid: 0, awaiting: 0 }
       if (order.status === 'paid') row.paid += item.quantity
       else row.awaiting += item.quantity
@@ -385,7 +401,7 @@ export function supplierTotals(orders: ShopOrder[], products: ShopProduct[] = []
   // Sizes in the order the product lists them (S, M, L — not L, M, S).
   const sizeIndex = (row: ShopTotalRow) => {
     const product = products.find(item => item.id === row.productId)
-    const index = product?.sizes.findIndex(size => size.label === row.size) ?? -1
+    const index = product?.sizes.findIndex(size => size.label === row.size && size.group === row.group) ?? -1
     return index < 0 ? Number.MAX_SAFE_INTEGER : index
   }
   return [...rows.values()].sort((a, b) =>

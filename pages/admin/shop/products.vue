@@ -222,7 +222,7 @@ function openEdit(item: ShopProduct) {
 
 function addPreset(sizes: ShopSize[]) {
   for (const size of sizes) {
-    if (!form.sizes.some(existing => existing.label === size.label)) form.sizes.push({ ...size })
+    if (!form.sizes.some(existing => existing.label === size.label && existing.group === size.group)) form.sizes.push({ ...size })
   }
 }
 
@@ -239,9 +239,11 @@ async function save() {
     formError.value = 'Enter a price.'
     return
   }
-  const labels = form.sizes.map(size => size.label.trim()).filter(Boolean)
-  if (new Set(labels).size !== labels.length) {
-    formError.value = 'Two sizes have the same name.'
+  // The same name may appear once as an adult size and once as a child size
+  // (S, M, L for both); only a repeat within one group is a mistake.
+  const keys = form.sizes.filter(size => size.label.trim()).map(size => `${size.group}:${size.label.trim()}`)
+  if (new Set(keys).size !== keys.length) {
+    formError.value = 'Two sizes have the same name and are both adult or both child.'
     return
   }
   const opensAt = fromLocalInput(form.opensAt)

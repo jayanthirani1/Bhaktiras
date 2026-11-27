@@ -142,12 +142,12 @@
                 <span class="min-w-0 flex-1 text-sm font-semibold">{{ item.name }}</span>
                 <select
                   v-if="sizesFor(item.productId).length"
-                  :value="item.size ?? ''"
+                  :value="item.size && item.group ? sizeKey({ label: item.size, group: item.group }) : ''"
                   class="admin-input w-32"
                   aria-label="Size"
                   @change="changeSize(item, ($event.target as HTMLSelectElement).value)"
                 >
-                  <option v-for="size in sizesFor(item.productId)" :key="size.label" :value="size.label">
+                  <option v-for="size in sizesFor(item.productId)" :key="sizeKey(size)" :value="sizeKey(size)">
                     {{ size.label }}{{ size.group === 'child' ? ' (child)' : '' }}
                   </option>
                 </select>
@@ -168,7 +168,7 @@
                 <div v-if="sizesFor(addProductId).length">
                   <label class="admin-label" for="o-add-size">Size</label>
                   <select id="o-add-size" v-model="addSize" class="admin-input w-32">
-                    <option v-for="size in sizesFor(addProductId)" :key="size.label" :value="size.label">{{ size.label }}{{ size.group === 'child' ? ' (child)' : '' }}</option>
+                    <option v-for="size in sizesFor(addProductId)" :key="sizeKey(size)" :value="sizeKey(size)">{{ size.label }}{{ size.group === 'child' ? ' (child)' : '' }}</option>
                   </select>
                 </div>
                 <button type="button" class="admin-btn-secondary" :disabled="!canAddLine" @click="addLine">Add</button>
@@ -215,7 +215,7 @@ import {
   formatShopDateTime,
   ordersToCsv,
   SHOP_MAX_QUANTITY,
-  sizeGroupFor,
+  sizeKey,
   unitPriceFor
 } from '~/data/shop'
 
@@ -300,34 +300,44 @@ function sizesFor(productId: string) {
 }
 
 watch(addProductId, (id) => {
-  addSize.value = sizesFor(id)[0]?.label ?? ''
+  const first = sizesFor(id)[0]
+  addSize.value = first ? sizeKey(first) : ''
 })
 
 const canAddLine = computed(() => !!addProductId.value && (!sizesFor(addProductId.value).length || !!addSize.value))
 
-function changeSize(item: ShopOrderItem, size: string) {
+/** The product size a select's value (a `sizeKey`) stands for. */
+function sizeFromKey(productId: string, key: string) {
+  return sizesFor(productId).find(size => sizeKey(size) === key) ?? null
+}
+
+function changeSize(item: ShopOrderItem, key: string) {
   const product = productFor(item.productId)
-  if (!product) return
-  item.size = size
-  item.group = sizeGroupFor(product, size)
-  item.unitPrice = unitPriceFor(product, size)
+  const size = sizeFromKey(item.productId, key)
+  if (!product || !size) return
+  item.size = size.label
+  item.group = size.group
+  item.unitPrice = unitPriceFor(product, size.label, size.group)
 }
 
 function addLine() {
   const product = productFor(addProductId.value)
   if (!product) return
-  const size = product.sizes.length ? addSize.value : null
-  const existing = draft.items.find(item => item.productId === product.id && item.size === size)
+  const chosen = product.sizes.length ? sizeFromKey(product.id, addSize.value) : null
+  if (product.sizes.length && !chosen) return
+  const size = chosen?.label ?? null
+  const group = chosen?.group ?? null
+  const existing = draft.items.find(item => item.productId === product.id && item.size === size && item.group === group)
   if (existing) {
     existing.quantity += 1
   } else {
-    const unitPrice = unitPriceFor(product, size)
+    const unitPrice = unitPriceFor(product, size, group)
     draft.items.push({
       productId: product.id,
       name: product.name,
       category: product.category,
       size,
-      group: sizeGroupFor(product, size),
+      group,
       unitPrice,
       quantity: 1,
       lineTotal: unitPrice
