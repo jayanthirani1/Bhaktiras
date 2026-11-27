@@ -697,5 +697,7 @@ export interface ShopStaffRecord {
 export interface ShopBasketLine {
   productId: string
   size: string | null
+  /** Which of a same-named adult and child size; null for a one-size item. */
+  group: ShopSizeGroup | null
   quantity: number
 }

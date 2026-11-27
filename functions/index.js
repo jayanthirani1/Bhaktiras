@@ -2548,10 +2548,22 @@ function shopReference(number) {
   return `${SHOP_REFERENCE_PREFIX}${String(number).padStart(4, '0')}`
 }
 
+/**
+ * The product size a basket line means. A size is its label *and* group, since
+ * a product may list S, M and L as both child and adult sizes. A line with no
+ * group (a basket saved before lines carried one) matches by label only when
+ * that label is not shared, so an ambiguous line is refused, never guessed.
+ */
+function shopFindSize(sizes, label, group) {
+  if (!label) return null
+  if (group) return sizes.find(item => item.label === label && item.group === group) || null
+  const matches = sizes.filter(item => item.label === label)
+  return matches.length === 1 ? matches[0] : null
+}
+
+/** Pence. `size` is the matched product size, or null for a one-size item. */
 function shopUnitPrice(product, size) {
-  const sizes = Array.isArray(product.sizes) ? product.sizes : []
-  const match = sizes.find(item => item && item.label === size)
-  if (match && match.group === 'child' && Number.isInteger(product.childPrice)) return product.childPrice
+  if (size && size.group === 'child' && Number.isInteger(product.childPrice)) return product.childPrice
   return Number.isInteger(product.price) ? product.price : 0
 }
 
@@ -2588,12 +2600,13 @@ function readShopOrderInput(data) {
   for (const raw of rawItems) {
     const productId = typeof raw?.productId === 'string' ? raw.productId : ''
     const size = typeof raw?.size === 'string' && raw.size ? raw.size : null
+    const group = raw?.group === 'child' || raw?.group === 'adult' ? raw.group : null
     const quantity = Number(raw?.quantity)
     if (!productId || productId.includes('/') || !Number.isInteger(quantity) || quantity < 1) {
       throw new HttpsError('invalid-argument', 'Something in your basket is not valid.')
     }
-    const key = `${productId}::${size ?? ''}`
-    const line = merged.get(key) || { productId, size, quantity: 0 }
+    const key = `${productId}::${group ?? ''}::${size ?? ''}`
+    const line = merged.get(key) || { productId, size, group, quantity: 0 }
     line.quantity += quantity
     if (line.quantity > SHOP_MAX_QUANTITY) {
       throw new HttpsError('invalid-argument', `Please order at most ${SHOP_MAX_QUANTITY} of one item.`)
@@ -2619,7 +2632,7 @@ exports.placeShopOrder = onCall(
       const productSnaps = await tx.getAll(...productIds.map(id => db.doc(`shopProducts/${id}`)))
       const products = new Map(productSnaps.map(snap => [snap.id, snap]))
 
-      const items = input.lines.map((line) => {
+      const priced = input.lines.map((line) => {
         const snap = products.get(line.productId)
         const product = snap && snap.exists ? snap.data() : null
         if (!product || product.active !== true) {
@@ -2630,27 +2643,48 @@ exports.placeShopOrder = onCall(
         if ((opensAt && now < opensAt) || (closesAt && now > closesAt)) {
           throw new HttpsError('failed-precondition', `Pre-orders for ${product.name} are not open.`)
         }
-        const sizes = Array.isArray(product.sizes) ? product.sizes.filter(size => size && size.label) : []
-        let group = null
+        const sizes = Array.isArray(product.sizes)
+          ? product.sizes
+            .filter(size => size && size.label)
+            .map(size => ({ label: size.label, group: size.group === 'child' ? 'child' : 'adult' }))
+          : []
+        let match = null
         if (sizes.length) {
-          const match = sizes.find(size => size.label === line.size)
+          match = shopFindSize(sizes, line.size, line.group)
           if (!match) throw new HttpsError('invalid-argument', `Please choose a size for ${product.name}.`)
-          group = match.group === 'child' ? 'child' : 'adult'
         } else if (line.size) {
           throw new HttpsError('invalid-argument', `${product.name} does not come in sizes.`)
         }
-        const unitPrice = shopUnitPrice(product, line.size)
+        const unitPrice = shopUnitPrice(product, match)
         return {
           productId: line.productId,
           name: String(product.name || ''),
           category: String(product.category || ''),
-          size: sizes.length ? line.size : null,
-          group,
+          size: match ? match.label : null,
+          group: match ? match.group : null,
           unitPrice,
           quantity: line.quantity,
           lineTotal: unitPrice * line.quantity
         }
       })
+
+      // Two lines can resolve to the same size (one sent with its group, one
+      // from an older basket without), so merge again on what they matched.
+      const byKey = new Map()
+      for (const item of priced) {
+        const key = `${item.productId}::${item.group ?? ''}::${item.size ?? ''}`
+        const existing = byKey.get(key)
+        if (!existing) {
+          byKey.set(key, item)
+          continue
+        }
+        existing.quantity += item.quantity
+        if (existing.quantity > SHOP_MAX_QUANTITY) {
+          throw new HttpsError('invalid-argument', `Please order at most ${SHOP_MAX_QUANTITY} of one item.`)
+        }
+        existing.lineTotal = existing.unitPrice * existing.quantity
+      }
+      const items = [...byKey.values()]
 
       const last = counterSnap.exists ? Number(counterSnap.data().last) || 0 : 0
       const number = last + 1

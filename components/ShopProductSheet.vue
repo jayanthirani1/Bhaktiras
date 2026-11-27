@@ -31,14 +31,15 @@
         <div class="flex flex-wrap gap-2">
           <button
             v-for="size in group.sizes"
-            :key="size.label"
+            :key="sizeKey(size)"
             type="button"
             class="min-w-[3rem] rounded-full border px-3.5 py-2 text-sm font-semibold transition-colors"
-            :class="selectedSize === size.label
+            :class="selectedKey === sizeKey(size)
               ? 'border-[hsl(var(--primary))] bg-[hsl(var(--primary))] text-white'
               : 'border-[hsl(var(--border))] bg-white text-[hsl(var(--primary))] hover:border-[hsl(var(--primary))]'"
-            :aria-pressed="selectedSize === size.label"
-            @click="selectedSize = size.label"
+            :aria-pressed="selectedKey === sizeKey(size)"
+            :aria-label="`${size.label}${hasBothGroups ? (size.group === 'child' ? ', child' : ', adult') : ''}`"
+            @click="selectedSize = size"
           >
             {{ size.label }}
           </button>
@@ -71,15 +72,21 @@
 </template>
 
 <script setup lang="ts">
-import type { ShopProduct } from '~/types'
-import { formatPence, priceLabel, unitPriceFor, windowLabel, windowState } from '~/data/shop'
+import type { ShopProduct, ShopSize } from '~/types'
+import { formatPence, priceLabel, sizeKey, unitPriceFor, windowLabel, windowState } from '~/data/shop'
 
 const props = defineProps<{ product: ShopProduct | null }>()
 const emit = defineEmits<{ close: [] }>()
 
 const basket = useShopBasket()
 const imageIndex = ref(0)
-const selectedSize = ref<string | null>(null)
+/** The chosen size, name *and* group: S can be both a child and an adult size. */
+const selectedSize = ref<ShopSize | null>(null)
+const selectedKey = computed(() => selectedSize.value ? sizeKey(selectedSize.value) : '')
+const hasBothGroups = computed(() => {
+  const groups = new Set(props.product?.sizes.map(size => size.group))
+  return groups.size > 1
+})
 const quantity = ref(1)
 const added = ref(false)
 
@@ -88,7 +95,7 @@ watch(() => props.product?.id, () => {
   quantity.value = 1
   added.value = false
   // A product with a single size needs no choosing.
-  selectedSize.value = props.product?.sizes.length === 1 ? props.product.sizes[0].label : null
+  selectedSize.value = props.product?.sizes.length === 1 ? props.product.sizes[0] : null
 })
 
 const sizeGroups = computed(() => {
@@ -105,11 +112,14 @@ const sizeGroups = computed(() => {
 const state = computed(() => props.product ? windowState(props.product) : 'closed')
 const needsSize = computed(() => !!props.product?.sizes.length && !selectedSize.value)
 const canAdd = computed(() => state.value === 'open' && !needsSize.value)
-const unitPrice = computed(() => props.product ? unitPriceFor(props.product, selectedSize.value) : 0)
+const unitPrice = computed(() => props.product
+  ? unitPriceFor(props.product, selectedSize.value?.label ?? null, selectedSize.value?.group ?? null)
+  : 0)
 
 function addToBasket() {
   if (!props.product || !canAdd.value) return
-  basket.add(props.product.id, props.product.sizes.length ? selectedSize.value : null, quantity.value)
+  const size = props.product.sizes.length ? selectedSize.value : null
+  basket.add(props.product.id, size?.label ?? null, size?.group ?? null, quantity.value)
   added.value = true
   setTimeout(() => emit('close'), 700)
 }
