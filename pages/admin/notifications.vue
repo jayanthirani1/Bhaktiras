@@ -388,7 +388,7 @@ function applyDraftFromQuery() {
   const topic = text(query.topic, 40)
   if (title) form.title = title
   if (body) form.body = body
-  if (url.startsWith('/')) form.url = url
+  if (url.startsWith('/') && !url.startsWith('//') && !url.includes('\\')) form.url = url
   if (topic === 'all' || topic === 'announcements') form.topic = topic
 }
 

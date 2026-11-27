@@ -683,7 +683,9 @@ function readNotificationInput(data) {
   if (!ALLOWED_TOPICS.has(topic)) {
     throw new HttpsError('invalid-argument', 'Unknown audience.')
   }
-  if (!url.startsWith('/')) {
+  // A same-site path only: `//host` and `/\host` are read by browsers as
+  // another site, so a notification could otherwise link anywhere.
+  if (!url.startsWith('/') || url.startsWith('//') || url.includes('\\')) {
     throw new HttpsError('invalid-argument', 'Notification links must start with /.')
   }
   return { title, body, topic, url }
@@ -2543,6 +2545,12 @@ exports.syncNiyamChallengeTotals = onDocumentWritten(
 const SHOP_REFERENCE_PREFIX = 'BRSHOP-'
 const SHOP_MAX_LINES = 40
 const SHOP_MAX_QUANTITY = 99
+/**
+ * How many unpaid orders one account may have at once. Generous for a family
+ * ordering in several goes; stops a script or a stuck button filling the
+ * Treasury's list with orders nobody will pay for.
+ */
+const SHOP_MAX_UNPAID = 10
 
 /**
  * Real orders, and orders placed on the test site (bhaktiras-test). The test
@@ -2601,6 +2609,13 @@ function readShopOrderInput(data) {
   if (data?.acceptTerms !== true || !termsVersion) {
     throw new HttpsError('invalid-argument', 'Please agree to the pre-order terms.')
   }
+  // One id per checkout attempt, kept by the browser across retries, so a
+  // second tap after a slow or dropped connection returns the order the
+  // first one placed instead of placing it twice. Optional, for any browser
+  // still running the page from before this was added.
+  const requestId = typeof data?.requestId === 'string' && /^[A-Za-z0-9-]{8,64}$/.test(data.requestId)
+    ? data.requestId
+    : null
 
   const rawItems = Array.isArray(data?.items) ? data.items : []
   if (!rawItems.length) throw new HttpsError('invalid-argument', 'Your basket is empty.')
@@ -2624,7 +2639,7 @@ function readShopOrderInput(data) {
     }
     merged.set(key, line)
   }
-  return { name, email, phone, note, termsVersion, lines: [...merged.values()] }
+  return { name, email, phone, note, termsVersion, requestId, lines: [...merged.values()] }
 }
 
 async function placeOrder(request, mode) {
@@ -2636,7 +2651,26 @@ async function placeOrder(request, mode) {
   const productIds = [...new Set(input.lines.map(line => line.productId))]
   const now = new Date()
 
+  const requestRef = input.requestId ? db.doc(`shopOrderRequests/${uid}_${input.requestId}`) : null
+  // One equality filter, so no composite index is needed; status is checked here.
+  const ownOrdersQuery = db.collection('shopOrders').where('userId', '==', uid)
+
   const reference = await db.runTransaction(async (tx) => {
+    if (requestRef) {
+      const requestSnap = await tx.get(requestRef)
+      if (requestSnap.exists) return requestSnap.data().reference
+    }
+    const ownOrders = await tx.get(ownOrdersQuery)
+    const unpaid = ownOrders.docs.filter((doc) => {
+      const order = doc.data()
+      return order.status === 'awaiting_payment' && (order.test === true) === mode.test
+    }).length
+    if (unpaid >= SHOP_MAX_UNPAID) {
+      throw new HttpsError(
+        'failed-precondition',
+        `You have ${unpaid} orders waiting for payment. Please pay for those, or ask the Souvenir team, before placing another.`
+      )
+    }
     const counterSnap = await tx.get(counterRef)
     const productSnaps = await tx.getAll(...productIds.map(id => db.doc(`shopProducts/${id}`)))
     const products = new Map(productSnaps.map(snap => [snap.id, snap]))
@@ -2720,6 +2754,8 @@ async function placeOrder(request, mode) {
       updatedAt: createdAt,
       history: [{ at: now, byName: input.name, action: 'Order placed' }]
     })
+    // Closed to browsers (no rule matches it); only this function reads it.
+    if (requestRef) tx.create(requestRef, { reference: ref, createdAt })
     return ref
   })
 

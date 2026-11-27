@@ -146,6 +146,17 @@ const submitError = ref('')
 const termsOpen = ref(false)
 const isTestSite = useIsTestSite()
 
+/**
+ * Kept across retries of the same checkout — a second tap after a slow or
+ * dropped connection then returns the order the first one placed. Anything
+ * that changes what would be ordered starts a new attempt.
+ */
+const requestId = ref(newShopRequestId())
+watch(
+  () => [JSON.stringify(basket.lines.value), form.name, form.email, form.phone, form.note],
+  () => { requestId.value = newShopRequestId() }
+)
+
 const terms = computed(() => shopTermsList(settings.value))
 const allAvailable = computed(() => basket.detailed.value.every(entry => entry.available))
 const canSubmit = computed(() => !placing.value && basket.lines.value.length > 0 && allAvailable.value && form.acceptTerms)
@@ -177,7 +188,8 @@ async function submit() {
       phone: form.phone.trim(),
       note: form.note.trim(),
       acceptTerms: form.acceptTerms,
-      termsVersion: shopTermsVersion(settings.value)
+      termsVersion: shopTermsVersion(settings.value),
+      requestId: requestId.value
     }, isTestSite)
     basket.clear()
     void myOrders.load(true)

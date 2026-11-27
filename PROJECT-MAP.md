@@ -325,6 +325,23 @@ pre-orders** drafts, which open Push notifications pre-filled (admins only; noth
 until they press Send there). The Treasury list has **Mark paid** on each row, bulk Mark paid,
 and an *Unpaid 7+ days* filter.
 
+**Safeguards** (from a security and stability review):
+
+- *One order per checkout.* The basket sends a `requestId` that it keeps across retries;
+  `placeShopOrder` records it in `shopOrderRequests/{uid}_{id}` (closed to browsers) and
+  returns the original reference for a repeat, so a second tap on slow mandir wifi never
+  places a second order.
+- *At most 10 unpaid orders per account* (`SHOP_MAX_UNPAID`), counted separately for test
+  orders, so a stuck button or a script cannot fill the Treasury's list.
+- *No silent overwrites between staff.* Every staff change to an order runs in a transaction
+  that first checks the order's status and `updatedAt` are what that screen loaded; if
+  someone else changed it, nothing is written and the list reloads. Bulk Mark paid skips
+  (and names) any order changed meanwhile.
+- *CSV injection.* Text cells beginning `= + - @` are written with a leading apostrophe, so a
+  customer's name or note can never run as a spreadsheet formula.
+- `shopSettings` accepts only its known fields, each length-bounded, and only as `main`.
+- Product photos are scaled to 1600px and re-encoded in the browser before upload.
+
 **On the test site** (`bhaktiras-test`), sections that ship hidden are shown anyway
 (`withTestSitePreview` in `data/siteSections.ts`), because the on/off switch lives in the live
 database the test site shares. Its checkout calls `placeTestShopOrder`, which runs the same

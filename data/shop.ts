@@ -334,8 +334,15 @@ export function basketKey(line: Pick<ShopBasketLine, 'productId' | 'size' | 'gro
 
 // --- CSV ------------------------------------------------------------------
 
+/**
+ * A customer's name or note opens in Excel as a cell, and a cell beginning
+ * with = + - @ (or a tab or carriage return) is run as a formula — CSV
+ * injection. Text is prefixed with an apostrophe, which spreadsheets read as
+ * "treat as text" and do not display. Numbers are written as they are.
+ */
 function csvCell(value: unknown): string {
-  const text = value == null ? '' : String(value)
+  let text = value == null ? '' : String(value)
+  if (typeof value === 'string' && /^[=+\-@\t\r]/.test(text)) text = `'${text}`
   return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text
 }
 

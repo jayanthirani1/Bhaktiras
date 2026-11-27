@@ -189,6 +189,14 @@ export interface PlaceShopOrderInput {
   note: string
   acceptTerms: boolean
   termsVersion: string
+  /** Same id on a retry of the same checkout, so it cannot order twice. */
+  requestId: string
+}
+
+/** A fresh id for one checkout attempt. */
+export function newShopRequestId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID()
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`
 }
 
 /**
@@ -230,7 +238,7 @@ export function useShopVisible() {
   return computed(() => isSectionVisible('shop'))
 }
 
-let myOrdersInFlight: Promise<void> | null = null
+let myOrdersInFlight: { uid: string; promise: Promise<void> } | null = null
 
 /**
  * The signed-in devotee's own orders, newest first.
@@ -277,9 +285,14 @@ export function useMyShopOrders() {
       return
     }
     if (!force && loadedFor.value === uid) return
-    if (myOrdersInFlight && !force) return myOrdersInFlight
-    myOrdersInFlight = fetchOrders(uid).finally(() => { myOrdersInFlight = null })
-    return myOrdersInFlight
+    // Join a fetch already running for this same account; a different
+    // account (a quick sign-out and in) starts its own.
+    if (myOrdersInFlight && myOrdersInFlight.uid === uid && !force) return myOrdersInFlight.promise
+    if (loadedFor.value !== uid) orders.value = []
+    const entry = { uid, promise: fetchOrders(uid) }
+    entry.promise = entry.promise.finally(() => { if (myOrdersInFlight === entry) myOrdersInFlight = null })
+    myOrdersInFlight = entry
+    return entry.promise
   }
 
   const awaitingPayment = computed(() => orders.value.filter(order => order.status === 'awaiting_payment'))

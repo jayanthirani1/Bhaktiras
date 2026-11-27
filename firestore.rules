@@ -17,6 +17,11 @@ service cloud.firestore {
      * hold it implicitly. Only an admin can create one (see `shopStaff` below
      * and the `grantShopAccess` function), so the shop team cannot widen itself.
      */
+    /** An optional string field no longer than `max`. */
+    function shortText(data, key, max) {
+      return !(key in data) || (data[key] is string && data[key].size() <= max);
+    }
+
     function isShopStaff() {
       return isAdmin()
         || (
@@ -779,7 +784,21 @@ service cloud.firestore {
     // shows the bank details to the devotee who placed it.
     match /shopSettings/{id} {
       allow read: if true;
-      allow create, update: if isShopStaff();
+      allow create, update: if isShopStaff()
+        && id == 'main'
+        && request.resource.data.keys().hasOnly([
+          'bankAccountName', 'bankName', 'sortCode', 'accountNumber', 'intro',
+          'paymentInstructions', 'collectionInfo', 'terms', 'sizeGuideUrl', 'updatedAt'
+        ])
+        && shortText(request.resource.data, 'bankAccountName', 100)
+        && shortText(request.resource.data, 'bankName', 100)
+        && shortText(request.resource.data, 'sortCode', 20)
+        && shortText(request.resource.data, 'accountNumber', 30)
+        && shortText(request.resource.data, 'intro', 600)
+        && shortText(request.resource.data, 'paymentInstructions', 1000)
+        && shortText(request.resource.data, 'collectionInfo', 1000)
+        && shortText(request.resource.data, 'terms', 4000)
+        && shortText(request.resource.data, 'sizeGuideUrl', 1000);
       allow delete: if false;
     }
 

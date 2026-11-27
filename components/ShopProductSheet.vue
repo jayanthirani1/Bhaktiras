@@ -162,6 +162,7 @@ const visibleSizes = computed(() => {
 
 watch(() => props.product?.id, () => {
   imageIndex.value = 0
+  carousel.value?.scrollTo({ left: 0 })
   quantity.value = 1
   added.value = ''
   flashSizes.value = false
