@@ -18,6 +18,17 @@
       </div>
     </section>
 
+    <section class="admin-panel space-y-3">
+      <div>
+        <h2 class="font-display text-lg font-semibold text-[hsl(var(--primary))]">Size guide</h2>
+        <p class="mt-1 text-sm text-[hsl(var(--muted-foreground))]">
+          One size chart (adult and child) as an image. A "Size guide" link appears on every product that has sizes.
+          Leave empty to hide the link.
+        </p>
+      </div>
+      <AdminImageUpload v-model="form.sizeGuideUrl" folder="shop" />
+    </section>
+
     <section class="admin-panel space-y-4">
       <div>
         <h2 class="font-display text-lg font-semibold text-[hsl(var(--primary))]">Wording</h2>
@@ -41,16 +52,56 @@
       <button type="submit" class="admin-btn" :disabled="saving">{{ saving ? 'Saving…' : 'Save settings' }}</button>
       <span v-if="saved" class="text-sm font-semibold text-emerald-700">Saved.</span>
     </div>
+
+    <!-- Push notifications are a full-admin tool, so the shop team does not see this. -->
+    <section v-if="isAdminUser" class="admin-panel space-y-3">
+      <div>
+        <h2 class="font-display text-lg font-semibold text-[hsl(var(--primary))]">Announce pre-orders</h2>
+        <p class="mt-1 text-sm text-[hsl(var(--muted-foreground))]">
+          Opens Push notifications with a draft filled in. Nothing is sent until you review it and press Send there.
+        </p>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <NuxtLink :to="announceOpen" class="admin-btn-secondary">Draft "pre-orders are open"</NuxtLink>
+        <NuxtLink v-if="announceClosing" :to="announceClosing" class="admin-btn-secondary">Draft "closing soon"</NuxtLink>
+      </div>
+    </section>
   </form>
 </template>
 
 <script setup lang="ts">
 import type { ShopSettings } from '~/types'
-import { DEFAULT_SHOP_SETTINGS, SHOP_SETTINGS_FIELDS, shopTermsVersion } from '~/data/shop'
+import { DEFAULT_SHOP_SETTINGS, formatShopDate, SHOP_SETTINGS_FIELDS, shopTermsVersion, windowState } from '~/data/shop'
 
 definePageMeta({ layout: 'admin', middleware: 'admin' })
 
 const { settings, load } = useShopSettings()
+const { isAdminUser } = useAdminAccess()
+const { products, fetchAll: fetchProducts } = useShopAdminProducts()
+
+/** The soonest a live product stops taking pre-orders, for the reminder draft. */
+const soonestClose = computed(() => {
+  const now = new Date()
+  const dates = products.value
+    .filter(product => product.active && windowState(product, now) === 'open' && product.closesAt)
+    .map(product => product.closesAt as Date)
+  return dates.length ? new Date(Math.min(...dates.map(date => date.getTime()))) : null
+})
+
+function draftLink(title: string, body: string) {
+  return { path: '/admin/notifications', query: { title, body, url: '/shop', topic: 'announcements' } }
+}
+
+const announceOpen = computed(() => draftLink(
+  'Souvenir pre-orders are open',
+  'Pre-order Patotsav souvenirs in the Bhaktiras app and collect them at the mandir.'
+))
+const announceClosing = computed(() => soonestClose.value
+  ? draftLink(
+      'Souvenir pre-orders close soon',
+      `Pre-orders close on ${formatShopDate(soonestClose.value)}. Order and pay in time to get yours.`
+    )
+  : null)
 const { saving, error, save: saveSettings } = useShopAdminSettings()
 const form = reactive<ShopSettings>({ ...DEFAULT_SHOP_SETTINGS })
 const saved = ref(false)
@@ -76,6 +127,7 @@ async function save() {
 }
 
 onMounted(async () => {
+  void fetchProducts()
   await load(true)
   Object.assign(form, settings.value)
 })

@@ -9,7 +9,9 @@ import {
   serverTimestamp,
   setDoc,
   Timestamp,
+  runTransaction,
   updateDoc,
+  type DocumentData,
   type Firestore
 } from 'firebase/firestore'
 import { getFunctions, httpsCallable } from 'firebase/functions'
@@ -23,7 +25,21 @@ function requireDb(): Firestore {
   return db
 }
 
+/** Someone else saved this order after this screen loaded it. */
+class OrderChangedError extends Error {
+  constructor(reference: string) {
+    super(`${reference} was changed by someone else since this list loaded. It has been refreshed: check it and try again.`)
+  }
+}
+
+/** Status or last-saved time differ from what this screen holds. */
+function changedSince(order: ShopOrder, current: DocumentData) {
+  const saved = current.updatedAt?.toDate?.()?.getTime?.() ?? null
+  return current.status !== order.status || saved !== (order.updatedAt?.getTime() ?? null)
+}
+
 function messageOf(error: unknown) {
+  if (error instanceof OrderChangedError) return error.message
   const code = typeof error === 'object' && error && 'code' in error ? String((error as { code?: string }).code) : ''
   if (code.endsWith('permission-denied')) return 'You do not have permission to do that. Deploy firestore.rules if this is new.'
   return error instanceof Error ? error.message : String(error)
@@ -132,18 +148,32 @@ export function useShopAdminOrders() {
     return { at: Timestamp.now(), byName: actorName(), action, ...(detail ? { detail } : {}) }
   }
 
+  /**
+   * Every staff change goes through here, in a transaction that first checks
+   * the order is still as this screen last saw it. The Souvenir lead and the
+   * Treasury team work on the same orders, often at the same time at the
+   * mandir; without the check, one person's "Mark paid" could silently undo
+   * another's "Cancel". On a clash nothing is written and the list reloads.
+   */
   async function write(order: ShopOrder, changes: Record<string, unknown>, action: string, detail?: string) {
     saving.value = true
     error.value = ''
     try {
-      await updateDoc(doc(requireDb(), 'shopOrders', order.id), {
-        ...changes,
-        updatedAt: serverTimestamp(),
-        history: arrayUnion(historyEntry(action, detail))
+      const db = requireDb()
+      const ref = doc(db, 'shopOrders', order.id)
+      await runTransaction(db, async (tx) => {
+        const snap = await tx.get(ref)
+        if (!snap.exists() || changedSince(order, snap.data())) throw new OrderChangedError(order.reference)
+        tx.update(ref, {
+          ...changes,
+          updatedAt: serverTimestamp(),
+          history: arrayUnion(historyEntry(action, detail))
+        })
       })
       await fetchAll()
     } catch (e) {
       error.value = messageOf(e)
+      if (e instanceof OrderChangedError) await fetchAll()
       throw e
     } finally {
       saving.value = false
@@ -168,6 +198,58 @@ export function useShopAdminOrders() {
     await write(order, changes, action, `${SHOP_STATUS_LABELS[order.status]} → ${SHOP_STATUS_LABELS[status]}`)
   }
 
+  /**
+   * Marks several unpaid orders paid in one batch — matching a bank
+   * statement at the mandir. Orders already paid or cancelled are skipped, so
+   * a stale selection cannot reopen a cancelled order.
+   */
+  async function markManyPaid(list: ShopOrder[]): Promise<number> {
+    const eligible = list.filter(order => order.status === 'awaiting_payment')
+    if (!eligible.length) return 0
+    saving.value = true
+    error.value = ''
+    try {
+      const db = requireDb()
+      const by = actorName()
+      let marked = 0
+      const skipped: string[] = []
+      // A transaction re-reads each order first, so one changed by someone
+      // else since this list loaded is skipped rather than overwritten.
+      // Transactions hold 500 writes; chunk well under that.
+      for (let offset = 0; offset < eligible.length; offset += 100) {
+        const chunk = eligible.slice(offset, offset + 100)
+        await runTransaction(db, async (tx) => {
+          const snaps = await Promise.all(chunk.map(order => tx.get(doc(db, 'shopOrders', order.id))))
+          chunk.forEach((order, index) => {
+            const snap = snaps[index]
+            if (!snap.exists() || changedSince(order, snap.data())) {
+              skipped.push(order.reference)
+              return
+            }
+            tx.update(snap.ref, {
+              status: 'paid',
+              paidAt: serverTimestamp(),
+              paidBy: by,
+              updatedAt: serverTimestamp(),
+              history: arrayUnion(historyEntry('Marked paid', 'Awaiting payment → Paid (bulk)'))
+            })
+            marked++
+          })
+        })
+      }
+      await fetchAll()
+      if (skipped.length) {
+        error.value = `${skipped.join(', ')} changed since this list loaded and ${skipped.length === 1 ? 'was' : 'were'} not marked paid. Check ${skipped.length === 1 ? 'it' : 'them'} and try again.`
+      }
+      return marked
+    } catch (e) {
+      error.value = messageOf(e)
+      throw e
+    } finally {
+      saving.value = false
+    }
+  }
+
   async function saveEdits(order: ShopOrder, edits: { customer: ShopOrder['customer']; note: string; items: ShopOrderItem[] }) {
     const items = edits.items
       .filter(item => item.quantity > 0)
@@ -186,7 +268,7 @@ export function useShopAdminOrders() {
     )
   }
 
-  return { orders, loading, saving, error, fetchAll, setStatus, saveEdits }
+  return { orders, loading, saving, error, fetchAll, setStatus, saveEdits, markManyPaid }
 }
 
 export function useShopAdminSettings() {
@@ -199,6 +281,8 @@ export function useShopAdminSettings() {
     try {
       const payload: Record<string, unknown> = { updatedAt: serverTimestamp() }
       for (const field of SHOP_SETTINGS_FIELDS) payload[field.key] = (settings[field.key] || '').trim().slice(0, field.maxLength)
+      const guide = (settings.sizeGuideUrl || '').trim()
+      payload.sizeGuideUrl = /^https:\/\//.test(guide) ? guide.slice(0, 1000) : ''
       await setDoc(doc(requireDb(), 'shopSettings', SHOP_SETTINGS_DOC_ID), payload, { merge: true })
     } catch (e) {
       error.value = messageOf(e)

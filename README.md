@@ -128,6 +128,10 @@ and rules are the production ones, so scores and admin edits made on the test
 site are real. Functions and rules changes still need deploying to production
 before the test site can use them.
 
+The Shop is shown on the test site even while it is switched off on the live one, and orders
+placed there are **test orders** (`BRTEST-…`, via the `placeTestShopOrder` function) that the
+Treasury's figures and totals leave out. See the Shop section of `PROJECT-MAP.md`.
+
 ## Deploy on Firebase Hosting
 
 The app is configured to deploy as a **static site** to [Firebase Hosting](https://firebase.google.com/docs/hosting) (same project as your Firestore/Auth).

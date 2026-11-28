@@ -8,7 +8,7 @@ import {
   siteContentFromDocData,
   SITE_CONTENT_DOC_ID
 } from '~/data/siteContent'
-import { linkIsVisible, sectionForPath, siteSectionsFromSource } from '~/data/siteSections'
+import { linkIsVisible, sectionForPath, siteSectionsFromSource, withTestSitePreview } from '~/data/siteSections'
 
 /**
  * Where the admin-controlled shell — the section switches and the nav items —
@@ -162,7 +162,8 @@ export function useSiteContent() {
     return inFlight
   }
 
-  const sections = computed(() => content.value.sections)
+  const isTestSite = useRuntimeConfig().public.appEnv === 'test'
+  const sections = computed(() => withTestSitePreview(content.value.sections, isTestSite))
 
   function isSectionVisible(id: string) {
     return sections.value.find(section => section.id === id)?.visible !== false

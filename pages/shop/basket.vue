@@ -16,6 +16,13 @@
         </div>
 
         <form v-else class="space-y-5" @submit.prevent="submit">
+          <!-- Said up front, not after the items: finding out at the end of the
+               page that you have to sign in reads as a dead end. -->
+          <div v-if="!isLoggedIn" class="flex items-center justify-between gap-3 rounded-2xl border border-[hsl(var(--golden-300))] bg-[hsl(var(--golden-50))] p-4">
+            <p class="text-sm text-[hsl(var(--primary))]"><strong>Sign in to place your order.</strong> Your basket is saved.</p>
+            <NuxtLink to="/login?redirect=/shop/basket" class="btn-primary shrink-0 px-5 py-2 text-sm">Sign in</NuxtLink>
+          </div>
+
           <section class="card-surface p-5 sm:p-6">
             <p class="text-xs font-bold uppercase tracking-[0.16em] text-[hsl(var(--golden-900))]">Items</p>
             <ul class="mt-3 divide-y divide-[hsl(var(--border))]">
@@ -74,24 +81,48 @@
               </div>
             </section>
 
+            <!-- How you'll pay, before committing: knowing the next step makes
+                 placing a pre-order without paying feel safe. -->
+            <section class="card-surface p-5 sm:p-6">
+              <p class="text-xs font-bold uppercase tracking-[0.16em] text-[hsl(var(--golden-900))]">How you'll pay</p>
+              <ul class="mt-3 space-y-2 text-sm text-[hsl(var(--foreground))]">
+                <li class="flex gap-2"><IconBuildingBank class="mt-0.5 h-4 w-4 shrink-0 text-[hsl(var(--primary))]" />
+                  <span>By bank transfer<template v-if="settings.bankName"> to {{ settings.bankName }}</template>, using the order reference shown on the next screen.</span>
+                </li>
+                <li class="flex gap-2"><IconBuildingCommunity class="mt-0.5 h-4 w-4 shrink-0 text-[hsl(var(--primary))]" />
+                  <span>Or at the mandir.</span>
+                </li>
+                <li class="flex gap-2"><IconInfoCircle class="mt-0.5 h-4 w-4 shrink-0 text-[hsl(var(--primary))]" />
+                  <span>No payment is taken in the app. Items are ordered once paid.</span>
+                </li>
+              </ul>
+            </section>
+
             <section class="card-surface p-5 sm:p-6">
               <p class="text-xs font-bold uppercase tracking-[0.16em] text-[hsl(var(--golden-900))]">Pre-order terms</p>
-              <ol class="mt-3 list-decimal space-y-2 pl-5 text-sm leading-relaxed text-[hsl(var(--foreground))]">
+              <p class="mt-2 text-sm text-[hsl(var(--foreground))]">
+                Pre-order · pay by bank transfer or at the mandir · collect at the mandir · changes through the Souvenir team.
+              </p>
+              <button type="button" class="mt-2 text-sm font-semibold text-[hsl(var(--primary))] underline" :aria-expanded="termsOpen" @click="termsOpen = !termsOpen">
+                {{ termsOpen ? 'Hide full terms' : 'Read full terms' }}
+              </button>
+              <ol v-if="termsOpen" class="mt-3 list-decimal space-y-2 pl-5 text-sm leading-relaxed text-[hsl(var(--foreground))]">
                 <li v-for="(term, index) in terms" :key="index">{{ term }}</li>
               </ol>
-              <label class="mt-4 flex items-start gap-3 text-sm font-semibold text-[hsl(var(--primary))]">
+            </section>
+
+            <div class="space-y-3">
+              <label class="flex items-start gap-3 text-sm font-semibold text-[hsl(var(--primary))]">
                 <input v-model="form.acceptTerms" type="checkbox" required class="mt-0.5 h-5 w-5 shrink-0 rounded">
                 I agree to the pre-order terms
               </label>
-            </section>
-
-            <p v-if="submitError" role="alert" class="text-sm font-semibold text-red-600">{{ submitError }}</p>
-            <button type="submit" class="btn-primary w-full" :disabled="!canSubmit" :class="!canSubmit ? 'opacity-50' : ''">
-              {{ placing ? 'Placing your order…' : `Place pre-order · ${formatPence(basket.total.value)}` }}
-            </button>
-            <p class="text-center text-xs text-[hsl(var(--muted-foreground))]">
-              No payment is taken here. You will see your payment reference and bank details next.
-            </p>
+              <p v-if="!allAvailable" class="text-sm font-semibold text-red-600">Remove the items marked above to continue.</p>
+              <p v-if="submitError" role="alert" class="text-sm font-semibold text-red-600">{{ submitError }}</p>
+              <button type="submit" class="btn-primary w-full" :disabled="!canSubmit" :class="!canSubmit ? 'opacity-50' : ''">
+                {{ placing ? 'Placing your order…' : `Place pre-order · ${formatPence(basket.total.value)}` }}
+              </button>
+              <p v-if="isTestSite" class="text-center text-xs font-semibold text-red-700">Test site: this places a test order (BRTEST-…).</p>
+            </div>
           </template>
         </form>
       </ClientOnly>
@@ -100,7 +131,7 @@
 </template>
 
 <script setup lang="ts">
-import { IconArrowLeft, IconLock, IconShoppingBag } from '@tabler/icons-vue'
+import { IconArrowLeft, IconBuildingBank, IconBuildingCommunity, IconInfoCircle, IconLock, IconShoppingBag } from '@tabler/icons-vue'
 import { basketKey, formatPence, shopTermsList, shopTermsVersion, windowLabel } from '~/data/shop'
 
 const { user, userName, isLoggedIn } = useAuth()
@@ -112,6 +143,19 @@ const myOrders = useMyShopOrders()
 const form = reactive({ name: '', email: '', phone: '', note: '', acceptTerms: false })
 const placing = ref(false)
 const submitError = ref('')
+const termsOpen = ref(false)
+const isTestSite = useIsTestSite()
+
+/**
+ * Kept across retries of the same checkout — a second tap after a slow or
+ * dropped connection then returns the order the first one placed. Anything
+ * that changes what would be ordered starts a new attempt.
+ */
+const requestId = ref(newShopRequestId())
+watch(
+  () => [JSON.stringify(basket.lines.value), form.name, form.email, form.phone, form.note],
+  () => { requestId.value = newShopRequestId() }
+)
 
 const terms = computed(() => shopTermsList(settings.value))
 const allAvailable = computed(() => basket.detailed.value.every(entry => entry.available))
@@ -144,12 +188,14 @@ async function submit() {
       phone: form.phone.trim(),
       note: form.note.trim(),
       acceptTerms: form.acceptTerms,
-      termsVersion: shopTermsVersion(settings.value)
-    })
+      termsVersion: shopTermsVersion(settings.value),
+      requestId: requestId.value
+    }, isTestSite)
     basket.clear()
+    void myOrders.load(true)
     await navigateTo({ path: `/shop/orders/${reference}`, query: { placed: '1' } })
   } catch (error) {
-    submitError.value = explainShopError(error)
+    submitError.value = explainShopError(error, isTestSite)
   } finally {
     placing.value = false
   }

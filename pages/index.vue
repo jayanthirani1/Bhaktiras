@@ -53,6 +53,10 @@
       </div>
     </section>
 
+    <ClientOnly>
+      <ShopHomeBanner />
+    </ClientOnly>
+
     <HomeToday class="mb-10 md:mb-12" />
 
     <section class="mx-auto max-w-2xl px-4">

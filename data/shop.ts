@@ -68,10 +68,11 @@ export const DEFAULT_SHOP_SETTINGS: ShopSettings = {
   intro: 'Celebrate 10 years with Ghanshyam Maharaj. Pre-order souvenirs for the Patotsav and collect them at the mandir.',
   paymentInstructions: 'Please pay by bank transfer using your order reference, or pay at the mandir. Your order is confirmed once the Treasury team has received payment.',
   collectionInfo: 'Collect from the mandir during evening sabha, usually weekends 6–9pm. We will message you on WhatsApp when your items are ready.',
-  terms: DEFAULT_SHOP_TERMS
+  terms: DEFAULT_SHOP_TERMS,
+  sizeGuideUrl: ''
 }
 
-export const SHOP_SETTINGS_FIELDS: Array<{ key: keyof ShopSettings; label: string; multiline?: boolean; maxLength: number; copy?: boolean }> = [
+export const SHOP_SETTINGS_FIELDS: Array<{ key: Exclude<keyof ShopSettings, 'sizeGuideUrl'>; label: string; multiline?: boolean; maxLength: number; copy?: boolean }> = [
   { key: 'bankAccountName', label: 'Account name', maxLength: 100 },
   { key: 'bankName', label: 'Bank', maxLength: 100 },
   { key: 'sortCode', label: 'Sort code', maxLength: 20 },
@@ -95,6 +96,10 @@ export function shopSettingsFromSource(raw: unknown): ShopSettings {
     if (value) out[field.key] = value
     else if (!field.copy) out[field.key] = ''
   }
+  // Only an absolute https image is ever rendered: the URL reaches an <img>
+  // and a link straight from a document.
+  const guide = typeof data.sizeGuideUrl === 'string' ? data.sizeGuideUrl.trim() : ''
+  out.sizeGuideUrl = /^https:\/\//.test(guide) ? guide : ''
   return out
 }
 
@@ -303,6 +308,7 @@ export function mapShopOrder(id: string, data: Record<string, unknown>): ShopOrd
     paidAt: toDate(data.paidAt),
     paidBy: typeof data.paidBy === 'string' ? data.paidBy : null,
     termsVersion: str(data.termsVersion),
+    test: data.test === true,
     createdAt: toDate(data.createdAt),
     updatedAt: toDate(data.updatedAt),
     history
@@ -328,8 +334,15 @@ export function basketKey(line: Pick<ShopBasketLine, 'productId' | 'size' | 'gro
 
 // --- CSV ------------------------------------------------------------------
 
+/**
+ * A customer's name or note opens in Excel as a cell, and a cell beginning
+ * with = + - @ (or a tab or carriage return) is run as a formula — CSV
+ * injection. Text is prefixed with an apostrophe, which spreadsheets read as
+ * "treat as text" and do not display. Numbers are written as they are.
+ */
 function csvCell(value: unknown): string {
-  const text = value == null ? '' : String(value)
+  let text = value == null ? '' : String(value)
+  if (typeof value === 'string' && /^[=+\-@\t\r]/.test(text)) text = `'${text}`
   return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text
 }
 
@@ -359,12 +372,12 @@ export function ordersToCsv(orders: ShopOrder[]): string {
   const header = [
     'Reference', 'Order date', 'Status', 'Customer name', 'Phone', 'Email', 'Customer note',
     'Product', 'Category', 'Size', 'Adult/Child', 'Quantity', 'Unit price (£)', 'Line total (£)',
-    'Order total (£)', 'Paid on', 'Marked paid by'
+    'Order total (£)', 'Paid on', 'Marked paid by', 'Test order'
   ]
   const rows: unknown[][] = [header]
   for (const order of orders) {
     const base = [order.reference, isoDate(order.createdAt), SHOP_STATUS_LABELS[order.status], order.customer.name, phoneForCsv(order.customer.phone), order.customer.email, order.note]
-    const tail = [poundsPlain(order.total), isoDate(order.paidAt), order.paidBy ?? '']
+    const tail = [poundsPlain(order.total), isoDate(order.paidAt), order.paidBy ?? '', order.test ? 'Yes' : '']
     if (!order.items.length) rows.push([...base, '', '', '', '', 0, '', '', ...tail])
     for (const item of order.items) {
       rows.push([

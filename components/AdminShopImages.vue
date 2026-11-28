@@ -43,6 +43,43 @@ function storage(): FirebaseStorage {
   return provided || getStorage(getApp())
 }
 
+/**
+ * Product photos are shown on phones, often on mobile data at the mandir. A
+ * photo straight off a phone camera is 3–8 MB; scaled to 1600px on its long
+ * side and re-encoded it is a few hundred KB and looks the same on screen.
+ * GIFs (possibly animated) and images already small enough go up untouched,
+ * as does anything the browser cannot decode.
+ */
+const MAX_EDGE = 1600
+
+async function shrinkForWeb(file: File): Promise<{ blob: Blob; type: string; name: string }> {
+  const original = { blob: file as Blob, type: file.type, name: file.name }
+  if (file.type === 'image/gif' || typeof createImageBitmap !== 'function') return original
+  try {
+    const bitmap = await createImageBitmap(file)
+    const scale = Math.min(1, MAX_EDGE / Math.max(bitmap.width, bitmap.height))
+    if (scale === 1 && file.size < 600 * 1024) {
+      bitmap.close()
+      return original
+    }
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.round(bitmap.width * scale)
+    canvas.height = Math.round(bitmap.height * scale)
+    const context = canvas.getContext('2d')
+    if (!context) return original
+    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
+    bitmap.close()
+    // PNG keeps transparency (logos on clear backgrounds); photos go to JPEG.
+    const type = file.type === 'image/png' ? 'image/png' : 'image/jpeg'
+    const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, type, 0.85))
+    if (!blob || blob.size >= file.size) return original
+    const name = type === 'image/jpeg' ? file.name.replace(/\.[a-z0-9]+$/i, '') + '.jpg' : file.name
+    return { blob, type, name }
+  } catch {
+    return original
+  }
+}
+
 function move(index: number, by: number) {
   const next = [...props.modelValue]
   const [item] = next.splice(index, 1)
@@ -65,9 +102,10 @@ async function onFiles(event: Event) {
       if (urls.length >= SHOP_MAX_IMAGES) break
       if (!/^image\/(jpeg|png|webp|gif)$/.test(file.type)) throw new Error(`${file.name}: please choose a JPG, PNG, WebP or GIF image.`)
       if (file.size > 8 * 1024 * 1024) throw new Error(`${file.name} is over 8 MB.`)
-      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_') || 'photo.jpg'
+      const upload = await shrinkForWeb(file)
+      const safeName = upload.name.replace(/[^a-zA-Z0-9._-]/g, '_') || 'photo.jpg'
       const objectRef = storageRef(storage(), `shop/${Date.now()}-${safeName}`)
-      await uploadBytes(objectRef, file, { contentType: file.type })
+      await uploadBytes(objectRef, upload.blob, { contentType: upload.type })
       urls.push(await getDownloadURL(objectRef))
       emit('update:modelValue', [...urls])
     }

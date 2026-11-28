@@ -669,6 +669,8 @@ export interface ShopOrder {
   paidAt: Date | null
   paidBy: string | null
   termsVersion: string
+  /** Placed on the test site: a BRTEST- reference, left out of totals. */
+  test: boolean
   createdAt: Date | null
   updatedAt: Date | null
   history: ShopOrderHistoryEntry[]
@@ -684,6 +686,8 @@ export interface ShopSettings {
   paymentInstructions: string
   collectionInfo: string
   terms: string
+  /** One size chart image for the shop (https URL), or ''. */
+  sizeGuideUrl: string
 }
 
 export interface ShopStaffRecord {
